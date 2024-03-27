@@ -12,3 +12,22 @@ A.1.7 Punctuators
 punctuator: one of
     [](){}.->
     ++ -- & * + - ~ !
+
+declaration:
+    declaration-specifiers init-declarator-list_opt
+
+declaration-specifiers:
+    type-specifier declaration-specifiers_opt
+
+type-specifier:
+    void
+    char
+    short
+    int
+    long
+    float
+    double
+    signed
+    unsigned
+    _Bool
+    _Complex

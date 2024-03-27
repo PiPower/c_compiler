@@ -17,6 +17,7 @@ public:
     bool isDigit(const char& c);
     bool isAlpha(const char& c);
     bool isAlphaDigitFloor(const char& c);
+    Token getCurrentToken();
 private:
     std::vector<Token> tokenStream;
     unsigned int currentToken;

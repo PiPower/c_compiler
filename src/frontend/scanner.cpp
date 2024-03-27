@@ -10,8 +10,6 @@ currentToken(0)
 {
     keywordMapInit();
 
-
-
     unsigned int i =0;
     unsigned int line = 0;
     while (sourceCode[i] != '\0')
@@ -23,9 +21,15 @@ currentToken(0)
         }
         if(parseIdentifier(sourceCode, i, line))
         {
+            i++;
             continue;
         }
-
+        if(sourceCode[i] == '\n')
+        {
+            line++;
+            i++;
+            continue;
+        }
         i++;
     }
     
@@ -35,6 +39,7 @@ currentToken(0)
 void Scanner::keywordMapInit()
 {
     keywordMap["if"] = KeywordType::IF;
+    keywordMap["int"] = KeywordType::INT;
 }
 
 bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int &line)
@@ -108,4 +113,9 @@ bool Scanner::isAlpha(const char &c)
 bool Scanner::isAlphaDigitFloor(const char &c)
 {
     return isDigit(c) || isAlpha(c) || c == '_';
+}
+Token Scanner::getCurrentToken()
+{
+    currentToken++;
+    return tokenStream[currentToken - 1];
 }
