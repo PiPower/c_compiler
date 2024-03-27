@@ -1,0 +1,7 @@
+Currently supported grammar
+
+Scanner:
+
+token:
+    keyword
+    constant

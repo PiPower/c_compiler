@@ -7,5 +7,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
+file(GLOB frontendSources ./frontend/*.cpp)
 add_executable(c_compiler	main.cpp
-							compiler.cpp)
+							compiler.cpp
+							${frontendSources})
