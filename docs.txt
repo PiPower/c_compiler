@@ -1,7 +1,14 @@
-Currently supported grammar
+Currently supported grammar (full grammar: https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf)
 
-Scanner:
-
+A.1 Lexical grammar
+A.1.1 Lexical elements
 token:
     keyword
     constant
+    punctuator
+
+
+A.1.7 Punctuators
+punctuator: one of
+    [](){}.->
+    ++ -- & * + - ~ !

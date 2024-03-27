@@ -3,7 +3,7 @@
 
 enum class TokenType
 {
-    EOF,
+    END_OF_FILE,
     KEYWORD,
     IDENTIFIER,
     CONSTANT,
@@ -86,7 +86,7 @@ struct Token
         PunctuatorType pType; //if punctuator
         ConstantType cType; //if constant
     };
-    char* data = nullptr; //other context dependent data
+    void* data = nullptr; //other context dependent data
 };
 
 #endif
