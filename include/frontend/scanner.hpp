@@ -18,10 +18,11 @@ public:
     bool isAlpha(const char& c);
     bool isAlphaDigitFloor(const char& c);
     Token getCurrentToken();
+    void consume(TokenType type);
 private:
     std::vector<Token> tokenStream;
     unsigned int currentToken;
-    std::unordered_map<std::string, KeywordType> keywordMap;
+    std::unordered_map<std::string, TokenType> keywordMap;
 };
 
 #endif

@@ -3,21 +3,19 @@
 
 #include <vector>
 #include "./scanner.hpp"
-
-enum class NodeType
-{
-
-};
+#include "./parser_utils.hpp"
 
 struct AstNode
 {
     NodeType nodeType;
     std::vector<AstNode*> children;
+    NodeDataType nodeDataType;
 };
 
 
 std::vector<AstNode*> parse(Scanner& scanner);
-
 AstNode* parseDeclaration(Scanner& scanner, Token type);
-inline bool isTypeSpecifier(Token& token);
+AstNode* parseDeclarator(Scanner& scanner, Token token);
+AstNode* parseDirectDeclarator(Scanner& scanner, Token token);
+
 #endif

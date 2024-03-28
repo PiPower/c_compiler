@@ -12,12 +12,31 @@ A.1.7 Punctuators
 punctuator: one of
     [](){}.->
     ++ -- & * + - ~ !
+    ; 
+
+A.2.2 Declarations
 
 declaration:
-    declaration-specifiers init-declarator-list_opt
+    declaration-specifiers init-declarator-list_opt ;
 
 declaration-specifiers:
     type-specifier declaration-specifiers_opt
+
+init-declarator-list:
+    init-declarator
+    
+init-declarator:
+    declarator
+    declarator = initializer
+
+initializer:
+    assignment-expression
+
+declarator:
+    direct-declarator
+
+direct-declarator:
+    identifier
 
 type-specifier:
     void

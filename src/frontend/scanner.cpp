@@ -14,6 +14,15 @@ currentToken(0)
     unsigned int line = 0;
     while (sourceCode[i] != '\0')
     {
+        if(sourceCode[i] == ' ' ||  sourceCode[i] == '\t' ||  sourceCode[i] == '\r' || sourceCode[i] == '\n')
+        {
+            if( sourceCode[i] == '\n')
+            {
+                line++;
+            }
+            i++;
+            continue;
+        }
         if(parsePunctuators(sourceCode, i, line))
         {
             i++;
@@ -21,13 +30,6 @@ currentToken(0)
         }
         if(parseIdentifier(sourceCode, i, line))
         {
-            i++;
-            continue;
-        }
-        if(sourceCode[i] == '\n')
-        {
-            line++;
-            i++;
             continue;
         }
         i++;
@@ -38,31 +40,34 @@ currentToken(0)
 
 void Scanner::keywordMapInit()
 {
-    keywordMap["if"] = KeywordType::IF;
-    keywordMap["int"] = KeywordType::INT;
+    keywordMap["if"] = TokenType::IF;
+    keywordMap["int"] = TokenType::INT;
 }
 
 bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int &line)
 {
     Token token;
-    token.type = TokenType::PUNCTUATOR;
     token.line = line;
     switch (c[index])
     {
     case '*':
-        token.pType = PunctuatorType::STAR;
+        token.type = TokenType::STAR;
         tokenStream.push_back(token);
         return true;
     case '+':
-        token.pType = PunctuatorType::PLUS;
+        token.type = TokenType::PLUS;
         tokenStream.push_back(token);
         return true;
     case '-':
-        token.pType = PunctuatorType::MINUS;
+        token.type = TokenType::MINUS;
         tokenStream.push_back(token);
         return true;
     case '\\':
-        token.pType = PunctuatorType::SLASH;
+        token.type = TokenType::SLASH;
+        tokenStream.push_back(token);
+        return true;
+    case ';':
+        token.type = TokenType::SEMICOLON;
         tokenStream.push_back(token);
         return true;
     }
@@ -83,12 +88,11 @@ bool Scanner::parseIdentifier(const char* c, unsigned int& index, unsigned int& 
         index++;
     }
     
-    unordered_map<std::string, KeywordType>::iterator iter = keywordMap.find(currentString);
+    unordered_map<std::string, TokenType>::iterator iter = keywordMap.find(currentString);
     if(iter != keywordMap.end())
     {
         Token token;
-        token.type = TokenType::KEYWORD;
-        token.kType = iter->second;
+        token.type = iter->second;
         token.line = line;
         tokenStream.push_back(token);
         return true;
@@ -98,6 +102,7 @@ bool Scanner::parseIdentifier(const char* c, unsigned int& index, unsigned int& 
     token.type = TokenType::IDENTIFIER;
     token.line = line;
     token.data = new string(currentString);
+    tokenStream.push_back(token);
     return true;
     
 }
@@ -108,7 +113,7 @@ bool Scanner::isDigit(const char& c)
 }
 bool Scanner::isAlpha(const char &c)
 {
-    return 'A' <= c  && c <= 'z';
+    return ('A' <= c  && c <= 'Z') || ('a' <= c  && c <= 'z' );
 }
 bool Scanner::isAlphaDigitFloor(const char &c)
 {
@@ -119,3 +124,14 @@ Token Scanner::getCurrentToken()
     currentToken++;
     return tokenStream[currentToken - 1];
 }
+
+ void Scanner::consume(TokenType type)
+ {
+    if(tokenStream[currentToken].type == type)
+    {
+        currentToken++;
+        return;
+    }
+    fprintf(stdout, "unexpected token at line %d", tokenStream[currentToken].line);
+    exit(-1);
+ }
