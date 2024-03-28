@@ -12,6 +12,12 @@ vector<AstNode*> parse(Scanner& scanner)
         {
             instructions.push_back(parseDeclaration(scanner));
         }
+        else
+        {
+            instructions.push_back(parseExpression(scanner));
+        }
+        
+
     }
     
     return instructions;

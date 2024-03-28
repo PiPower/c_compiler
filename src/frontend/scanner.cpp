@@ -1,6 +1,7 @@
 #include "../../include/frontend/scanner.hpp"
 #include <stdio.h>
 #include <stdlib.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -52,26 +53,30 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
 {
     Token token;
     token.line = line;
+    token.type = TokenType::NONE;
     switch (c[index])
     {
     case '*':
         token.type = TokenType::STAR;
-        tokenStream.push_back(token);
-        return true;
+        break;
     case '+':
         token.type = TokenType::PLUS;
-        tokenStream.push_back(token);
-        return true;
+        break;
     case '-':
         token.type = TokenType::MINUS;
-        tokenStream.push_back(token);
-        return true;
+        break;
     case '\\':
         token.type = TokenType::SLASH;
-        tokenStream.push_back(token);
-        return true;
+        break;
     case ';':
         token.type = TokenType::SEMICOLON;
+        break;
+    case '%':
+        token.type = TokenType::PERCENT;
+        break;
+    }
+    if( token.type != TokenType::NONE)
+    {
         tokenStream.push_back(token);
         return true;
     }
@@ -139,17 +144,27 @@ bool Scanner::isDigit(const char &c)
 {
     return '0' <= c  && c <= '9';
 }
+
 bool Scanner::isAlpha(const char &c)
 {
     return ('A' <= c  && c <= 'Z') || ('a' <= c  && c <= 'z' );
 }
+
 bool Scanner::isAlphaDigitFloor(const char &c)
 {
     return isDigit(c) || isAlpha(c) || c == '_';
 }
+
+
+bool Scanner::currentTokenOneOf(std::vector<TokenType> types)
+{
+    auto iter = find(types.begin(), types.end(), tokenStream[currentToken].type);
+    return iter != types.end();
+}
+
 Token Scanner::getCurrentToken()
 {
-    return tokenStream[currentToken ];
+    return tokenStream[currentToken];
 }
 
 void Scanner::incrementTokenId()
