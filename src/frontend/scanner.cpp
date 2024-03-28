@@ -32,6 +32,10 @@ currentToken(0)
         {
             continue;
         }
+        if(parseConstant(sourceCode, i, line))
+        {
+            continue;
+        }
         i++;
     }
     
@@ -101,13 +105,37 @@ bool Scanner::parseIdentifier(const char* c, unsigned int& index, unsigned int& 
     Token token;
     token.type = TokenType::IDENTIFIER;
     token.line = line;
-    token.data = new string(currentString);
+    token.context.data = new string(currentString);
     tokenStream.push_back(token);
     return true;
     
 }
 
-bool Scanner::isDigit(const char& c)
+bool Scanner::parseConstant(const char *c, unsigned int &index, unsigned int &line)
+{
+    if( ! ('1' <= c[index] && c[index] <='9'))
+    {
+        return false;
+    }
+
+
+    int value = 0;
+    while (isDigit(c[index]))
+    {
+        value *= 10;
+        value += (int)c[index] - (int)'0';
+        index++;
+    }
+    
+
+    Token token;
+    token.type = TokenType::CONSTANT;
+    token.line = line;
+    token.context.int_32 = value;
+    tokenStream.push_back(token);
+    return true;
+}
+bool Scanner::isDigit(const char &c)
 {
     return '0' <= c  && c <= '9';
 }
@@ -121,12 +149,22 @@ bool Scanner::isAlphaDigitFloor(const char &c)
 }
 Token Scanner::getCurrentToken()
 {
-    currentToken++;
-    return tokenStream[currentToken - 1];
+    return tokenStream[currentToken ];
 }
 
- void Scanner::consume(TokenType type)
- {
+void Scanner::incrementTokenId()
+{
+    currentToken++;
+}
+
+Token Scanner::popToken()
+{
+    currentToken++;
+    return tokenStream[currentToken - 1];
+
+}
+void Scanner::consume(TokenType type)
+{
     if(tokenStream[currentToken].type == type)
     {
         currentToken++;
