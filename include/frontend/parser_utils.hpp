@@ -9,7 +9,7 @@ enum class NodeType
     DECLARATION,
 //basic math ops
     MULTIPLY, DIVIDE, DIVIDE_MODULO,
-    ADD, SUBTRACT
+    ADD, SUBTRACT, L_SHIFT, R_SHIFT
 };
 
 enum class NodeDataType

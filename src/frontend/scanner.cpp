@@ -74,6 +74,33 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
     case '%':
         token.type = TokenType::PERCENT;
         break;
+    case '=':
+        token.type = TokenType::EQUAL;
+        break;
+    case '<':
+        switch (c[index + 1])
+        {
+        case '<':
+            token.type = TokenType::L_SHIFT;
+            index++;
+            break;
+        default:
+            token.type = TokenType::LESS;
+            break;
+        }
+        break;
+    case '>':
+        switch (c[index + 1])
+        {
+        case '>':
+            token.type = TokenType::R_SHIFT;
+            index++;
+            break;
+        default:
+            token.type = TokenType::GREATER;
+            break;
+        }
+        break;
     }
     if( token.type != TokenType::NONE)
     {
@@ -178,6 +205,11 @@ Token Scanner::popToken()
     return tokenStream[currentToken - 1];
 
 }
+Token Scanner::peekToken()
+{
+    return tokenStream[currentToken + 1];
+}
+
 void Scanner::consume(TokenType type)
 {
     if(tokenStream[currentToken].type == type)

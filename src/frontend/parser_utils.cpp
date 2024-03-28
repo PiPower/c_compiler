@@ -24,6 +24,10 @@ NodeType tokenMathTypeToNodeType(const Token token)
         return NodeType::DIVIDE_MODULO;
     case TokenType::STAR :
         return NodeType::MULTIPLY;
+    case TokenType::L_SHIFT :
+        return NodeType::L_SHIFT;
+    case TokenType::R_SHIFT :
+        return NodeType::R_SHIFT;
     }
 
     fprintf(stdout, "unexpected token at line %d", token.line);

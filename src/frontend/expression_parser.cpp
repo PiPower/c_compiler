@@ -70,8 +70,15 @@ static AstNode* additiveExpression(Scanner& scanner)
     AstNode* root = multiplicativeExpression(scanner);
     return parseLoop(scanner, multiplicativeExpression, root, {TokenType::PLUS, TokenType::MINUS});
 }
+
+static AstNode* shiftExpression(Scanner& scanner)
+{
+    AstNode* root = additiveExpression(scanner);
+    return parseLoop(scanner, additiveExpression, root, {TokenType::L_SHIFT, TokenType::R_SHIFT});
+}
+
 AstNode* parseExpression(Scanner& scanner)
 {
-    return additiveExpression(scanner);
+    return shiftExpression(scanner);
 
 }

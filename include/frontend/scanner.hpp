@@ -19,11 +19,12 @@ public:
     bool isDigit(const char& c);
     bool isAlpha(const char& c);
     bool isAlphaDigitFloor(const char& c);
-    
+
     bool currentTokenOneOf(std::vector<TokenType> types);
     Token getCurrentToken();
     void incrementTokenId();
     Token popToken();
+    Token peekToken();
     void consume(TokenType type);
 private:
     std::vector<Token> tokenStream;
