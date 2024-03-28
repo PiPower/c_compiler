@@ -33,7 +33,11 @@ struct Token
 {
     TokenType type;
     unsigned int line;
-    void* data = nullptr; //other context dependent data
+    union
+    {
+    void* data; //other context dependent data
+    int int_32;
+    } context;
 };
 
 #endif

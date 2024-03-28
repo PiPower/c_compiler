@@ -4,6 +4,7 @@
 NodeDataType transformToDataType(Scanner& scanner, Token token)
 {
     if(token.type == TokenType::INT) return NodeDataType::INT_32;
+    return NodeDataType::NONE;
 }
 
 bool isTypeSpecifier(Token &token)

@@ -10,12 +10,19 @@ struct AstNode
     NodeType nodeType;
     std::vector<AstNode*> children;
     NodeDataType nodeDataType;
+    union
+    {
+        void* arbitraryData;
+        int int_32;
+    } context;
+    
 };
 
 
 std::vector<AstNode*> parse(Scanner& scanner);
-AstNode* parseDeclaration(Scanner& scanner, Token type);
-AstNode* parseDeclarator(Scanner& scanner, Token token);
-AstNode* parseDirectDeclarator(Scanner& scanner, Token token);
+AstNode* parseExpression(Scanner& scanner);
+AstNode* parseDeclaration(Scanner& scanner);
+AstNode* parseDeclarator(Scanner& scanner);
+AstNode* parseDirectDeclarator(Scanner& scanner);
 
 #endif

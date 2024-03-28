@@ -5,7 +5,8 @@
 enum class NodeType
 {
     IDENTIFIER,
-    DECLARATION
+    CONSTANT,
+    DECLARATION,
 };
 
 enum class NodeDataType
