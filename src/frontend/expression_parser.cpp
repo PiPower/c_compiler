@@ -167,5 +167,5 @@ AstNode* parseExpression(Scanner& scanner)
 
 AstNode* parseConstantExpression(Scanner& scanner)
 {
-    return conditionalExpression(scanner)
+    return conditionalExpression(scanner);
 }
