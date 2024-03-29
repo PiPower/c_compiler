@@ -23,11 +23,11 @@ struct AstNode
 
 
 std::vector<AstNode*> parse(Scanner& scanner);
+// parser for expressions
 AstNode* parseExpression(Scanner& scanner);
 AstNode* parseConstantExpression(Scanner& scanner);
-
+AstNode* assignmentExpression(Scanner& scanner);
+// parser for declarations
 AstNode* parseDeclaration(Scanner& scanner);
-AstNode* parseDeclarator(Scanner& scanner);
-AstNode* parseDirectDeclarator(Scanner& scanner);
 
 #endif

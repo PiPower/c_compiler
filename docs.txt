@@ -16,20 +16,21 @@ punctuator: one of
 
 A.2.2 Declarations
 
-declaration:
+(6.7)declaration:
     declaration-specifiers init-declarator-list_opt ;
 
-declaration-specifiers:
+(6.7)declaration-specifiers:
     type-specifier declaration-specifiers_opt
 
-init-declarator-list:
+(6.7)init-declarator-list:
     init-declarator
+    init-declarator-list , init-declarator
     
-init-declarator:
+(6.7)init-declarator:
     declarator
     declarator = initializer
 
-initializer:
+(6.7.8) initializer:
     assignment-expression
 
 declarator:
@@ -38,7 +39,8 @@ declarator:
 direct-declarator:
     identifier
 
-type-specifier:
+
+(6.7.2) type-specifier:
     void
     char
     short
@@ -50,3 +52,71 @@ type-specifier:
     unsigned
     _Bool
     _Complex
+
+
+A.2 Phrase structure grammar
+A.2.1 Expressions
+(6.5.1) primary-expression:
+    identifier
+    constant
+    string-literal
+(6.5.2) postfix-expression:
+    primary-expression
+
+(6.5.3) unary-expression:
+    postfix-expression
+
+(6.5.4) cast-expression:
+    unary-expression
+
+(6.5.5) multiplicative-expression:
+    cast-expression
+    multiplicative-expression * cast-expression
+    multiplicative-expression / cast-expression
+    multiplicative-expression % cast-expression
+
+(6.5.6) additive-expression:
+    multiplicative-expression
+    additive-expression + multiplicative-expression
+    additive-expression - multiplicative-expression
+
+(6.5.7) shift-expression:
+    additive-expression
+    shift-expression << additive-expression
+    shift-expression >> additive-expression
+
+(6.5.8) relational-expression:
+    shift-expression
+    relational-expression < shift-expression
+    relational-expression > shift-expression
+    relational-expression <= shift-expression
+    relational-expression >= shift-expression
+
+(6.5.9) equality-expression:
+    relational-expression
+    equality-expression == relational-expression
+    equality-expression != relational-expression
+
+(6.5.10) AND-expression:
+    equality-expression
+    AND-expression & equality-expression
+
+(6.5.11) exclusive-OR-expression:
+    AND-expression
+    exclusive-OR-expression ^ AND-expression
+
+(6.5.12) inclusive-OR-expression:
+    exclusive-OR-expression
+    inclusive-OR-expression | exclusive-OR-expression
+
+(6.5.13) logical-AND-expression:
+    inclusive-OR-expression
+    logical-AND-expression && inclusive-OR-expression
+
+(6.5.14) logical-OR-expression:
+    logical-AND-expression
+    logical-OR-expression || logical-AND-expression
+    
+(6.5.15) conditional-expression:
+    logical-OR-expression
+    logical-OR-expression ? expression : conditional-expression

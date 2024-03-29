@@ -142,7 +142,7 @@ static AstNode* conditionalExpression(Scanner& scanner)
 }
 
 // assignment is right to left so we cannot use parseLoop
-static AstNode* assignmentExpression(Scanner& scanner)
+AstNode* assignmentExpression(Scanner& scanner)
 {
     AstNode* root = conditionalExpression(scanner);
     if (!scanner.currentTokenOneOf(assignmentType))

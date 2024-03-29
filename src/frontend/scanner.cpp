@@ -197,9 +197,16 @@ bool Scanner::parseIdentifier(const char* c, unsigned int& index, unsigned int& 
 
 bool Scanner::parseConstant(const char *c, unsigned int &index, unsigned int &line)
 {
-    if( ! ('1' <= c[index] && c[index] <='9'))
+    if( ! ('0' <= c[index] && c[index] <='9'))
     {
         return false;
+    }
+
+
+    if(c[index] == '0' &&  ('0' <= c[index + 1] && c[index + 1] <='9'))
+    {
+        fprintf(stdout, "incorrect integer definition at line %d", line);
+        exit(-1);
     }
 
 
@@ -262,6 +269,15 @@ Token Scanner::peekToken()
     return tokenStream[currentToken + 1];
 }
 
+bool Scanner::match(TokenType type)
+{
+    if(tokenStream[currentToken].type == type)
+    {
+        currentToken++;
+        return true;
+    }
+    return false;
+}
 void Scanner::consume(TokenType type)
 {
     if(tokenStream[currentToken].type == type)

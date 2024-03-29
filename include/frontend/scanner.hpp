@@ -25,6 +25,7 @@ public:
     void incrementTokenId();
     Token popToken();
     Token peekToken();
+    bool match(TokenType type);
     void consume(TokenType type);
 private:
     std::vector<Token> tokenStream;

@@ -7,7 +7,7 @@ NodeDataType transformToDataType(Scanner& scanner, Token token)
     return NodeDataType::NONE;
 }
 
-bool isTypeSpecifier(Token &token)
+bool isTypeSpecifier(Token token)
 {
     return (int)token.type >= (int)TokenType::VOID && (int)token.type <= (int)TokenType::_COMPLEX  ;
 }
