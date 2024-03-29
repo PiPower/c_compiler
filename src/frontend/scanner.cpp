@@ -65,21 +65,69 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
     case '-':
         token.type = TokenType::MINUS;
         break;
-    case '\\':
+    case '/':
         token.type = TokenType::SLASH;
         break;
     case ';':
         token.type = TokenType::SEMICOLON;
         break;
+    case ',':
+        token.type = TokenType::COMMA;
+        break;
     case '%':
         token.type = TokenType::PERCENT;
         break;
     case '=':
-        token.type = TokenType::EQUAL;
+        switch (c[index + 1])
+        {
+        case '=':
+            token.type = TokenType::EQUAL_EQUAL;
+            index++;
+            break;
+        default:
+            token.type = TokenType::EQUAL;
+            break;
+        }
+        break;
+    case '^':
+        token.type = TokenType::CARET;
+        break;
+    case '?':
+        token.type = TokenType::QUESTION_MARK;
+        break;
+    case '|':
+         switch (c[index + 1])
+        {
+        case '|':
+            token.type = TokenType::DOUBLE_PIPE;
+            index++;
+            break;
+        default:
+            token.type = TokenType::PIPE;
+            break;
+        }
+        break;
+    case '&':
+         switch (c[index + 1])
+        {
+        case '&':
+            token.type = TokenType::DOUBLE_AMPRESAND;
+            index++;
+            break;
+        default:
+            token.type = TokenType::AMPRESAND;
+            break;
+        }
+    case ':':
+        token.type = TokenType::COLON;
         break;
     case '<':
         switch (c[index + 1])
         {
+        case '=':
+            token.type = TokenType::LESS_EQUAL;
+            index++;
+            break;
         case '<':
             token.type = TokenType::L_SHIFT;
             index++;
@@ -92,6 +140,10 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
     case '>':
         switch (c[index + 1])
         {
+        case '=':
+            token.type = TokenType::GREATER_EQUAL;
+            index++;
+            break;
         case '>':
             token.type = TokenType::R_SHIFT;
             index++;
