@@ -18,6 +18,8 @@ NodeType tokenMathTypeToNodeType(const Token token)
     {
     case TokenType::PLUS :
         return NodeType::ADD;
+    case TokenType::MINUS :
+        return NodeType::SUBTRACT;
     case TokenType::SLASH :
         return NodeType::DIVIDE;
     case TokenType::PERCENT :
@@ -50,8 +52,14 @@ NodeType tokenMathTypeToNodeType(const Token token)
         return NodeType::LOG_AND;
     case TokenType::DOUBLE_PIPE :
         return NodeType::LOG_OR;
+    case TokenType::COMMA:
+        return NodeType::EXPR_GLUE;
     }
 
     fprintf(stdout, "unexpected token at line %d \n", token.line);
     exit(-1);
+}
+NodeType assignementTokenToNodeType(const Token token)
+{
+    return (NodeType) ((int)token.type - (int)TokenType::EQUAL + (int)NodeType::ASSIGNMENT) ;
 }

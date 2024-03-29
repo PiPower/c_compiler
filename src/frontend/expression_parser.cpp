@@ -2,8 +2,13 @@
 
 #include <string>
 using namespace std;
+const vector<TokenType> assignmentType =  {TokenType::EQUAL, TokenType::START_EQUAL, TokenType::SLASH_EQUAL, 
+            TokenType::PERCENT_EQUAL, TokenType::PLUS_EQUAL, TokenType::MINUS_EQUAL, TokenType::L_SHIFT_EQUAL,
+            TokenType::R_SHIFT_EQUAL, TokenType::AMPRESAND_EQUAL,TokenType::CARET_EQUAL, TokenType::PIPE_EQUAL};
+
 
 typedef AstNode* (* parseFunctionPtr)(Scanner& scanner);
+//parse loop for left to right op order ie x op yop z = ((x op y) op z)
 static AstNode* parseLoop(Scanner& scanner, parseFunctionPtr parsingFunction, AstNode* root, vector<TokenType> types)
 {
     while (scanner.currentTokenOneOf(types))
@@ -19,6 +24,7 @@ static AstNode* parseLoop(Scanner& scanner, parseFunctionPtr parsingFunction, As
 
     return root;
 }
+
 
 
 static AstNode* primaryExpression(Scanner& scanner)
@@ -135,7 +141,31 @@ static AstNode* conditionalExpression(Scanner& scanner)
     return op;
 }
 
+// assignment is right to left so we cannot use parseLoop
+static AstNode* assignmentExpression(Scanner& scanner)
+{
+    AstNode* root = conditionalExpression(scanner);
+    if (!scanner.currentTokenOneOf(assignmentType))
+    {
+        return root;
+    }
+    Token operatorToken = scanner.popToken();
+    AstNode* parent = new AstNode{assignementTokenToNodeType(operatorToken), {}, NodeDataType::INFERED};
+    AstNode* child = assignmentExpression(scanner);
+
+    parent->children.push_back(child);
+    parent->children.push_back(root);
+
+    return parent;
+}
+
 AstNode* parseExpression(Scanner& scanner)
 {
-    return conditionalExpression(scanner);
+    AstNode* root = assignmentExpression(scanner);
+    return parseLoop(scanner, assignmentExpression, root, {TokenType::COMMA});
+}
+
+AstNode* parseConstantExpression(Scanner& scanner)
+{
+    return conditionalExpression(scanner)
 }
