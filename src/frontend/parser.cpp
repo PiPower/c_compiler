@@ -15,6 +15,7 @@ vector<AstNode*> parse(Scanner& scanner)
         else
         {
             instructions.push_back(parseExpression(scanner));
+            scanner.consume(TokenType::SEMICOLON);
         }
         
 

@@ -65,6 +65,12 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
     case '-':
         token.type = TokenType::MINUS;
         break;
+    case '(':
+        token.type = TokenType::L_PARENTHESES;
+        break;
+    case ')':
+        token.type = TokenType::R_PARENTHESES;
+        break;
     case '/':
         token.type = TokenType::SLASH;
         break;

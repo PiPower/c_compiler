@@ -59,7 +59,8 @@ A.2.1 Expressions
 (6.5.1) primary-expression:
     identifier
     constant
-    string-literal
+    ( expression )
+
 (6.5.2) postfix-expression:
     primary-expression
 

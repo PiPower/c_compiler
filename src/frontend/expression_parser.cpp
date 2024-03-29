@@ -41,6 +41,10 @@ static AstNode* primaryExpression(Scanner& scanner)
         root = new AstNode{NodeType::CONSTANT, {}, NodeDataType::INT_32};
         root->context.int_32 = token.context.int_32;
         return root;
+    case TokenType::L_PARENTHESES:
+        root = parseExpression(scanner);
+        scanner.consume(TokenType::R_PARENTHESES);
+        return root;
     default:
         fprintf(stdout, "Unexpected token for primary expression \n");
         exit(-1);
