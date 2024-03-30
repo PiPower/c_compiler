@@ -29,6 +29,11 @@ int load64Register(InstructionBuffer& buffer, AstNode* constant)
     buffer.writeInstruction(instruction.c_str());
     return reg;
 }
+
+void freeRegister(int reg)
+{
+    allocatedFlag[reg] = false;
+}
 //returns which register to use
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
@@ -41,7 +46,8 @@ int translate(InstructionBuffer& buffer, AstNode* root)
 
             string instruction = string{"\tsub %"} + registers[r2] + ", %"  + registers[r1] + " \n";
             buffer.writeInstruction(instruction.c_str());
-            return r2;
+            freeRegister(r2);
+            return r1;
         }
         break;
     case NodeType::ADD:
@@ -51,6 +57,7 @@ int translate(InstructionBuffer& buffer, AstNode* root)
 
             string instruction = string{"\tadd %"} + registers[r2] + ", %"  + registers[r1] + " \n";
             buffer.writeInstruction(instruction.c_str());
+            freeRegister(r2);
             return r1;
         }
         break;
@@ -61,6 +68,7 @@ int translate(InstructionBuffer& buffer, AstNode* root)
 
             string instruction = string{"\timulq %"} + registers[r2] + ", %"  + registers[r1] + " \n";
             buffer.writeInstruction(instruction.c_str());
+            freeRegister(r2);
             return r1;
         }
         break;
@@ -76,6 +84,7 @@ int translate(InstructionBuffer& buffer, AstNode* root)
             instruction += "\tmovq %rax, %" + string{registers[r1]} + "\n";
 
             buffer.writeInstruction(instruction.c_str());
+            freeRegister(r2);
             return r1;
         }
         break;
