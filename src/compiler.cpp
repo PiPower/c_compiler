@@ -17,5 +17,7 @@ void compile(const char *sourceCode, const char* outfileName)
 
     Scanner scanner(sourceCode);
     vector<AstNode*> instructionSequence = parse(scanner);
-    char* instructionPtr = generateCode(instructionSequence);
+    InstructionBuffer instructionPtr = generateCode(instructionSequence);
+    outfile.write(instructionPtr.getBuffer(), instructionPtr.getSize());
+    outfile.close();
 }

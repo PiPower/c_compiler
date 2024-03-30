@@ -4,6 +4,6 @@
 #include "../frontend/parser.hpp"
 
 
-char* generateCode(std::vector<AstNode*>& instructionSequence);
+InstructionBuffer generateCode(std::vector<AstNode*>& instructionSequence);
 
 #endif
