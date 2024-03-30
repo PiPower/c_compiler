@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
     for(int i=1; i < argc; i++)
     {
         const char* sourceCode = loadFile(argv[i]);
-        compile(sourceCode);
+        compile(sourceCode, "./test.S");
     }
     return 0;
 }
