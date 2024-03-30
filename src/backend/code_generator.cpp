@@ -1,7 +1,8 @@
 #include "../../include/backend/code_generator.hpp"
 
-const char* registers[8] = {"r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
+const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
 bool allocatedFlag[8];
+static char dataBuffer[500];
 
 using namespace std;
 
@@ -25,8 +26,8 @@ int allocateRegister(int base = 0 )
 int load64Register(InstructionBuffer& buffer, AstNode* constant)
 {
     int reg = allocateRegister();
-    string instruction = "\tmovq $" + to_string(constant->context.int_32) + ", %"  + registers[reg] + " \n";
-    buffer.writeInstruction(instruction.c_str());
+    snprintf(dataBuffer, 500, "\tmovq $%d, %s\n",constant->context.int_32, registers[reg] );
+    buffer.writeInstruction(dataBuffer);
     return reg;
 }
 
@@ -39,35 +40,56 @@ int translate(InstructionBuffer& buffer, AstNode* root)
 {
     switch (root->nodeType)
     {
-    case NodeType::SUBTRACT:
-        {
-            int r1 = translate(buffer, root->children[0]);
-            int r2 = translate(buffer, root->children[1]);
-
-            string instruction = string{"\tsub %"} + registers[r2] + ", %"  + registers[r1] + " \n";
-            buffer.writeInstruction(instruction.c_str());
-            freeRegister(r2);
-            return r1;
-        }
-        break;
     case NodeType::ADD:
-        {
-            int r1 = translate(buffer, root->children[0]);
-            int r2 = translate(buffer, root->children[1]);
-
-            string instruction = string{"\tadd %"} + registers[r2] + ", %"  + registers[r1] + " \n";
-            buffer.writeInstruction(instruction.c_str());
-            freeRegister(r2);
-            return r1;
-        }
-        break;
+    case NodeType::SUBTRACT:
     case NodeType::MULTIPLY:
         {
             int r1 = translate(buffer, root->children[0]);
             int r2 = translate(buffer, root->children[1]);
+            string op;
 
-            string instruction = string{"\timulq %"} + registers[r2] + ", %"  + registers[r1] + " \n";
-            buffer.writeInstruction(instruction.c_str());
+            switch (root->nodeType)
+            {
+            case NodeType::SUBTRACT:
+                op = "sub";
+                break;
+            case NodeType::ADD:
+                op = "add";
+                break;
+            case NodeType::MULTIPLY:
+                op = "imulq";
+                break;
+            
+            default:
+                break;
+            }
+
+            snprintf(dataBuffer, 500, "\t%s %s, %s\n", op.c_str(), registers[r2], registers[r1]  );
+            buffer.writeInstruction(dataBuffer);
+            freeRegister(r2);
+            return r1;
+        }
+        break;
+    case NodeType::L_SHIFT:
+    case NodeType::R_SHIFT:
+        {
+            int r1 = translate(buffer, root->children[0]);
+            int r2 = translate(buffer, root->children[1]);
+            string op;
+            switch (root->nodeType)
+            {
+            case NodeType::L_SHIFT:
+                op = "shlq";
+                break;
+            case NodeType::R_SHIFT:
+                op = "shrq";
+                break;
+            }
+            const char* instruction = "\txorq %rcx, %rcx\n"
+                                      "\tmovq %s, %rcx\n"
+                                      "\t%s %%cl, %s\n";
+            snprintf(dataBuffer, 500, instruction, registers[r2], op.c_str(), registers[r1]  );
+            buffer.writeInstruction(dataBuffer);
             freeRegister(r2);
             return r1;
         }
@@ -76,14 +98,14 @@ int translate(InstructionBuffer& buffer, AstNode* root)
         {
             int r1 = translate(buffer, root->children[0]);
             int r2 = translate(buffer, root->children[1]);
-            string instruction = "";
+            const char* instruction = "\tmovq %s, %rax\n"
+                                      "\txorq %rdx, %rdx\n" 
+                                      "\tidivq %s\n" 
+                                      "\tmovq %rax, %s\n";
+            
+            snprintf(dataBuffer, 500, instruction, registers[r1], registers[r2], registers[r1]);
 
-            instruction += "\tmovq %" + string{registers[r1]}+ ", %rax\n";
-            instruction += "\txorq %rdx, %rdx\n";
-            instruction += string{"\tidivq %"} + registers[r2] + " \n";
-            instruction += "\tmovq %rax, %" + string{registers[r1]} + "\n";
-
-            buffer.writeInstruction(instruction.c_str());
+            buffer.writeInstruction(dataBuffer);
             freeRegister(r2);
             return r1;
         }
