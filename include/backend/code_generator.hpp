@@ -5,5 +5,5 @@
 
 
 InstructionBuffer generateCode(std::vector<AstNode*>& instructionSequence);
-
+int translate(InstructionBuffer& buffer, AstNode* root);
 #endif
