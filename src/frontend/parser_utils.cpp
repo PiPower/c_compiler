@@ -3,7 +3,7 @@
 
 NodeDataType transformToDataType(Scanner& scanner, Token token)
 {
-    if(token.type == TokenType::INT) return NodeDataType::INT_32;
+    if(token.type == TokenType::INT) return NodeDataType::INT_64;
     return NodeDataType::NONE;
 }
 

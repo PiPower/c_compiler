@@ -38,7 +38,7 @@ static AstNode* primaryExpression(Scanner& scanner)
         *((string*)root->context.arbitraryData) = *(string*)token.context.data;
         return root;
     case TokenType::CONSTANT:
-        root = new AstNode{NodeType::CONSTANT, {}, NodeDataType::INT_32};
+        root = new AstNode{NodeType::CONSTANT, {}, NodeDataType::INT_64};
         root->context.int_32 = token.context.int_32;
         return root;
     case TokenType::L_PARENTHESES:

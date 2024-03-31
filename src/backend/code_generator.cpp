@@ -1,6 +1,7 @@
 #include "../../include/backend/code_generator.hpp"
 
 const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
+const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b"};
 bool allocatedFlag[8];
 static char scratchpad[500];
 
@@ -25,21 +26,50 @@ static string resolveOp(NodeType& type)
 {
     switch (type)
     {
+    case NodeType::OR:
+        return "orq";
     case NodeType::SUBTRACT:
-        return "sub";
+        return "subq";
     case NodeType::ADD:
-        return "add";
+        return "addq";
     case NodeType::MULTIPLY:
         return "imulq";
     case NodeType::L_SHIFT:
         return "shlq";
     case NodeType::R_SHIFT:
         return "shrq";
+    case NodeType::AND:
+        return  "andq";
+    case NodeType::EXC_OR:
+        return  "xorq";
     }
     fprintf(stdout, "Unsoported op type\n");
     exit(-1);
     return "";
 }
+
+static string resolveComparison(NodeType& type)
+{
+    switch (type)
+    {
+    case NodeType::EQUAL:
+        return "sete";
+    case NodeType::NOT_EQUAL:
+        return "setne";
+    case NodeType::GREATER:
+        return "setg";
+    case NodeType::GREATER_EQUAL:
+        return "setge";
+    case NodeType::LESS:
+        return "setl";
+    case NodeType::LESS_EQUAL:
+        return "setle";
+    }
+    fprintf(stdout, "Unsoported comparison type\n");
+    exit(-1);
+    return "";
+}
+
 
 int load64Register(InstructionBuffer& buffer, AstNode* constant)
 {
@@ -62,6 +92,9 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
 
     switch (root->nodeType)
     {
+    case NodeType::OR:
+    case NodeType::AND:
+    case NodeType::EXC_OR:
     case NodeType::ADD:
     case NodeType::SUBTRACT:
     case NodeType::MULTIPLY:
@@ -106,11 +139,29 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
 
 }
 
+static int translateComparison(InstructionBuffer& buffer, AstNode* root)
+{
+    int r1 = translate(buffer, root->children[0]);
+    int r2 = translate(buffer, root->children[1]);
+
+    const char* instruction = "\tcmpq %s, %s\n"
+                              "\t%s %s\n"
+                              "\tandq $255, %s\n";
+    string comp = resolveComparison(root->nodeType);
+    snprintf(scratchpad, 500, instruction, registers[r2], registers[r1], comp.c_str(), registersByte[r1], registers[r1]);
+    buffer.writeInstruction(scratchpad);
+    freeRegister(r2);
+
+
+}
 //returns which register to use
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
     switch (root->nodeType)
     {
+    case NodeType::OR:
+    case NodeType::AND:
+    case NodeType::EXC_OR:
     case NodeType::ADD:
     case NodeType::SUBTRACT:
     case NodeType::MULTIPLY:
@@ -118,6 +169,13 @@ int translate(InstructionBuffer& buffer, AstNode* root)
     case NodeType::R_SHIFT:
     case NodeType::DIVIDE:
         return translateBinaryExpression(buffer, root);
+    case NodeType::EQUAL:
+    case NodeType::NOT_EQUAL:
+    case NodeType::GREATER:
+    case NodeType::GREATER_EQUAL:
+    case NodeType::LESS:
+    case NodeType::LESS_EQUAL:
+        return translateComparison(buffer, root);
     case NodeType::CONSTANT:
         return load64Register(buffer, root);
     default:

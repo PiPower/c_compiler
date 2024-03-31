@@ -124,6 +124,7 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
             token.type = TokenType::AMPRESAND;
             break;
         }
+        break;
     case ':':
         token.type = TokenType::COLON;
         break;
@@ -291,6 +292,6 @@ void Scanner::consume(TokenType type)
         currentToken++;
         return;
     }
-    fprintf(stdout, "unexpected token at line %d", tokenStream[currentToken].line);
+    fprintf(stdout, "unexpected token at line %d", tokenStream[currentToken].line + 1);
     exit(-1);
  }
