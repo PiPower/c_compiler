@@ -11,12 +11,22 @@ bufferSize(startSize), sizeInUse(0)
 void InstructionBuffer::writeInstruction(const char* instruction)
 {
     unsigned int len = strlen(instruction);
-    
-    if(sizeInUse + len > bufferSize)
+
+    while(sizeInUse + len > bufferSize)
     {
         reallocate();
     }
     memcpy(buffer + sizeInUse, instruction, len);
+    sizeInUse += len;
+}
+void InstructionBuffer::writeInstruction(const InstructionBuffer &instructionbuffer)
+{
+    int len = instructionbuffer.sizeInUse;
+    while(sizeInUse + len > bufferSize)
+    {
+        reallocate();
+    }
+    memcpy(buffer + sizeInUse, instructionbuffer.buffer, len);
     sizeInUse += len;
 }
 void InstructionBuffer::reallocate()
@@ -34,4 +44,9 @@ unsigned int InstructionBuffer::getSize()
 char *InstructionBuffer::getBuffer()
 {
     return buffer;
+}
+
+InstructionBuffer::~InstructionBuffer()
+{
+    delete[] buffer;
 }

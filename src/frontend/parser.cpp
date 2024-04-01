@@ -10,7 +10,11 @@ vector<AstNode*> parse(Scanner& scanner)
     {
         if(isTypeSpecifier(scanner.getCurrentToken()))
         {
-            instructions.push_back(parseDeclaration(scanner));
+            AstNode* parsedDeclaration = parseDeclaration(scanner);
+            if(parsedDeclaration)
+            {
+                instructions.push_back(parsedDeclaration);
+            }
         }
         else
         {

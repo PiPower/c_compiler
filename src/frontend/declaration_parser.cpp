@@ -24,14 +24,14 @@ static AstNode* parseInitializer(Scanner& scanner)
 static AstNode* parseInitDeclarator(Scanner& scanner)
 {
     AstNode* declarator = parseDeclarator(scanner);
+    AstNode* root = new AstNode{NodeType::DECLARATION_GLUE, {declarator}, NodeDataType::INFERED};
     if(!scanner.match(TokenType::EQUAL))
     {
-        return declarator;
+        return root;
     }
 
     AstNode* initializer = parseInitializer(scanner);
-
-    AstNode* root = new AstNode{NodeType::DECLARATION_GLUE, {declarator, initializer}, NodeDataType::INFERED};
+    root->children.push_back(initializer);
     return root;
 }
 
@@ -44,7 +44,8 @@ AstNode* parseDeclaration(Scanner& scanner)
     
     if(scanner.match(TokenType::SEMICOLON))
     {
-        return root_parent;
+        delete root_parent;
+        return nullptr;
     }
 
     AstNode* init_declarator = parseInitDeclarator(scanner);

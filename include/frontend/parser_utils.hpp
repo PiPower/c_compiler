@@ -2,6 +2,8 @@
 #define PARSER_UTILS
 #include "./scanner.hpp"
 
+#define STRING(x) (*(string*)x->context.arbitraryData)
+
 enum class NodeType
 {
     IDENTIFIER,
@@ -11,7 +13,9 @@ enum class NodeType
 //basic math ops
     MULTIPLY, DIVIDE, DIVIDE_MODULO,
     ADD, SUBTRACT, L_SHIFT, R_SHIFT,
-    AND,EXC_OR, OR, LOG_AND, LOG_OR, 
+    AND,EXC_OR, OR,
+//logical ops    
+    LOG_AND, LOG_OR, 
 // comparisons
     LESS, GREATER, LESS_EQUAL, 
     GREATER_EQUAL, EQUAL, NOT_EQUAL,
