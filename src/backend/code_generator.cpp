@@ -5,6 +5,14 @@ const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13
 bool allocatedFlag[8];
 static char scratchpad[500];
 
+int generateLabel()
+{
+    static unsigned int labelCount = 0;
+    unsigned int currLabel = labelCount;
+    labelCount++;
+    return currLabel;
+}
+
 using namespace std;
 
 int allocateRegister(int base = 0 )
@@ -22,52 +30,31 @@ int allocateRegister(int base = 0 )
     return -1;
 }
 
-static string resolveOp(NodeType& type)
+static const char* resolveOp(NodeType& type)
 {
-    switch (type)
+    static char* intructionTab[] = {"imulq", "idivq", "idivq", "addq", "subq", "shlq", "shrq", "andq", "xorq", "orq"};
+    int tab_index = (int)type - (int)NodeType::MULTIPLY;
+
+    if(tab_index > (int)NodeType::OR - (int)NodeType::MULTIPLY)
     {
-    case NodeType::OR:
-        return "orq";
-    case NodeType::SUBTRACT:
-        return "subq";
-    case NodeType::ADD:
-        return "addq";
-    case NodeType::MULTIPLY:
-        return "imulq";
-    case NodeType::L_SHIFT:
-        return "shlq";
-    case NodeType::R_SHIFT:
-        return "shrq";
-    case NodeType::AND:
-        return  "andq";
-    case NodeType::EXC_OR:
-        return  "xorq";
+        fprintf(stdout, "Unsoported op type\n");
+        exit(-1);
     }
-    fprintf(stdout, "Unsoported op type\n");
-    exit(-1);
-    return "";
+    return intructionTab[tab_index];
 }
 
-static string resolveComparison(NodeType& type)
+
+static const char* resolveComparison(NodeType& type)
 {
-    switch (type)
+    const char* compOps[] = {"setl", "setg", "setle", "setge", "sete", "setne" };
+    int tab_index = (int)type - (int)NodeType::LESS;
+
+    if(tab_index > (int)NodeType::NOT_EQUAL - (int)NodeType::LESS)
     {
-    case NodeType::EQUAL:
-        return "sete";
-    case NodeType::NOT_EQUAL:
-        return "setne";
-    case NodeType::GREATER:
-        return "setg";
-    case NodeType::GREATER_EQUAL:
-        return "setge";
-    case NodeType::LESS:
-        return "setl";
-    case NodeType::LESS_EQUAL:
-        return "setle";
+        fprintf(stdout, "Unsoported comparison type\n");
+        exit(-1);
     }
-    fprintf(stdout, "Unsoported comparison type\n");
-    exit(-1);
-    return "";
+    return compOps[tab_index];
 }
 
 
@@ -99,9 +86,9 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
     case NodeType::SUBTRACT:
     case NodeType::MULTIPLY:
         {
-            string op = resolveOp(root->nodeType);
+            const char*  op = resolveOp(root->nodeType);
 
-            snprintf(scratchpad, 500, "\t%s %s, %s\n", op.c_str(), registers[r2], registers[r1]  );
+            snprintf(scratchpad, 500, "\t%s %s, %s\n", op, registers[r2], registers[r1]  );
             buffer.writeInstruction(scratchpad);
             freeRegister(r2);
             return r1;
@@ -110,25 +97,27 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
     case NodeType::L_SHIFT:
     case NodeType::R_SHIFT:
         {
-            string op = resolveOp(root->nodeType);
+            const char* op = resolveOp(root->nodeType);
             const char* instruction = "\txorq %rcx, %rcx\n"
                                       "\tmovq %s, %rcx\n"
                                       "\t%s %%cl, %s\n";
 
-            snprintf(scratchpad, 500, instruction, registers[r2], op.c_str(), registers[r1]  );
+            snprintf(scratchpad, 500, instruction, registers[r2], op, registers[r1]  );
             buffer.writeInstruction(scratchpad);
             freeRegister(r2);
             return r1;
         }
         break;
+    case NodeType::DIVIDE_MODULO:
     case NodeType::DIVIDE:
         {
+            const char* sourceReg = root->nodeType == NodeType::DIVIDE ? "%rax" : "%rdx";
             const char* instruction = "\tmovq %s, %rax\n"
                                       "\txorq %rdx, %rdx\n" 
-                                      "\tidivq %s\n" 
-                                      "\tmovq %rax, %s\n";
+                                      "\t%s %s\n" 
+                                      "\tmovq %s, %s\n";
             
-            snprintf(scratchpad, 500, instruction, registers[r1], registers[r2], registers[r1]);
+            snprintf(scratchpad, 500, instruction, registers[r1],resolveOp(root->nodeType) ,registers[r2], sourceReg, registers[r1]);
 
             buffer.writeInstruction(scratchpad);
             freeRegister(r2);
@@ -152,7 +141,7 @@ static int translateComparison(InstructionBuffer& buffer, AstNode* root)
     buffer.writeInstruction(scratchpad);
     freeRegister(r2);
 
-
+    return r1;
 }
 //returns which register to use
 int translate(InstructionBuffer& buffer, AstNode* root)
