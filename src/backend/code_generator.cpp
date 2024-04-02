@@ -178,7 +178,26 @@ static int translateLogicalAND(InstructionBuffer& buffer, AstNode* root)
 
 static int translateLogicalOR(InstructionBuffer& buffer, AstNode* root)
 {
-    
+        static const char* tail = "\tmovq $0, %s\n"
+                                  "\tjmp joinLabel%d\n"
+                                  "trueLabel%d:\n"
+                                  "\tmovq $1, %s\n"
+                                  "joinLabel%d:\n";
+
+    unsigned int trueLabel = generateLabel_ID();
+    unsigned int joinLabel = generateLabel_ID();
+    int targetRegister = allocateRegister();
+    for(AstNode* child : root->children)
+    {
+        int r = translate(buffer, child);
+        sprintf(scratchpad, "\tcmpq  $0, %s\n" "\tjne trueLabel%d\n", registers[r], trueLabel);
+        freeRegister(r);
+        buffer.writeInstruction(scratchpad);
+    }
+
+    sprintf(scratchpad, tail,  registers[targetRegister], joinLabel, trueLabel, registers[targetRegister], joinLabel);
+    buffer.writeInstruction(scratchpad);
+    return targetRegister;
 }
 static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
 {
