@@ -8,7 +8,14 @@ bufferSize(startSize), sizeInUse(0)
     buffer = new char[startSize];
 }
 
-void InstructionBuffer::writeInstruction(const char* instruction)
+InstructionBuffer::InstructionBuffer(const InstructionBuffer &src)
+{
+    buffer = new char[src.bufferSize];
+    sizeInUse = src.sizeInUse;
+    bufferSize = src.bufferSize;
+    memcpy(buffer, src.buffer, sizeInUse);
+}
+void InstructionBuffer::writeInstruction(const char *instruction)
 {
     unsigned int len = strlen(instruction);
 
@@ -48,5 +55,9 @@ char *InstructionBuffer::getBuffer()
 
 InstructionBuffer::~InstructionBuffer()
 {
-    delete[] buffer;
+    if(buffer != nullptr)
+    {
+        delete[] buffer;
+        buffer = nullptr;
+    }
 }

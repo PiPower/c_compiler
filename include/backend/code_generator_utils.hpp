@@ -5,6 +5,7 @@ class InstructionBuffer
 {
 public:
     InstructionBuffer(unsigned int startSize);
+    InstructionBuffer(const InstructionBuffer& src);
     void writeInstruction(const char* instruction);
     void writeInstruction(const InstructionBuffer& instructionbuffer);
     void reallocate();

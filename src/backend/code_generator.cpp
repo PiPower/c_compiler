@@ -4,7 +4,8 @@ const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14"
 const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b"};
 bool allocatedFlag[8];
 static char scratchpad[500];
-
+//buffer holds all allocations for global variables
+InstructionBuffer globalDefinitions(1000);
 SymbolTable symTab;
 
 
@@ -160,12 +161,10 @@ static int translateLogicalOps(InstructionBuffer& buffer, AstNode* root)
 
 static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
 {
-    buffer.writeInstruction("\t.data\n");
+    globalDefinitions.writeInstruction("\t.data\n");
     static const char* defTemplate = "\t.globl %s\n"
                                      "%s:\n"
                                      "\t.zero 8\n";
-
-    InstructionBuffer definitionBuffer(1000);
     for(AstNode* declaration : root->children)
     {
         AstNode* identifier = declaration->children[0];
@@ -180,18 +179,17 @@ static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
         entry.x = 0;
         int  x =2;
         snprintf(scratchpad, 500, defTemplate, STRING(identifier).c_str(), STRING(identifier).c_str());
-        buffer.writeInstruction(scratchpad);
+        globalDefinitions.writeInstruction(scratchpad);
         if(declaration->children.size() > 1)
         {
-            int reg = translate(definitionBuffer, declaration->children[1]);
+            int reg = translate(  buffer, declaration->children[1]);
             snprintf(scratchpad, 500, "\tmovq %s, %s(%%rip)\n", registers[reg], STRING(identifier).c_str());
-            definitionBuffer.writeInstruction(scratchpad);
+            buffer.writeInstruction(scratchpad);
         }
 
 
     }
-    buffer.writeInstruction("\t.text\n");
-    buffer.writeInstruction(definitionBuffer);
+
     return 0;
 }
 
@@ -251,5 +249,6 @@ InstructionBuffer generateCode(std::vector<AstNode*>& instructionSequence)
     {
         translate(buffer, root);
     }
-    return buffer;
+    globalDefinitions.writeInstruction(buffer);
+    return globalDefinitions;
 }
