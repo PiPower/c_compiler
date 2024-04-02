@@ -194,7 +194,15 @@ static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
     buffer.writeInstruction(definitionBuffer);
     return 0;
 }
-//returns which register to use
+
+int load64Identifier(InstructionBuffer& buffer, AstNode* root)
+{
+    int r = allocateRegister();
+    snprintf(scratchpad, 500, "\tmovq %s(%%rip), %s\n", STRING(root).c_str(), registers[r]);
+    buffer.writeInstruction(scratchpad);
+    return r;
+}
+//returns which register to us
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
     switch (root->nodeType)
@@ -223,6 +231,8 @@ int translate(InstructionBuffer& buffer, AstNode* root)
         return translateLogicalOps(buffer, root);
     case NodeType::DECLARATION:
         return translateDeclaration(buffer, root);
+    case NodeType::IDENTIFIER:
+        return load64Identifier(buffer, root);
     default:
         fprintf(stdout, "unsupported node type by codegen\n");
         exit(-1);
