@@ -3,7 +3,8 @@
 const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
 const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b"};
 bool allocatedFlag[8];
-static char scratchpad[500];
+constexpr unsigned int scratchpadSize = 1000;
+static char scratchpad[scratchpadSize];
 //buffer holds all allocations for global variables
 InstructionBuffer globalDefinitions(1000);
 SymbolTable symTab;
@@ -67,7 +68,7 @@ static const char* resolveComparison(NodeType& type, bool jump = false)
 int load64Register(InstructionBuffer& buffer, AstNode* constant)
 {
     int reg = allocateRegister();
-    snprintf(scratchpad, 500, "\tmovq $%d, %s\n",constant->context.int_32, registers[reg] );
+    snprintf(scratchpad, scratchpadSize, "\tmovq $%d, %s\n",constant->context.int_32, registers[reg] );
     buffer.writeInstruction(scratchpad);
     return reg;
 }
@@ -94,7 +95,7 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
         {
             const char*  op = resolveOp(root->nodeType);
 
-            snprintf(scratchpad, 500, "\t%s %s, %s\n", op, registers[r2], registers[r1]  );
+            snprintf(scratchpad, scratchpadSize, "\t%s %s, %s\n", op, registers[r2], registers[r1]  );
             buffer.writeInstruction(scratchpad);
             freeRegister(r2);
             return r1;
@@ -108,7 +109,7 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
                                       "\tmovq %s, %rcx\n"
                                       "\t%s %%cl, %s\n";
 
-            snprintf(scratchpad, 500, instruction, registers[r2], op, registers[r1]  );
+            snprintf(scratchpad, scratchpadSize, instruction, registers[r2], op, registers[r1]  );
             buffer.writeInstruction(scratchpad);
             freeRegister(r2);
             return r1;
@@ -123,7 +124,8 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
                                       "\t%s %s\n" 
                                       "\tmovq %s, %s\n";
             
-            snprintf(scratchpad, 500, instruction, registers[r1],resolveOp(root->nodeType) ,registers[r2], sourceReg, registers[r1]);
+            snprintf(scratchpad, scratchpadSize, instruction, registers[r1], 
+                    resolveOp(root->nodeType) ,registers[r2], sourceReg, registers[r1]);
 
             buffer.writeInstruction(scratchpad);
             freeRegister(r2);
@@ -143,22 +145,41 @@ static int translateComparison(InstructionBuffer& buffer, AstNode* root)
                               "\t%s %s\n"
                               "\tandq $255, %s\n";
     const char* comp = resolveComparison(root->nodeType);
-    snprintf(scratchpad, 500, instruction, registers[r2], registers[r1], comp, registersByte[r1], registers[r1]);
+    snprintf(scratchpad, scratchpadSize, instruction, registers[r2], registers[r1], comp, registersByte[r1], registers[r1]);
     buffer.writeInstruction(scratchpad);
     freeRegister(r2);
 
     return r1;
 }
 
-static int translateLogicalOps(InstructionBuffer& buffer, AstNode* root)
+static int translateLogicalAND(InstructionBuffer& buffer, AstNode* root)
 {
-    int r1 = translate(buffer, root->children[0]);
-    int r2 = translate(buffer, root->children[1]);
-    fprintf(stdout, "logical ops are currently unspported\n");
-    exit(-1);
-    return 0;
+    static const char* tail = "\tmovq $1, %s\n"
+                              "\tjmp joinLabel%d\n"
+                              "falseLabel%d:\n"
+                              "\tmovq $0, %s\n"
+                              "joinLabel%d:\n";
+
+    unsigned int falseLabel = generateLabel_ID();
+    unsigned int joinLabel = generateLabel_ID();
+    int targetRegister = allocateRegister();
+    for(AstNode* child : root->children)
+    {
+        int r = translate(buffer, child);
+        sprintf(scratchpad, "\tcmpq  $0, %s\n" "\tje falseLabel%d\n", registers[r], falseLabel);
+        freeRegister(r);
+        buffer.writeInstruction(scratchpad);
+    }
+
+    sprintf(scratchpad, tail,  registers[targetRegister], joinLabel, falseLabel, registers[targetRegister], joinLabel);
+    buffer.writeInstruction(scratchpad);
+    return targetRegister;
 }
 
+static int translateLogicalOR(InstructionBuffer& buffer, AstNode* root)
+{
+    
+}
 static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
 {
     globalDefinitions.writeInstruction("\t.data\n");
@@ -178,12 +199,12 @@ static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
 
         entry.x = 0;
         int  x =2;
-        snprintf(scratchpad, 500, defTemplate, STRING(identifier).c_str(), STRING(identifier).c_str());
+        snprintf(scratchpad, scratchpadSize, defTemplate, STRING(identifier).c_str(), STRING(identifier).c_str());
         globalDefinitions.writeInstruction(scratchpad);
         if(declaration->children.size() > 1)
         {
             int reg = translate(  buffer, declaration->children[1]);
-            snprintf(scratchpad, 500, "\tmovq %s, %s(%%rip)\n", registers[reg], STRING(identifier).c_str());
+            snprintf(scratchpad, scratchpadSize, "\tmovq %s, %s(%%rip)\n", registers[reg], STRING(identifier).c_str());
             buffer.writeInstruction(scratchpad);
         }
 
@@ -196,7 +217,7 @@ static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
 int load64Identifier(InstructionBuffer& buffer, AstNode* root)
 {
     int r = allocateRegister();
-    snprintf(scratchpad, 500, "\tmovq %s(%%rip), %s\n", STRING(root).c_str(), registers[r]);
+    snprintf(scratchpad, scratchpadSize, "\tmovq %s(%%rip), %s\n", STRING(root).c_str(), registers[r]);
     buffer.writeInstruction(scratchpad);
     return r;
 }
@@ -225,8 +246,9 @@ int translate(InstructionBuffer& buffer, AstNode* root)
     case NodeType::CONSTANT:
         return load64Register(buffer, root);
     case NodeType::LOG_AND:
-    case NodeType::LOG_OR:
-        return translateLogicalOps(buffer, root);
+        return translateLogicalAND(buffer, root);
+     case NodeType::LOG_OR:
+        return translateLogicalOR(buffer, root);
     case NodeType::DECLARATION:
         return translateDeclaration(buffer, root);
     case NodeType::IDENTIFIER:

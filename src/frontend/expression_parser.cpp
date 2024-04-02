@@ -120,13 +120,36 @@ static AstNode* orExpression(Scanner& scanner)
 static AstNode* log_andExpression(Scanner& scanner)
 {
     AstNode* root = orExpression(scanner);
-    return parseLoop(scanner, orExpression, root, {TokenType::DOUBLE_AMPRESAND});
+    if(scanner.getCurrentToken().type != TokenType::DOUBLE_AMPRESAND)
+    {
+        return root;
+    }
+    
+    AstNode* parent = new AstNode{NodeType::LOG_AND, {root}, NodeDataType::INFERED};
+    while (scanner.match(TokenType::DOUBLE_AMPRESAND))
+    {
+        AstNode* right = orExpression(scanner);
+        parent->children.push_back(right);
+    }
+    return parent;
 }
 
 static AstNode* log_orExpression(Scanner& scanner)
 {
     AstNode* root = log_andExpression(scanner);
-    return parseLoop(scanner, log_andExpression, root, {TokenType::DOUBLE_PIPE});
+    if(scanner.getCurrentToken().type != TokenType::DOUBLE_PIPE)
+    {
+        return root;
+    }
+
+    AstNode* parent = new AstNode{NodeType::LOG_OR, {root}, NodeDataType::INFERED};
+    while (scanner.match(TokenType::DOUBLE_PIPE))
+    {
+        AstNode* right = log_andExpression(scanner);
+        parent->children.push_back(right);
+    }
+    
+    return parent;
 }
 
 static AstNode* conditionalExpression(Scanner& scanner)
