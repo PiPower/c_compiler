@@ -225,8 +225,8 @@ static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
             int reg = translate(  buffer, declaration->children[1]);
             snprintf(scratchpad, scratchpadSize, "\tmovq %s, %s(%%rip)\n", registers[reg], STRING(identifier).c_str());
             buffer.writeInstruction(scratchpad);
+            freeRegister(reg);
         }
-
 
     }
 
