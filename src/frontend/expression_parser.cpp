@@ -179,10 +179,19 @@ AstNode* assignmentExpression(Scanner& scanner)
     Token operatorToken = scanner.popToken();
     AstNode* parent = new AstNode{assignementTokenToNodeType(operatorToken), {}, NodeDataType::INFERED};
     AstNode* child = assignmentExpression(scanner);
+    if(parent->nodeType == NodeType::ASSIGNMENT)
+    {
+        parent->children.push_back(root);
+        parent->children.push_back(child);
+        return parent;
+    }   
+    //desugaring
+    NodeType opType = (NodeType)( ((int)parent->nodeType - (int)NodeType::ADD_ASSIGNMENT) + (int)NodeType::ADD );
 
+    AstNode* opNode = new AstNode{opType, {root, child}, NodeDataType::INFERED};
+    parent->nodeType = NodeType::ASSIGNMENT;
     parent->children.push_back(root);
-    parent->children.push_back(child);
-
+    parent->children.push_back(opNode);
     return parent;
 }
 

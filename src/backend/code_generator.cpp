@@ -212,7 +212,7 @@ static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
         AstNode* identifier = declaration->children[0];
         SymbolEntry& entry = symTab[STRING(identifier)];
 
-        if(entry.x != -1)
+        if(entry.x != UNDEFINED_ENTRY)
         {
             fprintf(stdout, "redeclaration of global variable\n");
             exit(-1);
@@ -237,6 +237,14 @@ static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
 
 int load64Identifier(InstructionBuffer& buffer, AstNode* root)
 {
+
+    SymbolEntry& entry = symTab[STRING(root)];
+    if(entry.x == UNDEFINED_ENTRY)
+    {
+        fprintf(stdout, "trying to refrence undefined variable\n");
+        exit(-1);
+    }
+
     int r = allocateRegister();
     snprintf(scratchpad, scratchpadSize, "\tmovq %s(%%rip), %s\n", STRING(root).c_str(), registers[r]);
     buffer.writeInstruction(scratchpad);
@@ -287,6 +295,18 @@ int translateIfStatement(InstructionBuffer& buffer, AstNode* root)
     buffer.writeInstruction(scratchpad);
     return NO_REGISTER;
 }
+
+int translateAssignment(InstructionBuffer& buffer, AstNode* root)
+{
+    int reg = translate(buffer, root->children[1]);
+    static const char* assignmentInstruction = "\tmovq %s, %s(%rip)\n";
+    AstNode* identifier = root->children[0];
+
+    snprintf(scratchpad, scratchpadSize, assignmentInstruction, registers[reg], STRING(identifier).c_str());
+    buffer.writeInstruction(scratchpad);
+    return reg;
+}
+
 //returns which register to us
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
@@ -309,6 +329,18 @@ int translate(InstructionBuffer& buffer, AstNode* root)
     case NodeType::LESS:
     case NodeType::LESS_EQUAL:
         return translateComparison(buffer, root);
+    case NodeType::ASSIGNMENT:
+    case NodeType::ADD_ASSIGNMENT:
+    case NodeType::SUBB_ASSIGNMENT:
+    case NodeType::MUL_ASSIGNMENT:
+    case NodeType::DIV_ASSIGNMENT:
+    case NodeType::MOD_ASSIGNMENT:
+    case NodeType::EXC_OR_ASSIGNMENT:
+    case NodeType::L_SHIFT_ASSIGNMENT:
+    case NodeType::R_SHIFT_ASSIGNMENT:
+    case NodeType::AND_ASSIGNMENT:
+    case NodeType::OR_ASSIGNMENT:
+        return translateAssignment(buffer, root);
     case NodeType::CONSTANT:
         return load64Register(buffer, root);
     case NodeType::LOG_AND:
@@ -345,7 +377,8 @@ InstructionBuffer generateCode(std::vector<AstNode*>& instructionSequence)
     buffer.writeInstruction("main: \n");
     for(AstNode* root : instructionSequence)
     {
-        translate(buffer, root);
+        int reg = translate(buffer, root);
+        freeRegister(reg);
     }
     globalDefinitions.writeInstruction(buffer);
     return globalDefinitions;
