@@ -46,6 +46,7 @@ currentToken(0)
 void Scanner::keywordMapInit()
 {
     keywordMap["if"] = TokenType::IF;
+    keywordMap["else"] = TokenType::ELSE;
     keywordMap["int"] = TokenType::INT;
 }
 
@@ -64,6 +65,12 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
         break;
     case '-':
         token.type = TokenType::MINUS;
+        break;
+    case '{':
+        token.type = TokenType::L_BRACE;
+        break;
+    case '}':
+        token.type = TokenType::R_BRACE;
         break;
     case '(':
         token.type = TokenType::L_PARENTHESES;

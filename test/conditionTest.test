@@ -1,0 +1,14 @@
+int j = 40;
+
+if( j > 30)
+{
+    int z = k *4;
+}
+else if(j < 90)
+{
+    int h = 232 * 34;
+}
+else
+{
+    int end = 2223 * 34/ 23;
+}

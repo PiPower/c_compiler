@@ -29,5 +29,13 @@ AstNode* parseConstantExpression(Scanner& scanner);
 AstNode* assignmentExpression(Scanner& scanner);
 // parser for declarations
 AstNode* parseDeclaration(Scanner& scanner);
+// parser for statements
+AstNode* parseStatementAndDeclaration(Scanner& scanner);
+AstNode* parseStatement(Scanner& scanner);
+AstNode* parseSelectionStatement(Scanner& scanner);
+AstNode* parseCompoundStatement(Scanner& scanner);
+AstNode* parseLabeledStatement(Scanner& scanner);
+AstNode* parseIterationStatement(Scanner& scanner);
+AstNode* parseJumpStatement(Scanner& scanner);
 
 #endif
