@@ -48,6 +48,9 @@ void Scanner::keywordMapInit()
     keywordMap["if"] = TokenType::IF;
     keywordMap["else"] = TokenType::ELSE;
     keywordMap["int"] = TokenType::INT;
+    keywordMap["while"] = TokenType::WHILE;
+    keywordMap["for"] = TokenType::FOR;
+    keywordMap["do"] = TokenType::DO;
 }
 
 bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int &line)
@@ -219,7 +222,7 @@ bool Scanner::parseConstant(const char *c, unsigned int &index, unsigned int &li
 
     if(c[index] == '0' &&  ('0' <= c[index + 1] && c[index + 1] <='9'))
     {
-        fprintf(stdout, "incorrect integer definition at line %d", line);
+        fprintf(stdout, "incorrect integer definition at line %d\n", line);
         exit(-1);
     }
 
@@ -299,6 +302,6 @@ void Scanner::consume(TokenType type)
         currentToken++;
         return;
     }
-    fprintf(stdout, "unexpected token at line %d", tokenStream[currentToken].line + 1);
+    fprintf(stdout, "unexpected token at line %d\n", tokenStream[currentToken].line + 1);
     exit(-1);
  }
