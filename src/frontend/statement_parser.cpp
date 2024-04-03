@@ -48,6 +48,10 @@ AstNode *parseStatementAndDeclaration(Scanner &scanner)
     {
         return parseCompoundStatement(scanner);
     }
+    else if (scanner.match(TokenType::SEMICOLON))
+    {
+        return nullptr;
+    }
     else
     {
         AstNode* root = parseExpression(scanner);
@@ -64,6 +68,10 @@ AstNode *parseStatement(Scanner &scanner)
     else if(scanner.currentTokenOneOf({TokenType::L_BRACE}) )
     {
         return parseCompoundStatement(scanner);
+    }
+    else if (scanner.match(TokenType::SEMICOLON))
+    {
+        return nullptr;
     }
     else
     {

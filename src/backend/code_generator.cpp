@@ -1,5 +1,6 @@
 #include "../../include/backend/code_generator.hpp"
 #include <algorithm>
+#define NO_REGISTER -10
 const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
 const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b"};
 bool allocatedFlag[8];
@@ -75,6 +76,7 @@ int load64Register(InstructionBuffer& buffer, AstNode* constant)
 
 void freeRegister(int reg)
 {
+    if(reg == NO_REGISTER) {return;}
     allocatedFlag[reg] = false;
 }
 
@@ -240,6 +242,51 @@ int load64Identifier(InstructionBuffer& buffer, AstNode* root)
     buffer.writeInstruction(scratchpad);
     return r;
 }
+
+
+int translateIfStatement(InstructionBuffer& buffer, AstNode* root)
+{
+    int escapeLabel = generateLabel_ID();
+
+    AstNode* currentIfNode = root;
+    while (currentIfNode != nullptr &&currentIfNode->nodeType == NodeType::IF)
+    {
+        int falseJumpLabel = generateLabel_ID();
+        int r_cond = translate(buffer, currentIfNode->children[0]);
+
+        snprintf(scratchpad, scratchpadSize, "\tcmpq $0, %s\n""\tje false%d\n", registers[r_cond], falseJumpLabel);
+        buffer.writeInstruction(scratchpad);
+        freeRegister(r_cond);
+
+        if(currentIfNode->children[1]!= nullptr)
+        {
+            int r = translate(buffer, currentIfNode->children[1]);
+            freeRegister(r);
+        }
+        snprintf(scratchpad, scratchpadSize, "\tjmp escapeLabel%d\n", escapeLabel);
+        buffer.writeInstruction(scratchpad);
+
+        snprintf(scratchpad, scratchpadSize, "false%d:\n", falseJumpLabel);
+        buffer.writeInstruction(scratchpad);
+        if(currentIfNode->children.size() == 3)
+        {
+            currentIfNode = currentIfNode->children[2];
+        }
+        else
+        {
+            break;
+        }
+
+    }
+    if(currentIfNode != nullptr  && currentIfNode->nodeType != NodeType::IF)
+    {
+        int r = translate(buffer, currentIfNode);
+        freeRegister(r);
+    }
+    snprintf(scratchpad, scratchpadSize, "escapeLabel%d:\n", escapeLabel);
+    buffer.writeInstruction(scratchpad);
+    return NO_REGISTER;
+}
 //returns which register to us
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
@@ -272,6 +319,16 @@ int translate(InstructionBuffer& buffer, AstNode* root)
         return translateDeclaration(buffer, root);
     case NodeType::IDENTIFIER:
         return load64Identifier(buffer, root);
+    case NodeType::IF:
+        return translateIfStatement(buffer, root);
+    case NodeType::BLOCK:
+    {
+        for(AstNode* instruction : root->children)
+        {
+            int r = translate(buffer, instruction);
+            freeRegister(r);
+        }
+    } return NO_REGISTER;
     default:
         fprintf(stdout, "unsupported node type by codegen\n");
         exit(-1);
