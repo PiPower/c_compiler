@@ -30,7 +30,7 @@ const char* TokenTypeString[]
     "R_SHIFT", "LESS_EQUAL", "GREATER_EQUAL", "EQUAL_EQUAL", "BANG_EQUAL",
     "PIPE", "CARET", "DOUBLE_AMPRESAND", "DOUBLE_PIPE", "QUESTION_MARK",
 // assignemnt types
-    "EQUAL", "START_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "PLUS_EQUAL", 
+    "EQUAL", "STAR_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "PLUS_EQUAL", 
     "MINUS_EQUAL", "L_SHIFT_EQUAL", "R_SHIFT_EQUAL", "AMPRESAND_EQUAL",
     "CARET_EQUAL", "PIPE_EQUAL",
 // miscallenous
@@ -95,13 +95,40 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
     switch (c[index])
     {
     case '*':
-        token.type = TokenType::STAR;
+        switch (c[index + 1])
+        {
+        case '=':
+            token.type = TokenType::STAR_EQUAL;
+            index++;
+            break;
+        default:
+            token.type = TokenType::STAR;
+            break;
+        }
         break;
     case '+':
-        token.type = TokenType::PLUS;
+        switch (c[index + 1])
+        {
+        case '=':
+            token.type = TokenType::PLUS_EQUAL;
+            index++;
+            break;
+        default:
+            token.type = TokenType::PLUS;
+            break;
+        }
         break;
     case '-':
-        token.type = TokenType::MINUS;
+        switch (c[index + 1])
+        {
+        case '=':
+            token.type = TokenType::MINUS_EQUAL;
+            index++;
+            break;
+        default:
+            token.type = TokenType::MINUS;
+            break;
+        }
         break;
     case '{':
         token.type = TokenType::L_BRACE;
@@ -116,7 +143,16 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
         token.type = TokenType::R_PARENTHESES;
         break;
     case '/':
-        token.type = TokenType::SLASH;
+        switch (c[index + 1])
+        {
+        case '=':
+            token.type = TokenType::SLASH_EQUAL;
+            index++;
+            break;
+        default:
+            token.type = TokenType::SLASH;
+            break;
+        }
         break;
     case ';':
         token.type = TokenType::SEMICOLON;
@@ -125,7 +161,16 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
         token.type = TokenType::COMMA;
         break;
     case '%':
-        token.type = TokenType::PERCENT;
+        switch (c[index + 1])
+        {
+        case '=':
+            token.type = TokenType::PERCENT_EQUAL;
+            index++;
+            break;
+        default:
+            token.type = TokenType::PERCENT;
+            break;
+        }
         break;
     case '=':
         switch (c[index + 1])
@@ -140,8 +185,18 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
         }
         break;
     case '^':
-        token.type = TokenType::CARET;
+        switch (c[index + 1])
+        {
+        case '=':
+            token.type = TokenType::CARET_EQUAL;
+            index++;
+            break;
+        default:
+            token.type = TokenType::CARET;
+            break;
+        }
         break;
+
     case '?':
         token.type = TokenType::QUESTION_MARK;
         break;
@@ -150,6 +205,10 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
         {
         case '|':
             token.type = TokenType::DOUBLE_PIPE;
+            index++;
+            break;
+        case '=':
+            token.type = TokenType::PIPE_EQUAL;
             index++;
             break;
         default:
@@ -164,6 +223,10 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
             token.type = TokenType::DOUBLE_AMPRESAND;
             index++;
             break;
+        case '=':
+            token.type = TokenType::AMPRESAND_EQUAL;
+            index++;
+            break;
         default:
             token.type = TokenType::AMPRESAND;
             break;
@@ -173,35 +236,45 @@ bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int 
         token.type = TokenType::COLON;
         break;
     case '<':
-        switch (c[index + 1])
+        if(c[index + 1] == '=' )
         {
-        case '=':
             token.type = TokenType::LESS_EQUAL;
             index++;
-            break;
-        case '<':
+        }
+        else if( c[index + 1] == '<' && c[index + 2] == '=' )
+        {
+            token.type = TokenType::L_SHIFT_EQUAL;
+            index +=2;
+        }
+        else if( c[index + 1] == '<' )
+        {
             token.type = TokenType::L_SHIFT;
             index++;
-            break;
-        default:
+        }
+        else
+        {
             token.type = TokenType::LESS;
-            break;
         }
         break;
     case '>':
-        switch (c[index + 1])
+        if(c[index + 1] == '=' )
         {
-        case '=':
             token.type = TokenType::GREATER_EQUAL;
             index++;
-            break;
-        case '>':
+        }
+        else if( c[index + 1] == '>' && c[index + 2] == '=' )
+        {
+            token.type = TokenType::R_SHIFT_EQUAL;
+            index +=2;
+        }
+        else if( c[index + 1] == '>' )
+        {
             token.type = TokenType::R_SHIFT;
             index++;
-            break;
-        default:
+        }
+        else
+        {
             token.type = TokenType::GREATER;
-            break;
         }
         break;
     }

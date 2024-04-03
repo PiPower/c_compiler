@@ -2,7 +2,7 @@
 
 #include <string>
 using namespace std;
-const vector<TokenType> assignmentType =  {TokenType::EQUAL, TokenType::START_EQUAL, TokenType::SLASH_EQUAL, 
+const vector<TokenType> assignmentType =  {TokenType::EQUAL, TokenType::STAR_EQUAL, TokenType::SLASH_EQUAL, 
             TokenType::PERCENT_EQUAL, TokenType::PLUS_EQUAL, TokenType::MINUS_EQUAL, TokenType::L_SHIFT_EQUAL,
             TokenType::R_SHIFT_EQUAL, TokenType::AMPRESAND_EQUAL,TokenType::CARET_EQUAL, TokenType::PIPE_EQUAL};
 
@@ -180,8 +180,8 @@ AstNode* assignmentExpression(Scanner& scanner)
     AstNode* parent = new AstNode{assignementTokenToNodeType(operatorToken), {}, NodeDataType::INFERED};
     AstNode* child = assignmentExpression(scanner);
 
-    parent->children.push_back(child);
     parent->children.push_back(root);
+    parent->children.push_back(child);
 
     return parent;
 }
