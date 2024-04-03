@@ -5,6 +5,40 @@
 
 using namespace std;
 
+const char* TokenTypeString[]
+{
+    "NONE",
+    "END_OF_FILE",
+    "IDENTIFIER",
+    "CONSTANT",
+    "STRING_LITERAL",
+// keywords
+    "AUTO", "BREAK", "CASE", "CONST", "CONTINUE",
+    "DEFAULT", "DO", "ELSE", "ENUM", "EXTERN", "FOR",
+    "GOTO", "IF", "INLINE", "REGISTER", "RESTRICT",
+    "RETURN", "SIZEOF", "STATIC", "STRUCT", "SWITCH",
+    "TYPEDEF", "UNION", "VOLATILE", "WHILE",
+//  keywords types
+    "VOID", "CHAR", "SHORT", "INT", "LONG", "FLOAT", 
+    "DOUBLE", "SIGNED", "UNSIGNED", "_BOOL", "_COMPLEX",
+// separators
+    "L_BRACKET",  "R_BRACKET", "L_PARENTHESES",  "R_PARENTHESES", 
+    "L_BRACE", "R_BRACE",
+// math ops  
+    "AMPRESAND", "STAR", "PLUS", "MINUS", "TILDE", "BANG", "SLASH", 
+    "PERCENT", "LESS", "GREATER",  "L_SHIFT",
+    "R_SHIFT", "LESS_EQUAL", "GREATER_EQUAL", "EQUAL_EQUAL", "BANG_EQUAL",
+    "PIPE", "CARET", "DOUBLE_AMPRESAND", "DOUBLE_PIPE", "QUESTION_MARK",
+// assignemnt types
+    "EQUAL", "START_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "PLUS_EQUAL", 
+    "MINUS_EQUAL", "L_SHIFT_EQUAL", "R_SHIFT_EQUAL", "AMPRESAND_EQUAL",
+    "CARET_EQUAL", "PIPE_EQUAL",
+// miscallenous
+     "COLON", "COMMA" , "SEMICOLON", "DOT", "ARROW", "INCREMENT", "DECREMENT",
+};
+
+
+
 Scanner::Scanner(const char *sourceCode)
 :
 currentToken(0)
@@ -302,6 +336,8 @@ void Scanner::consume(TokenType type)
         currentToken++;
         return;
     }
-    fprintf(stdout, "unexpected token at line %d\n", tokenStream[currentToken].line + 1);
+
+    fprintf(stdout, "ERROR line %d: Recieved token is %s but expected is %s\n", 
+            tokenStream[currentToken].line + 1, TokenTypeString[(int)tokenStream[currentToken].type ],TokenTypeString[(int)type]);
     exit(-1);
  }
