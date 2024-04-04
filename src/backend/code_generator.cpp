@@ -307,6 +307,25 @@ int translateAssignment(InstructionBuffer& buffer, AstNode* root)
     return reg;
 }
 
+int translateWhileLoop(InstructionBuffer& buffer, AstNode* root)
+{
+    int startLabel = generateLabel_ID();
+    int postLoopLabel = generateLabel_ID();
+
+    snprintf(scratchpad, scratchpadSize, "loopStart%d:\n", startLabel);
+    buffer.writeInstruction(scratchpad);
+    int reg = translate(buffer, root->children[0]);
+
+    snprintf(scratchpad, scratchpadSize, "\tcmpq $0, %s\n" "\tje postLoopLabel%d\n", registers[reg], postLoopLabel);
+    buffer.writeInstruction(scratchpad);
+    freeRegister(reg);
+
+    freeRegister(translate( buffer, root->children[1]));
+    snprintf(scratchpad, scratchpadSize, "\tjmp loopStart%d\n" "postLoopLabel%d:\n", startLabel, postLoopLabel);
+    buffer.writeInstruction(scratchpad);
+
+    return NO_REGISTER;
+}
 //returns which register to us
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
@@ -353,6 +372,8 @@ int translate(InstructionBuffer& buffer, AstNode* root)
         return load64Identifier(buffer, root);
     case NodeType::IF:
         return translateIfStatement(buffer, root);
+    case NodeType::WHILE_LOOP:
+        return translateWhileLoop(buffer, root);
     case NodeType::BLOCK:
     {
         for(AstNode* instruction : root->children)
