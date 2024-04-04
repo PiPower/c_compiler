@@ -25,7 +25,7 @@ enum class NodeType
     AND_ASSIGNMENT, EXC_OR_ASSIGNMENT, OR_ASSIGNMENT,
 // misc
     EXPR_GLUE, DECLARATION_GLUE, IF, BLOCK, WHILE_LOOP,
-    DO_WHILE_LOOP, FOR_LOOP
+    DO_WHILE_LOOP, FOR_LOOP, FUNCTION, FUNCTION_PARAMS
 };
 
 enum class DataType
@@ -35,9 +35,10 @@ enum class DataType
     INT_64
 };
 
+
 typedef DataType NodeDataType;
 
-NodeDataType transformToDataType(Scanner& scanner, Token token);
+NodeDataType transformToDataType(const std::vector<Token>& declSpec);
 bool isTypeSpecifier(Token token);
 
 NodeType tokenMathTypeToNodeType(const Token token);

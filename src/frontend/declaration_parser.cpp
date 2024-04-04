@@ -1,7 +1,56 @@
 #include "../../include/frontend/parser.hpp"
 #include "../../include/frontend/scanner.hpp"
 using namespace std;
+#define LOW_SPEC_INDEX ( (int) TokenType::RESTRICT )
+#define HIGH_SPEC_INDEX ((int)TokenType::_COMPLEX)
+static AstNode* parseDeclarator(Scanner& scanner);
 
+
+static NodeDataType parseDeclarationSpecifier(Scanner& scanner)
+{
+    int currentTokenID = (int) scanner.getCurrentToken().type;
+    vector<Token> declSpecifiers = {};
+    while (currentTokenID >= LOW_SPEC_INDEX && currentTokenID <= HIGH_SPEC_INDEX)
+    {
+        declSpecifiers.push_back(scanner.popToken());
+        currentTokenID = (int) scanner.getCurrentToken().type;
+    }
+    return transformToDataType(declSpecifiers);
+}
+
+
+static AstNode* parseParameterDeclaration(Scanner& scanner)
+{
+    NodeDataType type = parseDeclarationSpecifier(scanner);
+    AstNode* decl = new AstNode{NodeType::DECLARATION, {parseDeclarator(scanner)}, type};
+    return decl;
+}
+
+static AstNode* parseParameterList(Scanner& scanner)
+{
+    AstNode* params = new AstNode{NodeType::FUNCTION_PARAMS,  {}, NodeDataType::NONE};
+    while (true)
+    {
+        if(scanner.match(TokenType::R_PARENTHESES))
+        {
+            break;
+        }
+        AstNode* arg = parseParameterDeclaration(scanner);
+        params->children.push_back(arg);
+        if(scanner.match(TokenType::R_PARENTHESES))
+        {
+            break;
+        }
+        scanner.consume(TokenType::COMMA);
+    }
+
+
+    return params;
+}
+
+// function-definition:
+//      declaration-specifiers declarator compound-statement
+// TODO: what is declaration-list_opt ???? 
 static AstNode* parseDeclarator(Scanner& scanner)
 {
     if(!scanner.currentTokenOneOf({TokenType::IDENTIFIER}))
@@ -13,7 +62,21 @@ static AstNode* parseDeclarator(Scanner& scanner)
     
     AstNode* Identifier = new AstNode{NodeType::IDENTIFIER, {}, NodeDataType::NONE, new string()};
     *((string*)Identifier->context.arbitraryData) = *(string*)token.context.data;
-   return Identifier;
+
+    if(!scanner.match(TokenType::L_PARENTHESES))
+    {
+        return Identifier;
+    }
+
+    AstNode* functionParams = parseParameterList(scanner);
+    AstNode* functionDecl = new AstNode{NodeType::FUNCTION, {Identifier, functionParams}, NodeDataType::NONE};
+    if(scanner.currentTokenOneOf({TokenType::SEMICOLON}))
+    {
+        return functionDecl;
+    }
+    functionDecl->children.push_back(parseCompoundStatement(scanner));
+    
+    return functionDecl;
 }
 
 static AstNode* parseInitializer(Scanner& scanner)
@@ -35,11 +98,10 @@ static AstNode* parseInitDeclarator(Scanner& scanner)
     return root;
 }
 
-
 AstNode* parseDeclaration(Scanner& scanner)
 {
 
-    NodeDataType dataType = transformToDataType(scanner, scanner.popToken());
+    NodeDataType dataType = parseDeclarationSpecifier(scanner);
     AstNode* root_parent = new AstNode{NodeType::DECLARATION, {}, dataType};
     
     if(scanner.match(TokenType::SEMICOLON))

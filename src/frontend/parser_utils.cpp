@@ -1,8 +1,12 @@
 #include "../../include/frontend/parser_utils.hpp"
 
-NodeDataType transformToDataType(Scanner& scanner, Token token)
+NodeDataType transformToDataType(const std::vector<Token>& declSpec)
 {
-    if(token.type == TokenType::INT) return NodeDataType::INT_64;
+    if(declSpec.size() == 1 && declSpec[0].type == TokenType::INT) return NodeDataType::INT_64;
+    else if(declSpec.size() > 0){
+        fprintf(stdout, "unsupported declaration spec");
+        exit(-1);
+    }
     return NodeDataType::NONE;
 }
 

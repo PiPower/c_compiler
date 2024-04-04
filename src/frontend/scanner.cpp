@@ -85,6 +85,12 @@ void Scanner::keywordMapInit()
     keywordMap["while"] = TokenType::WHILE;
     keywordMap["for"] = TokenType::FOR;
     keywordMap["do"] = TokenType::DO;
+    keywordMap["typedef"] = TokenType::TYPEDEF;
+    keywordMap["extern"] = TokenType::EXTERN;
+    keywordMap["static"] = TokenType::STATIC;
+    keywordMap["auto"] = TokenType::AUTO;
+    keywordMap["register"] = TokenType::REGISTER;
+    keywordMap["inline"] = TokenType::INLINE;
 }
 
 bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int &line)
