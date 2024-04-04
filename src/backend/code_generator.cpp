@@ -326,9 +326,50 @@ int translateWhileLoop(InstructionBuffer& buffer, AstNode* root)
 
     return NO_REGISTER;
 }
+int translateDoWhileLoop(InstructionBuffer& buffer, AstNode* root)
+{
+    int startLabel = generateLabel_ID();
+
+    snprintf(scratchpad, scratchpadSize, "loopStart%d:\n", startLabel);
+    buffer.writeInstruction(scratchpad);
+
+    freeRegister(translate( buffer, root->children[1]));
+
+    int reg = translate(buffer, root->children[0]);
+    snprintf(scratchpad, scratchpadSize, "\tcmpq $0, %s\n" "\tjne loopStart%d\n", registers[reg], startLabel);
+    buffer.writeInstruction(scratchpad);
+    freeRegister(reg);
+
+    return NO_REGISTER;
+}
+
+int translateForLoop(InstructionBuffer& buffer, AstNode* root)
+{
+    int startLabel = generateLabel_ID();
+    int loopEnd = generateLabel_ID(); 
+    freeRegister(translate(buffer, root->children[0]));
+
+    snprintf(scratchpad, scratchpadSize, "loopStart%d:\n", startLabel);
+    buffer.writeInstruction(scratchpad);
+    if(root->children[1] != nullptr)
+    {
+        int reg = translate(buffer, root->children[1]);
+        snprintf(scratchpad, scratchpadSize, "\tcmpq $0, %s\n" "\tje loopEnd%d\n", registers[reg], loopEnd);
+        buffer.writeInstruction(scratchpad);
+        freeRegister(reg);
+    }
+
+    freeRegister(translate(buffer, root->children[3]));
+    freeRegister(translate(buffer, root->children[2]));
+
+    snprintf(scratchpad, scratchpadSize,  "\tjmp loopStart%d\n""loopEnd%d:\n",startLabel, loopEnd);
+    buffer.writeInstruction(scratchpad);
+    return NO_REGISTER;
+}
 //returns which register to us
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
+    if(root == nullptr) {return NO_REGISTER;}
     switch (root->nodeType)
     {
     case NodeType::OR:
@@ -374,6 +415,10 @@ int translate(InstructionBuffer& buffer, AstNode* root)
         return translateIfStatement(buffer, root);
     case NodeType::WHILE_LOOP:
         return translateWhileLoop(buffer, root);
+    case NodeType::DO_WHILE_LOOP:
+        return translateDoWhileLoop(buffer, root);
+    case NodeType::FOR_LOOP:
+        return translateForLoop(buffer, root);
     case NodeType::BLOCK:
     {
         for(AstNode* instruction : root->children)

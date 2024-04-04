@@ -41,7 +41,6 @@ AstNode* parseForLoop(Scanner& scanner)
         scanner.consume(TokenType::SEMICOLON);
     }
 
-
     if(scanner.match(TokenType::SEMICOLON)){cond_expr = nullptr;}
     else 
     {
