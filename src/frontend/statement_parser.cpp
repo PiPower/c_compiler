@@ -14,13 +14,63 @@ AstNode* parseWhileLoop(Scanner& scanner)
 
 }
 
+
+AstNode* parseDoWhileLoop(Scanner& scanner)
+{
+    scanner.consume(TokenType::DO);
+    AstNode* body = parseStatement(scanner);
+
+    scanner.consume(TokenType::WHILE);
+    scanner.consume(TokenType::L_PARENTHESES);
+    AstNode* expr = parseExpression(scanner);
+    scanner.consume(TokenType::R_PARENTHESES);
+
+    return new AstNode{NodeType::DO_WHILE_LOOP, {expr, body}, NodeDataType::INFERED};
+}
+
+AstNode* parseForLoop(Scanner& scanner)
+{
+    AstNode* init_expr,*cond_expr, *update_expr ;
+    scanner.consume(TokenType::FOR);
+    scanner.consume(TokenType::L_PARENTHESES);
+    if(scanner.match(TokenType::SEMICOLON)){init_expr = nullptr;}
+    else if(scanner.currentTokenOneOf({TokenType::INT})){init_expr = parseDeclaration(scanner);}
+    else 
+    {
+        init_expr = parseExpression(scanner);
+        scanner.consume(TokenType::SEMICOLON);
+    }
+
+
+    if(scanner.match(TokenType::SEMICOLON)){cond_expr = nullptr;}
+    else 
+    {
+        cond_expr = parseExpression(scanner);
+        scanner.consume(TokenType::SEMICOLON);
+    }
+
+    if(scanner.match(TokenType::R_PARENTHESES)){update_expr = nullptr;}
+    else 
+    {
+        update_expr = parseExpression(scanner);
+        scanner.consume(TokenType::R_PARENTHESES);
+    }
+
+
+    AstNode* body = parseStatement(scanner);
+    return new AstNode{NodeType::FOR_LOOP, {init_expr, cond_expr, update_expr, body}, NodeDataType::INFERED};
+}
+
 AstNode* parseIterationStatement(Scanner& scanner)
 {
     switch (scanner.getCurrentToken().type)
     {
     case TokenType::WHILE:
         return parseWhileLoop(scanner);
-    
+    case TokenType::DO:
+        return parseDoWhileLoop(scanner);
+    case TokenType::FOR:
+        return parseForLoop(scanner);
     default:
         fprintf(stdout, "unsupported iteration statement");
         exit(-1);

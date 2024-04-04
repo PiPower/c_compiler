@@ -7,3 +7,13 @@ while(i < 20)
     i += 1;
 }
 int h = 34;
+
+do 
+{
+    z *= 23;
+}while(i < 30)
+
+for(int k =0; k< 7; k+=3)
+{
+    h *=2;
+}
