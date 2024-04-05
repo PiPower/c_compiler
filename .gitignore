@@ -2,3 +2,5 @@ build
 .vscode
 test.S
 a.out
+test/scannerTests/scannerTest
+test/scannerTests/buffer.c
