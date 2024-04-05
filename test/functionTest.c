@@ -1,7 +1,10 @@
-int j =0 ;
-int z = 45;
+int j =0, k = 2;
+int z;
 
-int yolo(int x, int j, int p);
+int yolo(int x, int j, int p)
+{
+    z = 23 * 3+ 345;
+}
 
 int main(int z, int j)
 {

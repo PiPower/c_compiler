@@ -7,7 +7,7 @@ Test steps:
 3. If result files are the same(excluding .file directive) the test is passed
 """
 
-subprocess.run(["g++", "./scannerTests/scannerTest.cpp", "../src/frontend/scanner.cpp", "-o", "scannerTest"])
+subprocess.run(["g++", "./scannerTests/scannerTest.cpp", "../src/frontend/scanner.cpp", "-o", "./scannerTests/scannerTest"])
 
 
 testFiles = [ "./functionTest.c", "./expressionTest.c", "./loopsTest.c"]
