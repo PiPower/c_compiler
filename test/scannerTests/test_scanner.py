@@ -1,4 +1,5 @@
 import subprocess
+import sys
 """
 Test steps:
 1: Convert c source code into sequence of tokens then reverse the process
@@ -6,21 +7,21 @@ Test steps:
 3. If result files are the same(excluding .file directive) the test is passed
 """
 
-subprocess.run(["g++", "scannerTest.cpp", "../../src/frontend/scanner.cpp", "-o", "scannerTest"])
+subprocess.run(["g++", "./scannerTests/scannerTest.cpp", "../src/frontend/scanner.cpp", "-o", "scannerTest"])
 
 
-testFiles = [ "../functionTest.c", "../expressionTest.c", "../loopsTest.c"]
-bufferFile = open("./buffer.c", "w")
+testFiles = [ "./functionTest.c", "./expressionTest.c", "./loopsTest.c"]
+bufferFile = open("./scannerTests/buffer.c", "w")
 passed = 0
 for file in testFiles:
 
     content = open(file, "r+")
-    p = subprocess.run(["./scannerTest"], stdin=content, stdout= bufferFile)
+    p = subprocess.run(["./scannerTests/scannerTest"], stdin=content, stdout= bufferFile)
     bufferFile.flush()
     content.close()
 
     model = subprocess.run(["gcc", file, "-o", "/dev/stdout", "-S"], capture_output=True)
-    reconstructed =  subprocess.run(["gcc", "./buffer.c", "-o", "/dev/stdout", "-S"], capture_output=True)
+    reconstructed =  subprocess.run(["gcc", "./scannerTests/buffer.c", "-o", "/dev/stdout", "-S"], capture_output=True)
     
     model.stdout = "\n".join(model.stdout.decode("ascii").split("\n")[1:] )
     reconstructed.stdout = "\n".join(reconstructed.stdout.decode("ascii").split("\n")[1:] )
@@ -34,3 +35,6 @@ for file in testFiles:
 
 bufferFile.close()
 print("Passed: {0} \n Total: {1}".format(passed, len(testFiles)))
+
+if passed !=  len(testFiles):
+    sys.exit(-1)

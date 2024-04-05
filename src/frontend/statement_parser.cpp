@@ -11,7 +11,6 @@ AstNode* parseWhileLoop(Scanner& scanner)
     AstNode* body = parseStatement(scanner);
 
     return new AstNode{NodeType::WHILE_LOOP, {expr, body}, NodeDataType::INFERED};
-
 }
 
 
@@ -24,7 +23,7 @@ AstNode* parseDoWhileLoop(Scanner& scanner)
     scanner.consume(TokenType::L_PARENTHESES);
     AstNode* expr = parseExpression(scanner);
     scanner.consume(TokenType::R_PARENTHESES);
-
+    scanner.consume(TokenType::SEMICOLON);
     return new AstNode{NodeType::DO_WHILE_LOOP, {expr, body}, NodeDataType::INFERED};
 }
 

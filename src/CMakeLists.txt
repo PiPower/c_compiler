@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project(c_compiler)
 
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_definitions(-DDEBUG)
 endif()
@@ -15,3 +16,9 @@ add_executable(c_compiler	main.cpp
 							compiler.cpp
 							${frontendSources}
 							${backendSources})
+
+include(CTest)
+
+add_test(NAME "Scannet Test"
+		 COMMAND python3 ./scannerTests/test_scanner.py
+		 WORKING_DIRECTORY /home/mateusz/c++_projects/c_compiler/test)
