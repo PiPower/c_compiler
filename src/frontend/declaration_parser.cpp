@@ -3,6 +3,8 @@
 using namespace std;
 #define LOW_SPEC_INDEX ( (int) TokenType::RESTRICT )
 #define HIGH_SPEC_INDEX ((int)TokenType::_COMPLEX)
+static bool parsedFunctionBody = false;
+
 static AstNode* parseDeclarator(Scanner& scanner);
 
 
@@ -69,13 +71,14 @@ static AstNode* parseDeclarator(Scanner& scanner)
     }
 
     AstNode* functionParams = parseParameterList(scanner);
-    AstNode* functionDecl = new AstNode{NodeType::FUNCTION, {Identifier, functionParams}, NodeDataType::NONE};
+    AstNode* functionDecl = new AstNode{NodeType::FUNCTION_DECLARATION, {Identifier, functionParams}, NodeDataType::NONE};
     if(scanner.currentTokenOneOf({TokenType::SEMICOLON}))
     {
         return functionDecl;
     }
+    functionDecl->nodeType = NodeType::FUNCTION_DEFINITION;
     functionDecl->children.push_back(parseCompoundStatement(scanner));
-    
+    parsedFunctionBody = true;
     return functionDecl;
 }
 
@@ -87,7 +90,17 @@ static AstNode* parseInitializer(Scanner& scanner)
 static AstNode* parseInitDeclarator(Scanner& scanner)
 {
     AstNode* declarator = parseDeclarator(scanner);
-    AstNode* root = new AstNode{NodeType::DECLARATION_GLUE, {declarator}, NodeDataType::INFERED};
+    AstNode* root;
+    if(declarator->nodeType != NodeType::FUNCTION_DECLARATION &&
+        declarator->nodeType != NodeType::FUNCTION_DEFINITION )
+    {
+        root = new AstNode{NodeType::DEFINITION_VARIABLE, {declarator}, NodeDataType::INFERED};
+    }
+    else
+    {
+        root = declarator;
+    }
+
     if(!scanner.match(TokenType::EQUAL))
     {
         return root;
@@ -118,6 +131,9 @@ AstNode* parseDeclaration(Scanner& scanner)
     {
         root_parent->children.push_back(parseInitDeclarator(scanner));
     }
-    scanner.consume(TokenType::SEMICOLON);
+    if(!parsedFunctionBody)
+    {
+        scanner.consume(TokenType::SEMICOLON);
+    }
     return root_parent;
 }

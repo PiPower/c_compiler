@@ -16,7 +16,7 @@ struct AstNode
     union
     {
         void* arbitraryData;
-        int int_32;
+        long int int_32;
     } context;
     
 };

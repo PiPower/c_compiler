@@ -4,8 +4,7 @@
 const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
 const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b"};
 bool allocatedFlag[8];
-constexpr unsigned int scratchpadSize = 1000;
-static char scratchpad[scratchpadSize];
+char scratchpad[scratchpadSize];
 //buffer holds all allocations for global variables
 InstructionBuffer globalDefinitions(1000);
 SymbolTable symTab;
@@ -22,7 +21,7 @@ int generateLabel_ID()
 
 using namespace std;
 
-int allocateRegister(int base = 0 )
+int allocateRegister(int base)
 {
     for(int i=base ; i < 8; i++)
     {
@@ -201,39 +200,6 @@ static int translateLogicalOR(InstructionBuffer& buffer, AstNode* root)
     buffer.writeInstruction(scratchpad);
     return targetRegister;
 }
-static int translateDeclaration(InstructionBuffer& buffer, AstNode* root)
-{
-    globalDefinitions.writeInstruction("\t.data\n");
-    static const char* defTemplate = "\t.globl %s\n"
-                                     "%s:\n"
-                                     "\t.zero 8\n";
-    for(AstNode* declaration : root->children)
-    {
-        AstNode* identifier = declaration->children[0];
-        SymbolEntry& entry = symTab[STRING(identifier)];
-
-        if(entry.x != UNDEFINED_ENTRY)
-        {
-            fprintf(stdout, "redeclaration of global variable\n");
-            exit(-1);
-        }
-
-        entry.x = 0;
-        int  x =2;
-        snprintf(scratchpad, scratchpadSize, defTemplate, STRING(identifier).c_str(), STRING(identifier).c_str());
-        globalDefinitions.writeInstruction(scratchpad);
-        if(declaration->children.size() > 1)
-        {
-            int reg = translate(  buffer, declaration->children[1]);
-            snprintf(scratchpad, scratchpadSize, "\tmovq %s, %s(%%rip)\n", registers[reg], STRING(identifier).c_str());
-            buffer.writeInstruction(scratchpad);
-            freeRegister(reg);
-        }
-
-    }
-
-    return 0;
-}
 
 int load64Identifier(InstructionBuffer& buffer, AstNode* root)
 {
@@ -366,6 +332,13 @@ int translateForLoop(InstructionBuffer& buffer, AstNode* root)
     buffer.writeInstruction(scratchpad);
     return NO_REGISTER;
 }
+
+int translateFunction(InstructionBuffer& buffer, AstNode* root)
+{
+    AstNode* identifier = root->children[0];
+
+
+}
 //returns which register to us
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
@@ -438,9 +411,6 @@ int translate(InstructionBuffer& buffer, AstNode* root)
 InstructionBuffer generateCode(std::vector<AstNode*>& instructionSequence)
 {
     InstructionBuffer buffer(10000);
-    buffer.writeInstruction(".globl main \n");
-    buffer.writeInstruction(".text \n");
-    buffer.writeInstruction("main: \n");
     for(AstNode* root : instructionSequence)
     {
         int reg = translate(buffer, root);
