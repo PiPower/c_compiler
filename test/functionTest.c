@@ -8,7 +8,7 @@ int yolo(int x, int j, int p)
 
 int main(int z, int j)
 {
-    j = z = 23;
+    int j = z = 23;
     j += 1;
     j = j - z;
     z *= 2;

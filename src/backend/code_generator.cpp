@@ -1,15 +1,14 @@
 #include "../../include/backend/code_generator.hpp"
 #include <algorithm>
-#define NO_REGISTER -10
 const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
 const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b"};
 bool allocatedFlag[8];
 char scratchpad[scratchpadSize];
 //buffer holds all allocations for global variables
 InstructionBuffer globalDefinitions(1000);
-SymbolTable symTab;
+CompilationState compilationState;
 
-
+using namespace std;
 
 int generateLabel_ID()
 {
@@ -18,8 +17,6 @@ int generateLabel_ID()
     labelCount++;
     return currLabel;
 }
-
-using namespace std;
 
 int allocateRegister(int base)
 {
@@ -35,6 +32,24 @@ int allocateRegister(int base)
     exit(-1);
     return -1;
 }
+
+
+
+int load64Register(InstructionBuffer& buffer, AstNode* constant)
+{
+    int reg = allocateRegister();
+    snprintf(scratchpad, scratchpadSize, "\tmovq $%ld, %s\n",constant->context.int_32, registers[reg] );
+    buffer.writeInstruction(scratchpad);
+    return reg;
+}
+
+
+void freeRegister(int reg)
+{
+    if(reg == NO_REGISTER) {return;}
+    allocatedFlag[reg] = false;
+}
+
 
 static const char* resolveOp(NodeType& type)
 {
@@ -64,20 +79,6 @@ static const char* resolveComparison(NodeType& type, bool jump = false)
     return jump ? compOpsJump[tab_index] : compOpsSet[tab_index];
 }
 
-
-int load64Register(InstructionBuffer& buffer, AstNode* constant)
-{
-    int reg = allocateRegister();
-    snprintf(scratchpad, scratchpadSize, "\tmovq $%d, %s\n",constant->context.int_32, registers[reg] );
-    buffer.writeInstruction(scratchpad);
-    return reg;
-}
-
-void freeRegister(int reg)
-{
-    if(reg == NO_REGISTER) {return;}
-    allocatedFlag[reg] = false;
-}
 
 static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
 {
@@ -201,22 +202,6 @@ static int translateLogicalOR(InstructionBuffer& buffer, AstNode* root)
     return targetRegister;
 }
 
-int load64Identifier(InstructionBuffer& buffer, AstNode* root)
-{
-
-    SymbolEntry& entry = symTab[STRING(root)];
-    if(entry.x == UNDEFINED_ENTRY)
-    {
-        fprintf(stdout, "trying to refrence undefined variable\n");
-        exit(-1);
-    }
-
-    int r = allocateRegister();
-    snprintf(scratchpad, scratchpadSize, "\tmovq %s(%%rip), %s\n", STRING(root).c_str(), registers[r]);
-    buffer.writeInstruction(scratchpad);
-    return r;
-}
-
 
 int translateIfStatement(InstructionBuffer& buffer, AstNode* root)
 {
@@ -260,17 +245,6 @@ int translateIfStatement(InstructionBuffer& buffer, AstNode* root)
     snprintf(scratchpad, scratchpadSize, "escapeLabel%d:\n", escapeLabel);
     buffer.writeInstruction(scratchpad);
     return NO_REGISTER;
-}
-
-int translateAssignment(InstructionBuffer& buffer, AstNode* root)
-{
-    int reg = translate(buffer, root->children[1]);
-    static const char* assignmentInstruction = "\tmovq %s, %s(%rip)\n";
-    AstNode* identifier = root->children[0];
-
-    snprintf(scratchpad, scratchpadSize, assignmentInstruction, registers[reg], STRING(identifier).c_str());
-    buffer.writeInstruction(scratchpad);
-    return reg;
 }
 
 int translateWhileLoop(InstructionBuffer& buffer, AstNode* root)
@@ -333,12 +307,6 @@ int translateForLoop(InstructionBuffer& buffer, AstNode* root)
     return NO_REGISTER;
 }
 
-int translateFunction(InstructionBuffer& buffer, AstNode* root)
-{
-    AstNode* identifier = root->children[0];
-
-
-}
 //returns which register to us
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
@@ -383,7 +351,7 @@ int translate(InstructionBuffer& buffer, AstNode* root)
     case NodeType::DECLARATION:
         return translateDeclaration(buffer, root);
     case NodeType::IDENTIFIER:
-        return load64Identifier(buffer, root);
+        return loadIdentifier(buffer, root);
     case NodeType::IF:
         return translateIfStatement(buffer, root);
     case NodeType::WHILE_LOOP:
