@@ -3,7 +3,6 @@
 const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
 const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b"};
 bool allocatedFlag[8];
-char scratchpad[scratchpadSize];
 //buffer holds all allocations for global variables
 InstructionBuffer globalDefinitions(1000);
 CompilationState compilationState;
@@ -38,8 +37,7 @@ int allocateRegister(int base)
 int load64Register(InstructionBuffer& buffer, AstNode* constant)
 {
     int reg = allocateRegister();
-    snprintf(scratchpad, scratchpadSize, "\tmovq $%ld, %s\n",constant->context.int_32, registers[reg] );
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, "\tmovq $%ld, %s\n",constant->context.int_32, registers[reg]);
     return reg;
 }
 
@@ -96,9 +94,7 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
     case NodeType::MULTIPLY:
         {
             const char*  op = resolveOp(root->nodeType);
-
-            snprintf(scratchpad, scratchpadSize, "\t%s %s, %s\n", op, registers[r2], registers[r1]  );
-            buffer.writeInstruction(scratchpad);
+            bprintf(&buffer, "\t%s %s, %s\n", op, registers[r2], registers[r1] );
             freeRegister(r2);
             return r1;
         }
@@ -110,9 +106,7 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
             const char* instruction = "\txorq %rcx, %rcx\n"
                                       "\tmovq %s, %rcx\n"
                                       "\t%s %%cl, %s\n";
-
-            snprintf(scratchpad, scratchpadSize, instruction, registers[r2], op, registers[r1]  );
-            buffer.writeInstruction(scratchpad);
+            bprintf(&buffer,  instruction, registers[r2], op, registers[r1]  );
             freeRegister(r2);
             return r1;
         }
@@ -125,11 +119,8 @@ static int translateBinaryExpression(InstructionBuffer& buffer, AstNode* root)
                                       "\txorq %rdx, %rdx\n" 
                                       "\t%s %s\n" 
                                       "\tmovq %s, %s\n";
-            
-            snprintf(scratchpad, scratchpadSize, instruction, registers[r1], 
+            bprintf(&buffer, instruction, registers[r1], 
                     resolveOp(root->nodeType) ,registers[r2], sourceReg, registers[r1]);
-
-            buffer.writeInstruction(scratchpad);
             freeRegister(r2);
             return r1;
         }
@@ -147,8 +138,7 @@ static int translateComparison(InstructionBuffer& buffer, AstNode* root)
                               "\t%s %s\n"
                               "\tandq $255, %s\n";
     const char* comp = resolveComparison(root->nodeType);
-    snprintf(scratchpad, scratchpadSize, instruction, registers[r2], registers[r1], comp, registersByte[r1], registers[r1]);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, instruction, registers[r2], registers[r1], comp, registersByte[r1], registers[r1]);
     freeRegister(r2);
 
     return r1;
@@ -168,13 +158,11 @@ static int translateLogicalAND(InstructionBuffer& buffer, AstNode* root)
     for(AstNode* child : root->children)
     {
         int r = translate(buffer, child);
-        sprintf(scratchpad, "\tcmpq  $0, %s\n" "\tje falseLabel%d\n", registers[r], falseLabel);
+        bprintf(&buffer, "\tcmpq  $0, %s\n" "\tje falseLabel%d\n", registers[r], falseLabel );
         freeRegister(r);
-        buffer.writeInstruction(scratchpad);
     }
 
-    sprintf(scratchpad, tail,  registers[targetRegister], joinLabel, falseLabel, registers[targetRegister], joinLabel);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, tail,  registers[targetRegister], joinLabel, falseLabel, registers[targetRegister], joinLabel);
     return targetRegister;
 }
 
@@ -192,13 +180,11 @@ static int translateLogicalOR(InstructionBuffer& buffer, AstNode* root)
     for(AstNode* child : root->children)
     {
         int r = translate(buffer, child);
-        sprintf(scratchpad, "\tcmpq  $0, %s\n" "\tjne trueLabel%d\n", registers[r], trueLabel);
+        bprintf(&buffer, "\tcmpq  $0, %s\n" "\tjne trueLabel%d\n", registers[r], trueLabel);
         freeRegister(r);
-        buffer.writeInstruction(scratchpad);
     }
 
-    sprintf(scratchpad, tail,  registers[targetRegister], joinLabel, trueLabel, registers[targetRegister], joinLabel);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, tail,  registers[targetRegister], joinLabel, trueLabel, registers[targetRegister], joinLabel);
     return targetRegister;
 }
 
@@ -213,8 +199,7 @@ int translateIfStatement(InstructionBuffer& buffer, AstNode* root)
         int falseJumpLabel = generateLabel_ID();
         int r_cond = translate(buffer, currentIfNode->children[0]);
 
-        snprintf(scratchpad, scratchpadSize, "\tcmpq $0, %s\n""\tje false%d\n", registers[r_cond], falseJumpLabel);
-        buffer.writeInstruction(scratchpad);
+        bprintf(&buffer, "\tcmpq $0, %s\n""\tje false%d\n", registers[r_cond], falseJumpLabel);
         freeRegister(r_cond);
 
         if(currentIfNode->children[1]!= nullptr)
@@ -222,11 +207,7 @@ int translateIfStatement(InstructionBuffer& buffer, AstNode* root)
             int r = translate(buffer, currentIfNode->children[1]);
             freeRegister(r);
         }
-        snprintf(scratchpad, scratchpadSize, "\tjmp escapeLabel%d\n", escapeLabel);
-        buffer.writeInstruction(scratchpad);
-
-        snprintf(scratchpad, scratchpadSize, "false%d:\n", falseJumpLabel);
-        buffer.writeInstruction(scratchpad);
+        bprintf(&buffer,  "\tjmp escapeLabel%d\nfalse%d:\n", escapeLabel, falseJumpLabel);
         if(currentIfNode->children.size() == 3)
         {
             currentIfNode = currentIfNode->children[2];
@@ -242,8 +223,7 @@ int translateIfStatement(InstructionBuffer& buffer, AstNode* root)
         int r = translate(buffer, currentIfNode);
         freeRegister(r);
     }
-    snprintf(scratchpad, scratchpadSize, "escapeLabel%d:\n", escapeLabel);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer,"escapeLabel%d:\n", escapeLabel);
     return NO_REGISTER;
 }
 
@@ -252,32 +232,28 @@ int translateWhileLoop(InstructionBuffer& buffer, AstNode* root)
     int startLabel = generateLabel_ID();
     int postLoopLabel = generateLabel_ID();
 
-    snprintf(scratchpad, scratchpadSize, "loopStart%d:\n", startLabel);
-    buffer.writeInstruction(scratchpad);
+
+
+    bprintf(&buffer, "loopStart%d:\n", startLabel);
     int reg = translate(buffer, root->children[0]);
 
-    snprintf(scratchpad, scratchpadSize, "\tcmpq $0, %s\n" "\tje postLoopLabel%d\n", registers[reg], postLoopLabel);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer,"\tcmpq $0, %s\n" "\tje postLoopLabel%d\n", registers[reg], postLoopLabel);
     freeRegister(reg);
 
     freeRegister(translate( buffer, root->children[1]));
-    snprintf(scratchpad, scratchpadSize, "\tjmp loopStart%d\n" "postLoopLabel%d:\n", startLabel, postLoopLabel);
-    buffer.writeInstruction(scratchpad);
-
+    bprintf(&buffer, "\tjmp loopStart%d\n" "postLoopLabel%d:\n", startLabel, postLoopLabel);
     return NO_REGISTER;
 }
 int translateDoWhileLoop(InstructionBuffer& buffer, AstNode* root)
 {
     int startLabel = generateLabel_ID();
 
-    snprintf(scratchpad, scratchpadSize, "loopStart%d:\n", startLabel);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, "loopStart%d:\n", startLabel);
 
     freeRegister(translate( buffer, root->children[1]));
 
     int reg = translate(buffer, root->children[0]);
-    snprintf(scratchpad, scratchpadSize, "\tcmpq $0, %s\n" "\tjne loopStart%d\n", registers[reg], startLabel);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, "\tcmpq $0, %s\n" "\tjne loopStart%d\n", registers[reg], startLabel);
     freeRegister(reg);
 
     return NO_REGISTER;
@@ -289,21 +265,18 @@ int translateForLoop(InstructionBuffer& buffer, AstNode* root)
     int loopEnd = generateLabel_ID(); 
     freeRegister(translate(buffer, root->children[0]));
 
-    snprintf(scratchpad, scratchpadSize, "loopStart%d:\n", startLabel);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, "loopStart%d:\n", startLabel);
     if(root->children[1] != nullptr)
     {
         int reg = translate(buffer, root->children[1]);
-        snprintf(scratchpad, scratchpadSize, "\tcmpq $0, %s\n" "\tje loopEnd%d\n", registers[reg], loopEnd);
-        buffer.writeInstruction(scratchpad);
+        bprintf(&buffer, "\tcmpq $0, %s\n" "\tje loopEnd%d\n", registers[reg], loopEnd);
         freeRegister(reg);
     }
 
     freeRegister(translate(buffer, root->children[3]));
     freeRegister(translate(buffer, root->children[2]));
-
-    snprintf(scratchpad, scratchpadSize,  "\tjmp loopStart%d\n""loopEnd%d:\n",startLabel, loopEnd);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, "\tjmp loopStart%d\n""loopEnd%d:\n",startLabel, loopEnd);
+    
     return NO_REGISTER;
 }
 

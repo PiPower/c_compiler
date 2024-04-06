@@ -1,5 +1,10 @@
 #include "../../include/backend/code_generator_utils.hpp"
 #include <cstring>
+#include <stdarg.h>
+#include <cstdlib>
+#include <cstdio>
+#define SCRATCHPAD_SIZE (1000)
+char scratchpad[SCRATCHPAD_SIZE];
 
 InstructionBuffer::InstructionBuffer(unsigned int startSize)
 :
@@ -60,4 +65,20 @@ InstructionBuffer::~InstructionBuffer()
         delete[] buffer;
         buffer = nullptr;
     }
+}
+
+void bprintf(InstructionBuffer *buffer, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    int code = vsnprintf(scratchpad, SCRATCHPAD_SIZE, format, args);
+    if(!(code > 0  && code < SCRATCHPAD_SIZE ))
+    {
+        fprintf(stdout, "scratchpad not big enough\n");
+        exit(-1);
+    }
+    
+    buffer->writeInstruction(scratchpad);
+
+    va_end(args);
 }

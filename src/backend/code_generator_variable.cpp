@@ -2,7 +2,6 @@
 
 extern const char* registers[] ;
 extern const char* registersByte[];
-extern char scratchpad[];
 extern bool allocatedFlag[];
 extern CompilationState compilationState;
 using namespace std;
@@ -18,8 +17,7 @@ static int loadIdentifierFromGlobalScope(InstructionBuffer& buffer, AstNode* roo
     }
 
     int r = allocateRegister();
-    snprintf(scratchpad, scratchpadSize, "\tmovq %s(%%rip), %s\n", STRING(root).c_str(), registers[r]);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer,"\tmovq %s(%%rip), %s\n", STRING(root).c_str(), registers[r]);
     return r;
 }
 int loadIdentifierInFunction(InstructionBuffer& buffer, AstNode* root)
@@ -33,8 +31,7 @@ int loadIdentifierInFunction(InstructionBuffer& buffer, AstNode* root)
     SymbolEntry& entry = iter->second;
     int r = allocateRegister();
     int offset = entry.stackOffset;
-    snprintf(scratchpad, scratchpadSize, "\tmovq %d(%%rbp), %s\n", offset, registers[r]);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, "\tmovq %d(%%rbp), %s\n", offset, registers[r]);
     return r;
 }
 
@@ -67,9 +64,7 @@ static void declareLocalVariable(InstructionBuffer& buffer, AstNode* declaration
     if(declaration->children.size() > 1)
     {   
         int r = translate(buffer, declaration->children[1]);
-        snprintf(scratchpad, scratchpadSize, "\tmovq %s, %d(%%rbp)\n", registers[r], entry.stackOffset);
-        buffer.writeInstruction(scratchpad);
-
+        bprintf(&buffer, "\tmovq %s, %d(%%rbp)\n", registers[r], entry.stackOffset);
         freeRegister(r);
     }
 }
@@ -92,14 +87,12 @@ static void declareGlobalVariable(InstructionBuffer& buffer, AstNode* declaratio
     entry.x = 0;
     entry.functionInfo = nullptr;
     
-    snprintf(scratchpad, scratchpadSize, defTemplate, STRING(identifier).c_str(), STRING(identifier).c_str());
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, defTemplate, STRING(identifier).c_str(), STRING(identifier).c_str());
     if(declaration->children.size() > 1)
     {   
         if(declaration->children[1]->nodeType == NodeType::CONSTANT)
         {
-            snprintf(scratchpad, scratchpadSize, "\t.quad %ld\n", declaration->children[1]->context.int_32);
-            buffer.writeInstruction(scratchpad);
+            bprintf(&buffer,  "\t.quad %ld\n", declaration->children[1]->context.int_32);
         }
         else
         {
@@ -110,8 +103,7 @@ static void declareGlobalVariable(InstructionBuffer& buffer, AstNode* declaratio
     }
     else
     {
-        snprintf(scratchpad, scratchpadSize,  "\t.zero 8\n");
-        buffer.writeInstruction(scratchpad);
+        buffer.writeInstruction("\t.zero 8\n");
     }
 }
 
@@ -143,10 +135,7 @@ FunctionInfo* createFunctionInfo(AstNode* args)
 
 static void declareFunction(InstructionBuffer& buffer, AstNode* declaration)
 {
-    static const char* defTemplate = "\t.text\n" 
-                                     "\t.globl %s\n"
-                                     "%s:\n";
-                                    
+                                
     AstNode* identifier = declaration->children[0];
     SymbolEntry& entry = compilationState.globalSymTab[STRING(identifier)];
 
@@ -160,26 +149,19 @@ static void declareFunction(InstructionBuffer& buffer, AstNode* declaration)
     entry.functionInfo = createFunctionInfo(declaration->children[1]);
     if(declaration->children.size() == 3)
     {
-        static const char* preambule = "\tpushq %rbp\n" "\tmovq %rsp, %rbp\n""\tsubq $%d, %%rsp\n";
+        static const char* preambule = "\t.text\n" "\t.globl %s\n""%s:\n"
+                                        "\tpushq %rbp\n" "\tmovq %rsp, %rbp\n""\tsubq $%d, %%rsp\n";
         static const char* footer = "\tmovq %rbp, %rsp\n" "\tpopq %rbp\n" "\tret\n";
         entry.x = FUNCTION_DEFINED;
         compilationState.insideFunction = true;
         compilationState.stackSize = 0;
 
-        snprintf(scratchpad, scratchpadSize, defTemplate , STRING(identifier).c_str(), STRING(identifier).c_str());
-        buffer.writeInstruction(scratchpad);
 
         InstructionBuffer functionBuffer(1000);
         freeRegister( translate( functionBuffer, declaration->children[2]  ) );
 
-        snprintf(scratchpad, scratchpadSize, defTemplate , STRING(identifier).c_str(), STRING(identifier).c_str());
-        buffer.writeInstruction(scratchpad);
-
-        snprintf(scratchpad, scratchpadSize, preambule, compilationState.stackSize);
-        buffer.writeInstruction(scratchpad);
-
+        bprintf(&buffer, preambule , STRING(identifier).c_str(), STRING(identifier).c_str(), compilationState.stackSize);
         buffer.writeInstruction(functionBuffer);
-
         buffer.writeInstruction(footer);
 
         compilationState.localSymTab.clear();
@@ -227,9 +209,7 @@ int translateGlobalAssignment(InstructionBuffer& buffer, AstNode* identifier, in
         exit(-1);
     }
 
-
-    snprintf(scratchpad, scratchpadSize, globalAssignmentInstruction, registers[reg], STRING(identifier).c_str());
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, globalAssignmentInstruction, registers[reg], STRING(identifier).c_str() );
     return reg;
 }
 
@@ -243,8 +223,7 @@ int translateLocalAssignment(InstructionBuffer& buffer, AstNode* identifier, int
         return  translateGlobalAssignment(buffer, identifier, reg);
     }
 
-    snprintf(scratchpad, scratchpadSize, localAssignmentInstruction, registers[reg], iter->second.stackOffset);
-    buffer.writeInstruction(scratchpad);
+    bprintf(&buffer, localAssignmentInstruction, registers[reg], iter->second.stackOffset );
     return reg;
 }
 

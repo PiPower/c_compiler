@@ -19,7 +19,7 @@ private:
 };
 
 
-
+void bprintf(InstructionBuffer* buffer, const char* format, ...);
 
 
 #endif
