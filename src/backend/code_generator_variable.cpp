@@ -160,13 +160,27 @@ static void declareFunction(InstructionBuffer& buffer, AstNode* declaration)
     entry.functionInfo = createFunctionInfo(declaration->children[1]);
     if(declaration->children.size() == 3)
     {
+        static const char* preambule = "\tpushq %rbp\n" "\tmovq %rsp, %rbp\n""\tsubq $%d, %%rsp\n";
+        static const char* footer = "\tmovq %rbp, %rsp\n" "\tpopq %rbp\n" "\tret\n";
         entry.x = FUNCTION_DEFINED;
         compilationState.insideFunction = true;
         compilationState.stackSize = 0;
 
         snprintf(scratchpad, scratchpadSize, defTemplate , STRING(identifier).c_str(), STRING(identifier).c_str());
         buffer.writeInstruction(scratchpad);
-        freeRegister( translate( buffer, declaration->children[2]  ) );
+
+        InstructionBuffer functionBuffer(1000);
+        freeRegister( translate( functionBuffer, declaration->children[2]  ) );
+
+        snprintf(scratchpad, scratchpadSize, defTemplate , STRING(identifier).c_str(), STRING(identifier).c_str());
+        buffer.writeInstruction(scratchpad);
+
+        snprintf(scratchpad, scratchpadSize, preambule, compilationState.stackSize);
+        buffer.writeInstruction(scratchpad);
+
+        buffer.writeInstruction(functionBuffer);
+
+        buffer.writeInstruction(footer);
 
         compilationState.localSymTab.clear();
         compilationState.insideFunction = false;
