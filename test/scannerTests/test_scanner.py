@@ -1,5 +1,7 @@
 import subprocess
 import sys
+import os
+
 """
 Test steps:
 1: Convert c source code into sequence of tokens then reverse the process
@@ -10,11 +12,12 @@ Test steps:
 subprocess.run(["g++", "./scannerTests/scannerTest.cpp", "../src/frontend/scanner.cpp", "-o", "./scannerTests/scannerTest"])
 
 
-testFiles = [ "./functionTest.c", "./expressionTest.c", "./loopsTest.c"]
+testFiles =[filename for filename in os.listdir() if filename.split(".")[-1] == 'c']
 bufferFile = open("./scannerTests/buffer.c", "w")
 passed = 0
 for file in testFiles:
-
+    bufferFile.truncate(0)
+    bufferFile.seek(0)
     content = open(file, "r+")
     p = subprocess.run(["./scannerTests/scannerTest"], stdin=content, stdout= bufferFile)
     bufferFile.flush()
@@ -31,7 +34,6 @@ for file in testFiles:
     else:
         passed +=1
         
-    bufferFile.truncate(0)
 
 bufferFile.close()
 print("Passed: {0} \n Total: {1}".format(passed, len(testFiles)))

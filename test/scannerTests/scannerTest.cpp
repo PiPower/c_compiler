@@ -76,13 +76,14 @@ static const char* charTable[] = { "break", "case", "continue",
     if(token.line > line)
     {
         out+= "\n";
-        line = token.line;
+        line = +token.line;
     }
 
     if( tokenID >= (int)TokenType::BREAK)
     {
         int tableIndex = tokenID - (int)TokenType::BREAK;
-        out+=  charTable[tableIndex];
+        out+= " " ;
+        out+= charTable[tableIndex];
     }
     if(token.type == TokenType::CONSTANT)
     {
