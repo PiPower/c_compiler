@@ -34,6 +34,7 @@ struct CompilationState
     SymbolTable localSymTab;
     bool insideFunction = false;
     unsigned int stackSize = 0;
+    unsigned int stackOffset = 0;
 };
 
 int translateDeclaration(InstructionBuffer& buffer, AstNode* root);

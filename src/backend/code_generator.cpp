@@ -293,16 +293,25 @@ int translateFunctionCall(InstructionBuffer& buffer, AstNode* functionData)
     AstNode* functionName = functionData->children[0];
     int arg_count =  args->children.size();
     int pushedBytes = 0;
+
+    InstructionBuffer functionBuffer(200);
     for(int j = args->children.size(); j > 6; j--)
     {
-        int r = translate(buffer, args->children[j - 1]);
-        bprintf(&buffer, "\tpushq %s\n", registers[r]);
+        int r = translate(functionBuffer, args->children[j - 1]);
+        bprintf(&functionBuffer, "\tpushq %s\n", registers[r]);
         pushedBytes+=8;
         freeRegister(r);
     }
+    if((compilationState.stackSize + pushedBytes) % 16 != 0)
+    {
+        int delta = 16 - (compilationState.stackSize + pushedBytes) % 16;
+        bprintf(&buffer, "\tsubq $%d, %%rsp\n", delta);
+    }
+    buffer.writeInstruction(functionBuffer);
+
 
     int i = 1;
-    while (i <= 6  && i < args->children.size())
+    while (i <= 6  && i <= args->children.size())
     {
         int r = translate(buffer, args->children[i - 1]);
         bprintf(&buffer, "\tmovq %s, %s\n", registers[r], functionRegisters[i - 1]);
@@ -322,10 +331,18 @@ int translateFunctionCall(InstructionBuffer& buffer, AstNode* functionData)
     
     bprintf(&buffer, "\tcall %s", STRING(functionName).c_str());
     buffer.bufferForLateBinding(5);
+
     if(pushedBytes !=0)
     {
         bprintf(&buffer, "\taddq $%d, %rsp\n", pushedBytes);
     }
+
+    if((compilationState.stackSize + pushedBytes) % 16 != 0)
+    {
+        int delta = 16 - (compilationState.stackSize + pushedBytes) % 16;
+        bprintf(&buffer, "\taddq $%d, %%rsp\n", delta);
+    }
+
 
     if(stateR9) {buffer.writeInstruction("\tpopq %r9\n"); }
     if(stateR8) {buffer.writeInstruction("\tpopq %r8\n");}

@@ -1,13 +1,15 @@
 int j =0, k = 2;
 int z;
 
-int yolo(int x, int j, int p)
-{
-    z = 23 * 3+ 345;
-}
+int yolo(int x, int j, int p);
 
-int main(int z, int j)
+int test(int a, int b, int c, int d, int e, int f, int g, int h, int i);
+int testReg(int a,int b, int c,  int d,  int e, int f);
+
+int main()
 {
+    testReg(1231, 3234, 4223,  4546, 324, 43564);
+    test(1, 2, 3, 4, 5, 6, 7, 8, 9);
     int j = z = 23;
     j += 1;
     j = j - z;
@@ -16,4 +18,9 @@ int main(int z, int j)
     yolo(z + j * 2, 3, j - 4);
     z -= 2345;
     z <<= 2;
+}
+
+int yolo(int x, int j, int p)
+{
+    z = 23 * 3+ 345;
 }

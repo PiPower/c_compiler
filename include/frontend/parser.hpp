@@ -17,6 +17,7 @@ struct AstNode
     {
         void* arbitraryData;
         long int int_32;
+        long int int_64;
     } context;
     
 };

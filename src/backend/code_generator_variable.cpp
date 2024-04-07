@@ -59,8 +59,8 @@ static void declareLocalVariable(InstructionBuffer& buffer, AstNode* declaration
 
     entry.status = 0;
     entry.functionInfo = nullptr;
-    compilationState.stackSize += 8;
-    entry.stackOffset = -compilationState.stackSize;
+    compilationState.stackOffset += 8;
+    entry.stackOffset = -compilationState.stackOffset;
     if(declaration->children.size() > 1)
     {   
         int r = translate(buffer, declaration->children[1]);
@@ -158,8 +158,8 @@ static void declareFunction(InstructionBuffer& buffer, AstNode* declaration)
         static const char* footer = "\tmovq %rbp, %rsp\n" "\tpopq %rbp\n" "\tret\n";
         entry.status = FUNCTION_DEFINED;
         compilationState.insideFunction = true;
-        compilationState.stackSize = 0;
-
+        compilationState.stackSize = declaration->context.int_64;
+        compilationState.stackOffset = 0;
 
         InstructionBuffer functionBuffer(1000);
         freeRegister( translate( functionBuffer, declaration->children[2]  ) );
@@ -171,6 +171,7 @@ static void declareFunction(InstructionBuffer& buffer, AstNode* declaration)
         compilationState.localSymTab.clear();
         compilationState.insideFunction = false;
         compilationState.stackSize = 0;
+        compilationState.stackOffset = 0;
     }
 
 

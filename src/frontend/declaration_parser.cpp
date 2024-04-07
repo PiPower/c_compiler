@@ -7,6 +7,34 @@ static bool parsedFunctionBody = false;
 
 static AstNode* parseDeclarator(Scanner& scanner);
 
+static long int dataTypeToByteSize(DataType type)
+{
+    if(type != DataType::INT_64)
+    {
+        fprintf(stdout, "unsupported data type");
+        exit(-1);
+    }
+    return 8;
+}
+static long int getBlockRuntimeByteSize(AstNode* node)
+{
+    if(node->nodeType != NodeType::BLOCK)
+    {
+        fprintf(stdout, "unsupported node type in runtime size calculation\n");
+        exit(-1);
+    }
+
+    long int size = 0;
+    for(AstNode* child : node->children)
+    {
+        if(child->nodeType != NodeType::DECLARATION)
+        {
+            continue;
+        }
+        size += dataTypeToByteSize(child->nodeDataType) * child->children.size();
+    }
+    return size;
+}
 
 static NodeDataType parseDeclarationSpecifier(Scanner& scanner)
 {
@@ -79,6 +107,7 @@ static AstNode* parseDeclarator(Scanner& scanner)
     functionDecl->nodeType = NodeType::FUNCTION_DEFINITION;
     functionDecl->children.push_back(parseCompoundStatement(scanner));
     parsedFunctionBody = true;
+    functionDecl->context.int_64 = getBlockRuntimeByteSize( functionDecl->children[2]);
     return functionDecl;
 }
 
