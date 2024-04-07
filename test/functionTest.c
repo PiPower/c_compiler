@@ -13,6 +13,7 @@ int main(int z, int j)
     j = j - z;
     z *= 2;
     z ^= z;
+    yolo(z + j * 2, 3, j - 4);
     z -= 2345;
     z <<= 2;
 }

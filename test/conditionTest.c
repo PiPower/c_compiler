@@ -15,4 +15,5 @@ int main()
         int end = 2223 * 34/ 23;
     }
     int dx = 2 > 0;
+    int j = 34;
 }

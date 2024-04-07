@@ -52,10 +52,37 @@ static AstNode* primaryExpression(Scanner& scanner)
     }
 }
 
+static AstNode* parseArgsExpression(Scanner& scanner)
+{
+    AstNode* params = new AstNode{NodeType::FUNCTION_PARAMS,  {}, NodeDataType::NONE};
+    while (true)
+    {
+        if(scanner.match(TokenType::R_PARENTHESES))
+        {
+            break;
+        }
+        AstNode* arg = assignmentExpression(scanner);
+        params->children.push_back(arg);
+        if(scanner.match(TokenType::R_PARENTHESES))
+        {
+            break;
+        }
+        scanner.consume(TokenType::COMMA);
+    }
+    return params;
+}
 
 static AstNode* postfixExpression(Scanner& scanner)
 {
-    return primaryExpression(scanner);
+    AstNode* primary = primaryExpression(scanner);
+    if(!scanner.match(TokenType::L_PARENTHESES))
+    {
+        return primary;
+    }
+
+    AstNode* args = parseArgsExpression(scanner);
+    AstNode* call = new AstNode{NodeType::FUNCTION_CALL, {primary, args}, NodeDataType::INFERED};
+    return call;
 }
 
 
