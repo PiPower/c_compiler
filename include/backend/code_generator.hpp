@@ -23,7 +23,7 @@ struct SymbolEntry
     int stackOffset = 0;
     //if FunctionInfo != nullptr symbol represents function
     FunctionInfo* functionInfo;
-    int x = UNDEFINED_ENTRY;
+    int status = UNDEFINED_ENTRY;
 };
 
 typedef std::unordered_map<std::string, SymbolEntry> SymbolTable;
@@ -45,4 +45,5 @@ InstructionBuffer generateCode(std::vector<AstNode*>& instructionSequence);
 int translate(InstructionBuffer& buffer, AstNode* root);
 int loadIdentifier(InstructionBuffer& buffer, AstNode* root);
 int translateAssignment(InstructionBuffer& buffer, AstNode* root);
+void resolveFunctionBinding(InstructionBuffer& buffer);
 #endif

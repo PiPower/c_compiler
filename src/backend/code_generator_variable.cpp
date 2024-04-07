@@ -10,7 +10,7 @@ static int loadIdentifierFromGlobalScope(InstructionBuffer& buffer, AstNode* roo
 {   
 
     SymbolEntry& entry = compilationState.globalSymTab[STRING(root)];
-    if(entry.x == UNDEFINED_ENTRY)
+    if(entry.status == UNDEFINED_ENTRY)
     {
         fprintf(stdout, "trying to refrence undefined variable\n");
         exit(-1);
@@ -51,13 +51,13 @@ static void declareLocalVariable(InstructionBuffer& buffer, AstNode* declaration
     AstNode* identifier = declaration->children[0];
     SymbolEntry& entry = compilationState.localSymTab[STRING(identifier)];
 
-    if(entry.x != UNDEFINED_ENTRY)
+    if(entry.status != UNDEFINED_ENTRY)
     {
         fprintf(stdout, "redeclaration of local variable %s\n", STRING(identifier).c_str());
         exit(-1);
     }
 
-    entry.x = 0;
+    entry.status = 0;
     entry.functionInfo = nullptr;
     compilationState.stackSize += 8;
     entry.stackOffset = -compilationState.stackSize;
@@ -78,13 +78,13 @@ static void declareGlobalVariable(InstructionBuffer& buffer, AstNode* declaratio
     AstNode* identifier = declaration->children[0];
     SymbolEntry& entry = compilationState.globalSymTab[STRING(identifier)];
 
-    if(entry.x != UNDEFINED_ENTRY)
+    if(entry.status != UNDEFINED_ENTRY)
     {
         fprintf(stdout, "redeclaration of global variable %s\n", STRING(identifier).c_str());
         exit(-1);
     }
 
-    entry.x = 0;
+    entry.status = 0;
     entry.functionInfo = nullptr;
     
     bprintf(&buffer, defTemplate, STRING(identifier).c_str(), STRING(identifier).c_str());
@@ -139,20 +139,24 @@ static void declareFunction(InstructionBuffer& buffer, AstNode* declaration)
     AstNode* identifier = declaration->children[0];
     SymbolEntry& entry = compilationState.globalSymTab[STRING(identifier)];
 
-    if(entry.x == FUNCTION_DEFINED && declaration->nodeType == NodeType::FUNCTION_DEFINITION)
+    if(entry.status == FUNCTION_DEFINED && declaration->nodeType == NodeType::FUNCTION_DEFINITION)
     {
         fprintf(stdout, "redefinition of function  %s\n", STRING(identifier).c_str());
         exit(-1);
     }
 
-    entry.x = FUNCTION_DECLARED;
-    entry.functionInfo = createFunctionInfo(declaration->children[1]);
+    if( entry.status != FUNCTION_DECLARED)
+    {
+        entry.status = FUNCTION_DECLARED;
+        entry.functionInfo = createFunctionInfo(declaration->children[1]);
+    }
+
     if(declaration->children.size() == 3)
     {
         static const char* preambule = "\t.text\n" "\t.globl %s\n""%s:\n"
                                         "\tpushq %rbp\n" "\tmovq %rsp, %rbp\n""\tsubq $%d, %%rsp\n";
         static const char* footer = "\tmovq %rbp, %rsp\n" "\tpopq %rbp\n" "\tret\n";
-        entry.x = FUNCTION_DEFINED;
+        entry.status = FUNCTION_DEFINED;
         compilationState.insideFunction = true;
         compilationState.stackSize = 0;
 
@@ -203,7 +207,7 @@ int translateGlobalAssignment(InstructionBuffer& buffer, AstNode* identifier, in
 {
     static const char* globalAssignmentInstruction = "\tmovq %s, %s(%rip)\n";
     SymbolEntry& entry = compilationState.globalSymTab[STRING(identifier)];
-    if(entry.x == UNDEFINED_ENTRY)
+    if(entry.status == UNDEFINED_ENTRY)
     {
         fprintf(stdout, "trying to refrence undefined variable\n");
         exit(-1);
@@ -236,4 +240,25 @@ int translateAssignment(InstructionBuffer& buffer, AstNode* root)
     }
 
     return translateGlobalAssignment(buffer, root->children[0], reg);
+}
+
+void resolveFunctionBinding(InstructionBuffer& buffer)
+{
+    unsigned int pos;
+    unsigned int size;
+    while (buffer.popBindingData(pos, size))
+    {
+        string identifier = buffer.readBackwardUntilHit(pos - 1);
+
+        SymbolEntry& entry = compilationState.globalSymTab[identifier];
+        if(entry.status == FUNCTION_DECLARED) 
+        {
+            buffer.writeAtPos(pos, "@PLT\n");
+        }
+        else if(entry.status == FUNCTION_DEFINED) 
+        {
+            buffer.writeAtPos(pos, "    \n");
+        }
+    }
+    
 }

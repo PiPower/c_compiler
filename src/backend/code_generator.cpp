@@ -2,6 +2,7 @@
 #include <algorithm>
 const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
 const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b"};
+const char* functionRegisters[6] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 bool allocatedFlag[8];
 //buffer holds all allocations for global variables
 InstructionBuffer globalDefinitions(1000);
@@ -280,6 +281,60 @@ int translateForLoop(InstructionBuffer& buffer, AstNode* root)
     return NO_REGISTER;
 }
 
+int translateFunctionCall(InstructionBuffer& buffer, AstNode* functionData)
+{
+    bool stateR8 = allocatedFlag[0];
+    bool stateR9 = allocatedFlag[1];
+    if(stateR8) {buffer.writeInstruction("\tpushq %r8\n"); allocatedFlag[0] = false;}
+    if(stateR9) {buffer.writeInstruction("\tpushq %r9\n");  allocatedFlag[1] = false;}
+
+
+    AstNode* args = functionData->children[1];
+    AstNode* functionName = functionData->children[0];
+    int arg_count =  args->children.size();
+    int pushedBytes = 0;
+    for(int j = args->children.size(); j > 6; j--)
+    {
+        int r = translate(buffer, args->children[j - 1]);
+        bprintf(&buffer, "\tpushq %s\n", registers[r]);
+        pushedBytes+=8;
+        freeRegister(r);
+    }
+
+    int i = 1;
+    while (i <= 6  && i < args->children.size())
+    {
+        int r = translate(buffer, args->children[i - 1]);
+        bprintf(&buffer, "\tmovq %s, %s\n", registers[r], functionRegisters[i - 1]);
+        if(i == 5 )
+        {
+            allocatedFlag[0] = true;
+            if(r == 0 ){i++; continue;}
+        }
+        if(i == 6 )
+        {
+            allocatedFlag[1] = true;
+            if(r == 1 ){i++; continue;}
+        }
+        freeRegister(r);
+        i++;
+    }
+    
+    bprintf(&buffer, "\tcall %s", STRING(functionName).c_str());
+    buffer.bufferForLateBinding(5);
+    if(pushedBytes !=0)
+    {
+        bprintf(&buffer, "\taddq $%d, %rsp\n", pushedBytes);
+    }
+
+    if(stateR9) {buffer.writeInstruction("\tpopq %r9\n"); }
+    if(stateR8) {buffer.writeInstruction("\tpopq %r8\n");}
+
+    allocatedFlag[0] = stateR8;
+    allocatedFlag[1] = stateR9;
+    return NO_REGISTER;
+}
+
 //returns which register to us
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
@@ -333,6 +388,8 @@ int translate(InstructionBuffer& buffer, AstNode* root)
         return translateDoWhileLoop(buffer, root);
     case NodeType::FOR_LOOP:
         return translateForLoop(buffer, root);
+    case NodeType::FUNCTION_CALL:
+        return translateFunctionCall(buffer, root);
     case NodeType::BLOCK:
     {
         for(AstNode* instruction : root->children)
@@ -357,6 +414,8 @@ InstructionBuffer generateCode(std::vector<AstNode*>& instructionSequence)
         int reg = translate(buffer, root);
         freeRegister(reg);
     }
-    globalDefinitions.writeInstruction(buffer);
-    return globalDefinitions;
+
+
+    resolveFunctionBinding(buffer);
+    return buffer;
 }
