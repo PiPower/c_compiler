@@ -1,15 +1,17 @@
-int j =0, k = 2;
-int z;
 
-int yolo(int x, int j, int p);
 
-int test(int a, int b, int c, int d, int e, int f, int g, int h, int i);
-int testReg(int a,int b, int c,  int d,  int e, int f);
+long int j =0, k = 2;
+long int z;
 
-int main()
+long int yolo(long int x, long int j, long int p);
+
+long int test(long int a, long int b, long int c, long int d, long int e, long int f, long int g, long int h, long int i);
+long int testReg(long int a,long int b, long int c,  long int d,  long int e, long int f);
+
+long int main()
 {
     test(1, 2, 3, 4, 5, 6, 7, 8, 9);
-    int j = z = 23;
+    j = z = 23;
     j += 1;
     j = j - z;
     z *= 2;
@@ -21,8 +23,10 @@ int main()
     z <<= 2;
 }
 
-int yolo(int x, int j, int p)
+long int yolo(long int x, long int j, long int p)
 {
     z = 23 * 3+ 345;
-
+    testReg(x,j,p,0,0,222222);
+    test(x + j, x + p, j + p, x - 23 * p, p*j, p * 0, x+p+j, 0,0);
+    return 3;
 }

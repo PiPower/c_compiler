@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-void test(long int a,long int b, long int c, long int d, long int e, long int f, long int g, long int h, long int i)
+long int test(long int a,long int b, long int c, long int d, long int e, long int f, long int g, long int h, long int i)
 {
     printf("%ld\n", a);
     printf("%ld\n", b);
@@ -13,6 +13,8 @@ void test(long int a,long int b, long int c, long int d, long int e, long int f,
     printf("%ld\n", g);
     printf("%ld\n", h);
     printf("%ld\n", i);
+
+    return 2;
 }
 
 void testReg(long int a,long int b, long int c, long int d, long int e, long int f)

@@ -2,6 +2,7 @@
 
 extern const char* registers[] ;
 extern const char* registersByte[];
+extern const char* functionRegisters[];
 extern bool allocatedFlag[];
 extern CompilationState compilationState;
 using namespace std;
@@ -57,7 +58,7 @@ static void declareLocalVariable(InstructionBuffer& buffer, AstNode* declaration
         exit(-1);
     }
 
-    entry.status = 0;
+    entry.status = DEFINED_LOCAL_VAR;
     entry.functionInfo = nullptr;
     compilationState.stackOffset += 8;
     entry.stackOffset = -compilationState.stackOffset;
@@ -153,14 +154,41 @@ static void declareFunction(InstructionBuffer& buffer, AstNode* declaration)
 
     if(declaration->children.size() == 3)
     {
+
+        AstNode* params = declaration->children[1];
+        InstructionBuffer functionBuffer(1000);
+        int i = 6;
+        while (i < params->children.size())
+        {
+            AstNode* paramIdent = params->children[i]->children[0];
+            SymbolEntry& paramEntry =  compilationState.localSymTab[STRING(paramIdent)];
+            paramEntry.functionInfo = nullptr;
+            paramEntry.status = DEFINED_LOCAL_VAR;
+            paramEntry.stackOffset = 16 + (i - 6) * 8;
+            i++;
+        }
+        i = 0;
+        int pushedParamsSize = 0;
+        while (i < 6 && i < params->children.size())
+        {
+            pushedParamsSize+=8;
+            bprintf(&functionBuffer, "\tmovq %s, %d(%rbp)\n", functionRegisters[i], -pushedParamsSize);
+            AstNode* paramIdent = params->children[i]->children[0];
+            SymbolEntry& paramEntry =  compilationState.localSymTab[STRING(paramIdent)];
+            paramEntry.functionInfo = nullptr;
+            paramEntry.status = DEFINED_LOCAL_VAR;
+            paramEntry.stackOffset = -pushedParamsSize;
+            i++;
+        }
+        
+
+
         static const char* preambule = "\t.text\n" "\t.globl %s\n""%s:\n"
                                         "\tpushq %rbp\n" "\tmovq %rsp, %rbp\n""\tsubq $%d, %%rsp\n";
         entry.status = FUNCTION_DEFINED;
         compilationState.insideFunction = true;
-        compilationState.stackSize = declaration->context.int_64;
-        compilationState.stackOffset = 0;
-
-        InstructionBuffer functionBuffer(1000);
+        compilationState.stackSize = declaration->context.int_64 + pushedParamsSize;
+        compilationState.stackOffset = pushedParamsSize;
         freeRegister( translate( functionBuffer, declaration->children[2]  ) );
 
         bprintf(&buffer, preambule , STRING(identifier).c_str(), STRING(identifier).c_str(), compilationState.stackSize);

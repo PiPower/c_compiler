@@ -7,7 +7,7 @@
 #define FUNCTION_DECLARED (9)
 #define NO_REGISTER (-10)
 #define scratchpadSize (1000)
-
+#define DEFINED_LOCAL_VAR 0
 struct FunctionInfo
 {
     int arity;
@@ -33,6 +33,7 @@ struct CompilationState
     SymbolTable globalSymTab;
     SymbolTable localSymTab;
     bool insideFunction = false;
+    int deltaStack = 0;
     unsigned int stackSize = 0;
     unsigned int stackOffset = 0;
 };

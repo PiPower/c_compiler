@@ -82,6 +82,7 @@ void Scanner::keywordMapInit()
     keywordMap["if"] = TokenType::IF;
     keywordMap["else"] = TokenType::ELSE;
     keywordMap["int"] = TokenType::INT;
+    keywordMap["long"] = TokenType::LONG;
     keywordMap["while"] = TokenType::WHILE;
     keywordMap["for"] = TokenType::FOR;
     keywordMap["do"] = TokenType::DO;

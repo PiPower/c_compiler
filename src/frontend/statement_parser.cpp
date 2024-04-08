@@ -115,8 +115,9 @@ AstNode* parseJumpStatement(Scanner &scanner)
 {
     if(scanner.match(TokenType::RETURN))
     {
-        AstNode* expr = scanner.match(TokenType::SEMICOLON) ? parseExpression(scanner) : nullptr;
+        AstNode* expr = scanner.match(TokenType::SEMICOLON) ? nullptr :  parseExpression(scanner);
         AstNode* stmt = new AstNode{NodeType::RETURN, {expr}, NodeDataType::INFERED};
+        scanner.consume(TokenType::SEMICOLON);
         return stmt;
     }
 

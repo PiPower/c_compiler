@@ -300,6 +300,7 @@ int translateFunctionCall(InstructionBuffer& buffer, AstNode* functionData)
     {
         int r = translate(functionBuffer, args->children[j - 1]);
         bprintf(&functionBuffer, "\tpushq %s\n", registers[r]);
+        compilationState.deltaStack += 8;
         pushedBytes+=8;
         freeRegister(r);
     }
@@ -336,6 +337,7 @@ int translateFunctionCall(InstructionBuffer& buffer, AstNode* functionData)
     if(pushedBytes !=0)
     {
         bprintf(&buffer, "\taddq $%d, %rsp\n", pushedBytes);
+        compilationState.deltaStack = 0;
     }
 
     if((compilationState.stackSize + pushedBytes) % 16 != 0)
@@ -355,12 +357,11 @@ int translateFunctionCall(InstructionBuffer& buffer, AstNode* functionData)
 int translateReturn(InstructionBuffer& buffer, AstNode* root)
 {
     int reg = translate(buffer, root->children[0]);
-    static const char* footer = "\tmovq %rbp, %rsp\n" "\tpopq %rbp\n" "\tret\n";
     if( reg != NO_REGISTER)
     {
         bprintf(&buffer,"\tmovq %s, %%rax\n", registers[reg] );
     }
-    buffer.writeInstruction(footer);
+    buffer.writeInstruction( "\tmovq %rbp, %rsp\n" "\tpopq %rbp\n""\tret\n");
 
     return NO_REGISTER;
 }
