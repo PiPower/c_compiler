@@ -91,6 +91,7 @@ void Scanner::keywordMapInit()
     keywordMap["auto"] = TokenType::AUTO;
     keywordMap["register"] = TokenType::REGISTER;
     keywordMap["inline"] = TokenType::INLINE;
+    keywordMap["return"] = TokenType::RETURN;
 }
 
 bool Scanner::parsePunctuators(const char *c, unsigned int &index, unsigned int &line)

@@ -110,6 +110,22 @@ AstNode* parseCompoundStatement(Scanner& scanner)
     return block;
 }
 
+
+AstNode* parseJumpStatement(Scanner &scanner)
+{
+    if(scanner.match(TokenType::RETURN))
+    {
+        AstNode* expr = scanner.match(TokenType::SEMICOLON) ? parseExpression(scanner) : nullptr;
+        AstNode* stmt = new AstNode{NodeType::RETURN, {expr}, NodeDataType::INFERED};
+        return stmt;
+    }
+
+    fprintf(stdout, "unsupported feature in jump statement");
+    exit(-1);
+
+    return nullptr;
+}
+
 AstNode *parseStatementAndDeclaration(Scanner &scanner)
 {
     if(isTypeSpecifier(scanner.getCurrentToken()))
@@ -134,6 +150,10 @@ AstNode *parseStatement(Scanner &scanner)
     else if(scanner.currentTokenOneOf({TokenType::L_BRACE}) )
     {
         return parseCompoundStatement(scanner);
+    }
+    else if(scanner.currentTokenOneOf({TokenType::RETURN}) )
+    {
+        return parseJumpStatement(scanner);
     }
     else if (scanner.match(TokenType::SEMICOLON))
     {

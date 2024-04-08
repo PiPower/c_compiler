@@ -1,6 +1,6 @@
 build
 .vscode
-test.S
+test.s
 a.out
 test/scannerTests/scannerTest
 test/scannerTests/buffer.c

@@ -16,6 +16,7 @@ int main()
     testReg(1231, 3234, 4223,  4546, 324, 43564);
     z ^= z;
     yolo(z + j * 2, 3, j - 4);
+    int k = yolo(2,3,4);
     z -= 2345;
     z <<= 2;
 }
@@ -23,4 +24,5 @@ int main()
 int yolo(int x, int j, int p)
 {
     z = 23 * 3+ 345;
+
 }
