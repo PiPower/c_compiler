@@ -155,7 +155,6 @@ static void declareFunction(InstructionBuffer& buffer, AstNode* declaration)
     {
         static const char* preambule = "\t.text\n" "\t.globl %s\n""%s:\n"
                                         "\tpushq %rbp\n" "\tmovq %rsp, %rbp\n""\tsubq $%d, %%rsp\n";
-        static const char* footer = "\tmovq %rbp, %rsp\n" "\tpopq %rbp\n" "\tret\n";
         entry.status = FUNCTION_DEFINED;
         compilationState.insideFunction = true;
         compilationState.stackSize = declaration->context.int_64;
@@ -166,7 +165,6 @@ static void declareFunction(InstructionBuffer& buffer, AstNode* declaration)
 
         bprintf(&buffer, preambule , STRING(identifier).c_str(), STRING(identifier).c_str(), compilationState.stackSize);
         buffer.writeInstruction(functionBuffer);
-        buffer.writeInstruction(footer);
 
         compilationState.localSymTab.clear();
         compilationState.insideFunction = false;

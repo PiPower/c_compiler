@@ -1,9 +1,10 @@
 #include "../../include/backend/code_generator.hpp"
 #include <algorithm>
-const char* registers[8] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
+const char* registers[9] = {"%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rax"};
 const char* registersByte[8] = {"%r8b", "%r9b", "%r10b", "%r11b", "%r12b", "%r13b", "%r14b", "%r15b"};
-const char* functionRegisters[6] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+const char* functionRegisters[6] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"}; // passing args
 bool allocatedFlag[8];
+#define RAX 8
 //buffer holds all allocations for global variables
 InstructionBuffer globalDefinitions(1000);
 CompilationState compilationState;
@@ -349,9 +350,20 @@ int translateFunctionCall(InstructionBuffer& buffer, AstNode* functionData)
 
     allocatedFlag[0] = stateR8;
     allocatedFlag[1] = stateR9;
+    return RAX;
+}
+int translateReturn(InstructionBuffer& buffer, AstNode* root)
+{
+    int reg = translate(buffer, root->children[0]);
+    static const char* footer = "\tmovq %rbp, %rsp\n" "\tpopq %rbp\n" "\tret\n";
+    if( reg != NO_REGISTER)
+    {
+        bprintf(&buffer,"\tmovq %s, %%rax\n", registers[reg] );
+    }
+    buffer.writeInstruction(footer);
+
     return NO_REGISTER;
 }
-
 //returns which register to us
 int translate(InstructionBuffer& buffer, AstNode* root)
 {
@@ -407,6 +419,8 @@ int translate(InstructionBuffer& buffer, AstNode* root)
         return translateForLoop(buffer, root);
     case NodeType::FUNCTION_CALL:
         return translateFunctionCall(buffer, root);
+    case NodeType::RETURN:
+        return translateReturn(buffer, root);
     case NodeType::BLOCK:
     {
         for(AstNode* instruction : root->children)

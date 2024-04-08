@@ -106,6 +106,11 @@ static AstNode* parseDeclarator(Scanner& scanner)
     }
     functionDecl->nodeType = NodeType::FUNCTION_DEFINITION;
     functionDecl->children.push_back(parseCompoundStatement(scanner));
+    AstNode* functionBlock = functionDecl->children[2];
+    if(functionBlock->children[ functionBlock->children.size() - 1 ]->nodeType != NodeType::RETURN)
+    {
+        functionBlock->children.push_back( new AstNode{NodeType::RETURN, {nullptr}, NodeDataType::NONE});
+    }
     parsedFunctionBody = true;
     functionDecl->context.int_64 = getBlockRuntimeByteSize( functionDecl->children[2]);
     return functionDecl;
