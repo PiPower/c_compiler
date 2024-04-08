@@ -22,3 +22,7 @@ include(CTest)
 add_test(NAME "Scannet Test"
 		 COMMAND python3 ./scannerTests/test_scanner.py
 		 WORKING_DIRECTORY /home/mateusz/c++_projects/c_compiler/test)
+
+add_test(NAME "Function call Test"
+		 COMMAND python3 test_functioncall.py
+		 WORKING_DIRECTORY /home/mateusz/c++_projects/c_compiler/test/callTest)
