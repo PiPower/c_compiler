@@ -34,8 +34,6 @@ int allocateRegister(int base)
     return -1;
 }
 
-
-
 int load64Register(InstructionBuffer& buffer, AstNode* constant)
 {
     int reg = allocateRegister();
@@ -284,18 +282,21 @@ int translateForLoop(InstructionBuffer& buffer, AstNode* root)
 
 int translateFunctionCall(InstructionBuffer& buffer, AstNode* functionData)
 {
-    bool stateR8 = allocatedFlag[0];
-    bool stateR9 = allocatedFlag[1];
-    if(stateR8) {buffer.writeInstruction("\tpushq %r8\n"); allocatedFlag[0] = false;}
-    if(stateR9) {buffer.writeInstruction("\tpushq %r9\n");  allocatedFlag[1] = false;}
-
-
+    bool stateBuffer[4] ;
+    for(int i=0; i < 4; i++)
+    {
+        bprintf(&buffer, "\tpushq %s\n", registers[i]);
+        stateBuffer[i] = allocatedFlag[i];
+        allocatedFlag[i] = 0;
+    }
+    
     AstNode* args = functionData->children[1];
     AstNode* functionName = functionData->children[0];
     int arg_count =  args->children.size();
     int pushedBytes = 0;
 
     InstructionBuffer functionBuffer(200);
+
     for(int j = args->children.size(); j > 6; j--)
     {
         int r = translate(functionBuffer, args->children[j - 1]);
@@ -346,13 +347,14 @@ int translateFunctionCall(InstructionBuffer& buffer, AstNode* functionData)
         bprintf(&buffer, "\taddq $%d, %%rsp\n", delta);
     }
 
-
-    if(stateR9) {buffer.writeInstruction("\tpopq %r9\n"); }
-    if(stateR8) {buffer.writeInstruction("\tpopq %r8\n");}
-
-    allocatedFlag[0] = stateR8;
-    allocatedFlag[1] = stateR9;
-    return RAX;
+    for(int i=3; i >= 0; i--)
+    {
+        bprintf(&buffer, "\tpopq %s\n", registers[i]);
+        allocatedFlag[i] = stateBuffer[i] ;
+    }
+    int r = allocateRegister();
+    bprintf(&buffer, "\tmovq %%rax, %s\n", registers[r]);
+    return r;
 }
 int translateReturn(InstructionBuffer& buffer, AstNode* root)
 {

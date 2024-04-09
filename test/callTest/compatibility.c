@@ -26,3 +26,8 @@ void testReg(long int a,long int b, long int c, long int d, long int e, long int
     printf("%ld\n", e);
     printf("%ld\n", f);
 }
+
+void printLongInt(long int a)
+{
+       printf("%ld\n", a);
+}
