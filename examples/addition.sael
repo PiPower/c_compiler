@@ -1,0 +1,5 @@
+int32 x = 2;
+int32 y = 4;
+int32 z = 2 + 4;
+
+print(z);
