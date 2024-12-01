@@ -1,2 +1,148 @@
             Grammar for SAEL(simple assembly expression language)
 
+token:
+    keyword
+    constant
+    punctuator
+    identifier
+
+
+Punctuators: one of
+    [ ] ( ) { } .
+    ++ -- & * + - ~ !
+    / % << >> < > <= >= == != ^ | && ||
+    ? ; ,
+    = *= /= %= += -= <<= >>= &= ^= |=
+
+identifier:
+    nondigit
+    identifier nondigit
+    identifier digit
+
+nondigit: one of
+    _ a b c d e f g h i j k l m
+    n o p q r s t u v w x y z
+    A B C D E F G H I J K L M
+    N O P Q R S T U V W X Y Z
+
+digit: one of
+    0 1 2 3 4 5 6 7 8 9
+
+keyword: one of
+    int8
+    int16
+    int32
+    int64
+    print
+
+constant:
+    nonzero-digit
+    decimal-constant digit
+    0
+
+nonzero-digit:
+    1 2 3 4 5 6 7 8 9
+digit: one of
+    0 1 2 3 4 5 6 7 8 9
+
+---------------------Expressions---------------------
+primary-expression:
+    identifier
+    constant
+    ( expression )
+
+postfix-expression:
+    primary-expression
+
+unary-expression:
+    postfix-expression
+
+cast-expression:
+    unary-expression
+
+multiplicative-expression:
+    cast-expression
+    multiplicative-expression * cast-expression
+    multiplicative-expression / cast-expression
+    multiplicative-expression % cast-expression
+
+additive-expression:
+    multiplicative-expression
+    additive-expression + multiplicative-expression
+    additive-expression - multiplicative-expression
+
+shift-expression:
+    additive-expression
+    shift-expression << additive-expression
+    shift-expression >> additive-expression
+
+relational-expression:
+    shift-expression
+    relational-expression < shift-expression
+    relational-expression > shift-expression
+    relational-expression <= shift-expression
+    relational-expression >= shift-expression
+
+equality-expression:
+    relational-expression
+    equality-expression == relational-expression
+    equality-expression != relational-expression
+
+AND-expression:
+    equality-expression
+    AND-expression & equality-expression
+
+exclusive-OR-expression:
+    AND-expression
+    exclusive-OR-expression ^ AND-expression
+
+inclusive-OR-expression:
+    exclusive-OR-expression
+    inclusive-OR-expression | exclusive-OR-expression
+
+logical-AND-expression:
+    inclusive-OR-expression
+    logical-AND-expression && inclusive-OR-expression
+
+logical-OR-expression:
+    logical-AND-expression
+    logical-OR-expression || logical-AND-expression
+    
+conditional-expression:
+    logical-OR-expression
+    logical-OR-expression ? expression : conditional-expression
+
+assignment-expression:
+    conditional-expression
+    unary-expression assignment-operator assignment-expression
+
+assignment-operator: one of
+    = *= /= %= += -= <<= >>= &= ^= |=
+
+expression:
+    assignment-expression
+    expression , assignment-expression
+
+constant-expression:
+    conditional-expression
+
+
+---------------------Declarations---------------------
+
+declaration:
+    type-specifier init-declarator-list_opt
+
+init-declarator-list:
+    init-declarator
+    init-declarator-list , init-declarator
+
+init-declarator:
+    identifier
+    identifier = assignment-expression
+
+
+type-specifier:
+    int8
+    int16
+    int32
+    int64
