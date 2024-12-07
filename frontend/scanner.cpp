@@ -32,8 +32,6 @@ const char* TokenTypeString[]
     "COLON", "COMMA" , "SEMICOLON", "DOT", "INCREMENT", "DECREMENT",
 };
 
-
-
 Scanner::Scanner(const char *sourceCode)
     :
 line(0), index(0)
@@ -327,6 +325,7 @@ Token Scanner::parseConstant(const char *c)
     token.data = str;
     return token;
 }
+
 bool Scanner::isDigit(const char &c)
 {
     return '0' <= c  && c <= '9';
@@ -341,7 +340,6 @@ bool Scanner::isAlphaDigitFloor(const char &c)
 {
     return isDigit(c) || isAlpha(c) || c == '_';
 }
-
 
 bool Scanner::currentTokenOneOf(std::vector<TokenType> types)
 {
@@ -422,6 +420,7 @@ bool Scanner::match(TokenType type)
     }
     return false;
 }
+
 void Scanner::consume(TokenType type)
 {
     Token token;
