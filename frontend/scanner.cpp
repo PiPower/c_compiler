@@ -364,6 +364,13 @@ Token Scanner::getToken()
         return token;
     }
 
+    if(token_queue.size() != 0)
+    {
+        Token token = token_queue.front();
+        token_queue.pop();
+        return token;
+    }
+
     while(src_buffer[index] == ' ' ||  src_buffer[index] == '\t' ||  src_buffer[index] == '\r' || src_buffer[index] == '\n')
     {
         if( src_buffer[index] == '\n')
