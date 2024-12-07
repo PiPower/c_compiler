@@ -9,3 +9,11 @@ void freeNode(AstNode *node)
 {
     delete node;
 }
+
+void freeAllNodes(std::vector<AstNode*>* nodes)
+{
+    for(AstNode* node : *nodes)
+    {
+        free(node);
+    }
+}

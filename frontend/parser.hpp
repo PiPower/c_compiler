@@ -4,7 +4,6 @@
 #include "parser_utils.hpp"
 #include "scanner.hpp"
 #include "../compiler.hpp"
-
 #include <vector>
 struct AstNode
 {

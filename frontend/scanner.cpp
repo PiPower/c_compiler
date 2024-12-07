@@ -4,7 +4,7 @@
 #include <algorithm>
 using namespace std;
 
-const char* TokenTypeString[]
+const char* tokenTypeString[]
 {
     "NONE",
     "END_OF_FILE",
@@ -447,6 +447,6 @@ void Scanner::consume(TokenType type)
     }
 
     fprintf(stdout, "ERROR line %d: Recieved token is %s but expected is %s\n", 
-            token.line + 1, TokenTypeString[(int)token.type ], TokenTypeString[(int)type]);
+            token.line + 1, tokenTypeString[(int)token.type ], tokenTypeString[(int)type]);
     exit(-1);
  }
