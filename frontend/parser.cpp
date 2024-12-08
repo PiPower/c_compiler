@@ -1,11 +1,12 @@
 #include "parser.hpp"
-#include "node_allocator.hpp"
 #include "parser_internal.hpp"
 #define ERR_BUFF_SIZE 10000
 
-std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab)
+using namespace std;
+std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocator *allocator)
 {
     ParserState parser;
+    parser.allocator = allocator;
     parser.scanner = scanner;
     parser.symtab = symtab;
     parser.errorMessage = new char[ERR_BUFF_SIZE];
@@ -15,14 +16,15 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab)
     setjmp(parser.jmpBuff);
     if( parser.errorMessage )
     {
-        freeAllNodes(&parser.nodes);
+        freeAllNodes(parser.allocator);
     }
     
+    vector<AstNode *> statements; 
     while (parser.scanner->peekToken().type != TokenType::END_OF_FILE)
     {
-        parser.nodes.push_back( parseStatement(&parser) );
+        statements.push_back( parseStatement(&parser) );
     }
-    return std::vector<AstNode *>();
+    return statements;
 }
 
 

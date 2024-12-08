@@ -9,9 +9,10 @@ struct AstNode
 {
     NodeType nodeType;
     std::vector<AstNode*> children;
-    void* contextData;
+    void* data;
 };
 
+struct NodeAllocator;
 
-std::vector<AstNode*> parse( Scanner* scanner, SymbolTable* symtab);
+std::vector<AstNode*> parse( Scanner* scanner, SymbolTable* symtab, NodeAllocator *allocator);
 #endif

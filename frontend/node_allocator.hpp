@@ -3,8 +3,14 @@
 
 #include "parser.hpp"
 #include <vector>
+#include <unordered_set>
 
-AstNode* allocateNode();
-void freeNode(AstNode* node);
-void freeAllNodes(std::vector<AstNode*>* nodes);
+struct NodeAllocator
+{
+    std::unordered_set<AstNode*> nodes;
+};
+
+AstNode* allocateNode(NodeAllocator* allocator);
+void freeNode(NodeAllocator* allocator, AstNode* node);
+void freeAllNodes(NodeAllocator* allocator);
 #endif

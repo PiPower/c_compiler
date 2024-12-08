@@ -1,19 +1,23 @@
 #include "node_allocator.hpp"
 
-AstNode *allocateNode()
+AstNode *allocateNode(NodeAllocator* allocator)
 {
-    return new AstNode();
+    AstNode* node = new AstNode();
+    allocator->nodes.insert(node);
+    node->nodeType = NodeType::NONE;
+    return node;
 }
 
-void freeNode(AstNode *node)
+void freeNode(NodeAllocator* allocator, AstNode *node)
 {
+    allocator->nodes.erase(node);
     delete node;
 }
 
-void freeAllNodes(std::vector<AstNode*>* nodes)
+void freeAllNodes(NodeAllocator* allocator)
 {
-    for(AstNode* node : *nodes)
+    for(AstNode* node : allocator->nodes)
     {
-        free(node);
+        freeNode(allocator, node);
     }
 }
