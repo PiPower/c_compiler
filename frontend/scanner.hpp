@@ -11,7 +11,7 @@ class Scanner
 
 public:
     Scanner(const char* sourceCode);
-    bool currentTokenOneOf(std::vector<TokenType> types);
+    bool currentTokenOneOf(const std::vector<TokenType>& types);
     Token getToken();
     Token peekToken();
     bool match(TokenType type);
@@ -26,7 +26,7 @@ private:
     bool isAlpha(const char& c);
     bool isAlphaDigitFloor(const char& c);
 private:
-    char* src_buffer;
+    const char* src_buffer;
     std::queue<Token> token_queue;
     unsigned int index;
     unsigned int line;

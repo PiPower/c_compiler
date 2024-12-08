@@ -11,9 +11,11 @@ const char* tokenTypeString[]
     "IDENTIFIER",
     "CONSTANT",
 // keywords
-    "BREAK", "CONST", "CONTINUE",
+    "BREAK", "CASE", "CONTINUE",
     "DO", "ELSE", "IF", "FOR",
     "RETURN", "WHILE",
+// type qualifier
+    "CONST", "VOLATILE",
 //  keywords types
     "INT8", "INT16", "INT32", "INT64", 
 // separators
@@ -34,7 +36,7 @@ const char* tokenTypeString[]
 
 Scanner::Scanner(const char *sourceCode)
     :
-line(0), index(0)
+line(0), index(0), src_buffer(sourceCode)
 {
     keywordMapInit();
 }
@@ -96,6 +98,10 @@ Token Scanner::parsePunctuators(const char *c)
     case '{':
         index++;
         token.type = TokenType::L_BRACE;
+        break;
+    case '~':
+        index++;
+        token.type = TokenType::TILDE;
         break;
     case '}':
         index++;
@@ -341,7 +347,7 @@ bool Scanner::isAlphaDigitFloor(const char &c)
     return isDigit(c) || isAlpha(c) || c == '_';
 }
 
-bool Scanner::currentTokenOneOf(std::vector<TokenType> types)
+bool Scanner::currentTokenOneOf(const std::vector<TokenType>& types)
 {
     Token* token;
     if( token_queue.size() == 0)
@@ -385,13 +391,13 @@ Token Scanner::getToken()
         return token;
     }
 
-    token =parseIdentifier(src_buffer);
+    token = parseIdentifier(src_buffer);
     if(token.type != TokenType::NONE)
     {
         return token;
     }
 
-    token =parseIdentifier(src_buffer);
+    token = parseConstant(src_buffer);
     if(token.type != TokenType::NONE)
     {
         return token;
