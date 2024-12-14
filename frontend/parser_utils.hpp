@@ -1,5 +1,6 @@
 #ifndef PARSER_UTILS_H
 #define PARSER_UTILS_H
+#include "scanner.hpp"
 
 enum class NodeType
 {
@@ -11,9 +12,11 @@ enum class NodeType
 //basic math ops
     MULTIPLY, DIVIDE, DIVIDE_MODULO,
     ADD, SUBTRACT, L_SHIFT, R_SHIFT,
-    AND,EXC_OR, OR,
+    AND, EXC_OR, OR, NOT, COMPLIMENT,
+// prefix ops
+    PRE_INC, POST_INC, PRE_DEC, POST_DEC,
 //logical ops    
-    LOG_AND, LOG_OR, 
+    LOG_AND, LOG_OR, LOG_NOT,
 // comparisons
     LESS, GREATER, LESS_EQUAL, 
     GREATER_EQUAL, EQUAL, NOT_EQUAL,
@@ -28,5 +31,20 @@ enum class NodeType
     FUNCTION_DECLARATION, FUNCTION_DEFINITION,
     FUNCTION_CALL, RETURN
 };
+
+struct ParserState;
+struct AstNode;
+
+
+typedef AstNode* ( *parseFunctionPtr)(ParserState* parser);
+
+void triggerParserError(ParserState* parser,
+                         int value, 
+                         const char* format, ...);
+AstNode* parseLoop(ParserState* parser, 
+                    parseFunctionPtr parsingFunction,
+                    AstNode* root, 
+                    const std::vector<TokenType>& types);
+NodeType tokenMathTypeToNodeType(const Token& token);
 
 #endif

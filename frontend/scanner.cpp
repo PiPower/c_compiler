@@ -26,12 +26,13 @@ const char* tokenTypeString[]
     "PERCENT", "LESS", "GREATER",  "L_SHIFT",
     "R_SHIFT", "LESS_EQUAL", "GREATER_EQUAL", "EQUAL_EQUAL", "BANG_EQUAL",
     "PIPE", "CARET", "DOUBLE_AMPRESAND", "DOUBLE_PIPE", "QUESTION_MARK",
+    "PLUS_PLUS", "MINUS_MINUS",
 // assignemnt types
     "EQUAL", "STAR_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "PLUS_EQUAL", 
     "MINUS_EQUAL", "L_SHIFT_EQUAL", "R_SHIFT_EQUAL", "AMPRESAND_EQUAL",
     "CARET_EQUAL", "PIPE_EQUAL",
 // miscallenous
-    "COLON", "COMMA" , "SEMICOLON", "DOT", "INCREMENT", "DECREMENT",
+    "COLON", "COMMA" , "SEMICOLON", "DOT"
 };
 
 Scanner::Scanner(const char *sourceCode)
@@ -77,6 +78,10 @@ Token Scanner::parsePunctuators(const char *c)
             token.type = TokenType::PLUS_EQUAL;
             index++;
             break;
+        case '+':
+            token.type = TokenType::PLUS_PLUS;
+            index++;
+            break;
         default:
             token.type = TokenType::PLUS;
             break;
@@ -88,6 +93,10 @@ Token Scanner::parsePunctuators(const char *c)
         {
         case '=':
             token.type = TokenType::MINUS_EQUAL;
+            index++;
+            break;
+        case '-':
+            token.type = TokenType::MINUS_MINUS;
             index++;
             break;
         default:
@@ -358,6 +367,27 @@ bool Scanner::currentTokenOneOf(const std::vector<TokenType>& types)
 
     auto iter = find(types.begin(), types.end(), token->type);
     return iter != types.end();
+}
+
+bool Scanner::currentTokenOneOf(const TokenType *types, uint32_t tokenCount)
+{
+    Token* token;
+    if( token_queue.size() == 0)
+    {
+        token_queue.push( getToken() );
+    }
+    token = &token_queue.front();
+
+    for (uint32_t tokenIdx = 0; tokenIdx < tokenCount; tokenIdx++)
+    {
+        if(types[tokenIdx] == token->type)
+        {
+            return true;
+        }
+    }
+    
+
+    return false;
 }
 
 Token Scanner::getToken()

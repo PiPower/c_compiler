@@ -62,7 +62,7 @@ unary-expression:
     unary_operator unary-expression
 
 unary_operator: one of 
-    ~ !
+    ~ ! +
 
 cast-expression:
     unary-expression

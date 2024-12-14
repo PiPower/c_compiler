@@ -12,6 +12,7 @@ class Scanner
 public:
     Scanner(const char* sourceCode);
     bool currentTokenOneOf(const std::vector<TokenType>& types);
+    bool currentTokenOneOf(const TokenType* types, uint32_t tokenCount);
     Token getToken();
     Token peekToken();
     bool match(TokenType type);
