@@ -45,6 +45,11 @@ AstNode* parseLoop(ParserState* parser,
                     parseFunctionPtr parsingFunction,
                     AstNode* root, 
                     const std::vector<TokenType>& types);
+AstNode* parseLoop(ParserState* parser, 
+                    parseFunctionPtr parsingFunction,
+                    AstNode* root, 
+                    const TokenType* types,
+                    const uint64_t typesCount);
 NodeType tokenMathTypeToNodeType(const Token& token);
 
 #endif

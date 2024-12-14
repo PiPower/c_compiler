@@ -9,14 +9,24 @@ AstNode* parseLoop(ParserState* parser,
                     AstNode* root, 
                     const vector<TokenType>& types)
 {
-    while (parser->scanner->currentTokenOneOf(types))
+   return parseLoop(parser, parsingFunction, root, types.data(), types.size());
+}
+
+AstNode *parseLoop(ParserState *parser,
+                    parseFunctionPtr parsingFunction, 
+                    AstNode *root, 
+                    const TokenType *types, 
+                    const uint64_t typesCount)
+{
+    while (parser->scanner->currentTokenOneOf(types, typesCount))
     {
         Token operatorToken = parser->scanner->getToken();
-        AstNode* parent = new AstNode{tokenMathTypeToNodeType(operatorToken), {}};
+        AstNode* parent = ALLOCATE_NODE(parser);
+        parent->nodeType = tokenMathTypeToNodeType(operatorToken);
         AstNode* right = parsingFunction(parser);
+
         parent->children.push_back(root);
         parent->children.push_back(right);
-
         root = parent;
     }
 
