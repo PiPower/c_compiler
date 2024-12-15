@@ -36,7 +36,7 @@ AstNode *parseLoop(ParserState *parser,
 void triggerParserError(ParserState* parser, int value, const char* format, ...)
 {
     parser->errCode = 1;
-    
+
     va_list args;
     va_start(args, format);
     int len = vsnprintf(parser->errorMessage, parser->errorMessageLen, format, args);

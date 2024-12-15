@@ -18,8 +18,13 @@ AstNode *assignmentExpression(ParserState *parser)
     stack<NodeType> operators;
     while (true)
     {    
+        if(parser->scanner->line == 3)
+        {
+            int x = 2;
+        }
         if(setjmp(parser->assignmentJmp) == 0 )
         {
+            parser->isParsingAssignment = true;
             condExpr = conditionalExpression(parser);
             break;
         }
@@ -34,14 +39,14 @@ AstNode *assignmentExpression(ParserState *parser)
     AstNode* root = condExpr;
     while (operators.size() > 0)
     {
-        AstNode* assignment = ALLOCATE_NODE(parser);
-        assignment->nodeType = operators.top();
-        assignment->children.push_back(root);
-        assignment->children.push_back(nodes.top() );
+        AstNode* assignement = ALLOCATE_NODE(parser);
+        assignement->nodeType = operators.top();
+        assignement->children.push_back(root);
+        assignement->children.push_back(nodes.top() );
 
         operators.pop();
         nodes.pop();
-        root = assignment;
+        root = assignement;
     }
     
     return root;
@@ -153,28 +158,29 @@ AstNode *multiplicativeExpression(ParserState *parser)
 
 AstNode *castExpression(ParserState *parser)
 {
-
-    static constexpr TokenType assignmentTypes[] = { TokenType::EQUAL, TokenType::STAR_EQUAL, 
-    TokenType::SLASH_EQUAL, TokenType::PERCENT_EQUAL, TokenType::PLUS_EQUAL, 
-    TokenType::MINUS_EQUAL, TokenType::L_SHIFT_EQUAL, TokenType::R_SHIFT_EQUAL,
-    TokenType::AMPRESAND_EQUAL,TokenType::CARET_EQUAL, TokenType::PIPE_EQUAL};
-    static constexpr uint64_t len = sizeof(assignmentTypes)/sizeof(TokenType);
-
-    parser->isParsingAssignment = false;
-    // jmp buff might be overwritten by recursive calls
-    // so it needs to be stored here
-    jmp_buf jmp;
-    jmp[0] = parser->assignmentJmp[0];
-
-    AstNode* root = unaryExpression(parser);
-    if(!parser->scanner->currentTokenOneOf(assignmentTypes, len))
+    if(parser->isParsingAssignment)
     {
-        return root;
+        static constexpr TokenType assignmentTypes[] = { TokenType::EQUAL, TokenType::STAR_EQUAL, 
+        TokenType::SLASH_EQUAL, TokenType::PERCENT_EQUAL, TokenType::PLUS_EQUAL, 
+        TokenType::MINUS_EQUAL, TokenType::L_SHIFT_EQUAL, TokenType::R_SHIFT_EQUAL,
+        TokenType::AMPRESAND_EQUAL,TokenType::CARET_EQUAL, TokenType::PIPE_EQUAL};
+        static constexpr uint64_t len = sizeof(assignmentTypes)/sizeof(TokenType);
+
+        parser->isParsingAssignment = false;
+        // assignmentJmp might be overwrittent by recursive
+        // calls so its saved here
+        jmp_buf buff ;
+        buff[0] = parser->assignmentJmp[0];
+
+        AstNode* root = unaryExpression(parser);
+        if(!parser->scanner->currentTokenOneOf(assignmentTypes, len))
+        {
+            return root;
+        }
+        parser->jmpHolder = root;
+        longjmp(buff, 1);
     }
-    parser->jmpHolder = root;
-    longjmp(jmp, 1);
-    
-    return nullptr;
+    return unaryExpression(parser);
 }
 
 AstNode *unaryExpression(ParserState *parser)
