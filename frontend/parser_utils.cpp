@@ -2,7 +2,7 @@
 #include "parser.hpp"
 #include "parser_internal.hpp"
 #include <stdarg.h>
-
+#include <string.h>
 using namespace std;
 AstNode* parseLoop(ParserState* parser, 
                     parseFunctionPtr parsingFunction, 
@@ -39,8 +39,16 @@ void triggerParserError(ParserState* parser, int value, const char* format, ...)
     
     va_list args;
     va_start(args, format);
-    int code = vsnprintf(parser->errorMessage, parser->errorMessageLen, format, args);
+    int len = vsnprintf(parser->errorMessage, parser->errorMessageLen, format, args);
     va_end(args);
+    if(len <  0)
+    {
+        printf("Error buffer is too small \n");
+    }
+
+    snprintf(parser->errorMessage + len, parser->errorMessageLen - len, 
+    "Error ocurred in line %u\n", parser->scanner->line);
+
 
     longjmp(parser->jmpBuff, value);
 }

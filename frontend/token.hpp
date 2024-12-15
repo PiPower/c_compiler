@@ -39,4 +39,5 @@ struct Token
     void* data; // context dependent data
 };
 
+extern const char* tokenTypeString[];
 #endif

@@ -10,7 +10,6 @@ AstNode *allocateNode(NodeAllocator* allocator)
 
 void freeNode(NodeAllocator* allocator, AstNode *node)
 {
-    allocator->nodes.erase(node);
     delete node;
 }
 
@@ -20,4 +19,5 @@ void freeAllNodes(NodeAllocator* allocator)
     {
         freeNode(allocator, node);
     }
+    allocator->nodes.clear();
 }

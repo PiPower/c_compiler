@@ -9,14 +9,17 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocato
     parser.allocator = allocator;
     parser.scanner = scanner;
     parser.symtab = symtab;
+    parser.isParsingAssignment = false;
+    parser.jmpHolder = nullptr;
     parser.errorMessage = new char[ERR_BUFF_SIZE];
     parser.errorMessageLen = ERR_BUFF_SIZE;
     parser.errCode = 0;
 
-    setjmp(parser.jmpBuff);
-    if( parser.errorMessage )
+    if( setjmp(parser.jmpBuff) != 0)
     {
         freeAllNodes(parser.allocator);
+        printf("%s", parser.errorMessage);
+        return {nullptr};
     }
     
     vector<AstNode *> statements; 

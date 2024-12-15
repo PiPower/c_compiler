@@ -1,13 +1,50 @@
 #include "parser_internal.hpp"
 #include "parser_utils.hpp"
+#include <stack>
+
 #define CONSUME_TOKEN(parser, type) (parser)->scanner->consume(type)
 #define GET_TOKEN(parser) (parser)->scanner->getToken()
 #define PEEK_TOKEN(parser) (parser)->scanner->peekToken()
-
 using namespace std;
 AstNode *parseExpression(ParserState *parser)
 {
-    return conditionalExpression(parser);
+    return assignmentExpression(parser);
+}
+
+AstNode *assignmentExpression(ParserState *parser)
+{
+    AstNode* condExpr;
+    stack<AstNode*> nodes;
+    stack<NodeType> operators;
+    while (true)
+    {    
+        if(setjmp(parser->assignmentJmp) == 0 )
+        {
+            condExpr = conditionalExpression(parser);
+            break;
+        }
+        else
+        {
+            nodes.push(parser->jmpHolder);
+            parser->jmpHolder = nullptr;
+            operators.push(assignementTokenToNodeType(GET_TOKEN(parser)) );
+        }
+    }
+
+    AstNode* root = condExpr;
+    while (operators.size() > 0)
+    {
+        AstNode* assignment = ALLOCATE_NODE(parser);
+        assignment->nodeType = operators.top();
+        assignment->children.push_back(root);
+        assignment->children.push_back(nodes.top() );
+
+        operators.pop();
+        nodes.pop();
+        root = assignment;
+    }
+    
+    return root;
 }
 
 AstNode *conditionalExpression(ParserState *parser)
@@ -116,7 +153,28 @@ AstNode *multiplicativeExpression(ParserState *parser)
 
 AstNode *castExpression(ParserState *parser)
 {
-    return unaryExpression(parser);
+
+    static constexpr TokenType assignmentTypes[] = { TokenType::EQUAL, TokenType::STAR_EQUAL, 
+    TokenType::SLASH_EQUAL, TokenType::PERCENT_EQUAL, TokenType::PLUS_EQUAL, 
+    TokenType::MINUS_EQUAL, TokenType::L_SHIFT_EQUAL, TokenType::R_SHIFT_EQUAL,
+    TokenType::AMPRESAND_EQUAL,TokenType::CARET_EQUAL, TokenType::PIPE_EQUAL};
+    static constexpr uint64_t len = sizeof(assignmentTypes)/sizeof(TokenType);
+
+    parser->isParsingAssignment = false;
+    // jmp buff might be overwritten by recursive calls
+    // so it needs to be stored here
+    jmp_buf jmp;
+    jmp[0] = parser->assignmentJmp[0];
+
+    AstNode* root = unaryExpression(parser);
+    if(!parser->scanner->currentTokenOneOf(assignmentTypes, len))
+    {
+        return root;
+    }
+    parser->jmpHolder = root;
+    longjmp(jmp, 1);
+    
+    return nullptr;
 }
 
 AstNode *unaryExpression(ParserState *parser)
@@ -178,7 +236,8 @@ AstNode *primaryExpression(ParserState *parser)
         parser->scanner->consume(TokenType::R_PARENTHESES);
         return root;
     default:
-        triggerParserError(parser, 0, "Unexpected token for primary expression \n");
+        triggerParserError(parser, 0, 
+        "Token %s is not allowed at this position\n", tokenTypeString[(int)token.type]);
         break;
     }
 

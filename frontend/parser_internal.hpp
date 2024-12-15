@@ -10,6 +10,10 @@ struct ParserState
     Scanner* scanner;
     SymbolTable* symtab;
     NodeAllocator* allocator;
+    // assignment flow control;
+    bool isParsingAssignment;;
+    jmp_buf assignmentJmp;
+    AstNode* jmpHolder;
     // error handling
     jmp_buf jmpBuff;
     uint32_t errCode;
@@ -21,6 +25,7 @@ struct ParserState
 
 // parser for expressions
 AstNode* parseExpression(ParserState* parser);
+AstNode* assignmentExpression(ParserState *parser);
 AstNode* conditionalExpression(ParserState *parser);
 AstNode* logOrExpression(ParserState *parser);
 AstNode* logAndExpression(ParserState *parser);

@@ -52,4 +52,9 @@ AstNode* parseLoop(ParserState* parser,
                     const uint64_t typesCount);
 NodeType tokenMathTypeToNodeType(const Token& token);
 
+static inline NodeType assignementTokenToNodeType(const Token& token)
+{
+    return (NodeType) ((int)token.type - (int)TokenType::EQUAL + (int)NodeType::ASSIGNMENT) ;
+}
+
 #endif
