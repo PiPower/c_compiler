@@ -19,6 +19,7 @@ public:
     void consume(TokenType type);
 private:
     void keywordMapInit();
+    void skipWhitespace();
     Token parsePunctuators(const char* c);
     Token parseIdentifier(const char* c);
     Token parseConstant(const char* c);

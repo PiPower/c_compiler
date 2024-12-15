@@ -29,7 +29,9 @@ enum class TokenType
     MINUS_EQUAL, L_SHIFT_EQUAL, R_SHIFT_EQUAL, AMPRESAND_EQUAL,
     CARET_EQUAL, PIPE_EQUAL,
 // miscallenous
-    COLON, COMMA , SEMICOLON, DOT,
+    COLON, COMMA , SEMICOLON, DOT, 
+// for internal usage
+    COMMENT
 };
 
 struct Token

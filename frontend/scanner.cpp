@@ -50,6 +50,19 @@ void Scanner::keywordMapInit()
     keywordMap["int64"] = TokenType::INT64;
 }
 
+void Scanner::skipWhitespace()
+{
+    while(src_buffer[index] == ' ' ||  src_buffer[index] == '\t' ||  
+            src_buffer[index] == '\r' || src_buffer[index] == '\n')
+    {
+        if( src_buffer[index] == '\n')
+        {
+            line++;
+        }
+        index++;
+    }
+}
+
 Token Scanner::parsePunctuators(const char *c)
 {
     Token token;
@@ -131,6 +144,13 @@ Token Scanner::parsePunctuators(const char *c)
         case '=':
             token.type = TokenType::SLASH_EQUAL;
             index++;
+            break;
+        case '/':
+            token.type = TokenType::COMMENT;
+            index++;
+            while (c[index] != '\n' && c[index] != '\0'){index++;}
+            index = c[index] == '\0' ? index : index + 1;
+            line = c[index] == '\n' ? line + 1 : line;
             break;
         default:
             token.type = TokenType::SLASH;
@@ -392,14 +412,6 @@ bool Scanner::currentTokenOneOf(const TokenType *types, uint32_t tokenCount)
 
 Token Scanner::getToken()
 {
-    if(src_buffer[index] == '\0')
-    {
-        Token token;
-        token.type = TokenType::END_OF_FILE;
-        token.line = line;
-        return token;
-    }
-
     if(token_queue.size() != 0)
     {
         Token token = token_queue.front();
@@ -407,15 +419,21 @@ Token Scanner::getToken()
         return token;
     }
 
-    while(src_buffer[index] == ' ' ||  src_buffer[index] == '\t' ||  src_buffer[index] == '\r' || src_buffer[index] == '\n')
+    if(src_buffer[index] == '\0')
     {
-        if( src_buffer[index] == '\n')
-        {
-            line++;
-        }
-        index++;
+        Token token;
+        token.type = TokenType::END_OF_FILE;
+        token.line = line;
+        return token;
     }
+ 
+ parseToken:
+    skipWhitespace();
     Token token = parsePunctuators(src_buffer);
+    if( token.type == TokenType::COMMENT)
+    {
+        goto parseToken;
+    }
     if(token.type != TokenType::NONE)
     {
         return token;
@@ -435,6 +453,7 @@ Token Scanner::getToken()
     
     printf("Something went wrong in scanner\n");
     exit(-1);
+          
 }
 
 Token Scanner::peekToken()

@@ -6,6 +6,62 @@
 #define GET_TOKEN(parser) (parser)->scanner->getToken()
 #define PEEK_TOKEN(parser) (parser)->scanner->peekToken()
 using namespace std;
+
+static constexpr TokenType assignmentTypes[] = { 
+    TokenType::EQUAL, TokenType::STAR_EQUAL, TokenType::SLASH_EQUAL, 
+    TokenType::PERCENT_EQUAL, TokenType::PLUS_EQUAL, TokenType::MINUS_EQUAL, 
+    TokenType::L_SHIFT_EQUAL, TokenType::R_SHIFT_EQUAL, 
+    TokenType::AMPRESAND_EQUAL,TokenType::CARET_EQUAL, 
+    TokenType::PIPE_EQUAL
+    };
+
+static constexpr TokenType unaryOperators[] = {
+    TokenType::PLUS_PLUS,TokenType::MINUS_MINUS,
+    TokenType::BANG, TokenType::TILDE, TokenType::PLUS
+    };
+
+static constexpr TokenType mulTypes[] = {
+    TokenType::STAR, TokenType::SLASH, TokenType::PERCENT
+    };
+
+static constexpr TokenType additiveTypes[] =  {
+    TokenType::PLUS, TokenType::MINUS
+    };
+
+static constexpr TokenType shiftTypes[] =  {
+    TokenType::L_SHIFT, TokenType::R_SHIFT
+    };
+
+static constexpr TokenType relTypes[] =  {
+    TokenType::GREATER, TokenType::GREATER_EQUAL, 
+    TokenType::LESS, TokenType::LESS_EQUAL
+    };
+
+static constexpr TokenType eqTypes[] =  {
+    TokenType::EQUAL_EQUAL, TokenType::BANG_EQUAL
+    };
+
+    static constexpr TokenType andTypes[] = {
+    TokenType::AMPRESAND
+    };
+
+static constexpr TokenType escOrTypes[] =  {
+    TokenType::CARET
+    };
+
+static constexpr TokenType incOrTypes[] =  {
+    TokenType::PIPE
+    };
+
+static constexpr TokenType logAndTypes[] =  {
+    TokenType::DOUBLE_AMPRESAND
+    };
+
+static constexpr TokenType logOrTypes[] =  {
+    TokenType::DOUBLE_PIPE
+    };
+
+
 AstNode *parseExpression(ParserState *parser)
 {
     return assignmentExpression(parser);
@@ -18,14 +74,11 @@ AstNode *assignmentExpression(ParserState *parser)
     stack<NodeType> operators;
     while (true)
     {    
-        if(parser->scanner->line == 3)
-        {
-            int x = 2;
-        }
         if(setjmp(parser->assignmentJmp) == 0 )
         {
             parser->isParsingAssignment = true;
             condExpr = conditionalExpression(parser);
+
             break;
         }
         else
@@ -54,8 +107,6 @@ AstNode *assignmentExpression(ParserState *parser)
 
 AstNode *conditionalExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::DOUBLE_PIPE};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
     AstNode* logOr = logOrExpression(parser);
     if(PEEK_TOKEN(parser).type != TokenType::QUESTION_MARK)
     {
@@ -77,93 +128,78 @@ AstNode *conditionalExpression(ParserState *parser)
 
 AstNode *logOrExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::DOUBLE_PIPE};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(logOrTypes)/sizeof(TokenType);
     AstNode* root = logAndExpression(parser);
-    return parseLoop(parser, logAndExpression, root, types, len);
+    return parseLoop(parser, logAndExpression, root, logOrTypes, len);
 }
 
 AstNode *logAndExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::DOUBLE_AMPRESAND};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(logAndTypes)/sizeof(TokenType);
     AstNode* root = incOrExpression(parser);
-    return parseLoop(parser, incOrExpression, root, types, len);
+    return parseLoop(parser, incOrExpression, root, logAndTypes, len);
 }
 
 AstNode *incOrExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::PIPE};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(incOrTypes)/sizeof(TokenType);
     AstNode* root = excOrExpression(parser);
-    return parseLoop(parser, excOrExpression, root, types, len);
+    return parseLoop(parser, excOrExpression, root, incOrTypes, len);
 }
 
 AstNode *excOrExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::CARET};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(escOrTypes)/sizeof(TokenType);
     AstNode* root = AndExpression(parser);
-    return parseLoop(parser, AndExpression, root, types, len);
+    return parseLoop(parser, AndExpression, root, escOrTypes, len);
 }
 
 AstNode *AndExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::AMPRESAND};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(andTypes)/sizeof(TokenType);
     AstNode* root = equalityExpression(parser);
-    return parseLoop(parser, equalityExpression, root, types, len);
+    return parseLoop(parser, equalityExpression, root, andTypes, len);
 }
 
 AstNode *equalityExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::EQUAL_EQUAL, TokenType::BANG_EQUAL};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(eqTypes)/sizeof(TokenType);
     AstNode* root = relationalExpression(parser);
-    return parseLoop(parser, relationalExpression, root, types, len);
+    return parseLoop(parser, relationalExpression, root, eqTypes, len);
 }
 
 AstNode *relationalExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::GREATER, 
-    TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(relTypes)/sizeof(TokenType);
     AstNode* root = shiftExpression(parser);
-    return parseLoop(parser, shiftExpression, root, types, len);
+    return parseLoop(parser, shiftExpression, root, relTypes, len);
 }
 
 AstNode *shiftExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::L_SHIFT, TokenType::R_SHIFT};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(shiftTypes)/sizeof(TokenType);
     AstNode* root = additiveExpression(parser);
-    return parseLoop(parser, additiveExpression, root, types, len);
+    return parseLoop(parser, additiveExpression, root, shiftTypes, len);
 }
 
 AstNode *additiveExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::PLUS, TokenType::MINUS};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(additiveTypes)/sizeof(TokenType);
     AstNode* root = multiplicativeExpression(parser);
-    return parseLoop(parser, multiplicativeExpression, root, types, len);
+    return parseLoop(parser, multiplicativeExpression, root, additiveTypes, len);
 }
 
 AstNode *multiplicativeExpression(ParserState *parser)
 {
-    static constexpr TokenType types[] =  {TokenType::STAR, TokenType::SLASH, TokenType::PERCENT};
-    static constexpr uint64_t len = sizeof(types)/sizeof(TokenType);
+    static constexpr uint64_t len = sizeof(mulTypes)/sizeof(TokenType);
     AstNode* root = castExpression(parser);
-    return parseLoop(parser, castExpression, root, types, len);
+    return parseLoop(parser, castExpression, root, mulTypes, len);
 }
 
 AstNode *castExpression(ParserState *parser)
 {
     if(parser->isParsingAssignment)
     {
-        static constexpr TokenType assignmentTypes[] = { TokenType::EQUAL, TokenType::STAR_EQUAL, 
-        TokenType::SLASH_EQUAL, TokenType::PERCENT_EQUAL, TokenType::PLUS_EQUAL, 
-        TokenType::MINUS_EQUAL, TokenType::L_SHIFT_EQUAL, TokenType::R_SHIFT_EQUAL,
-        TokenType::AMPRESAND_EQUAL,TokenType::CARET_EQUAL, TokenType::PIPE_EQUAL};
         static constexpr uint64_t len = sizeof(assignmentTypes)/sizeof(TokenType);
 
         parser->isParsingAssignment = false;
@@ -185,8 +221,6 @@ AstNode *castExpression(ParserState *parser)
 
 AstNode *unaryExpression(ParserState *parser)
 {
-    static constexpr TokenType unaryOperators[] = { TokenType::PLUS_PLUS,
-    TokenType::MINUS_MINUS, TokenType::BANG, TokenType::TILDE, TokenType::PLUS};
     static constexpr uint64_t len = sizeof(unaryOperators)/sizeof(TokenType);
     // no unary 
     if(!parser->scanner->currentTokenOneOf(unaryOperators, len))
