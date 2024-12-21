@@ -38,7 +38,7 @@ struct Token
 {
     TokenType type;
     unsigned int line;
-    void* data; // context dependent data
+    char* data; // context dependent data
 };
 
 extern const char* tokenTypeString[];

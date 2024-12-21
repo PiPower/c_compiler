@@ -326,7 +326,7 @@ Token Scanner::parseIdentifier(const char* c)
     Token token;
     token.type = TokenType::IDENTIFIER;
     token.line = line;
-    token.data = str;
+    token.data = (char*)str;
     return token;
     
 }
@@ -357,7 +357,7 @@ Token Scanner::parseConstant(const char *c)
     Token token;
     token.type = TokenType::CONSTANT;
     token.line = line;
-    token.data = str;
+    token.data = (char*)str;
     return token;
 }
 
@@ -418,6 +418,9 @@ Token Scanner::getToken()
         token_queue.pop();
         return token;
     }
+ 
+ parseToken:
+    skipWhitespace();
 
     if(src_buffer[index] == '\0')
     {
@@ -426,9 +429,7 @@ Token Scanner::getToken()
         token.line = line;
         return token;
     }
- 
- parseToken:
-    skipWhitespace();
+
     Token token = parsePunctuators(src_buffer);
     if( token.type == TokenType::COMMENT)
     {

@@ -245,6 +245,10 @@ AstNode *unaryExpression(ParserState *parser)
 
 AstNode *parseStatement(ParserState *parser)
 {
+    if(PEEK_TOKEN(parser).type == TokenType::END_OF_FILE)
+    {
+        return nullptr;
+    }
     AstNode* root = parseExpression(parser);
     parser->scanner->consume(TokenType::SEMICOLON);
     return root;
