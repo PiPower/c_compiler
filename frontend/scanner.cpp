@@ -35,7 +35,7 @@ const char* tokenTypeString[]
 
 Scanner::Scanner(const char *sourceCode)
     :
-line(0), index(0), src_buffer(sourceCode)
+line(1), index(0), src_buffer(sourceCode)
 {
     keywordMapInit();
 }
@@ -499,6 +499,6 @@ void Scanner::consume(TokenType type)
     }
 
     fprintf(stdout, "ERROR line %d: Recieved token is %s but expected is %s\n", 
-            token.line + 1, tokenTypeString[(int)token.type ], tokenTypeString[(int)type]);
+            token.line, tokenTypeString[(int)token.type ], tokenTypeString[(int)type]);
     exit(-1);
  }

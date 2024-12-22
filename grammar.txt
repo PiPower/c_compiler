@@ -144,10 +144,19 @@ init-declarator-list:
     init-declarator-list , init-declarator
 
 init-declarator:
-    identifier
-    identifier = assignment-expression
+    declarator
+    declarator = initializer
 
-declaration-specifier:
+declarator:
+    direct-declarator
+
+direct-declarator:
+    identifier
+
+initializer:
+    assignment-expression
+
+declaration-specifiers:
     type-specifier
 
 type-specifier:

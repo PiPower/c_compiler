@@ -8,6 +8,7 @@
 #define ALLOCATE_NODE(parser) allocateNode((parser)->allocator)
 #define CONSUME_TOKEN(parser, type) (parser)->scanner->consume(type)
 #define GET_TOKEN(parser) (parser)->scanner->getToken()
+#define POP_TOKEN(parser) GET_TOKEN( (parser) )
 #define PEEK_TOKEN(parser) (parser)->scanner->peekToken()
 #define GET_SYMBOL(parser, symName) (parser)->symtab[(symName)]
 struct ParserState
@@ -37,8 +38,11 @@ AstNode* parseStatement(ParserState* parser);
 
 // if returns nullptr no decleration has been detected
 AstNode* parseDeclaration(ParserState* parser);
-
-
+AstNode* parseInitDeclList(ParserState* parser);
+AstNode* parseDeclarator(ParserState* parser);
+AstNode* parseInitializer(ParserState* parser);
+std::string* parseDeclSpec(ParserState* parser);
+AstNode* parseDirectDeclarator(ParserState* parser);
 // parser for expressions
 // ----------------------------------------------
 

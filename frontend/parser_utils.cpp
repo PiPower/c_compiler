@@ -36,20 +36,17 @@ AstNode *parseLoop(ParserState *parser,
 void triggerParserError(ParserState* parser, int value, const char* format, ...)
 {
     parser->errCode = 1;
+    int len = snprintf(parser->errorMessage, parser->errorMessageLen, 
+    "Line %u: ", parser->scanner->line);
 
     va_list args;
     va_start(args, format);
-    int len = vsnprintf(parser->errorMessage, parser->errorMessageLen, format, args);
+    len = vsnprintf(parser->errorMessage + len, parser->errorMessageLen, format, args);
     va_end(args);
     if(len <  0)
     {
         printf("Error buffer is too small \n");
     }
-
-    snprintf(parser->errorMessage + len, parser->errorMessageLen - len, 
-    "Error ocurred in line %u\n", parser->scanner->line);
-
-
     longjmp(parser->jmpBuff, value);
 }
 

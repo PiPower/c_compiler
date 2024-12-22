@@ -27,6 +27,12 @@ struct SymbolType
 
 };
 
+struct SymbolVariable
+{
+    SymbolClass type;
+    std::string* varType;
+
+};
 
 struct SymbolTable
 {
