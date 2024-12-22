@@ -1,5 +1,6 @@
 #ifndef TOKEN_H
 #define TOKEN_H
+#include <string>
 
 enum class TokenType
 {
@@ -10,11 +11,9 @@ enum class TokenType
 // keywords
     BREAK, CASE, CONTINUE,
     DO, ELSE, IF, FOR,
-    RETURN, WHILE,
+    RETURN, WHILE, TYPE,
 // type qualifier
     CONST, VOLATILE,
-//  keywords types
-    INT8, INT16, INT32, INT64,
 // separators
     L_BRACKET,  R_BRACKET, L_PARENTHESES,  R_PARENTHESES, 
     L_BRACE, R_BRACE,
@@ -38,7 +37,9 @@ struct Token
 {
     TokenType type;
     unsigned int line;
-    char* data; // context dependent data
+    // if type is identifier, constant type:
+    // data points to std::string
+    char* data;
 };
 
 extern const char* tokenTypeString[];

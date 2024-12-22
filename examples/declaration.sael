@@ -1,0 +1,5 @@
+int16 x = 2;
+int32 y = 4;
+int32 z = 2 + 4;
+int64 p = x = 4;
+int64 vc = p = 27* 34 + 34 * y

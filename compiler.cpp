@@ -8,9 +8,18 @@ using namespace std;
 void compile(const char *file)
 {
     SymbolTable symtab;
+    initSymolTalbe(&symtab);
     NodeAllocator allocator;
     Scanner scanner(file);
 
     vector<AstNode*> statements = parse(&scanner, &symtab, &allocator);
 
+}
+
+void initSymolTalbe(SymbolTable *symTab)
+{
+    symTab->symbols["int8"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 1};
+    symTab->symbols["int16"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};
+    symTab->symbols["int32"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};
+    symTab->symbols["int64"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
 }

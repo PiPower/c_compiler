@@ -5,6 +5,11 @@
 #include "node_allocator.hpp"
 #include <setjmp.h>
 
+#define ALLOCATE_NODE(parser) allocateNode((parser)->allocator)
+#define CONSUME_TOKEN(parser, type) (parser)->scanner->consume(type)
+#define GET_TOKEN(parser) (parser)->scanner->getToken()
+#define PEEK_TOKEN(parser) (parser)->scanner->peekToken()
+#define GET_SYMBOL(parser, symName) (parser)->symtab[(symName)]
 struct ParserState
 {
     Scanner* scanner;
@@ -21,9 +26,22 @@ struct ParserState
     unsigned int errorMessageLen;
 };
 
-#define ALLOCATE_NODE(parser) allocateNode((parser)->allocator)
+// parser for statements
+// ----------------------------------------------
+
+AstNode* parseStatement(ParserState* parser);
+
+
+// parser for declarations
+// ----------------------------------------------
+
+// if returns nullptr no decleration has been detected
+AstNode* parseDeclaration(ParserState* parser);
+
 
 // parser for expressions
+// ----------------------------------------------
+
 AstNode* parseExpression(ParserState* parser);
 AstNode* assignmentExpression(ParserState *parser);
 AstNode* conditionalExpression(ParserState *parser);
@@ -41,8 +59,6 @@ AstNode* castExpression(ParserState *parser);
 AstNode* unaryExpression(ParserState *parser);
 AstNode* postfixExpression(ParserState *parser);
 AstNode* primaryExpression(ParserState *parser);
-// parser for statements
-AstNode* parseStatement(ParserState* parser);
 
 
 

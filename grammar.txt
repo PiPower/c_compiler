@@ -137,7 +137,7 @@ constant-expression:
 ---------------------Declarations---------------------
 
 declaration:
-    type-specifier init-declarator-list_opt
+    declaration-specifier init-declarator-list_opt ;
 
 init-declarator-list:
     init-declarator
@@ -147,6 +147,8 @@ init-declarator:
     identifier
     identifier = assignment-expression
 
+declaration-specifier:
+    type-specifier
 
 type-specifier:
     int8

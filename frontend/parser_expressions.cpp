@@ -2,9 +2,6 @@
 #include "parser_utils.hpp"
 #include <stack>
 
-#define CONSUME_TOKEN(parser, type) (parser)->scanner->consume(type)
-#define GET_TOKEN(parser) (parser)->scanner->getToken()
-#define PEEK_TOKEN(parser) (parser)->scanner->peekToken()
 using namespace std;
 
 static constexpr TokenType assignmentTypes[] = { 

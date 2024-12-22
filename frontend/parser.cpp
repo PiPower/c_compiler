@@ -25,7 +25,12 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocato
     vector<AstNode *> statements; 
     while (parser.scanner->peekToken().type != TokenType::END_OF_FILE)
     {
-        statements.push_back( parseStatement(&parser) );
+        AstNode* root = parseDeclaration(&parser);
+        if(!root)
+        {
+            root = parseStatement(&parser);
+        }
+        statements.push_back(root);
     }
     return statements;
 }

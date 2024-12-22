@@ -13,11 +13,9 @@ const char* tokenTypeString[]
 // keywords
     "BREAK", "CASE", "CONTINUE",
     "DO", "ELSE", "IF", "FOR",
-    "RETURN", "WHILE",
+    "RETURN", "WHILE", "TYPE",
 // type qualifier
     "CONST", "VOLATILE",
-//  keywords types
-    "INT8", "INT16", "INT32", "INT64", 
 // separators
     "L_BRACKET",  "R_BRACKET", "L_PARENTHESES",  "R_PARENTHESES", 
     "L_BRACE", "R_BRACE",
@@ -44,10 +42,10 @@ line(0), index(0), src_buffer(sourceCode)
 
 void Scanner::keywordMapInit()
 {
-    keywordMap["int8"] = TokenType::INT8;
-    keywordMap["int16"] = TokenType::INT16;
-    keywordMap["int32"] = TokenType::INT32;
-    keywordMap["int64"] = TokenType::INT64;
+    keywordMap["int8"] = TokenType::TYPE;
+    keywordMap["int16"] = TokenType::TYPE;
+    keywordMap["int32"] = TokenType::TYPE;
+    keywordMap["int64"] = TokenType::TYPE;
 }
 
 void Scanner::skipWhitespace()
@@ -318,7 +316,7 @@ Token Scanner::parseIdentifier(const char* c)
         Token token;
         token.type = iter->second;
         token.line = line;
-        delete str;
+        token.data = (char*)str;
 
         return token;
     }
@@ -345,7 +343,6 @@ Token Scanner::parseConstant(const char *c)
         exit(-1);
     }
 
-
     string* str = new string();
     while (isDigit(c[index]))
     {
@@ -353,7 +350,6 @@ Token Scanner::parseConstant(const char *c)
         index++;
     }
     
-
     Token token;
     token.type = TokenType::CONSTANT;
     token.line = line;
