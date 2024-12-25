@@ -81,10 +81,15 @@ void test_parsing(const char *file)
     NodeAllocator allocator;
     Scanner scanner(file);
 
+    symtab.symbols["int8"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 1};
+    symtab.symbols["int16"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};
+    symtab.symbols["int32"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};
+    symtab.symbols["int64"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
+
     vector<AstNode*> expressions = parse(&scanner, &symtab, &allocator);
     for(AstNode* expr : expressions)
     {
-        if(expr)
+        if(expr && expr->nodeType != NodeType::DECLARATION_LIST)
         {
             cout << print_parse_tree(expr) << endl;
         }
