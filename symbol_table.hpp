@@ -8,7 +8,8 @@
 enum class SymbolClass
 {
     TYPE,
-    VARIABLE
+    VARIABLE,
+    FUNCTION
 };
 
 struct Symbol
@@ -39,6 +40,18 @@ struct SymbolVariable
     SymbolVariable()
     :
     type(SymbolClass::VARIABLE), varType(nullptr), attributes(0)
+    {}
+};
+
+struct SymbolFunction
+{
+    SymbolClass type;
+    std::string* retType;
+    uint64_t attributes;
+
+    SymbolFunction()
+    :
+    type(SymbolClass::VARIABLE), retType(nullptr), attributes(0)
     {}
 };
 

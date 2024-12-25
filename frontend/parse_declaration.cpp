@@ -48,19 +48,28 @@ AstNode *parseInitDeclList(ParserState *parser, const std::string* typeName)
     {
         // parse init declarator
         AstNode* declarator = parseDeclarator(parser);
-        SymbolVariable* var = addSymbolVariableToSymtab(parser, *(string*)declarator->data);
-        var->varType = new string(*typeName); 
-
-        AstNode* initDeclarator = ALLOCATE_NODE(parser);
-        initDeclarator->nodeType = NodeType::INIT_DECLARATOR;
-        initDeclarator->children.push_back(declarator);
-
-        if( PEEK_TOKEN(parser).type == TokenType::EQUAL )
+        if(declarator->nodeType == NodeType::FUNCTION_DECL )
         {
-            CONSUME_TOKEN(parser, TokenType::EQUAL);
-            AstNode* initializer = parseInitializer(parser);
-            initDeclarator->children.push_back(initializer);
+            SymbolFunction* func = addFunctionToSymtab(parser, *(string*)declarator->data);
+            func->retType = new string(*typeName); 
         }
+        else
+        {
+            SymbolVariable* var = addVariableToSymtab(parser, *(string*)declarator->data);
+            var->varType = new string(*typeName); 
+            AstNode* initDeclarator = ALLOCATE_NODE(parser);
+            initDeclarator->nodeType = NodeType::INIT_DECLARATOR;
+            initDeclarator->children.push_back(declarator);
+
+            if( PEEK_TOKEN(parser).type == TokenType::EQUAL )
+            {
+                CONSUME_TOKEN(parser, TokenType::EQUAL);
+                AstNode* initializer = parseInitializer(parser);
+                initDeclarator->children.push_back(initializer);
+            }
+            declarator = initDeclarator;
+        }
+        declarationList->children.push_back(declarator);
         execLoop = PEEK_TOKEN(parser).type == TokenType::COMMA;
         if(execLoop){ POP_TOKEN(parser);}
     } while (execLoop);
@@ -96,5 +105,18 @@ AstNode *parseDirectDeclarator(ParserState *parser)
     AstNode* root = ALLOCATE_NODE(parser);
     root->data = token.data;
     root->nodeType = NodeType::IDENTIFIER;
+    if(PEEK_TOKEN(parser).type != TokenType::L_PARENTHESES)
+    {
+        return root;
+    }
+
+    CONSUME_TOKEN(parser, TokenType::L_PARENTHESES);
+    if(PEEK_TOKEN(parser).type == TokenType::R_PARENTHESES)
+    {
+        CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
+        root->nodeType = NodeType::FUNCTION_DECL;
+        return root;
+    }
+
     return root;
 }

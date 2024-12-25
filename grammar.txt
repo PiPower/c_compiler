@@ -152,6 +152,8 @@ declarator:
 
 direct-declarator:
     identifier
+    direct-declarator ( parameter-type-list )
+
 
 initializer:
     assignment-expression
@@ -164,3 +166,7 @@ type-specifier:
     int16
     int32
     int64
+
+------------------Functions-------------
+function-definition:
+    declaration-specifiers declarator declaration-list_opt compound-statement

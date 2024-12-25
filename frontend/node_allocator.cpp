@@ -8,6 +8,7 @@ AstNode *allocateNode(NodeAllocator* allocator)
     return node;
 }
 
+
 void freeNode(NodeAllocator* allocator, AstNode *node)
 {
     delete node;

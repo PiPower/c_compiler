@@ -1,0 +1,16 @@
+int32 f0();
+int8 f10(), x = 2;
+int8 f4(int64, int64), x = 2;
+int32 f1(), f2(int32 x, int8 y);
+int main()
+{
+    int16 x = 2;
+    int32 y = 4;
+    // custom z = 2 + 4; <- error
+    int8 pd;
+    int8;
+    {
+        int64 p = x = 4 + sdx;
+        int64 vc = p = 27* 34 + 34 * y;
+    }
+}

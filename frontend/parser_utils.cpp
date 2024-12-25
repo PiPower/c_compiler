@@ -97,7 +97,7 @@ NodeType tokenMathTypeToNodeType(const Token& token)
     exit(-1);
 }
 
-SymbolVariable* addSymbolVariableToSymtab(ParserState *parser, const std::string& symName)
+SymbolVariable* addVariableToSymtab(ParserState *parser, const std::string& symName)
 {
     SymtabIter iter = GET_SYMBOL(parser, symName);
     if( iter != SYMTAB_CEND(parser))
@@ -107,4 +107,16 @@ SymbolVariable* addSymbolVariableToSymtab(ParserState *parser, const std::string
     SymbolVariable* var = new SymbolVariable();
     SET_SYMBOL(parser, symName) = (Symbol*)var;
     return var;
+}
+
+SymbolFunction *addFunctionToSymtab(ParserState *parser, const std::string &symName)
+{
+    SymtabIter iter = GET_SYMBOL(parser, symName);
+    if( iter != SYMTAB_CEND(parser))
+    {
+        triggerParserError(parser, 1, "Redefinition of symbol %s", symName.c_str());
+    }
+    SymbolFunction* func = new SymbolFunction();
+    SET_SYMBOL(parser, symName) = (Symbol*)func;
+    return func;
 }

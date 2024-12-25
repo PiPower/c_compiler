@@ -13,12 +13,16 @@
 #define GET_TOKEN(parser) (parser)->scanner->getToken()
 #define POP_TOKEN(parser) GET_TOKEN( (parser) )
 #define PEEK_TOKEN(parser) (parser)->scanner->peekToken()
+#define GLOBAL_SCOPE 0
 
 struct ParserState
 {
     Scanner* scanner;
     SymbolTable* symtab;
+    // defined per function
+    SymbolTable* currLocalSymtab;
     NodeAllocator* allocator;
+    uint16_t currentScope;
     // assignment flow control;
     bool isParsingAssignment;;
     jmp_buf assignmentJmp;
@@ -30,11 +34,15 @@ struct ParserState
     unsigned int errorMessageLen;
 };
 
+//parser for functions
+AstNode* parseFunction(ParserState* parser);
+AstNode* parseParameterTypeList(ParserState* parser);
+AstNode* parseIdentifierList(ParserState* parser);
+
 // parser for statements
 // ----------------------------------------------
 
 AstNode* parseStatement(ParserState* parser);
-
 
 // parser for declarations
 // ----------------------------------------------

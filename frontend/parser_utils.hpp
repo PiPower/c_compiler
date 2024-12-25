@@ -32,7 +32,8 @@ enum class NodeType
     ADD_ASSIGNMENT, SUB_ASSIGNMENT, L_SHIFT_ASSIGNMENT, R_SHIFT_ASSIGNMENT,
     AND_ASSIGNMENT, EXC_OR_ASSIGNMENT, OR_ASSIGNMENT,
 // misc
-   NODE_EMPTY, DECLARATION_LIST, INIT_DECLARATOR
+   NODE_EMPTY, DECLARATION_LIST, INIT_DECLARATOR, FUNCTION_DECL, FUNCTION_DEF,
+   FUNCTION_CALL, PARAMETER_LIST, IDENTIFIER_LIST
 };
 
 struct ParserState;
@@ -60,5 +61,6 @@ static inline NodeType assignementTokenToNodeType(const Token& token)
     return (NodeType) ((int)token.type - (int)TokenType::EQUAL + (int)NodeType::ASSIGNMENT) ;
 }
 
-SymbolVariable* addSymbolVariableToSymtab(ParserState* parser, const std::string& symName);
+SymbolVariable* addVariableToSymtab(ParserState* parser, const std::string& symName);
+SymbolFunction* addFunctionToSymtab(ParserState* parser, const std::string& symName);
 #endif
