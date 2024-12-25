@@ -3,6 +3,7 @@
 #include "parser_internal.hpp"
 #include <stdarg.h>
 #include <string.h>
+
 using namespace std;
 AstNode* parseLoop(ParserState* parser, 
                     parseFunctionPtr parsingFunction, 
@@ -90,10 +91,20 @@ NodeType tokenMathTypeToNodeType(const Token& token)
         return NodeType::LOG_AND;
     case TokenType::DOUBLE_PIPE :
         return NodeType::LOG_OR;
-    case TokenType::COMMA:
-        return NodeType::EXPR_GLUE;
     }
 
     fprintf(stdout, "unexpected token at line %d \n", token.line);
     exit(-1);
+}
+
+SymbolVariable* addSymbolVariableToSymtab(ParserState *parser, const std::string& symName)
+{
+    SymtabIter iter = GET_SYMBOL(parser, symName);
+    if( iter != SYMTAB_CEND(parser))
+    {
+        triggerParserError(parser, 1, "Redefinition of symbol %s", symName.c_str());
+    }
+    SymbolVariable* var = new SymbolVariable();
+    SET_SYMBOL(parser, symName) = (Symbol*)var;
+    return var;
 }

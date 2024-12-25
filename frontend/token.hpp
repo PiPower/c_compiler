@@ -39,7 +39,7 @@ struct Token
     unsigned int line;
     // if type is identifier, constant type:
     // data points to std::string
-    char* data;
+    std::string* data = nullptr;
 };
 
 extern const char* tokenTypeString[];

@@ -147,8 +147,7 @@ Token Scanner::parsePunctuators(const char *c)
             token.type = TokenType::COMMENT;
             index++;
             while (c[index] != '\n' && c[index] != '\0'){index++;}
-            index = c[index] == '\0' ? index : index + 1;
-            line = c[index] == '\n' ? line + 1 : line;
+            if(c[index] == '\n' ){line++; index++;}
             break;
         default:
             token.type = TokenType::SLASH;
@@ -316,7 +315,7 @@ Token Scanner::parseIdentifier(const char* c)
         Token token;
         token.type = iter->second;
         token.line = line;
-        token.data = (char*)str;
+        token.data = str;
 
         return token;
     }
@@ -324,7 +323,7 @@ Token Scanner::parseIdentifier(const char* c)
     Token token;
     token.type = TokenType::IDENTIFIER;
     token.line = line;
-    token.data = (char*)str;
+    token.data = str;
     return token;
     
 }
@@ -353,7 +352,7 @@ Token Scanner::parseConstant(const char *c)
     Token token;
     token.type = TokenType::CONSTANT;
     token.line = line;
-    token.data = (char*)str;
+    token.data = str;
     return token;
 }
 

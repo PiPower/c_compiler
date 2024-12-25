@@ -30,7 +30,10 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocato
         {
             root = parseStatement(&parser);
         }
-        statements.push_back(root);
+        if(root && root != PARSER_SUCC)
+        {
+            statements.push_back(root);
+        }
     }
     return statements;
 }

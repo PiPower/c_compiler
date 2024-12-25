@@ -9,7 +9,7 @@ struct AstNode
 {
     NodeType nodeType;
     std::vector<AstNode*> children;
-    char* data;
+    std::string* data;
 };
 
 struct NodeAllocator;

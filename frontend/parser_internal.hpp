@@ -4,13 +4,16 @@
 #include "parser.hpp"
 #include "node_allocator.hpp"
 #include <setjmp.h>
+#include <string>
 
+// if parsing was succesfull yet returns null return PARSER_SUCC 
+#define PARSER_SUCC  ((AstNode*)0xFFFFFFFFFFFFFFFF)
 #define ALLOCATE_NODE(parser) allocateNode((parser)->allocator)
 #define CONSUME_TOKEN(parser, type) (parser)->scanner->consume(type)
 #define GET_TOKEN(parser) (parser)->scanner->getToken()
 #define POP_TOKEN(parser) GET_TOKEN( (parser) )
 #define PEEK_TOKEN(parser) (parser)->scanner->peekToken()
-#define GET_SYMBOL(parser, symName) (parser)->symtab[(symName)]
+
 struct ParserState
 {
     Scanner* scanner;
@@ -38,7 +41,7 @@ AstNode* parseStatement(ParserState* parser);
 
 // if returns nullptr no decleration has been detected
 AstNode* parseDeclaration(ParserState* parser);
-AstNode* parseInitDeclList(ParserState* parser);
+AstNode* parseInitDeclList(ParserState* parser, const std::string* typeName);
 AstNode* parseDeclarator(ParserState* parser);
 AstNode* parseInitializer(ParserState* parser);
 std::string* parseDeclSpec(ParserState* parser);

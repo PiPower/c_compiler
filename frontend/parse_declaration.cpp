@@ -30,30 +30,43 @@ AstNode *parseDeclaration(ParserState *parser)
     {
         delete typeName;
         CONSUME_TOKEN(parser, TokenType::SEMICOLON);
-        return nullptr;
+        return PARSER_SUCC;
     }
-    AstNode* declaration = parseInitDeclList(parser);
+    AstNode* declaration = parseInitDeclList(parser, typeName);
     CONSUME_TOKEN(parser, TokenType::SEMICOLON);
+    delete typeName;
 
-    return nullptr;
+    return declaration;
 }
 
-AstNode *parseInitDeclList(ParserState *parser)
+AstNode *parseInitDeclList(ParserState *parser, const std::string* typeName)
 {
+    AstNode* declarationList = ALLOCATE_NODE(parser);
+    declarationList->nodeType = NodeType::DECLARATION_LIST;
+    bool execLoop = true;
     do
     {
         // parse init declarator
         AstNode* declarator = parseDeclarator(parser);
+        SymbolVariable* var = addSymbolVariableToSymtab(parser, *(string*)declarator->data);
+        var->varType = new string(*typeName); 
+
+        AstNode* initDeclarator = ALLOCATE_NODE(parser);
+        initDeclarator->nodeType = NodeType::INIT_DECLARATOR;
+        initDeclarator->children.push_back(declarator);
+
         if( PEEK_TOKEN(parser).type == TokenType::EQUAL )
         {
             CONSUME_TOKEN(parser, TokenType::EQUAL);
             AstNode* initializer = parseInitializer(parser);
+            initDeclarator->children.push_back(initializer);
         }
-
-    } while (PEEK_TOKEN(parser).type == TokenType::COMMA);
+        execLoop = PEEK_TOKEN(parser).type == TokenType::COMMA;
+        if(execLoop){ POP_TOKEN(parser);}
+    } while (execLoop);
 
     
-    return nullptr;
+    return declarationList;
 }
 
 AstNode *parseDeclarator(ParserState *parser)
@@ -74,6 +87,14 @@ std::string* parseDeclSpec(ParserState *parser)
 }
 
 AstNode *parseDirectDeclarator(ParserState *parser)
-{
-    return nullptr;
+{ 
+    if(PEEK_TOKEN(parser).type != TokenType::IDENTIFIER)
+    {
+        triggerParserError(parser, 1, "Expected token is identifier but given is %s");
+    }
+    Token token = GET_TOKEN(parser);
+    AstNode* root = ALLOCATE_NODE(parser);
+    root->data = token.data;
+    root->nodeType = NodeType::IDENTIFIER;
+    return root;
 }

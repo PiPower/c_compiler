@@ -8,7 +8,7 @@ using namespace std;
 void compile(const char *file)
 {
     SymbolTable symtab;
-    initSymolTalbe(&symtab);
+    initSymbolTalbe(&symtab);
     NodeAllocator allocator;
     Scanner scanner(file);
 
@@ -16,7 +16,7 @@ void compile(const char *file)
 
 }
 
-void initSymolTalbe(SymbolTable *symTab)
+void initSymbolTalbe(SymbolTable *symTab)
 {
     symTab->symbols["int8"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 1};
     symTab->symbols["int16"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};

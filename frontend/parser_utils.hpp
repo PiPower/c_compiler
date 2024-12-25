@@ -1,6 +1,13 @@
 #ifndef PARSER_UTILS_H
 #define PARSER_UTILS_H
 #include "scanner.hpp"
+#include "../symbol_table.hpp"
+// math ops  
+//   AMPRESAND, STAR, PLUS, MINUS, TILDE, BANG, SLASH, 
+//   PERCENT, LESS, GREATER,  L_SHIFT,
+//    R_SHIFT, LESS_EQUAL, GREATER_EQUAL, EQUAL_EQUAL, BANG_EQUAL,
+//   PIPE, CARET, DOUBLE_AMPRESAND, DOUBLE_PIPE, QUESTION_MARK,
+//    PLUS_PLUS, MINUS_MINUS,
 
 enum class NodeType
 {
@@ -25,11 +32,7 @@ enum class NodeType
     ADD_ASSIGNMENT, SUB_ASSIGNMENT, L_SHIFT_ASSIGNMENT, R_SHIFT_ASSIGNMENT,
     AND_ASSIGNMENT, EXC_OR_ASSIGNMENT, OR_ASSIGNMENT,
 // misc
-    EXPR_GLUE, IF, BLOCK, WHILE_LOOP,
-    DO_WHILE_LOOP, FOR_LOOP,FUNCTION_PARAMS,
-    DECLARATION_VARIABLE, DEFINITION_VARIABLE,
-    FUNCTION_DECLARATION, FUNCTION_DEFINITION,
-    FUNCTION_CALL, RETURN, NODE_EMPTY
+   NODE_EMPTY, DECLARATION_LIST, INIT_DECLARATOR
 };
 
 struct ParserState;
@@ -57,4 +60,5 @@ static inline NodeType assignementTokenToNodeType(const Token& token)
     return (NodeType) ((int)token.type - (int)TokenType::EQUAL + (int)NodeType::ASSIGNMENT) ;
 }
 
+SymbolVariable* addSymbolVariableToSymtab(ParserState* parser, const std::string& symName);
 #endif
