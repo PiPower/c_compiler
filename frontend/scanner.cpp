@@ -348,6 +348,12 @@ Token Scanner::parseConstant(const char *c)
         (*str) += c[index];
         index++;
     }
+
+    if( isAlpha(c[index]) ||  c[index] == '_')
+    {
+        fprintf(stdout, "incorrect integer definition at line %d\n", line);
+        exit(-1);
+    }
     
     Token token;
     token.type = TokenType::CONSTANT;

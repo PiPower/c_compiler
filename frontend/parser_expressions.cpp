@@ -266,6 +266,10 @@ AstNode *primaryExpression(ParserState *parser)
         root = ALLOCATE_NODE(parser);
         root->nodeType = NodeType::IDENTIFIER;
         root->data = token.data;
+        if(GET_SYMBOL(parser, *root->data) == SYMTAB_CEND(parser))
+        {
+            triggerParserError(parser, 1, "%s is unrecognized variable", root->data->c_str());
+        }
         return root;
     case TokenType::CONSTANT:
         root = ALLOCATE_NODE(parser);

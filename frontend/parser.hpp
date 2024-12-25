@@ -5,11 +5,13 @@
 #include "scanner.hpp"
 #include "../compiler.hpp"
 #include <vector>
+
 struct AstNode
 {
     NodeType nodeType;
     std::vector<AstNode*> children;
     std::string* data;
+    SymbolType* type;
 };
 
 struct NodeAllocator;
