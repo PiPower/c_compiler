@@ -97,26 +97,109 @@ NodeType tokenMathTypeToNodeType(const Token& token)
     exit(-1);
 }
 
-SymbolVariable* addVariableToSymtab(ParserState *parser, const std::string& symName)
+std::vector<AstNode*> processDeclarationTree(AstNode *root, ParserState* parser)
 {
-    SymtabIter iter = GET_SYMBOL(parser, symName);
-    if( iter != SYMTAB_CEND(parser))
+    vector<AstNode*> out;
+    if(root->nodeType == NodeType::FUNCTION_DEF)
     {
-        triggerParserError(parser, 1, "Redefinition of symbol %s", symName.c_str());
+
     }
-    SymbolVariable* var = new SymbolVariable();
-    SET_SYMBOL(parser, symName) = (Symbol*)var;
-    return var;
+    else if(root->nodeType == NodeType::DECLARATION_LIST)
+    {
+        std::vector<AstNode*> children = std::move(root->children);
+        freeNode(parser->allocator, root);
+        for(AstNode* declarator : children)
+        {
+            AstNode* processed = nullptr;
+            if(declarator->nodeType == NodeType::FUNCTION_DECL ||
+                declarator->nodeType == NodeType::FUNCTION_DEF )
+            {
+                processed = processFunction(declarator, parser);
+            }
+            else
+            {
+                processed = processVariable(declarator, parser);
+            }
+
+            if(processed != nullptr)
+            {
+                out.push_back(processed);
+            }
+        }
+    }
+    return out;
 }
 
-SymbolFunction *addFunctionToSymtab(ParserState *parser, const std::string &symName)
+AstNode* processVariable(AstNode *root, ParserState *parser)
 {
-    SymtabIter iter = GET_SYMBOL(parser, symName);
-    if( iter != SYMTAB_CEND(parser))
+    AstNode* initializer = nullptr;
+    if(root->children.size() > 0)
     {
-        triggerParserError(parser, 1, "Redefinition of symbol %s", symName.c_str());
+        initializer = root->children[0];
     }
-    SymbolFunction* func = new SymbolFunction();
-    SET_SYMBOL(parser, symName) = (Symbol*)func;
-    return func;
+    return nullptr;
+}
+
+AstNode *processFunction(AstNode *root, ParserState *parser)
+{
+    AstNode* args = root->children[0];
+    SymtabIter iter = GET_SYMBOL(parser, *(string*)root->data);
+    SymbolFunction * fn;
+    if(iter != SYMTAB_CEND(parser))
+    {
+        fn = (SymbolFunction*)(*iter).second;
+        if(isSetDefinedAttr(fn) &&  root->nodeType == NodeType::FUNCTION_DEF)
+        {
+            triggerParserError(parser, 1, "Redefiniction of function named %s", root->data->c_str());
+        }
+        // check if args are consistent
+        if( *root->type != *fn->retType)
+        {
+            triggerParserError(parser, 1, "Redeclared function %s has different return type than before\n", root->data->c_str());
+        }
+
+        if( args->children.size() != fn->argTypes.size())
+        {
+            triggerParserError(parser, 1, "Redeclared function %s has different arguments than before\n", root->data->c_str());
+        }
+        for(int i = 0; i < args->children.size(); i++ )
+        {
+            if(*(args->children[i]->type) != *(fn->argTypes[i]) )
+            {
+                triggerParserError(parser, 1, "Redeclared function %s has different arguments than before\n", root->data->c_str());
+            }
+        }
+    }
+    else
+    {
+        fn = new SymbolFunction;
+        fn->attributes = 0;
+        fn->type = SymbolClass::FUNCTION;
+        fn->retType = root->type;
+        SET_SYMBOL(parser, *root->data, (Symbol*)fn);
+
+        if(root->nodeType == NodeType::FUNCTION_DEF)
+        {
+            setDefinedAttr(fn);
+        }
+
+        for( AstNode* param : args->children)
+        {
+            fn->argTypes.push_back(param->type);
+        }
+    }
+    // if function definition retain function declaration
+    // otherwise free them
+    if(root->nodeType == NodeType::FUNCTION_DEF)
+    {
+        return root;
+    }
+
+    for(AstNode* arg : args->children)
+    {
+        freeNode(parser->allocator, arg);
+    }
+    freeNode(parser->allocator, args);
+    freeNode(parser->allocator, root);
+    return nullptr;
 }

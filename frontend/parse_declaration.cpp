@@ -8,39 +8,41 @@ AstNode *parseDeclaration(ParserState *parser)
     {
         return nullptr;
     }
-    //parse decl and possible free unused nodes
     if(PEEK_TOKEN(parser).type == TokenType::SEMICOLON)
     {
         delete typeName;
         CONSUME_TOKEN(parser, TokenType::SEMICOLON);
         return PARSER_SUCC;
     }
-    AstNode* declaration = parseInitDeclList(parser, typeName);
-    if(declaration->nodeType != NodeType::FUNCTION_DEF)
+    AstNode* declarations = parseInitDeclList(parser, typeName);
+    if(declarations->nodeType != NodeType::FUNCTION_DEF)
     {
         CONSUME_TOKEN(parser, TokenType::SEMICOLON);
     }
     delete typeName;
 
-    return declaration;
+    return declarations;
 }
 
 AstNode *parseFunction(ParserState *parser, AstNode *function)
 {
-    function->nodeType = NodeType::FUNCTION_DECL;
     CONSUME_TOKEN(parser, TokenType::L_PARENTHESES);
     AstNode* args = parseFnArgs(parser);
     function->children.push_back(args);
     CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
 
+    if(args->nodeType == NodeType::ARGS_EXPR_LIST)
+    {
+        function->nodeType = NodeType::FUNCTION_CALL;
+        return function;
+    }
+
+    function->nodeType = NodeType::FUNCTION_DECL;
     if(PEEK_TOKEN(parser).type != TokenType::L_BRACE )
     {
-        function->children.push_back(args);
         return function;
     }
     function->nodeType = NodeType::FUNCTION_DEF;
-    AstNode* functionBody = parseCompoundStatement(parser);
-    function->children.push_back(function);
     return function;
 }
 
@@ -91,26 +93,17 @@ AstNode *parseInitDeclList(ParserState *parser, const std::string* typeName)
     {
         // parse init declarator
         AstNode* declarator = parseDeclarator(parser);
-        if(declarator->nodeType == NodeType::FUNCTION_DECL )
-        {
-            SymbolFunction* func = addFunctionToSymtab(parser, *(string*)declarator->data);
-            func->retType = new string(*typeName); 
-        }
-        else if(declarator->nodeType == NodeType::FUNCTION_DEF)
+        declarator->type = new string(*typeName);
+        if(declarator->nodeType == NodeType::FUNCTION_DEF)
         {
             if(declarationList->children.size() > 0 )
             {
-                triggerParserError(parser, 1, "Function definitions alongside declarations is not allowed\n");
+                triggerParserError(parser, 1, "Function definitions alongside declarations are not allowed\n");
             }
             freeNode(parser->allocator, declarationList);
             return declarator;
         }
-        else
-        {
-            SymbolVariable* var = addVariableToSymtab(parser, *(string*)declarator->data);
-            var->varType = new string(*typeName); 
-            declarator = parseInitDeclarator(parser, declarator);
-        }
+        declarator = parseInitDeclarator(parser, declarator);
         declarationList->children.push_back(declarator);
         execLoop = PEEK_TOKEN(parser).type == TokenType::COMMA;
         if(execLoop){ POP_TOKEN(parser);}
@@ -159,9 +152,10 @@ std::string* parseDeclSpec(ParserState *parser)
 
 AstNode *parseDirectDeclarator(ParserState *parser)
 { 
+
     if(PEEK_TOKEN(parser).type != TokenType::IDENTIFIER)
     {
-        triggerParserError(parser, 1, "Expected token is identifier but given is %s");
+        triggerParserError(parser, 1, "Expected token is identifier");
     }
     Token token = GET_TOKEN(parser);
     AstNode* root = ALLOCATE_NODE(parser);
@@ -178,17 +172,18 @@ AstNode *parseDirectDeclarator(ParserState *parser)
 
 AstNode *parseInitDeclarator(ParserState *parser, AstNode *declarator)
 {
-    AstNode* initDeclarator = ALLOCATE_NODE(parser);
-    initDeclarator->nodeType = NodeType::INIT_DECLARATOR;
-    initDeclarator->children.push_back(declarator);
-
     if( PEEK_TOKEN(parser).type == TokenType::EQUAL )
     {
+        if(declarator->nodeType != NodeType::IDENTIFIER)
+        {
+            triggerParserError(parser, 1, "Assignment operator is not supported for this declarator\n");
+        }
+
         CONSUME_TOKEN(parser, TokenType::EQUAL);
         AstNode* initializer = parseInitializer(parser);
-        initDeclarator->children.push_back(initializer);
+        declarator->children.push_back(initializer);
     }
-    return initDeclarator;
+    return declarator;
 }
 
 AstNode *parseArgExprList(ParserState *parser)

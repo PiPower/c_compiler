@@ -9,12 +9,17 @@ enum class SymbolClass
 {
     TYPE,
     VARIABLE,
-    FUNCTION
+    FUNCTION,
 };
 
 struct Symbol
 {
     SymbolClass type;
+};
+
+struct SymbolTable
+{
+    std::unordered_map<std::string, Symbol*> symbols;
 };
 
 struct SymbolType
@@ -47,36 +52,35 @@ struct SymbolFunction
 {
     SymbolClass type;
     std::string* retType;
+    // bit 0 is defined
     uint64_t attributes;
-
+    SymbolTable localSymbtab;
+    std::vector<std::string*> argTypes;
     SymbolFunction()
     :
     type(SymbolClass::VARIABLE), retType(nullptr), attributes(0)
     {}
 };
 
-struct SymbolTable
-{
-    std::unordered_map<std::string, Symbol*> symbols;
-};
 typedef std::unordered_map<std::string, Symbol*>::iterator SymtabIter;
 
 #define GET_SYMBOL(parser, name) (parser)->symtab->symbols.find( (name) )
-#define SET_SYMBOL(parser, name) (parser)->symtab->symbols[(name)]
+#define SET_SYMBOL(parser, name, symbol) (parser)->symtab->symbols[(name)] = (symbol)
 #define SYMTAB_CEND(parser) (parser)->symtab->symbols.cend()
 
-inline constexpr void setGlobalAttr(SymbolVariable* var)
+
+inline constexpr void setDefinedAttr(SymbolFunction* fn)
 {
-    var->attributes |= 0x01;
+    fn->attributes |= 0x01;
 }
 
-inline constexpr void disableGlobalAttr(SymbolVariable* var)
+inline constexpr void disableDefinedAttr(SymbolFunction* fn)
 {
-    var->attributes &=  ~0x01;
+    fn->attributes &=  ~0x01;
 }
 
-inline constexpr bool isGlobalAttr(SymbolVariable* var)
+inline constexpr bool isSetDefinedAttr(SymbolFunction* fn)
 {
-    return var->attributes & 0x01 > 0 ;
+    return fn->attributes & 0x01 > 0 ;
 }
 #endif

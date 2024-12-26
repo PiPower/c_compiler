@@ -11,6 +11,6 @@ struct NodeAllocator
 };
 
 AstNode* allocateNode(NodeAllocator* allocator);
-void freeNode(NodeAllocator* allocator, AstNode* node);
+void freeNode(NodeAllocator* allocator, AstNode* node, bool rmType = true, bool rmData = true);
 void freeAllNodes(NodeAllocator* allocator);
 #endif

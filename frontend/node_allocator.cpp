@@ -9,16 +9,25 @@ AstNode *allocateNode(NodeAllocator* allocator)
 }
 
 
-void freeNode(NodeAllocator* allocator, AstNode *node)
+void freeNode(NodeAllocator* allocator, AstNode *node, bool rmType, bool rmData)
 {
+    if(rmData && node->data)
+    {
+        delete node->data;
+    }
+    if(rmType && node->type)
+    {
+        delete node->type;
+    }
     delete node;
+    allocator->nodes.erase(node);
 }
 
 void freeAllNodes(NodeAllocator* allocator)
 {
     for(AstNode* node : allocator->nodes)
     {
-        freeNode(allocator, node);
+        delete node;
     }
     allocator->nodes.clear();
 }

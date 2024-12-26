@@ -25,14 +25,15 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocato
     vector<AstNode *> statements; 
     while (parser.scanner->peekToken().type != TokenType::END_OF_FILE)
     {
-        AstNode* root = parseDeclaration(&parser);
-        if(!root)
+        AstNode* tree = parseDeclaration(&parser);
+        vector<AstNode *> processedTree = processDeclarationTree(tree, &parser);
+        if( tree->nodeType == NodeType::FUNCTION_DEF)
         {
-            root = parseStatement(&parser);
+            AstNode* functionBody = parseCompoundStatement(&parser);
         }
-        if(root && root != PARSER_SUCC)
+        if(processedTree.size() > 0)
         {
-            statements.push_back(root);
+            statements.insert(statements.end(), processedTree.begin(), processedTree.end());
         }
     }
     return statements;

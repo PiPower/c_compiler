@@ -37,7 +37,7 @@ enum class NodeType
 // statement
     BLOCK,
 // misc
-    NODE_EMPTY, DECLARATION_LIST, INIT_DECLARATOR, TYPE_PLACEHOLDER
+    NODE_EMPTY, DECLARATION_LIST, TYPE_PLACEHOLDER
 };
 
 struct ParserState;
@@ -58,13 +58,16 @@ AstNode* parseLoop(ParserState* parser,
                     AstNode* root, 
                     const TokenType* types,
                     const uint64_t typesCount);
+AstNode* fillSymtab(AstNode* root);
 NodeType tokenMathTypeToNodeType(const Token& token);
 
 static inline NodeType assignementTokenToNodeType(const Token& token)
 {
     return (NodeType) ((int)token.type - (int)TokenType::EQUAL + (int)NodeType::ASSIGNMENT) ;
 }
-
-SymbolVariable* addVariableToSymtab(ParserState* parser, const std::string& symName);
-SymbolFunction* addFunctionToSymtab(ParserState* parser, const std::string& symName);
+//fills and checks symbol table
+// removes nodes that are more abstact
+std::vector<AstNode*> processDeclarationTree(AstNode* root, ParserState* parser);
+AstNode* processVariable(AstNode *root, ParserState *parser);
+AstNode* processFunction(AstNode* root,ParserState* parser);
 #endif
