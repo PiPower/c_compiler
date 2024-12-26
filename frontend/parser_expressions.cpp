@@ -256,11 +256,12 @@ AstNode *primaryExpression(ParserState *parser)
         root = ALLOCATE_NODE(parser);
         root->nodeType = NodeType::IDENTIFIER;
         root->data = token.data;
-        if(GET_SYMBOL(parser, *root->data) == SYMTAB_CEND(parser))
+        Symbol* sym = GET_SYMBOL(parser, *root->data);
+        if(sym)
         {
             triggerParserError(parser, 1, "%s is unrecognized variable", root->data->c_str());
         }
-        SymbolVariable* var = (SymbolVariable* ) (*GET_SYMBOL(parser, *root->data)).second;
+        SymbolVariable* var = (SymbolVariable*) sym;
         root->type = var->varType ;
         return root;
     }

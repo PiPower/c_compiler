@@ -1,6 +1,6 @@
 #ifndef COMPILER_H
 #define COMPILER_H
-#include "symbol_table.hpp"
+#include "symtab_utils.hpp"
 
 
 void compile(const char* file);

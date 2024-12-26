@@ -20,6 +20,8 @@ struct Symbol
 struct SymbolTable
 {
     std::unordered_map<std::string, Symbol*> symbols;
+    SymbolTable* parent;
+    uint64_t nestScope;
 };
 
 struct SymbolType
@@ -39,7 +41,7 @@ struct SymbolVariable
 {
     SymbolClass type;
     std::string* varType;
-    // bit0 : isGlobal
+    // bit 0 is defined
     uint64_t attributes;
 
     SymbolVariable()
@@ -48,13 +50,14 @@ struct SymbolVariable
     {}
 };
 
+
 struct SymbolFunction
 {
     SymbolClass type;
     std::string* retType;
     // bit 0 is defined
     uint64_t attributes;
-    SymbolTable localSymbtab;
+    SymbolTable localSymtab;
     std::vector<std::string*> argTypes;
     SymbolFunction()
     :
@@ -64,23 +67,4 @@ struct SymbolFunction
 
 typedef std::unordered_map<std::string, Symbol*>::iterator SymtabIter;
 
-#define GET_SYMBOL(parser, name) (parser)->symtab->symbols.find( (name) )
-#define SET_SYMBOL(parser, name, symbol) (parser)->symtab->symbols[(name)] = (symbol)
-#define SYMTAB_CEND(parser) (parser)->symtab->symbols.cend()
-
-
-inline constexpr void setDefinedAttr(SymbolFunction* fn)
-{
-    fn->attributes |= 0x01;
-}
-
-inline constexpr void disableDefinedAttr(SymbolFunction* fn)
-{
-    fn->attributes &=  ~0x01;
-}
-
-inline constexpr bool isSetDefinedAttr(SymbolFunction* fn)
-{
-    return fn->attributes & 0x01 > 0 ;
-}
 #endif

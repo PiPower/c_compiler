@@ -7,10 +7,9 @@ set(CMAKE_CXX_STANDARD 17)
 file(GLOB frontendSources ./frontend/*.cpp)
 file(GLOB backendSources ./backend/*.cpp)
 
-add_library(frontend STATIC ${frontendSources})
-add_executable(sael-compiler	main.cpp
-							compiler.cpp
-							${backendSources})
+add_library(frontend STATIC ${frontendSources} symtab_utils.cpp)
+add_executable(sael-compiler main.cpp
+	compiler.cpp symtab_utils.cpp ${backendSources})
 
 
 target_link_libraries(sael-compiler PUBLIC frontend)

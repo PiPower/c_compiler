@@ -137,17 +137,26 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
     {
         initializer = root->children[0];
     }
+
+    Symbol* sym = GET_SYMBOL(parser, *(string*)root->data);
+    SymbolVariable* var;
+    if(sym)
+    {
+        var = (SymbolVariable*)sym;
+        if( isSetDefinedAttr(var));
+    }
+
     return nullptr;
 }
 
 AstNode *processFunction(AstNode *root, ParserState *parser)
 {
     AstNode* args = root->children[0];
-    SymtabIter iter = GET_SYMBOL(parser, *(string*)root->data);
+    Symbol* sym = GET_SYMBOL(parser, *(string*)root->data);
     SymbolFunction * fn;
-    if(iter != SYMTAB_CEND(parser))
+    if(sym)
     {
-        fn = (SymbolFunction*)(*iter).second;
+        fn = (SymbolFunction*)sym;
         if(isSetDefinedAttr(fn) &&  root->nodeType == NodeType::FUNCTION_DEF)
         {
             triggerParserError(parser, 1, "Redefiniction of function named %s", root->data->c_str());
