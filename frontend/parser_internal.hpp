@@ -43,7 +43,7 @@ AstNode* parseFnArgs(ParserState* parser);
 // ----------------------------------------------
 
 AstNode* parseStatement(ParserState* parser);
-
+AstNode* parseCompoundStatement();
 // parser for declarations
 // ----------------------------------------------
 
