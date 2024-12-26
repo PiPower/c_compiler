@@ -13,7 +13,7 @@ void compile(const char *file)
     Scanner scanner(file);
 
     vector<AstNode*> statements = parse(&scanner, &symtab, &allocator);
-
+    int x = 2;
 }
 
 void initSymbolTalbe(SymbolTable *symTab)

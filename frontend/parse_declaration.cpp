@@ -16,7 +16,10 @@ AstNode *parseDeclaration(ParserState *parser)
         return PARSER_SUCC;
     }
     AstNode* declaration = parseInitDeclList(parser, typeName);
-    CONSUME_TOKEN(parser, TokenType::SEMICOLON);
+    if(declaration->nodeType != NodeType::FUNCTION_DEF)
+    {
+        CONSUME_TOKEN(parser, TokenType::SEMICOLON);
+    }
     delete typeName;
 
     return declaration;
@@ -24,21 +27,21 @@ AstNode *parseDeclaration(ParserState *parser)
 
 AstNode *parseFunction(ParserState *parser, AstNode *function)
 {
+    function->nodeType = NodeType::FUNCTION_DECL;
     CONSUME_TOKEN(parser, TokenType::L_PARENTHESES);
-    if(PEEK_TOKEN(parser).type == TokenType::R_PARENTHESES)
-    {
-        CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
-        function->nodeType = NodeType::FUNCTION_DECL;
-        return function;
-    }
     AstNode* args = parseFnArgs(parser);
+    function->children.push_back(args);
     CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
-    if(PEEK_TOKEN(parser).type != TokenType::R_PARENTHESES )
+
+    if(PEEK_TOKEN(parser).type != TokenType::L_BRACE )
     {
         function->children.push_back(args);
-        function->nodeType = NodeType::FUNCTION_DECL;
         return function;
     }
+    function->nodeType = NodeType::FUNCTION_DEF;
+    AstNode* functionBody = parseCompoundStatement(parser);
+    function->children.push_back(function);
+    return function;
 }
 
 AstNode *parseParameterTypeList(ParserState *parser)
@@ -92,6 +95,15 @@ AstNode *parseInitDeclList(ParserState *parser, const std::string* typeName)
         {
             SymbolFunction* func = addFunctionToSymtab(parser, *(string*)declarator->data);
             func->retType = new string(*typeName); 
+        }
+        else if(declarator->nodeType == NodeType::FUNCTION_DEF)
+        {
+            if(declarationList->children.size() > 0 )
+            {
+                triggerParserError(parser, 1, "Function definitions alongside declarations is not allowed\n");
+            }
+            freeNode(parser->allocator, declarationList);
+            return declarator;
         }
         else
         {
@@ -196,6 +208,13 @@ AstNode *parseArgExprList(ParserState *parser)
 
 AstNode *parseFnArgs(ParserState *parser)
 {
+    if(PEEK_TOKEN(parser).type == TokenType::R_PARENTHESES)
+    {
+        AstNode* emptyParamList = ALLOCATE_NODE(parser);
+        emptyParamList->nodeType = NodeType::PARAMETER_LIST;
+        return emptyParamList;
+    }
+
     AstNode* root = parseParameterTypeList(parser);
     if(!root)
     {
