@@ -39,6 +39,7 @@ AstNode* parseFunction(ParserState* parser, AstNode* function);
 AstNode* parseParameterTypeList(ParserState* parser);
 AstNode* parseArgExprList(ParserState* parser);
 AstNode* parseFnArgs(ParserState* parser);
+AstNode* parseFunctionBody(ParserState* parser, AstNode* function);
 // parser for statements
 // ----------------------------------------------
 

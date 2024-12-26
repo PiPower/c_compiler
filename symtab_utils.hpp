@@ -4,6 +4,7 @@
 #define SYMTAB_UTILS
 
 #define GET_SYMBOL(parser, name)  getSymbol((parser)->symtab, (name)) 
+#define GET_SYMBOL_EX(parser, name, ptr)  getSymbol((parser)->symtab, (name), (ptr) ) 
 #define SET_SYMBOL(parser, name, symbol) (parser)->symtab->symbols[(name)] = (symbol)
 #define SYMTAB_CEND(parser) (parser)->symtab->symbols.cend()
 

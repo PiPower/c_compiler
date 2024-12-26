@@ -18,7 +18,7 @@ void compile(const char *file)
 void initSymbolTalbe(SymbolTable *symTab)
 {
     symTab->parent = nullptr;
-    symTab->nestScope = 0;
+    symTab->scopeLevel = 0;
     symTab->symbols["int8"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 1};
     symTab->symbols["int16"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};
     symTab->symbols["int32"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};

@@ -2,10 +2,19 @@
 
 Symbol* getSymbol(SymbolTable *symtab, const std::string &name, uint64_t* scopeLevel)
 {
-    SymtabIter iter = symtab->symbols.find(name);
-    if(iter != symtab->symbols.cend())
+    while (symtab)
     {
-        return (Symbol*)(*iter).second;
+        SymtabIter iter = symtab->symbols.find(name);
+        if(iter != symtab->symbols.cend())
+        {
+            if(scopeLevel)
+            {
+                *scopeLevel = symtab->scopeLevel;
+            }
+            return (Symbol*)(*iter).second;
+        }
+        symtab = symtab->parent;
     }
+
     return nullptr;
 }

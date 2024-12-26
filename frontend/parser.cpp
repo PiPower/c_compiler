@@ -29,7 +29,12 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocato
         vector<AstNode *> processedTree = processDeclarationTree(tree, &parser);
         if( tree->nodeType == NodeType::FUNCTION_DEF)
         {
-            AstNode* functionBody = parseCompoundStatement(&parser);
+            if( tree != processedTree[0])
+            {
+                printf("Something went wrong for processing function definition\n");
+                exit(-1);
+            }
+            AstNode* functionBody = parseFunctionBody(&parser, tree);
         }
         if(processedTree.size() > 0)
         {

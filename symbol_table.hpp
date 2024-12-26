@@ -21,7 +21,8 @@ struct SymbolTable
 {
     std::unordered_map<std::string, Symbol*> symbols;
     SymbolTable* parent;
-    uint64_t nestScope;
+    // 0 is for global scope
+    uint64_t scopeLevel; 
 };
 
 struct SymbolType

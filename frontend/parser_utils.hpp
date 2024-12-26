@@ -37,7 +37,7 @@ enum class NodeType
 // statement
     BLOCK,
 // misc
-    NODE_EMPTY, DECLARATION_LIST, TYPE_PLACEHOLDER
+    NODE_EMPTY, DECLARATION_LIST, TYPE_PLACEHOLDER, INITALIZER
 };
 
 struct ParserState;

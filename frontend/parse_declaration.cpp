@@ -161,6 +161,13 @@ AstNode *parseDirectDeclarator(ParserState *parser)
     AstNode* root = ALLOCATE_NODE(parser);
     root->data = token.data;
     root->nodeType = NodeType::IDENTIFIER;
+
+    Symbol* sym = GET_SYMBOL(parser, *root->data );
+    if(sym && 
+     ( sym->type != SymbolClass::VARIABLE  &&  sym->type != SymbolClass::FUNCTION) )
+    {
+        triggerParserError(parser, 1, "Symbol %s is not variable", root->data->c_str());
+    }
     // return if variable else function
     if(PEEK_TOKEN(parser).type != TokenType::L_PARENTHESES)
     {
@@ -180,7 +187,10 @@ AstNode *parseInitDeclarator(ParserState *parser, AstNode *declarator)
         }
 
         CONSUME_TOKEN(parser, TokenType::EQUAL);
-        AstNode* initializer = parseInitializer(parser);
+
+        AstNode* initializer = ALLOCATE_NODE(parser);
+        initializer->nodeType = NodeType::INITALIZER;
+        initializer->children.push_back(parseInitializer(parser));
         declarator->children.push_back(initializer);
     }
     return declarator;
@@ -218,3 +228,9 @@ AstNode *parseFnArgs(ParserState *parser)
     return root;
 }
 
+AstNode *parseFunctionBody(ParserState *parser, AstNode *function)
+{
+    SymbolTable* funcSymtab = new SymbolTable();
+
+    return parseCompoundStatement(parser);
+}

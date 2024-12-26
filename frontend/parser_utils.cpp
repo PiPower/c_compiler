@@ -100,33 +100,38 @@ NodeType tokenMathTypeToNodeType(const Token& token)
 std::vector<AstNode*> processDeclarationTree(AstNode *root, ParserState* parser)
 {
     vector<AstNode*> out;
+    if(root == nullptr)
+    {
+        return {};
+    }
     if(root->nodeType == NodeType::FUNCTION_DEF)
     {
-
+        AstNode* processed = processFunction(root, parser);
+        out.push_back(processed);
+        return out;
     }
-    else if(root->nodeType == NodeType::DECLARATION_LIST)
-    {
-        std::vector<AstNode*> children = std::move(root->children);
-        freeNode(parser->allocator, root);
-        for(AstNode* declarator : children)
-        {
-            AstNode* processed = nullptr;
-            if(declarator->nodeType == NodeType::FUNCTION_DECL ||
-                declarator->nodeType == NodeType::FUNCTION_DEF )
-            {
-                processed = processFunction(declarator, parser);
-            }
-            else
-            {
-                processed = processVariable(declarator, parser);
-            }
 
-            if(processed != nullptr)
-            {
-                out.push_back(processed);
-            }
+
+    std::vector<AstNode*> children = std::move(root->children);
+    freeNode(parser->allocator, root);
+    for(AstNode* declarator : children)
+    {
+        AstNode* processed = nullptr;
+        if(declarator->nodeType == NodeType::FUNCTION_DECL)
+        {
+            processed = processFunction(declarator, parser);
+        }
+        else
+        {
+            processed = processVariable(declarator, parser);
+        }
+
+        if(processed != nullptr)
+        {
+            out.push_back(processed);
         }
     }
+    
     return out;
 }
 
@@ -138,14 +143,35 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
         initializer = root->children[0];
     }
 
-    Symbol* sym = GET_SYMBOL(parser, *(string*)root->data);
-    SymbolVariable* var;
+    uint64_t scope = 0;
+    Symbol* sym = GET_SYMBOL_EX(parser, *(string*)root->data, &scope);
+    SymbolVariable* var = nullptr;
     if(sym)
     {
+        if(sym->type != SymbolClass::VARIABLE)
+        {
+            triggerParserError(parser, 1, "Identifier %s is not a variable\n", root->data->c_str());
+        }
         var = (SymbolVariable*)sym;
-        if( isSetDefinedAttr(var));
+        if(initializer && isSetDefinedAttr(var))
+        {
+            triggerParserError(parser, 1, "Redefinition of variable %s\n", root->data->c_str());
+        }
     }
-
+    else
+    {
+        var = new SymbolVariable();
+        var->type = SymbolClass::VARIABLE;
+        var->varType = root->type;
+        SET_SYMBOL(parser, *root->data, (Symbol*)var);
+        if(initializer || scope == 0)
+        {
+            setDefinedAttr(var);
+            return root;
+        }
+    }
+    // if not initializer we can free node
+    freeNode(parser->allocator, root);
     return nullptr;
 }
 
@@ -156,6 +182,11 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
     SymbolFunction * fn;
     if(sym)
     {
+        if( sym->type != SymbolClass::FUNCTION)
+        {
+            triggerParserError(parser, 1, "Identifier %s is not a function", root->data->c_str());
+        }
+
         fn = (SymbolFunction*)sym;
         if(isSetDefinedAttr(fn) &&  root->nodeType == NodeType::FUNCTION_DEF)
         {
@@ -206,9 +237,9 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
 
     for(AstNode* arg : args->children)
     {
-        freeNode(parser->allocator, arg);
+        freeNode(parser->allocator, arg, false, true);
     }
     freeNode(parser->allocator, args);
-    freeNode(parser->allocator, root);
+    freeNode(parser->allocator, root, false);
     return nullptr;
 }

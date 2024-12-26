@@ -1,11 +1,9 @@
 int32 f0();
 int8 f10(), x = 2;
-int16 x = 65;
 int8 f4(int64, int64), xtr = 2;
 int32 f1(), f2(int32 x, int8 y);
-int32 main()
-{
-}
+int32 main();
+
 int32 main()
 {
     int16 xl = 2;
