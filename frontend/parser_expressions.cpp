@@ -263,6 +263,7 @@ AstNode *primaryExpression(ParserState *parser)
     switch (token.type)
     {
     case TokenType::IDENTIFIER:
+    {
         root = ALLOCATE_NODE(parser);
         root->nodeType = NodeType::IDENTIFIER;
         root->data = token.data;
@@ -270,8 +271,10 @@ AstNode *primaryExpression(ParserState *parser)
         {
             triggerParserError(parser, 1, "%s is unrecognized variable", root->data->c_str());
         }
-        root->type = (SymbolType* ) (*GET_SYMBOL(parser, *root->data)).second;
+        SymbolVariable* var = (SymbolVariable* ) (*GET_SYMBOL(parser, *root->data)).second;
+        root->type = var->varType ;
         return root;
+    }
     case TokenType::CONSTANT:
         root = ALLOCATE_NODE(parser);
         root->nodeType = NodeType::CONSTANT;

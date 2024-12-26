@@ -11,7 +11,7 @@ struct AstNode
     NodeType nodeType;
     std::vector<AstNode*> children;
     std::string* data;
-    SymbolType* type;
+    std::string* type;
 };
 
 struct NodeAllocator;

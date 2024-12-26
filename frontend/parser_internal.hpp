@@ -35,10 +35,10 @@ struct ParserState
 };
 
 //parser for functions
-AstNode* parseFunction(ParserState* parser);
+AstNode* parseFunction(ParserState* parser, AstNode* function);
 AstNode* parseParameterTypeList(ParserState* parser);
-AstNode* parseIdentifierList(ParserState* parser);
-
+AstNode* parseArgExprList(ParserState* parser);
+AstNode* parseFnArgs(ParserState* parser);
 // parser for statements
 // ----------------------------------------------
 
@@ -54,6 +54,7 @@ AstNode* parseDeclarator(ParserState* parser);
 AstNode* parseInitializer(ParserState* parser);
 std::string* parseDeclSpec(ParserState* parser);
 AstNode* parseDirectDeclarator(ParserState* parser);
+AstNode* parseInitDeclarator(ParserState* parser, AstNode* declarator);
 // parser for expressions
 // ----------------------------------------------
 
