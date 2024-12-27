@@ -151,7 +151,6 @@ std::string* parseDeclSpec(ParserState *parser)
 
 AstNode *parseDirectDeclarator(ParserState *parser)
 { 
-
     if(PEEK_TOKEN(parser).type != TokenType::IDENTIFIER)
     {
         triggerParserError(parser, 1, "Expected token is identifier");

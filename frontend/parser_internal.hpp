@@ -52,6 +52,7 @@ AstNode* parseIterationStatement(ParserState *parser);
 AstNode* parseWhileLoop(ParserState *parser);
 AstNode* parseDoWhileLoop(ParserState *parser);
 AstNode* parseForLoop(ParserState *parser);
+AstNode* parseJumpStatement(ParserState *parser);
 // parser for declarations
 // ----------------------------------------------
 

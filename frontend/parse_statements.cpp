@@ -88,6 +88,32 @@ AstNode *parseForLoop(ParserState *parser)
     return new AstNode{NodeType::FOR_LOOP, {init_expr, cond_expr, update_expr, body}};
 }
 
+AstNode *parseJumpStatement(ParserState *parser)
+{
+    Token token = GET_TOKEN(parser);
+    AstNode* out = ALLOCATE_NODE(parser);
+    switch (token.type)
+    {
+    case TokenType::RETURN :
+        out->nodeType = NodeType::RETURN;
+        if(!CURRENT_TOKEN_ON_OF(parser, {TokenType::SEMICOLON}))
+        {
+            out->children.push_back(parseExpression(parser));
+        }
+        break;
+    case TokenType::BREAK :
+        out->nodeType = NodeType::BREAK;
+        break;
+    case TokenType::CONTINUE:
+        out->nodeType = NodeType::CONTINUE;
+        break;
+    default:
+        break;
+    }
+    CONSUME_TOKEN(parser, TokenType::SEMICOLON);
+    return out;
+}
+
 AstNode *parseStatement(ParserState *parser)
 {
     AstNode* root;
@@ -113,6 +139,10 @@ AstNode *parseStatement(ParserState *parser)
     else if(CURRENT_TOKEN_ON_OF(parser, {TokenType::WHILE, TokenType::FOR, TokenType::DO}))
     {
         return parseIterationStatement(parser);
+    }
+    else if(CURRENT_TOKEN_ON_OF(parser, {TokenType::RETURN, TokenType::BREAK, TokenType::CONTINUE}))
+    {
+        return parseJumpStatement(parser);
     }
     else
     {

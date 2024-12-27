@@ -51,6 +51,9 @@ void Scanner::keywordMapInit()
     keywordMap["for"] = TokenType::FOR;
     keywordMap["while"] = TokenType::WHILE;
     keywordMap["do"] = TokenType::DO;
+    keywordMap["return"] = TokenType::RETURN;
+    keywordMap["continue"] = TokenType::CONTINUE;
+    keywordMap["break"] = TokenType::BREAK;
 }
 
 void Scanner::skipWhitespace()
