@@ -41,17 +41,51 @@ AstNode* parseIterationStatement(ParserState *parser)
 
 AstNode *parseWhileLoop(ParserState *parser)
 {
-    return nullptr;
+    CONSUME_TOKEN(parser, TokenType::L_PARENTHESES);
+    AstNode* expr = parseExpression(parser);
+    CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
+    AstNode* body = parseStatement(parser);
+
+    return new AstNode{NodeType::WHILE_LOOP, {expr, body}};
 }
 
 AstNode *parseDoWhileLoop(ParserState *parser)
 {
-    return nullptr;
+    AstNode* body = parseStatement(parser);
+    CONSUME_TOKEN(parser, TokenType::WHILE);
+    CONSUME_TOKEN(parser, TokenType::L_PARENTHESES);
+    AstNode* expr = parseExpression(parser);
+    CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
+    CONSUME_TOKEN(parser, TokenType::SEMICOLON);
+
+    return new AstNode{NodeType::DO_WHILE_LOOP, {expr, body}};
 }
 
+// TODO add possibility of variable declaration within for loop
 AstNode *parseForLoop(ParserState *parser)
 {
-    return nullptr;
+    AstNode* init_expr = nullptr, *cond_expr = nullptr, *update_expr = nullptr ;
+    CONSUME_TOKEN(parser, TokenType::L_PARENTHESES);
+    if(!TOKEN_MATCH(parser, TokenType::SEMICOLON)) 
+    {
+        init_expr = parseExpression(parser);
+        CONSUME_TOKEN(parser, TokenType::SEMICOLON);
+    }
+
+    if(!TOKEN_MATCH(parser, TokenType::SEMICOLON))
+    {
+        cond_expr = parseExpression(parser);
+        CONSUME_TOKEN(parser, TokenType::SEMICOLON);
+    }
+
+    if(!TOKEN_MATCH(parser, TokenType::R_PARENTHESES))
+    {
+        update_expr = parseExpression(parser);
+        CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
+    }
+
+    AstNode* body = parseStatement(parser);
+    return new AstNode{NodeType::FOR_LOOP, {init_expr, cond_expr, update_expr, body}};
 }
 
 AstNode *parseStatement(ParserState *parser)
@@ -75,6 +109,10 @@ AstNode *parseStatement(ParserState *parser)
 
         parser->symtab = parser->symtab->parent;
         return root;
+    }
+    else if(CURRENT_TOKEN_ON_OF(parser, {TokenType::WHILE, TokenType::FOR, TokenType::DO}))
+    {
+        return parseIterationStatement(parser);
     }
     else
     {

@@ -48,6 +48,9 @@ void Scanner::keywordMapInit()
     keywordMap["int64"] = TokenType::TYPE;
     keywordMap["if"] = TokenType::IF;
     keywordMap["else"] = TokenType::ELSE;
+    keywordMap["for"] = TokenType::FOR;
+    keywordMap["while"] = TokenType::WHILE;
+    keywordMap["do"] = TokenType::DO;
 }
 
 void Scanner::skipWhitespace()
