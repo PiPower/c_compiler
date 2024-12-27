@@ -10,9 +10,11 @@
 #define PARSER_SUCC  ((AstNode*)0xFFFFFFFFFFFFFFFF)
 #define ALLOCATE_NODE(parser) allocateNode((parser)->allocator)
 #define CONSUME_TOKEN(parser, type) (parser)->scanner->consume(type)
+#define CURRENT_TOKEN_ON_OF(parser, tokens) (parser)->scanner->currentTokenOneOf(tokens)
+#define TOKEN_MATCH(parser, token)  (parser)->scanner->match(token)
 #define GET_TOKEN(parser) (parser)->scanner->getToken()
 #define POP_TOKEN(parser) GET_TOKEN( (parser) )
-#define PEEK_TOKEN(parser) (parser)->scanner->peekToken()
+#define PEEK_TOKEN(parser) (parser)->scanner->peekToken() 
 #define GLOBAL_SCOPE 0
 
 struct ParserState
@@ -45,6 +47,11 @@ AstNode* parseFunctionBody(ParserState* parser, AstNode* function);
 
 AstNode* parseStatement(ParserState* parser);
 AstNode* parseCompoundStatement(ParserState* parser);
+AstNode* parseSelectionStatement(ParserState* parser);
+AstNode* parseIterationStatement(ParserState *parser);
+AstNode* parseWhileLoop(ParserState *parser);
+AstNode* parseDoWhileLoop(ParserState *parser);
+AstNode* parseForLoop(ParserState *parser);
 // parser for declarations
 // ----------------------------------------------
 

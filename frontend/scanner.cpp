@@ -46,6 +46,8 @@ void Scanner::keywordMapInit()
     keywordMap["int16"] = TokenType::TYPE;
     keywordMap["int32"] = TokenType::TYPE;
     keywordMap["int64"] = TokenType::TYPE;
+    keywordMap["if"] = TokenType::IF;
+    keywordMap["else"] = TokenType::ELSE;
 }
 
 void Scanner::skipWhitespace()
