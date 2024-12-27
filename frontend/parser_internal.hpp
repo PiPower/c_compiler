@@ -15,6 +15,7 @@
 #define GET_TOKEN(parser) (parser)->scanner->getToken()
 #define POP_TOKEN(parser) GET_TOKEN( (parser) )
 #define PEEK_TOKEN(parser) (parser)->scanner->peekToken() 
+#define PEEK_NEXT_TOKEN(parser) (parser)->scanner->peekNextToken() 
 #define GLOBAL_SCOPE 0
 
 struct ParserState

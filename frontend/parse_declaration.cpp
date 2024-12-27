@@ -127,26 +127,48 @@ AstNode *parseInitializer(ParserState *parser)
 std::string* parseDeclSpec(ParserState *parser)
 {
     Token token = PEEK_TOKEN(parser);
-    if(token.type != TokenType::IDENTIFIER && token.type != TokenType::TYPE)
+    string* typeString;
+    bool consumeToken = false;
+    if( token.type == TokenType::IDENTIFIER)
+    {
+        typeString = token.data;
+        consumeToken = true;
+    }
+    else if( token.type == TokenType::TYPE)
+    {
+        typeString = token.data;
+        CONSUME_TOKEN(parser, token.type);
+        while (PEEK_TOKEN(parser).type == TokenType::TYPE)
+        {
+            token = GET_TOKEN(parser);
+            *typeString += ' ';
+            *typeString += *token.data;
+            delete token.data;
+        }
+    }
+    else
     {
         return nullptr;
     }
 
-    Symbol* symType = GET_SYMBOL(parser, *token.data);
+    Symbol* symType = GET_SYMBOL(parser, *typeString);
     if(!symType)
     {
         // node plays role of a handle to unused pointer 
         AstNode* tempNode = ALLOCATE_NODE(parser);
         tempNode->data = token.data;
-        triggerParserError(parser, 1, "Identifier \"%s\" has not been recognized\n", ((string*)token.data)->c_str());
+        triggerParserError(parser, 1, "Type \"%s\" has not been declared\n", ((string*)token.data)->c_str());
     }
 
     if(symType->type != SymbolClass::TYPE)
     {
         return nullptr;
     }
-    CONSUME_TOKEN(parser, token.type);
-    return token.data;
+    if(consumeToken)
+    {
+        CONSUME_TOKEN(parser, token.type);
+    }
+    return typeString;
 }
 
 AstNode *parseDirectDeclarator(ParserState *parser)

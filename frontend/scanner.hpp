@@ -15,6 +15,7 @@ public:
     bool currentTokenOneOf(const TokenType* types, uint32_t tokenCount);
     Token getToken();
     Token peekToken();
+    Token peekNextToken();
     bool match(TokenType type);
     void consume(TokenType type);
 private:

@@ -42,10 +42,6 @@ line(1), index(0), src_buffer(sourceCode)
 
 void Scanner::keywordMapInit()
 {
-    keywordMap["int8"] = TokenType::TYPE;
-    keywordMap["int16"] = TokenType::TYPE;
-    keywordMap["int32"] = TokenType::TYPE;
-    keywordMap["int64"] = TokenType::TYPE;
     keywordMap["if"] = TokenType::IF;
     keywordMap["else"] = TokenType::ELSE;
     keywordMap["for"] = TokenType::FOR;
@@ -54,6 +50,14 @@ void Scanner::keywordMapInit()
     keywordMap["return"] = TokenType::RETURN;
     keywordMap["continue"] = TokenType::CONTINUE;
     keywordMap["break"] = TokenType::BREAK;
+    keywordMap["unsigned"] = TokenType::TYPE;
+    keywordMap["int"] = TokenType::TYPE;
+    keywordMap["long"] = TokenType::TYPE;
+    keywordMap["float"] = TokenType::TYPE;
+    keywordMap["double"] = TokenType::TYPE;
+    keywordMap["signed"] = TokenType::TYPE;
+    keywordMap["char"] = TokenType::TYPE;
+    keywordMap["short"] = TokenType::TYPE;
 }
 
 void Scanner::skipWhitespace()
@@ -475,6 +479,20 @@ Token Scanner::peekToken()
     Token token = getToken();
     token_queue.push(token);
     return token;
+}
+
+Token Scanner::peekNextToken()
+{
+    while (token_queue.size() < 2 )
+    {
+        token_queue.push(getToken());
+    }
+
+    Token holder = token_queue.front();
+    token_queue.pop();
+    Token targetToken = token_queue.front();
+    token_queue.push(holder);
+    return targetToken;
 }
 
 bool Scanner::match(TokenType type)

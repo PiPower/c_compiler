@@ -1,5 +1,5 @@
-float x = 4, y = 454;
-int32 main()
+signed long long int x = 4, y = 454;
+int main()
 {
     if( x > y)
     {
@@ -21,7 +21,7 @@ int32 main()
     else if ( x == y)
     {
         x = 2232;
-        int32 i = 0;
+        float i = 0;
         do
         {
             x += i;
