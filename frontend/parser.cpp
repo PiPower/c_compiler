@@ -35,6 +35,7 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocato
                 exit(-1);
             }
             AstNode* functionBody = parseFunctionBody(&parser, tree);
+            tree->children[0] = functionBody;
         }
         if(processedTree.size() > 0)
         {

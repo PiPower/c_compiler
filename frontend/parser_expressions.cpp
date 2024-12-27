@@ -257,7 +257,7 @@ AstNode *primaryExpression(ParserState *parser)
         root->nodeType = NodeType::IDENTIFIER;
         root->data = token.data;
         Symbol* sym = GET_SYMBOL(parser, *root->data);
-        if(sym)
+        if(!sym)
         {
             triggerParserError(parser, 1, "%s is unrecognized variable", root->data->c_str());
         }

@@ -4,6 +4,13 @@ int8 f4(int64, int64), xtr = 2;
 int32 f1(), f2(int32 x, int8 y);
 int32 main();
 
+int32 f15(int32 x, int8 y)
+{
+    int32 x2 = 2;
+    int32 y2 = 609;
+    int64 z = x2 + y;
+}
+
 int32 main()
 {
     int16 xl = 2;

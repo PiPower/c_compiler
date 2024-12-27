@@ -132,8 +132,8 @@ std::string* parseDeclSpec(ParserState *parser)
         return nullptr;
     }
 
-    auto symbolIter = parser->symtab->symbols.find((*(string *)token.data));
-    if(symbolIter == parser->symtab->symbols.cend())
+    Symbol* symType = GET_SYMBOL(parser, *token.data);
+    if(!symType)
     {
         // node plays role of a handle to unused pointer 
         AstNode* tempNode = ALLOCATE_NODE(parser);
@@ -141,13 +141,12 @@ std::string* parseDeclSpec(ParserState *parser)
         triggerParserError(parser, 1, "Identifier \"%s\" has not been recognized\n", ((string*)token.data)->c_str());
     }
 
-    Symbol* sym = (*symbolIter).second;
-    if(sym->type != SymbolClass::TYPE)
+    if(symType->type != SymbolClass::TYPE)
     {
         return nullptr;
     }
     CONSUME_TOKEN(parser, token.type);
-    return (string* )token.data;
+    return token.data;
 }
 
 AstNode *parseDirectDeclarator(ParserState *parser)
@@ -228,9 +227,32 @@ AstNode *parseFnArgs(ParserState *parser)
     return root;
 }
 
+// fills local scope symtab and order of params of function symbol
 AstNode *parseFunctionBody(ParserState *parser, AstNode *function)
 {
+    // processDeclarationTree makes all the consistency checks, we are here if they were passed
+    SymbolFunction* fnSym = (SymbolFunction*)GET_SYMBOL(parser, *function->data);
     SymbolTable* funcSymtab = new SymbolTable();
+    funcSymtab->scopeLevel = parser->symtab->scopeLevel + 1;
+    funcSymtab->parent = parser->symtab;
+    parser->symtab = funcSymtab;
 
-    return parseCompoundStatement(parser);
+    for(int i =0; i <function->children[0]->children.size(); i++)
+    {
+        AstNode* param = function->children[0]->children[i];
+        SymbolVariable* symVar = new SymbolVariable;
+        symVar->type = SymbolClass::VARIABLE;
+        symVar->varType = new string( *fnSym->argTypes[i]);
+        setDefinedAttr(symVar);
+        SET_SYMBOL(parser, *param->data, (Symbol*)symVar);
+
+        fnSym->argNames.push_back(param->data);
+        param->data = nullptr;
+        freeNode(parser->allocator, param);
+    }
+    freeNode(parser->allocator, function->children[0]);
+
+    AstNode* functionBlock = parseCompoundStatement(parser);
+    parser->symtab = funcSymtab->parent;
+    return functionBlock;
 }

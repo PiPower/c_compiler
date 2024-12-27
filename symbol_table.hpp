@@ -58,8 +58,11 @@ struct SymbolFunction
     std::string* retType;
     // bit 0 is defined
     uint64_t attributes;
+    // does not include args
+    uint64_t fnStackSize;
     SymbolTable localSymtab;
     std::vector<std::string*> argTypes;
+    std::vector<std::string*> argNames;
     SymbolFunction()
     :
     type(SymbolClass::VARIABLE), retType(nullptr), attributes(0)

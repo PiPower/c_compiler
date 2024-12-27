@@ -153,7 +153,7 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
             triggerParserError(parser, 1, "Identifier %s is not a variable\n", root->data->c_str());
         }
         var = (SymbolVariable*)sym;
-        if(initializer && isSetDefinedAttr(var))
+        if(isSetDefinedAttr(var))
         {
             triggerParserError(parser, 1, "Redefinition of variable %s\n", root->data->c_str());
         }
@@ -164,9 +164,9 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
         var->type = SymbolClass::VARIABLE;
         var->varType = root->type;
         SET_SYMBOL(parser, *root->data, (Symbol*)var);
-        if(initializer || scope == 0)
+        setDefinedAttr(var);
+        if(initializer)
         {
-            setDefinedAttr(var);
             return root;
         }
     }
@@ -214,8 +214,10 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
     {
         fn = new SymbolFunction;
         fn->attributes = 0;
+        fn->fnStackSize = 0;
         fn->type = SymbolClass::FUNCTION;
         fn->retType = root->type;
+        root->type = nullptr;
         SET_SYMBOL(parser, *root->data, (Symbol*)fn);
 
         if(root->nodeType == NodeType::FUNCTION_DEF)
@@ -226,6 +228,7 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
         for( AstNode* param : args->children)
         {
             fn->argTypes.push_back(param->type);
+            param->type = nullptr;
         }
     }
     // if function definition retain function declaration
@@ -237,9 +240,9 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
 
     for(AstNode* arg : args->children)
     {
-        freeNode(parser->allocator, arg, false, true);
+        freeNode(parser->allocator, arg);
     }
     freeNode(parser->allocator, args);
-    freeNode(parser->allocator, root, false);
+    freeNode(parser->allocator, root);
     return nullptr;
 }
