@@ -4,7 +4,8 @@ using namespace std;
 
 AstNode* parseSelectionStatement(ParserState* parser)
 {
-    AstNode* root = new AstNode{NodeType::IF, {}};
+    AstNode* root =ALLOCATE_NODE(parser);
+    root->nodeType = NodeType::IF;
     CONSUME_TOKEN(parser, TokenType::IF);
     CONSUME_TOKEN(parser, TokenType::L_PARENTHESES);
     AstNode* expr = parseExpression(parser);
@@ -46,7 +47,10 @@ AstNode *parseWhileLoop(ParserState *parser)
     CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
     AstNode* body = parseStatement(parser);
 
-    return new AstNode{NodeType::WHILE_LOOP, {expr, body}};
+    AstNode* out = ALLOCATE_NODE(parser);
+    out->nodeType = NodeType::WHILE_LOOP;
+    out->children =  {expr, body};
+    return out;
 }
 
 AstNode *parseDoWhileLoop(ParserState *parser)
@@ -58,7 +62,10 @@ AstNode *parseDoWhileLoop(ParserState *parser)
     CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
     CONSUME_TOKEN(parser, TokenType::SEMICOLON);
 
-    return new AstNode{NodeType::DO_WHILE_LOOP, {expr, body}};
+    AstNode* out = ALLOCATE_NODE(parser);
+    out->nodeType = NodeType::DO_WHILE_LOOP;
+    out->children =  {expr, body};
+    return out;
 }
 
 // TODO add possibility of variable declaration within for loop
