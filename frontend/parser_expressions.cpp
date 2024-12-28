@@ -222,7 +222,7 @@ AstNode *unaryExpression(ParserState *parser)
     // no unary 
     if(!parser->scanner->currentTokenOneOf(unaryOperators, len))
     {
-        return primaryExpression(parser);
+        return postfixExpression(parser);
     }
 
     Token token = parser->scanner->getToken();
@@ -242,7 +242,17 @@ AstNode *unaryExpression(ParserState *parser)
 
 AstNode *postfixExpression(ParserState *parser)
 {
-    return primaryExpression(parser);
+    AstNode* primaryExpr = primaryExpression(parser);
+    if(!TOKEN_MATCH(parser, TokenType::L_PARENTHESES))
+    {
+        return primaryExpr;
+    }
+    AstNode* fnCall = ALLOCATE_NODE(parser);
+    AstNode* args = parseArgExprList(parser);
+    CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
+    fnCall->nodeType = NodeType::FUNCTION_CALL;
+    fnCall->children = {primaryExpr, args};
+    return fnCall;  
 }
 
 AstNode *primaryExpression(ParserState *parser)
@@ -259,10 +269,8 @@ AstNode *primaryExpression(ParserState *parser)
         Symbol* sym = GET_SYMBOL(parser, *root->data);
         if(!sym)
         {
-            triggerParserError(parser, 1, "%s is unrecognized variable", root->data->c_str());
+            triggerParserError(parser, 1, "%s is unrecognized symbol", root->data->c_str());
         }
-        SymbolVariable* var = (SymbolVariable*) sym;
-        root->type = var->varType ;
         return root;
     }
     case TokenType::CONSTANT:
@@ -282,3 +290,4 @@ AstNode *primaryExpression(ParserState *parser)
 
     return nullptr;
 }
+

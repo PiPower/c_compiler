@@ -5,6 +5,8 @@ AstNode *allocateNode(NodeAllocator* allocator)
     AstNode* node = new AstNode();
     allocator->nodes.insert(node);
     node->nodeType = NodeType::NONE;
+    node->data = nullptr;
+    node->type = nullptr;
     return node;
 }
 

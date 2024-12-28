@@ -87,5 +87,4 @@ AstNode* postfixExpression(ParserState *parser);
 AstNode* primaryExpression(ParserState *parser);
 
 
-
 #endif
