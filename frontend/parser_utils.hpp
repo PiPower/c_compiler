@@ -39,7 +39,7 @@ enum class NodeType
     RETURN, CONTINUE, BREAK,
 // misc
     NODE_EMPTY, DECLARATION_LIST, TYPE_PLACEHOLDER, INITALIZER,
-    POINTER
+    POINTER, DREF_PTR
 };
 
 struct ParserState;

@@ -14,7 +14,7 @@ static constexpr TokenType assignmentTypes[] = {
 
 static constexpr TokenType unaryOperators[] = {
     TokenType::PLUS_PLUS,TokenType::MINUS_MINUS,
-    TokenType::BANG, TokenType::TILDE, TokenType::PLUS
+    TokenType::BANG, TokenType::TILDE, TokenType::PLUS, TokenType::STAR
     };
 
 static constexpr TokenType mulTypes[] = {
@@ -234,8 +234,13 @@ AstNode *unaryExpression(ParserState *parser)
         return root;
     }
     AstNode* root = ALLOCATE_NODE(parser);
-    root->nodeType = token.type == TokenType::BANG ? NodeType::LOG_NOT : NodeType::COMPLIMENT;
-    root->nodeType = token.type == TokenType::PLUS ? NodeType::ADD : root->nodeType;
+    switch (token.type)
+    {
+        case TokenType::BANG: root->nodeType = NodeType::LOG_NOT; break;
+        case TokenType::TILDE: root->nodeType = NodeType::COMPLIMENT; break;
+        case TokenType::PLUS: root->nodeType = NodeType::ADD; break;
+        case TokenType::STAR: root->nodeType = NodeType::DREF_PTR; break;
+    }
     root->children.push_back(castExpression(parser));
     return root;
 }
