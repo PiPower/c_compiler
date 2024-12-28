@@ -61,3 +61,4 @@ void initSymbolTalbe(SymbolTable *symTab)
     symTab->symbols["float"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};
     symTab->symbols["double"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
 }
+

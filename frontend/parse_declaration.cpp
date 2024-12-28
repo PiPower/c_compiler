@@ -115,8 +115,34 @@ AstNode *parseInitDeclList(ParserState *parser, const std::string* typeName)
 
 AstNode *parseDeclarator(ParserState *parser)
 {
-    // possible pointer support in future
-    return parseDirectDeclarator(parser);
+    AstNode* ptr = nullptr;
+    string perPtrQualifier;
+    while (CURRENT_TOKEN_ON_OF(parser, {TokenType::STAR}))
+    {
+        CONSUME_TOKEN(parser, TokenType::STAR);
+        // bit 0: always set to 1 to avoid null char
+        // bit 1: const
+        // bit 2: volitaile
+        // bit 3: restrict
+        perPtrQualifier += (char)(0x00 | 0x01); 
+    }
+    if(perPtrQualifier.size() > 0 )
+    {
+        ptr = ALLOCATE_NODE(parser);
+        ptr = ALLOCATE_NODE(parser);
+        ptr->nodeType = NodeType::POINTER;
+        // in case of pointers it is vector of uints8 
+        ptr->data = new string(std::move(perPtrQualifier));
+    }
+
+    AstNode* root = parseDirectDeclarator(parser);
+    if(ptr)
+    {
+        ptr->children.push_back(root);
+        root = ptr;
+    }
+    
+    return root;
 }
 
 AstNode *parseInitializer(ParserState *parser)
@@ -201,7 +227,8 @@ AstNode *parseInitDeclarator(ParserState *parser, AstNode *declarator)
 {
     if( PEEK_TOKEN(parser).type == TokenType::EQUAL )
     {
-        if(declarator->nodeType != NodeType::IDENTIFIER)
+        if(declarator->nodeType == NodeType::FUNCTION_DECL || 
+            declarator->nodeType == NodeType::FUNCTION_DEF )
         {
             triggerParserError(parser, 1, "Assignment operator is not supported for this declarator\n");
         }

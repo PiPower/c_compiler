@@ -123,6 +123,20 @@ std::vector<AstNode*> processDeclarationTree(AstNode *root, ParserState* parser)
         }
         else
         {
+            if(declarator->nodeType == NodeType::POINTER)
+            {
+                AstNode* ptr = declarator;
+                declarator = ptr->children[0];
+                if( ptr->children.size() == 2)
+                {
+                    declarator->children.push_back( ptr->children[1]);
+                }
+                declarator->type = ptr->type;
+                ptr->type = nullptr;
+                *declarator->type += '|'; //mark ptr attributes
+                *declarator->type += *ptr->data;
+                FREE_NODE(parser, ptr);
+            }
             processed = processVariable(declarator, parser);
         }
 
