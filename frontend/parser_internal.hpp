@@ -22,10 +22,7 @@ struct ParserState
 {
     Scanner* scanner;
     SymbolTable* symtab;
-    // defined per function
-    SymbolTable* currLocalSymtab;
     NodeAllocator* allocator;
-    uint16_t currentScope;
     // assignment flow control;
     bool isParsingAssignment;;
     jmp_buf assignmentJmp;
