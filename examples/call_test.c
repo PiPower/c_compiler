@@ -4,7 +4,7 @@ long int test(long int a, long int b, long int c, long int d, long int e, long i
 long int testReg(long int a,long int b, long int c,  long int d,  long int e, long int f);
 long int printLongInt(long int a);
 
-float j, z;
+long int j, z;
 long int fib(long int n);
 long int main()
 {
