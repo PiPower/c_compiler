@@ -8,12 +8,12 @@ file(GLOB frontendSources ./frontend/*.cpp)
 file(GLOB backendSources ./backend/*.cpp)
 
 add_library(frontend STATIC ${frontendSources} symtab_utils.cpp)
-add_executable(sael-compiler main.cpp
-	compiler.cpp symtab_utils.cpp ${backendSources})
+add_library(backend STATIC ${backendSources} symtab_utils.cpp)
+add_executable(sael-compiler main.cpp compiler.cpp symtab_utils.cpp )
 
 
 target_link_libraries(sael-compiler PUBLIC frontend)
-
+target_link_libraries(sael-compiler PUBLIC backend)
 
 set_property(TARGET sael-compiler PROPERTY CXX_STANDARD 17)
 

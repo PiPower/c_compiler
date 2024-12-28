@@ -2,8 +2,8 @@
 #include "frontend/scanner.hpp"
 #include "frontend/parser.hpp"
 #include "frontend/node_allocator.hpp"
+#include "backend/code_gen.cpp"
 using namespace std;
-
 
 void compile(const char *file)
 {
@@ -13,6 +13,13 @@ void compile(const char *file)
     Scanner scanner(file);
 
     vector<AstNode*> statements = parse(&scanner, &symtab, &allocator);
+
+    CodeGenerator gen;
+    gen.symtab = &symtab;
+    gen.parseTrees = &statements;
+    generate_code(&gen);
+
+    int x = 2;
 }
 
 void initSymbolTalbe(SymbolTable *symTab)
