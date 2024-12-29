@@ -74,7 +74,9 @@ static inline NodeType assignementTokenToNodeType(const Token& token)
 // removes nodes that are more abstact
 std::vector<AstNode*> processDeclarationTree(AstNode* root, ParserState* parser);
 AstNode* processVariable(AstNode *root, ParserState *parser);
-AstNode* processFunction(AstNode* root,ParserState* parser);
+AstNode* processFunction(AstNode* root, ParserState* parser);
+SymbolType* defineTypeSymbol(ParserState *parser, const std::string* typeName);
+std::string* generateAnonymousStructName(ParserState *parser);
 void addParameterToStruct(ParserState *parser, 
                             SymbolType *typeVar,
                             AstNode *typeNode, 

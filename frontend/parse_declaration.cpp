@@ -199,6 +199,47 @@ std::string* parseSpecQualList(ParserState *parser)
     {
         type = parseStruct(parser);
     }
+    else if(token.type == TokenType::TYPEDEF)
+    {
+        CONSUME_TOKEN(parser, TokenType::TYPEDEF);
+        type = parseStruct(parser);
+        Token alias = GET_TOKEN(parser);
+        if(alias.type != TokenType::IDENTIFIER)
+        {
+            AstNode* handle = ALLOCATE_NODE(parser);
+            handle->data = alias.data;
+            triggerParserError(parser, 1, "expected identifier \n");
+        }
+        SymbolAlias* symAlias = new SymbolAlias();
+        symAlias->symClass = SymbolClass::ALIAS;
+        symAlias->realName = new string(*type);
+        SET_SYMBOL(parser, *alias.data, (Symbol*)symAlias);
+        if(PEEK_TOKEN(parser).type != TokenType::SEMICOLON)
+        {
+            triggerParserError(parser, 1, "typedef ends with ; \n");
+        }
+    }
+    else if(token.type == TokenType::IDENTIFIER)
+    {
+        Symbol* sym = GET_SYMBOL(parser, *token.data);
+        if(sym->symClass == SymbolClass::ALIAS)
+        {
+            delete token.data;
+            string name ="";
+            for(int i=0; (*((SymbolAlias*)sym)->realName)[i] != '|'; i++)
+            {
+                name += (*((SymbolAlias*)sym)->realName)[i];
+            }
+
+            Symbol* alias = GET_SYMBOL(parser, name);
+            if(alias->symClass != SymbolClass::TYPE )
+            {
+                triggerParserError(parser, 1, "Incorrect typedef\n");
+            }
+            type = new string(*((SymbolAlias*)sym)->realName);
+            CONSUME_TOKEN(parser, TokenType::IDENTIFIER);
+        }
+    }
 
     if(type)
     {
@@ -250,11 +291,14 @@ std::string *parseBuiltInType(ParserState *parser)
 std::string *parseStruct(ParserState *parser)
 {
     CONSUME_TOKEN(parser, TokenType::STRUCT);
-    Token token = GET_TOKEN(parser);
+    Token token = PEEK_TOKEN(parser);
     string* structName = nullptr;
     if(token.type == TokenType::IDENTIFIER)
     {
+        POP_TOKEN(parser);
         structName = token.data;
+        *structName += " struct";
+        token = PEEK_TOKEN(parser);
         // struct declaration
         if(PEEK_TOKEN(parser).type == TokenType::SEMICOLON &&
             !GET_SYMBOL(parser, *structName))
@@ -276,7 +320,6 @@ std::string *parseStruct(ParserState *parser)
         }
     }
 
-    token = PEEK_TOKEN(parser);
     if( token.type != TokenType::L_BRACE)
     {
         Symbol* sym = GET_SYMBOL(parser, *structName);
@@ -296,45 +339,26 @@ std::string *parseStruct(ParserState *parser)
         *structName += (char)0x01;
         return structName;
     }
+
+    if(!structName)
+    {
+        // anonymous struct
+        structName = generateAnonymousStructName(parser);
+        *structName += " struct";
+    }
     CONSUME_TOKEN(parser, TokenType::L_BRACE);
     parseStructDeclList(parser, structName);
     CONSUME_TOKEN(parser, TokenType::R_BRACE);
     *structName += '|';
     *structName += (char)0x01;
+
     return structName;
 }
 
 void parseStructDeclList(ParserState *parser, const std::string *structName)
 {
-    if(!structName)
-    {
-        return;
-    }
+    SymbolType* symType = defineTypeSymbol(parser, structName);
 
-    SymbolType* symType = (SymbolType*)GET_SYMBOL(parser, *structName);
-    if(symType)
-    {
-        if(symType->symClass != SymbolClass::TYPE)
-        {
-            AstNode* ptrHandle = ALLOCATE_NODE(parser);
-            ptrHandle->data = const_cast< std::string *>(structName);
-            triggerParserError(parser, 1, "symbol \"%s\" is not a type\n", structName->c_str());
-        }
-        if(isSetDefinedAttr(symType))
-        {
-            AstNode* ptrHandle = ALLOCATE_NODE(parser);
-            ptrHandle->data = const_cast< std::string *>(structName);
-            triggerParserError(parser, 1, "symbol \"%s\" is already defined\n", structName->c_str());
-        }
-        setDefinedAttr(symType);
-    }
-    else
-    {
-        symType = new SymbolType();
-        symType->symClass = SymbolClass::TYPE;
-        setDefinedAttr(symType);
-        SET_SYMBOL(parser, *structName, (Symbol*)symType);
-    }
     while (!CURRENT_TOKEN_ON_OF(parser, {TokenType::R_BRACE}))
     {
         AstNode* decl = parseStructDeclaration(parser);

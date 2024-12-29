@@ -34,12 +34,13 @@ struct Point3D
 
 typedef struct Point2D
 {
-    float x, y, z;
+   float x, y, z;
 } Point2D;
 
+typedef struct Point2D XDDDD;
 int main()
 {
-    x.x = 2;
+    //x.x = 2;
     Point2D y;
     // Point3D dy; <- error
     struct Point3D p3;

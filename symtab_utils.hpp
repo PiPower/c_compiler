@@ -9,7 +9,7 @@
 #define SYMTAB_CEND(parser) (parser)->symtab->symbols.cend()
 
 Symbol* getSymbol(SymbolTable* symtab, const std::string& name, uint64_t* scopeLevel = nullptr);
-
+Symbol* getSymbolLocal(SymbolTable* symtab, const std::string& name);
 // function symbol
 inline constexpr void setDefinedAttr(SymbolFunction* fn)
 {

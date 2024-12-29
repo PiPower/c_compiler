@@ -11,30 +11,30 @@ const char* tokenTypeString[] = {
     "CONSTANT",
 // keywords
     "BREAK", "CASE", "CONTINUE", "DO", "ELSE", "IF", "FOR",
-    "RETURN", "WHILE", "TYPEDEF", "EXTERN", "STATIC", 
-    "AUTO", "REGISTER", "ENUM" 
-    // type keywords
-    "UNSIGNED", "INT", "LONG", "FLOAT","DOUBLE", "IMAGINARY",
-    "SIGNED", "CHAR", "SHORT", "VOID", "BOOL","COMPLEX", 
-    //--------------------
+    "RETURN", "WHILE", "TYPEDEF", "EXTERN", "STATIC",
+    "AUTO", "REGISTER", "ENUM",
+// type keywords
+    "UNSIGNED", "INT", "LONG", "FLOAT", "DOUBLE", "IMAGINARY",
+    "SIGNED", "CHAR", "SHORT", "VOID", "BOOL", "COMPLEX",
+    // ----------------------
     "STRUCT", "UNION", "SIZEOF", "DEFAULT",
-    "SWITCH", "INLINE", 
-    // type qualifier keywords
+    "SWITCH", "INLINE",
+ // type qualifier keywords
     "CONST", "VOLATILE", "RESTRICT",
 // separators
-    "L_BRACKET", "R_BRACKET", "L_PARENTHESES", "R_PARENTHESES", 
+    "L_BRACKET", "R_BRACKET", "L_PARENTHESES", "R_PARENTHESES",
     "L_BRACE", "R_BRACE",
-// math ops  
-    "AMPRESAND", "STAR", "PLUS", "MINUS", "TILDE", "BANG", "SLASH", 
+ // math ops
+    "AMPRESAND", "STAR", "PLUS", "MINUS", "TILDE", "BANG", "SLASH",
     "PERCENT", "LESS", "GREATER", "L_SHIFT",
     "R_SHIFT", "LESS_EQUAL", "GREATER_EQUAL", "EQUAL_EQUAL", "BANG_EQUAL",
     "PIPE", "CARET", "DOUBLE_AMPRESAND", "DOUBLE_PIPE", "QUESTION_MARK",
     "PLUS_PLUS", "MINUS_MINUS",
 // assignment types
-    "EQUAL", "STAR_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "PLUS_EQUAL", 
+    "EQUAL", "STAR_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "PLUS_EQUAL",
     "MINUS_EQUAL", "L_SHIFT_EQUAL", "R_SHIFT_EQUAL", "AMPRESAND_EQUAL",
     "CARET_EQUAL", "PIPE_EQUAL",
-// miscellaneous
+ // miscellaneous
     "COLON", "COMMA", "SEMICOLON", "DOT",
  // for internal usage
     "COMMENT"
@@ -555,6 +555,6 @@ void Scanner::consume(TokenType type)
     }
 
     fprintf(stdout, "ERROR line %d: Recieved token is %s but expected is %s\n", 
-            token.line, tokenTypeString[(int)token.type ], tokenTypeString[(int)type]);
+            token.line, tokenTypeString[(int)token.type], tokenTypeString[(int)type]);
     exit(-1);
  }

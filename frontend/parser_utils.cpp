@@ -3,6 +3,7 @@
 #include "parser_internal.hpp"
 #include <stdarg.h>
 #include <string.h>
+#include <random>
 
 using namespace std;
 AstNode* parseLoop(ParserState* parser, 
@@ -38,7 +39,7 @@ void triggerParserError(ParserState* parser, int value, const char* format, ...)
 {
     parser->errCode = 1;
     int len = snprintf(parser->errorMessage, parser->errorMessageLen, 
-    "Line %u: ", parser->scanner->line);
+    "Error line %u: ", parser->scanner->line);
 
     va_list args;
     va_start(args, format);
@@ -53,7 +54,7 @@ void triggerParserError(ParserState* parser, int value, const char* format, ...)
 
 void triggerParserWarning(ParserState *parser, const char *format, ...)
 {
-    printf("Line %u: ",  parser->scanner->line);
+    printf("Warning line %u: ",  parser->scanner->line);
     va_list args;
     va_start(args, format);
     vprintf(format, args);
@@ -116,6 +117,11 @@ std::vector<AstNode*> processDeclarationTree(AstNode *root, ParserState* parser)
     }
     if(root->nodeType == NodeType::FUNCTION_DEF)
     {
+        if(parser->symtab->scopeLevel > 0)
+        {
+            triggerParserError(parser, 1, "Defining a function inside another function is not allowed\n");
+        }
+
         AstNode* processed = processFunction(root, parser);
         out.push_back(processed);
         return out;
@@ -170,7 +176,7 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
     uint64_t scope = 0;
     Symbol* sym = GET_SYMBOL_EX(parser, *(string*)root->data, &scope);
     SymbolVariable* var = nullptr;
-    if(sym)
+    if(sym && scope == parser->symtab->scopeLevel)
     {
         if(sym->symClass != SymbolClass::VARIABLE)
         {
@@ -269,6 +275,65 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
     }
     freeNode(parser->allocator, args);
     freeNode(parser->allocator, root);
+    return nullptr;
+}
+
+SymbolType *defineTypeSymbol(ParserState *parser, const std::string* typeName)
+{
+    SymbolType* symType = (SymbolType*)GET_SYMBOL(parser, *typeName);
+    if(symType)
+    {
+        if(symType->symClass != SymbolClass::TYPE)
+        {
+            AstNode* ptrHandle = ALLOCATE_NODE(parser);
+            ptrHandle->data = const_cast< std::string *>(typeName);
+            triggerParserError(parser, 1, "symbol \"%s\" is not a type\n", typeName->c_str());
+        }
+        if(isSetDefinedAttr(symType))
+        {
+            AstNode* ptrHandle = ALLOCATE_NODE(parser);
+            ptrHandle->data = const_cast< std::string *>(typeName);
+            triggerParserError(parser, 1, "symbol \"%s\" is already defined\n", typeName->c_str());
+        }
+        setDefinedAttr(symType);
+    }
+    else
+    {
+        symType = new SymbolType();
+        symType->symClass = SymbolClass::TYPE;
+        setDefinedAttr(symType);
+        SET_SYMBOL(parser, *typeName, (Symbol*)symType);
+    }
+    return symType;
+}
+
+std::string *generateAnonymousStructName(ParserState *parser)
+{
+    string* out = new string("<anonymous>");
+
+    std::random_device rd;
+    std::mt19937 e2(rd());
+    std::uniform_real_distribution<double> dist(-1000000000000, 1000000000000);
+    while (true)
+    {
+        double seed = dist(e2);
+        char *ptr = (char *)&seed;
+        for(int i =0; i< sizeof(double); i++)
+        {
+            *out+=ptr[i];
+        }
+
+        Symbol* sym = GET_SYMBOL(parser, *out);
+        if(sym)
+        {
+            (*out).erase(11, 8);
+        }
+        else
+        {
+            return out;
+        }
+    }
+    
     return nullptr;
 }
 

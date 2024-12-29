@@ -18,3 +18,13 @@ Symbol* getSymbol(SymbolTable *symtab, const std::string &name, uint64_t* scopeL
 
     return nullptr;
 }
+
+Symbol *getSymbolLocal(SymbolTable *symtab, const std::string &name)
+{
+    SymtabIter iter = symtab->symbols.find(name);
+    if(iter != symtab->symbols.cend())
+    {
+        return (Symbol*)(*iter).second;
+    }
+    return nullptr;
+}

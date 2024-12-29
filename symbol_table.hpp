@@ -22,6 +22,7 @@ enum class SymbolClass
     TYPE,
     VARIABLE,
     FUNCTION,
+    ALIAS,
 };
 
 struct Symbol
@@ -50,6 +51,12 @@ struct SymbolType
     std::vector<std::string> types;
     std::vector<std::string> names;
 
+};
+
+struct SymbolAlias
+{
+    SymbolClass symClass;
+    std::string* realName;
 };
 
 struct SymbolVariable
