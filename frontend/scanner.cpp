@@ -4,33 +4,40 @@
 #include <algorithm>
 using namespace std;
 
-const char* tokenTypeString[]
-{
+const char* tokenTypeString[] = {
     "NONE",
     "END_OF_FILE",
     "IDENTIFIER",
     "CONSTANT",
 // keywords
-    "BREAK", "CASE", "CONTINUE",
-    "DO", "ELSE", "IF", "FOR",
-    "RETURN", "WHILE", "TYPE",
-// type qualifier
-    "CONST", "VOLATILE",
+    "BREAK", "CASE", "CONTINUE", "DO", "ELSE", "IF", "FOR",
+    "RETURN", "WHILE", "TYPEDEF", "EXTERN", "STATIC", 
+    "AUTO", "REGISTER", "ENUM" 
+    // type keywords
+    "UNSIGNED", "INT", "LONG", "FLOAT","DOUBLE", "IMAGINARY",
+    "SIGNED", "CHAR", "SHORT", "VOID", "BOOL","COMPLEX", 
+    //--------------------
+    "STRUCT", "UNION", "SIZEOF", "DEFAULT",
+    "SWITCH", "INLINE", 
+    // type qualifier keywords
+    "CONST", "VOLATILE", "RESTRICT",
 // separators
-    "L_BRACKET",  "R_BRACKET", "L_PARENTHESES",  "R_PARENTHESES", 
+    "L_BRACKET", "R_BRACKET", "L_PARENTHESES", "R_PARENTHESES", 
     "L_BRACE", "R_BRACE",
 // math ops  
     "AMPRESAND", "STAR", "PLUS", "MINUS", "TILDE", "BANG", "SLASH", 
-    "PERCENT", "LESS", "GREATER",  "L_SHIFT",
+    "PERCENT", "LESS", "GREATER", "L_SHIFT",
     "R_SHIFT", "LESS_EQUAL", "GREATER_EQUAL", "EQUAL_EQUAL", "BANG_EQUAL",
     "PIPE", "CARET", "DOUBLE_AMPRESAND", "DOUBLE_PIPE", "QUESTION_MARK",
     "PLUS_PLUS", "MINUS_MINUS",
-// assignemnt types
+// assignment types
     "EQUAL", "STAR_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "PLUS_EQUAL", 
     "MINUS_EQUAL", "L_SHIFT_EQUAL", "R_SHIFT_EQUAL", "AMPRESAND_EQUAL",
     "CARET_EQUAL", "PIPE_EQUAL",
-// miscallenous
-    "COLON", "COMMA" , "SEMICOLON", "DOT"
+// miscellaneous
+    "COLON", "COMMA", "SEMICOLON", "DOT",
+ // for internal usage
+    "COMMENT"
 };
 
 Scanner::Scanner(const char *sourceCode)
@@ -50,14 +57,32 @@ void Scanner::keywordMapInit()
     keywordMap["return"] = TokenType::RETURN;
     keywordMap["continue"] = TokenType::CONTINUE;
     keywordMap["break"] = TokenType::BREAK;
-    keywordMap["unsigned"] = TokenType::TYPE;
-    keywordMap["int"] = TokenType::TYPE;
-    keywordMap["long"] = TokenType::TYPE;
-    keywordMap["float"] = TokenType::TYPE;
-    keywordMap["double"] = TokenType::TYPE;
-    keywordMap["signed"] = TokenType::TYPE;
-    keywordMap["char"] = TokenType::TYPE;
-    keywordMap["short"] = TokenType::TYPE;
+    keywordMap["unsigned"] = TokenType::UNSIGNED;
+    keywordMap["int"] = TokenType::INT;
+    keywordMap["long"] = TokenType::LONG;
+    keywordMap["float"] = TokenType::FLOAT;
+    keywordMap["double"] = TokenType::DOUBLE;
+    keywordMap["signed"] = TokenType::SIGNED;
+    keywordMap["char"] = TokenType::CHAR;
+    keywordMap["short"] = TokenType::SHORT;
+    keywordMap["_Bool"] = TokenType::BOOL;
+    keywordMap["_Complex"] = TokenType::COMPLEX;
+    keywordMap["void"] = TokenType::VOID;
+    keywordMap["typedef"] = TokenType::TYPEDEF;
+    keywordMap["extern"] = TokenType::EXTERN;
+    keywordMap["static"] = TokenType::STATIC;
+    keywordMap["auto"] = TokenType::AUTO;
+    keywordMap["struct"] = TokenType::STRUCT;
+    keywordMap["union"] = TokenType::UNION;
+    keywordMap["register"] = TokenType::REGISTER;
+    keywordMap["const"] = TokenType::CONST;
+    keywordMap["restrict"] = TokenType::RESTRICT;
+    keywordMap["volatile"] = TokenType::VOLATILE;
+    keywordMap["case"] = TokenType::CASE;
+    keywordMap["default"] = TokenType::DEFAULT;
+    keywordMap["switch"] = TokenType::SWITCH;
+    keywordMap["inline"] = TokenType::INLINE;
+    keywordMap["_Imaginary"] = TokenType::IMAGINARY;
 }
 
 void Scanner::skipWhitespace()

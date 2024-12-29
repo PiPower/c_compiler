@@ -61,6 +61,9 @@ AstNode* parseInitDeclList(ParserState* parser, const std::string* typeName);
 AstNode* parseDeclarator(ParserState* parser);
 AstNode* parseInitializer(ParserState* parser);
 std::string* parseDeclSpec(ParserState* parser);
+std::string* parseBuiltInType(ParserState* parser);
+std::string* parseStruct(ParserState* parser);
+uint8_t parseQualifierList(ParserState* parser);
 AstNode* parseDirectDeclarator(ParserState* parser);
 AstNode* parseInitDeclarator(ParserState* parser, AstNode* declarator);
 // parser for expressions

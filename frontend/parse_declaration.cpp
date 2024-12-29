@@ -153,48 +153,59 @@ AstNode *parseInitializer(ParserState *parser)
 std::string* parseDeclSpec(ParserState *parser)
 {
     Token token = PEEK_TOKEN(parser);
-    string* typeString;
-    bool consumeToken = false;
-    if( token.type == TokenType::IDENTIFIER)
+    if( (uint64_t)token.type >= (uint64_t)TokenType::UNSIGNED &&
+        (uint64_t)token.type <= (uint64_t)TokenType::COMPLEX)
     {
-        typeString = token.data;
-        consumeToken = true;
+        return parseBuiltInType(parser);
     }
-    else if( token.type == TokenType::TYPE)
+    if(token.type == TokenType::STRUCT)
     {
-        typeString = token.data;
-        CONSUME_TOKEN(parser, token.type);
-        while (PEEK_TOKEN(parser).type == TokenType::TYPE)
+        return parseStruct(parser);
+    }
+
+    return nullptr;
+}
+
+std::string *parseBuiltInType(ParserState *parser)
+{
+    return nullptr;
+}
+
+std::string *parseStruct(ParserState *parser)
+{
+    return nullptr;
+}
+
+uint8_t parseQualifierList(ParserState *parser)
+{
+    static vector<TokenType> types = {TokenType::CONST, TokenType::VOLATILE, TokenType::RESTRICT};
+    // bit 0: always set to 1 to avoid null char
+    // bit 1: const
+    // bit 2: volitaile
+    // bit 3: restrict
+    uint8_t qualifiers = 0x01;
+    while (CURRENT_TOKEN_ON_OF(parser, types))
+    {
+        if(TOKEN_MATCH(parser, TokenType::CONST))
         {
-            token = GET_TOKEN(parser);
-            *typeString += ' ';
-            *typeString += *token.data;
-            delete token.data;
+            qualifiers |= 0x02;
+        }
+        if(TOKEN_MATCH(parser, TokenType::VOLATILE))
+        {
+            qualifiers |= 0x04;
+        }
+        if(TOKEN_MATCH(parser, TokenType::RESTRICT))
+        {
+            qualifiers |= 0x08;
         }
     }
-    else
-    {
-        return nullptr;
-    }
+    
+    return qualifiers;
+}
 
-    Symbol* symType = GET_SYMBOL(parser, *typeString);
-    if(!symType)
-    {
-        // node plays role of a handle to unused pointer 
-        AstNode* tempNode = ALLOCATE_NODE(parser);
-        tempNode->data = token.data;
-        triggerParserError(parser, 1, "Type \"%s\" has not been declared\n", ((string*)token.data)->c_str());
-    }
-
-    if(symType->type != SymbolClass::TYPE)
-    {
-        return nullptr;
-    }
-    if(consumeToken)
-    {
-        CONSUME_TOKEN(parser, token.type);
-    }
-    return typeString;
+uint8_t parseQualifiers(ParserState *parser)
+{
+    return 0;
 }
 
 AstNode *parseDirectDeclarator(ParserState *parser)

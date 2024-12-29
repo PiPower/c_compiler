@@ -9,11 +9,17 @@ enum class TokenType
     IDENTIFIER,
     CONSTANT,
 // keywords
-    BREAK, CASE, CONTINUE,
-    DO, ELSE, IF, FOR,
-    RETURN, WHILE, TYPE,
-// type qualifier
-    CONST, VOLATILE,
+    BREAK, CASE, CONTINUE, DO, ELSE, IF, FOR,
+    RETURN, WHILE, TYPEDEF, EXTERN, STATIC, 
+    AUTO, REGISTER, ENUM,
+    // type keywords
+    UNSIGNED, INT, LONG, FLOAT, DOUBLE, IMAGINARY,
+    SIGNED, CHAR, SHORT, VOID, BOOL, COMPLEX, 
+    // ----------------------
+    STRUCT, UNION, SIZEOF, DEFAULT,
+    SWITCH, INLINE,
+    // type qualifier keywords
+    CONST, VOLATILE, RESTRICT,
 // separators
     L_BRACKET,  R_BRACKET, L_PARENTHESES,  R_PARENTHESES, 
     L_BRACE, R_BRACE,
@@ -28,7 +34,7 @@ enum class TokenType
     MINUS_EQUAL, L_SHIFT_EQUAL, R_SHIFT_EQUAL, AMPRESAND_EQUAL,
     CARET_EQUAL, PIPE_EQUAL,
 // miscallenous
-    COLON, COMMA , SEMICOLON, DOT, 
+    COLON, COMMA , SEMICOLON, DOT,
 // for internal usage
     COMMENT
 };
