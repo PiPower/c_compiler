@@ -13,6 +13,11 @@ AstNode *allocateNode(NodeAllocator* allocator)
 
 void freeNode(NodeAllocator* allocator, AstNode *node, bool rmType, bool rmData)
 {
+    if(!node)
+    {
+        return ;
+    }
+
     if(rmData && node->data)
     {
         delete node->data;

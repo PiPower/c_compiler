@@ -26,6 +26,10 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocato
     while (parser.scanner->peekToken().type != TokenType::END_OF_FILE)
     {
         AstNode* tree = parseDeclaration(&parser);
+        if(tree == PARSER_SUCC)
+        {
+            continue; //empty decl call, needs to parse next line
+        }
         vector<AstNode *> processedTree = processDeclarationTree(tree, &parser);
         if( tree->nodeType == NodeType::FUNCTION_DEF)
         {

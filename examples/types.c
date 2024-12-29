@@ -1,7 +1,19 @@
-struct Point4D
+const long long volatile int xyf = 2;
+
+struct PointE2
+{};
+
+struct PointE1
+{
+    ;
+    float;
+};
+
+struct Point4D 
 {
     float x, y, z, g;
 };
+
 //unnamed 
 struct
 {
@@ -18,7 +30,7 @@ typedef struct Point2D
     float x, y, z;
 } Point2D;
 
-
+struct Point4D  po = {1,2,3,4}, kl;
 int main()
 {
     x.x = 2;

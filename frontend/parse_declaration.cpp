@@ -120,11 +120,8 @@ AstNode *parseDeclarator(ParserState *parser)
     while (CURRENT_TOKEN_ON_OF(parser, {TokenType::STAR}))
     {
         CONSUME_TOKEN(parser, TokenType::STAR);
-        // bit 0: always set to 1 to avoid null char
-        // bit 1: const
-        // bit 2: volitaile
-        // bit 3: restrict
-        perPtrQualifier += (char)(0x00 | 0x01); 
+        uint8_t qualifier = parseQualifierList(parser);
+        perPtrQualifier += (char)qualifier; 
     }
     if(perPtrQualifier.size() > 0 )
     {
@@ -150,31 +147,152 @@ AstNode *parseInitializer(ParserState *parser)
     return assignmentExpression(parser);
 }
 
-std::string* parseDeclSpec(ParserState *parser)
+AstNode *parseStructDeclaration(ParserState *parser)
 {
+    string* type = parseSpecQualList(parser);
+    AstNode *structDecl = nullptr;
+    if(!CURRENT_TOKEN_ON_OF(parser, {TokenType::SEMICOLON}))
+    {
+        structDecl = parseDeclarator(parser);
+    }
+    CONSUME_TOKEN(parser, TokenType::SEMICOLON);
+
+    if(!structDecl && type)
+    {
+        triggerParserWarning(parser, "Empty variable declaration inside struct");
+    }
+    return nullptr;
+}
+
+std::string *parseDeclSpec(ParserState *parser)
+{
+    return parseSpecQualList(parser);
+}
+
+std::string* parseSpecQualList(ParserState *parser)
+{
+    string* type = nullptr;
+    uint8_t qualifiers = parseQualifierList(parser);
     Token token = PEEK_TOKEN(parser);
+
     if( (uint64_t)token.type >= (uint64_t)TokenType::UNSIGNED &&
         (uint64_t)token.type <= (uint64_t)TokenType::COMPLEX)
     {
-        return parseBuiltInType(parser);
+        type = parseBuiltInType(parser);
     }
-    if(token.type == TokenType::STRUCT)
+    else if(token.type == TokenType::STRUCT)
     {
-        return parseStruct(parser);
+        type = parseStruct(parser);
     }
 
-    return nullptr;
+    if(type)
+    {
+        uint8_t oldQualifiers = (uint8_t) (*type)[type->length()-1];
+        oldQualifiers |= qualifiers;
+        (*type)[type->length()-1] = (char)oldQualifiers;
+    }
+
+    if(!type && qualifiers != 0x01)
+    {
+        triggerParserError(parser, 1, "Type qualifiers can only be used with type symbols\n");
+    }
+    return type;
 }
 
 std::string *parseBuiltInType(ParserState *parser)
 {
-    return nullptr;
+    constexpr static const char* types[] = {
+        "unsigned", "int", "long", "float", "double", "imaginary",
+        "signed", "char", "short", "void", "bool", "complex"
+    };
+
+    Token token = PEEK_TOKEN(parser);
+    string* type;
+    if(!(uint64_t)token.type >= (uint64_t)TokenType::UNSIGNED &&
+        (uint64_t)token.type <= (uint64_t)TokenType::COMPLEX)
+    {
+        return nullptr;
+    }
+    CONSUME_TOKEN(parser, token.type);
+    type = new string(types[(uint64_t)token.type - (uint64_t)TokenType::UNSIGNED]);
+    uint8_t qualifiers = parseQualifierList(parser);
+
+    token = PEEK_TOKEN(parser);
+    while ((uint64_t)token.type >= (uint64_t)TokenType::UNSIGNED &&
+            (uint64_t)token.type <= (uint64_t)TokenType::COMPLEX)
+    {
+        *type += ' ';
+        *type += types[(uint64_t)token.type - (uint64_t)TokenType::UNSIGNED];
+        CONSUME_TOKEN(parser, token.type);
+        qualifiers |= parseQualifierList(parser);
+        token = PEEK_TOKEN(parser);
+    }
+    *type += '|';
+    *type += (char)qualifiers;
+    return type;
 }
 
 std::string *parseStruct(ParserState *parser)
 {
-    return nullptr;
+    CONSUME_TOKEN(parser, TokenType::STRUCT);
+    Token token = GET_TOKEN(parser);
+    string* structName = nullptr;
+    if(token.type == TokenType::IDENTIFIER)
+    {
+        structName = token.data;
+        // struct declaration
+        if(PEEK_TOKEN(parser).type == TokenType::SEMICOLON)
+        {
+            SymbolType* symType = new SymbolType();
+            symType->symClass = SymbolClass::TYPE;
+            SET_SYMBOL(parser, *structName, (Symbol*)symType);
+            return structName;
+        }
+        uint8_t qualfiers = 0x01;
+        *structName += '|';
+        *structName += (char)qualfiers;
+    }
+
+    token = PEEK_TOKEN(parser);
+    if( token.type != TokenType::L_BRACE)
+    {
+        Symbol* sym = GET_SYMBOL(parser, *structName);
+        if(sym->symClass != SymbolClass::TYPE)
+        {
+            AstNode* ptrHandle = ALLOCATE_NODE(parser);
+            ptrHandle->data = structName;
+            triggerParserError(parser, 1, "Symbol \" %s\" does not correspond to type", structName->c_str());
+        }
+        return structName;
+    }
+    CONSUME_TOKEN(parser, TokenType::L_BRACE);
+    parseStructDeclList(parser, structName);
+    CONSUME_TOKEN(parser, TokenType::R_BRACE);
+    return structName;
 }
+
+void parseStructDeclList(ParserState *parser, const std::string *structName)
+{
+    if(!structName)
+    {
+        return;
+    }
+
+    SymbolType* symType = new SymbolType();
+    symType->symClass = SymbolClass::TYPE;
+    SET_SYMBOL(parser, *structName, (Symbol*)symType);
+    while (!CURRENT_TOKEN_ON_OF(parser, {TokenType::R_BRACE}))
+    {
+        AstNode* decl = parseStructDeclaration(parser);
+        if(decl)
+        {
+
+        }
+        FREE_NODE(parser, decl);
+    }
+    
+}
+
 
 uint8_t parseQualifierList(ParserState *parser)
 {
@@ -203,11 +321,6 @@ uint8_t parseQualifierList(ParserState *parser)
     return qualifiers;
 }
 
-uint8_t parseQualifiers(ParserState *parser)
-{
-    return 0;
-}
-
 AstNode *parseDirectDeclarator(ParserState *parser)
 { 
     if(PEEK_TOKEN(parser).type != TokenType::IDENTIFIER)
@@ -221,7 +334,7 @@ AstNode *parseDirectDeclarator(ParserState *parser)
 
     Symbol* sym = GET_SYMBOL(parser, *root->data );
     if(sym && 
-     ( sym->type != SymbolClass::VARIABLE  &&  sym->type != SymbolClass::FUNCTION) )
+     ( sym->symClass != SymbolClass::VARIABLE  &&  sym->symClass != SymbolClass::FUNCTION) )
     {
         triggerParserError(parser, 1, "Symbol %s is not variable", root->data->c_str());
     }
@@ -300,7 +413,7 @@ AstNode *parseFunctionBody(ParserState *parser, AstNode *function)
     {
         AstNode* param = function->children[0]->children[i];
         SymbolVariable* symVar = new SymbolVariable;
-        symVar->type = SymbolClass::VARIABLE;
+        symVar->symClass = SymbolClass::VARIABLE;
         symVar->varType = new string( *fnSym->argTypes[i]);
         setDefinedAttr(symVar);
         SET_SYMBOL(parser, *param->data, (Symbol*)symVar);

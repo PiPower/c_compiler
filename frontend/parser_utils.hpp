@@ -51,6 +51,9 @@ typedef AstNode* ( *parseFunctionPtr)(ParserState* parser);
 void triggerParserError(ParserState* parser,
                          int value, 
                          const char* format, ...);
+void triggerParserWarning(ParserState* parser,
+                         const char* format, ...);
+
 AstNode* parseLoop(ParserState* parser, 
                     parseFunctionPtr parsingFunction,
                     AstNode* root, 

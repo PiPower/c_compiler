@@ -51,6 +51,16 @@ void triggerParserError(ParserState* parser, int value, const char* format, ...)
     longjmp(parser->jmpBuff, value);
 }
 
+void triggerParserWarning(ParserState *parser, const char *format, ...)
+{
+    printf("Line %u: ",  parser->scanner->line);
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    fflush(stdout);
+}
+
 NodeType tokenMathTypeToNodeType(const Token& token)
 {
     switch (token.type)
@@ -133,7 +143,7 @@ std::vector<AstNode*> processDeclarationTree(AstNode *root, ParserState* parser)
                 }
                 declarator->type = ptr->type;
                 ptr->type = nullptr;
-                *declarator->type += '|'; //mark ptr attributes
+                *declarator->type += '#'; //mark ptr attributes
                 *declarator->type += *ptr->data;
                 FREE_NODE(parser, ptr);
             }
@@ -162,7 +172,7 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
     SymbolVariable* var = nullptr;
     if(sym)
     {
-        if(sym->type != SymbolClass::VARIABLE)
+        if(sym->symClass != SymbolClass::VARIABLE)
         {
             triggerParserError(parser, 1, "Identifier %s is not a variable\n", root->data->c_str());
         }
@@ -175,7 +185,7 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
     else
     {
         var = new SymbolVariable();
-        var->type = SymbolClass::VARIABLE;
+        var->symClass = SymbolClass::VARIABLE;
         var->varType = root->type;
         SET_SYMBOL(parser, *root->data, (Symbol*)var);
         setDefinedAttr(var);
@@ -196,7 +206,7 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
     SymbolFunction * fn;
     if(sym)
     {
-        if( sym->type != SymbolClass::FUNCTION)
+        if( sym->symClass != SymbolClass::FUNCTION)
         {
             triggerParserError(parser, 1, "Identifier %s is not a function", root->data->c_str());
         }
@@ -229,7 +239,7 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
         fn = new SymbolFunction;
         fn->attributes = 0;
         fn->fnStackSize = 0;
-        fn->type = SymbolClass::FUNCTION;
+        fn->symClass = SymbolClass::FUNCTION;
         fn->retType = root->type;
         root->type = nullptr;
         SET_SYMBOL(parser, *root->data, (Symbol*)fn);

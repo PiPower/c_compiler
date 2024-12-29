@@ -1,6 +1,18 @@
 #ifndef SYMBOL_TABLE
 #define SYMBOL_TABLE
 
+/*
+    varType(SymbolVariable) and retType(SymbolFunction) are strings 
+    encoded in the following manner:
+    name | qualifiers #_opt pt_1_qualifiers, ... #_opt pt_k_qualifiers
+    name - is string of name_size bytes representing symbol name 
+    qualifiers - byte for qualifiers regarding type
+    '#' means that variable is a pointer, number of '#' stands for 
+    pointer order 
+    pt_j_qualifiers - qualifiers for jth pointer
+*/
+
+
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -14,7 +26,7 @@ enum class SymbolClass
 
 struct Symbol
 {
-    SymbolClass type;
+    SymbolClass symClass;
 };
 
 struct SymbolTable
@@ -27,8 +39,10 @@ struct SymbolTable
 
 struct SymbolType
 {
-    SymbolClass type;
+    SymbolClass symClass;
     bool isBuiltIn;
+    // bit 0: isDefined
+    uint64_t attribs;
     uint64_t typeSize;
     // if symbol consists of many subtypes like struct
     // store references types themselves and their names
@@ -40,21 +54,21 @@ struct SymbolType
 
 struct SymbolVariable
 {
-    SymbolClass type;
+    SymbolClass symClass;
     std::string* varType;
     // bit 0 is defined
     uint64_t attributes;
 
     SymbolVariable()
     :
-    type(SymbolClass::VARIABLE), varType(nullptr), attributes(0)
+    symClass(SymbolClass::VARIABLE), varType(nullptr), attributes(0)
     {}
 };
 
 
 struct SymbolFunction
 {
-    SymbolClass type;
+    SymbolClass symClass;
     std::string* retType;
     // bit 0 is defined
     uint64_t attributes;
@@ -65,7 +79,7 @@ struct SymbolFunction
     std::vector<std::string*> argNames;
     SymbolFunction()
     :
-    type(SymbolClass::VARIABLE), retType(nullptr), attributes(0)
+    symClass(SymbolClass::VARIABLE), retType(nullptr), attributes(0)
     {}
 };
 
