@@ -1,4 +1,5 @@
 #include "node_allocator.hpp"
+using namespace std;
 
 AstNode *allocateNode(NodeAllocator* allocator)
 {
@@ -28,6 +29,28 @@ void freeNode(NodeAllocator* allocator, AstNode *node, bool rmType, bool rmData)
     }
     delete node;
     allocator->nodes.erase(node);
+}
+
+void freeRecursive(NodeAllocator *allocator, AstNode *node)
+{
+    if(!node)
+    {
+        return;
+    }
+
+    queue<AstNode*> nodes;
+    nodes.push(node);
+    while (nodes.size() != 0)
+    {
+        AstNode* node = nodes.front();
+        nodes.pop();
+        for(AstNode* child : node->children)
+        {
+            nodes.push(child);
+        }
+        freeNode(allocator, node);
+    }
+
 }
 
 void freeAllNodes(NodeAllocator* allocator)

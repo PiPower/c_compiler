@@ -4,7 +4,7 @@
 /*
     varType(SymbolVariable) and retType(SymbolFunction) are strings 
     encoded in the following manner:
-    name | qualifiers #_opt pt_1_qualifiers, ... #_opt pt_k_qualifiers
+    name | qualifiers #_opt pt_1_qualifiers, ... pt_k_qualifiers
     name - is string of name_size bytes representing symbol name 
     qualifiers - byte for qualifiers regarding type
     '#' means that variable is a pointer, number of '#' stands for 
@@ -42,7 +42,7 @@ struct SymbolType
     SymbolClass symClass;
     bool isBuiltIn;
     // bit 0: isDefined
-    uint64_t attribs;
+    uint64_t attributes;
     uint64_t typeSize;
     // if symbol consists of many subtypes like struct
     // store references types themselves and their names

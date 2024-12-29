@@ -187,6 +187,7 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
         var = new SymbolVariable();
         var->symClass = SymbolClass::VARIABLE;
         var->varType = root->type;
+        root->type = nullptr;
         SET_SYMBOL(parser, *root->data, (Symbol*)var);
         setDefinedAttr(var);
         if(initializer)
@@ -269,4 +270,27 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
     freeNode(parser->allocator, args);
     freeNode(parser->allocator, root);
     return nullptr;
+}
+
+void addParameterToStruct(ParserState *parser, 
+                            SymbolType *typeVar,
+                            AstNode *typeNode, 
+                            const std::string* type)
+{
+    if(typeNode->nodeType != NodeType::IDENTIFIER && 
+        typeNode->nodeType != NodeType::POINTER)
+    {
+        triggerParserError(parser, 1, "Incorrect declaration of name of the type\n");
+    }
+    if(typeNode->nodeType == NodeType::IDENTIFIER)
+    {
+        typeVar->types.push_back(*type);
+        typeVar->names.push_back( std::move(*typeNode->data) );
+        return;
+    }
+
+    AstNode* identifier = typeNode->children[0];  
+
+    typeVar->types.push_back( *type + '#' + *typeNode->data);
+    typeVar->names.push_back( std::move(*identifier->data) );
 }

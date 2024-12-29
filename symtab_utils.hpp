@@ -42,4 +42,20 @@ inline constexpr bool isSetDefinedAttr(SymbolVariable* var)
     return var->attributes & 0x01 > 0 ;
 }
 
+// symbol type
+inline constexpr void setDefinedAttr(SymbolType* type)
+{
+    type->attributes |= 0x01;
+}
+
+inline constexpr void disableDefinedAttr(SymbolType* type)
+{
+    type->attributes &=  ~0x01;
+}
+
+inline constexpr bool isSetDefinedAttr(SymbolType* type)
+{
+    return type->attributes & 0x01 > 0 ;
+}
+
 #endif

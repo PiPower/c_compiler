@@ -75,4 +75,8 @@ static inline NodeType assignementTokenToNodeType(const Token& token)
 std::vector<AstNode*> processDeclarationTree(AstNode* root, ParserState* parser);
 AstNode* processVariable(AstNode *root, ParserState *parser);
 AstNode* processFunction(AstNode* root,ParserState* parser);
+void addParameterToStruct(ParserState *parser, 
+                            SymbolType *typeVar,
+                            AstNode *typeNode, 
+                            const std::string* type);
 #endif

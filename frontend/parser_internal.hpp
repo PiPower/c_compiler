@@ -10,6 +10,7 @@
 #define PARSER_SUCC  ((AstNode*)0xFFFFFFFFFFFFFFFF)
 #define ALLOCATE_NODE(parser) allocateNode((parser)->allocator)
 #define FREE_NODE(parser, node) freeNode((parser)->allocator, (node))
+#define FREE_NODE_REC(parser, node) freeRecursive((parser)->allocator, (node))
 #define CONSUME_TOKEN(parser, type) (parser)->scanner->consume(type)
 #define CURRENT_TOKEN_ON_OF(parser, ...) (parser)->scanner->currentTokenOneOf( __VA_ARGS__)
 #define TOKEN_MATCH(parser, token)  (parser)->scanner->match(token)
