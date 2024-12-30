@@ -91,9 +91,8 @@ AstNode *assignmentExpression(ParserState *parser)
     {
         AstNode* assignement = ALLOCATE_NODE(parser);
         assignement->nodeType = operators.top();
-        assignement->children.push_back(root);
         assignement->children.push_back(nodes.top() );
-
+        assignement->children.push_back(root);
         operators.pop();
         nodes.pop();
         root = assignement;
@@ -231,17 +230,27 @@ AstNode *unaryExpression(ParserState *parser)
         AstNode* root = ALLOCATE_NODE(parser);
         root->nodeType = token.type == TokenType::PLUS ? NodeType::PRE_INC : NodeType::PRE_DEC;
         root->children.push_back(unaryExpression(parser));
+        root->type = new string(*root->children[0]->type);
         return root;
     }
     AstNode* root = ALLOCATE_NODE(parser);
+    root->children.push_back(castExpression(parser));
     switch (token.type)
     {
-        case TokenType::BANG: root->nodeType = NodeType::LOG_NOT; break;
-        case TokenType::TILDE: root->nodeType = NodeType::COMPLIMENT; break;
+        case TokenType::BANG:
+            root->nodeType = NodeType::LOG_NOT; 
+            root->type = new string ("char");
+            break;
+        case TokenType::TILDE: 
+            root->nodeType = NodeType::COMPLIMENT; 
+            root->type = new string(*root->children[0]->type);
+            break;
         case TokenType::PLUS: root->nodeType = NodeType::ADD; break;
-        case TokenType::STAR: root->nodeType = NodeType::DREF_PTR; break;
+        case TokenType::STAR:
+            root->nodeType = NodeType::DREF_PTR; 
+            root->type = drefPtrType(root->children[0]->type);
+            break;
     }
-    root->children.push_back(castExpression(parser));
     return root;
 }
 
@@ -402,4 +411,23 @@ void validateStructAccess(ParserState *parser, AstNode *root)
     }
 
     root->type = new string(*elemType);
+}
+
+std::string *drefPtrType(const std::string *ptrType)
+{
+    const string& type = *ptrType;
+    int i;
+    for(i = type.size()- 1; i >=0; i--)
+    {
+        if(type[i] == '#')
+        {
+            break;
+        }
+    }
+    if(i == 0)
+    {
+        return nullptr;
+    }
+    string* outType = new string(type.substr(0, i) );
+    return outType;
 }
