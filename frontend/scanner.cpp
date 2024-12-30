@@ -137,6 +137,11 @@ Token Scanner::parsePunctuators(const char *c)
         break;
     case '-':
         index++;
+        if(c[index]>='0' && c[index]<='9')
+        {
+            index--;
+            return parseConstant(src_buffer);
+        }
         switch (c[index])
         {
         case '=':
@@ -371,19 +376,17 @@ Token Scanner::parseIdentifier(const char* c)
 
 Token Scanner::parseConstant(const char *c)
 {
-    if( ! ('0' <= c[index] && c[index] <='9'))
+    if( !('0' <= c[index] && c[index] <='9') &&
+        ((c[index] == '+' ||  c[index] == '-') && !('0' <= c[index + 1] && c[index + 1] <='9')) )
     {
         return Token{TokenType::NONE};
     }
 
 
-    if(c[index] == '0' &&  ('0' <= c[index + 1] && c[index + 1] <='9'))
-    {
-        fprintf(stdout, "incorrect integer definition at line %d\n", line);
-        exit(-1);
-    }
-
     string* str = new string();
+    if(c[index] == '+' ) {index++;}
+    else if(c[index] == '-') { *str += c[index++];}
+
     while (isDigit(c[index]))
     {
         (*str) += c[index];

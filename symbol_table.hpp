@@ -10,6 +10,14 @@
     '#' means that variable is a pointer, number of '#' stands for 
     pointer order 
     pt_j_qualifiers - qualifiers for jth pointer
+
+
+Type casting
+
+Types are divided into four groups.
+Implicit conversions between groups are not allwed,
+demoting implicit conversion within grups trigger warning.
+In special group conversions between any members are not allwed
 */
 
 
@@ -41,7 +49,7 @@ struct SymbolTable
 struct SymbolType
 {
     SymbolClass symClass;
-    bool isBuiltIn;
+    uint8_t typeGroup;
     // bit 0: isDefined
     uint64_t attributes;
     uint64_t typeSize;

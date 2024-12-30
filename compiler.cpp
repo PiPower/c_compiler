@@ -28,38 +28,40 @@ void initSymbolTalbe(SymbolTable *symTab)
     symTab->parent = nullptr;
     symTab->scopeLevel = 0;
     // 1 byte types
-    symTab->symbols["char"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 1};
-    symTab->symbols["signed char"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 1};
-    symTab->symbols["unsigned char"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 1};
+    symTab->symbols["char"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT8_S, 1};
+    symTab->symbols["signed char"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT8_S, 1};
+    symTab->symbols["unsigned char"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT8_U, 1};
     // 2 byte types
-    symTab->symbols["short"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};
-    symTab->symbols["short int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};
-    symTab->symbols["signed short"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};
-    symTab->symbols["signed short int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};
-    symTab->symbols["unsigned short"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};
-    symTab->symbols["unsigned short int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 2};
+    symTab->symbols["short"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT16_S, 2};
+    symTab->symbols["short int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT16_S, 2};
+    symTab->symbols["signed short"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT16_S, 2};
+    symTab->symbols["signed short int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT16_S, 2};
+    symTab->symbols["unsigned short"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT16_U, 2};
+    symTab->symbols["unsigned short int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT16_U, 2};
     // 4 byte types
-    symTab->symbols["int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};
-    symTab->symbols["signed"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};
-    symTab->symbols["signed int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};
-    symTab->symbols["unsinged"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};
-    symTab->symbols["unsinged int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};
+    symTab->symbols["int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_S, 4};
+    symTab->symbols["signed"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_S, 4};
+    symTab->symbols["signed int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_S, 4};
+    symTab->symbols["unsinged"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_U, 4};
+    symTab->symbols["unsinged int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_U, 4};
     // 8 byte types 
-    symTab->symbols["long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["signed long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["signed long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["unsigned long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["unsigned long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["long long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["long long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["signed long long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["signed long long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["unsigned long long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["unsigned long long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
+    symTab->symbols["long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};
+    symTab->symbols["long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};
+    symTab->symbols["signed long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};
+    symTab->symbols["signed long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};
+    symTab->symbols["unsigned long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_U, 8};
+    symTab->symbols["unsigned long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_U, 8};
+    symTab->symbols["long long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};
+    symTab->symbols["long long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};
+    symTab->symbols["signed long long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};
+    symTab->symbols["signed long long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};
+    symTab->symbols["unsigned long long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_U, 8};
+    symTab->symbols["unsigned long long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_U, 8};
     // floats
-    symTab->symbols["float"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 4};
-    symTab->symbols["double"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
-    symTab->symbols["long double"] = (Symbol*)new SymbolType{SymbolClass::TYPE, true, 8};
+    symTab->symbols["float"] = (Symbol*)new SymbolType{SymbolClass::TYPE, FLOAT32, 4};
+    symTab->symbols["double"] = (Symbol*)new SymbolType{SymbolClass::TYPE, DOUBLE64, 8};
+    symTab->symbols["long double"] = (Symbol*)new SymbolType{SymbolClass::TYPE, DOUBLE128, 16};
+    // special
+    symTab->symbols["void"] = (Symbol*)new SymbolType{SymbolClass::TYPE, VOID_GR, 0};
 }
 

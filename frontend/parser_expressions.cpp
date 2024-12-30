@@ -532,16 +532,28 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
 {
     string* leftType = new string((*left->type).substr(0, (*left->type).find('|')) );
     string* rightType = new string((*right->type).substr(0, (*right->type).find('|')));
+
+    if((*leftType == "void" || *rightType == "void" ) ||
+       (leftType->find("struct") || rightType->find("struct")) )
+    {
+        goto trigger_error;
+    }
+
+    
+
     if(*leftType == *rightType)
     {
         delete leftType;
         return rightType;
     }
 
+
+
+trigger_error:
     AstNode* holder = ALLOCATE_NODE(parser);
     holder->data = leftType;
     holder->type = rightType;
-    triggerParserError(parser, 1, "Conversion between \"%s\" and \"%s\" is not allowed\n",
+    triggerParserError(parser, 1, "Implicit conversion between \"%s\" and \"%s\" is not allowed\n",
     leftType->c_str(),  rightType->c_str());
     return nullptr;
 }

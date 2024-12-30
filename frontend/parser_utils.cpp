@@ -273,6 +273,7 @@ SymbolType *defineTypeSymbol(ParserState *parser, const std::string* typeName)
     {
         symType = new SymbolType();
         symType->symClass = SymbolClass::TYPE;
+        symType->typeGroup = STRUCT_GR;
         setDefinedAttr(symType);
         SET_SYMBOL(parser, *typeName, (Symbol*)symType);
     }
