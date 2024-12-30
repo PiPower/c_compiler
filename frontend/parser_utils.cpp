@@ -6,34 +6,6 @@
 #include <random>
 
 using namespace std;
-AstNode* parseLoop(ParserState* parser, 
-                    parseFunctionPtr parsingFunction, 
-                    AstNode* root, 
-                    const vector<TokenType>& types)
-{
-   return parseLoop(parser, parsingFunction, root, types.data(), types.size());
-}
-
-AstNode *parseLoop(ParserState *parser,
-                    parseFunctionPtr parsingFunction, 
-                    AstNode *root, 
-                    const TokenType *types, 
-                    const uint64_t typesCount)
-{
-    while (parser->scanner->currentTokenOneOf(types, typesCount))
-    {
-        Token operatorToken = parser->scanner->getToken();
-        AstNode* parent = ALLOCATE_NODE(parser);
-        parent->nodeType = tokenMathTypeToNodeType(operatorToken);
-        AstNode* right = parsingFunction(parser);
-
-        parent->children.push_back(root);
-        parent->children.push_back(right);
-        root = parent;
-    }
-
-    return root;
-}
 
 void triggerParserError(ParserState* parser, int value, const char* format, ...)
 {

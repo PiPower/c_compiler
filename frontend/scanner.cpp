@@ -335,6 +335,7 @@ Token Scanner::parsePunctuators(const char *c)
 
 Token Scanner::parseIdentifier(const char* c)
 {
+
     if(isDigit(c[index]))
     {
         return Token{TokenType::NONE};
@@ -388,13 +389,49 @@ Token Scanner::parseConstant(const char *c)
         (*str) += c[index];
         index++;
     }
+    if(c[index] == '.')
+    {
+        (*str) += c[index++];
+        while (isDigit(c[index]))
+        {
+            (*str) += c[index];
+            index++;
+        }
+        if( c[index] == 'f' || c[index] == 'F' ||
+            c[index] == 'l' || c[index] == 'L')
+        {
+            (*str) += tolower(c[index++]);
+        }
+    }
+    // check for int suffixes
+    else if( c[index] == 'l' || c[index] == 'L' ||
+            c[index] == 'u' || c[index] == 'U')
+    {
+        char suffix[4] = {0,0,0,0};
 
-    if( isAlpha(c[index]) ||  c[index] == '_')
+        int i = 0;
+        while (i < 3 &&
+                (c[index] == 'l' || c[index] == 'L' ||
+                c[index] == 'u' || c[index] == 'U') )
+        {
+            suffix[i++] = tolower(c[index++]);
+        }
+
+        if((i == 3 && suffix[1] == 'u') || (i == 2 && suffix[0] == 'u' && suffix[1] == 'u'))
+        {
+            fprintf(stdout, "incorrect integer fromat at line %d\n", line);
+            exit(-1);
+        }
+        *str += suffix;
+
+    }
+
+    if( isAlphaDigitFloor(c[index]))
     {
         fprintf(stdout, "incorrect integer definition at line %d\n", line);
         exit(-1);
     }
-    
+  
     Token token;
     token.type = TokenType::CONSTANT;
     token.line = line;

@@ -95,4 +95,6 @@ void validateFnCall(ParserState *parser, AstNode* root);
 AstNode* parseStructAccess(ParserState *parser, AstNode* root);
 void validateStructAccess(ParserState *parser, AstNode* root);
 std::string* drefPtrType(const std::string* ptrType);
+void processConstant(ParserState *parser, AstNode* constant);
+std::string* typeConversion(ParserState *parser, AstNode* left, AstNode* right);
 #endif
