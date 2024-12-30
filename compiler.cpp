@@ -42,8 +42,8 @@ void initSymbolTalbe(SymbolTable *symTab)
     symTab->symbols["int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_S, 4};
     symTab->symbols["signed"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_S, 4};
     symTab->symbols["signed int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_S, 4};
-    symTab->symbols["unsinged"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_U, 4};
-    symTab->symbols["unsinged int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_U, 4};
+    symTab->symbols["unsigned"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_U, 4};
+    symTab->symbols["unsigned int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT32_U, 4};
     // 8 byte types 
     symTab->symbols["long"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};
     symTab->symbols["long int"] = (Symbol*)new SymbolType{SymbolClass::TYPE, INT64_S, 8};

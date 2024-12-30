@@ -14,10 +14,11 @@
 
 Type casting
 
-Types are divided into four groups.
-Implicit conversions between groups are not allwed,
-demoting implicit conversion within grups trigger warning.
-In special group conversions between any members are not allwed
+    Types are divided into four groups.
+    Implicit conversions between groups are not allwed,
+    except for INT_*_S and INT_*_U. In this case compiler wanring is triggered.
+    Demoting implicit conversion within grups trigger warning.
+    In special group conversions between any members are not allwed
 */
 
 
@@ -49,7 +50,7 @@ struct SymbolTable
 struct SymbolType
 {
     SymbolClass symClass;
-    uint8_t typeGroup;
+    uint16_t affiliation;
     // bit 0: isDefined
     uint64_t attributes;
     uint64_t typeSize;

@@ -80,6 +80,65 @@ NodeType tokenMathTypeToNodeType(const Token& token)
     exit(-1);
 }
 
+uint8_t getTypeGroup(ParserState *parser,  AstNode *typeNode)
+{   
+    Symbol* sym = GET_SYMBOL(parser, *typeNode->data);
+    if(!sym)
+    {
+        triggerParserError(parser, 1, "type named %s does not exist\n", typeNode->data->c_str());
+    }
+    if(sym->symClass != SymbolClass::TYPE)
+    {
+        triggerParserError(parser, 1, "Implementation error: %s is not a typename\n", typeNode->data->c_str());
+    }
+    SymbolType* symType = (SymbolType*)sym;
+
+    if( (symType->affiliation & 0x0F) > 0)
+    {
+        return SIGNED_INT_GROUP;
+    }
+    if( (symType->affiliation & (0x0F << 4)) > 0)
+    {
+        return UNSIGNED_INT_GROUP;
+    }
+    if( (symType->affiliation &  (0x0F << 8)) > 0)
+    {
+        return FLOAT_GROUP;
+    }
+        
+    return SPECIAL_GROUP;
+}
+// n1 and n2 are assumed to be from the same type group
+std::string *copyStrongerType(ParserState* parser, AstNode *n1, AstNode *n2)
+{
+    Symbol* sym1 = GET_SYMBOL(parser, *n1->data);
+    Symbol* sym2 = GET_SYMBOL(parser, *n2->data);
+    if(!sym1)
+    {
+        triggerParserError(parser, 1, "type named %s does not exist\n", n1->data->c_str());
+    }
+    if(sym1->symClass != SymbolClass::TYPE)
+    {
+        triggerParserError(parser, 1, "Implementation error: %s is not a typename\n", n1->data->c_str());
+    }
+    if(!sym2)
+    {
+        triggerParserError(parser, 1, "type named %s does not exist\n", n1->data->c_str());
+    }
+    if(sym2->symClass != SymbolClass::TYPE)
+    {
+        triggerParserError(parser, 1, "Implementation error: %s is not a typename\n", n1->data->c_str());
+    }
+    SymbolType* symType1 = (SymbolType*)sym1;
+    SymbolType* symType2 = (SymbolType*)sym2;
+    if(symType1->affiliation > symType2->affiliation)
+    {
+        return new string(*n1->data);
+    }
+
+    return new string(*n2->data);
+}
+
 std::vector<AstNode*> processDeclarationTree(AstNode *root, ParserState* parser)
 {
     vector<AstNode*> out;
@@ -273,7 +332,7 @@ SymbolType *defineTypeSymbol(ParserState *parser, const std::string* typeName)
     {
         symType = new SymbolType();
         symType->symClass = SymbolClass::TYPE;
-        symType->typeGroup = STRUCT_GR;
+        symType->affiliation = STRUCT_GR;
         setDefinedAttr(symType);
         SET_SYMBOL(parser, *typeName, (Symbol*)symType);
     }

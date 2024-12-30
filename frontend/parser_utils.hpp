@@ -65,7 +65,8 @@ AstNode* parseLoop(ParserState* parser,
                     const uint64_t typesCount);
 AstNode* fillSymtab(AstNode* root);
 NodeType tokenMathTypeToNodeType(const Token& token);
-
+uint8_t getTypeGroup(ParserState* parser, AstNode* typeNode);
+std::string* copyStrongerType(ParserState* parser, AstNode* n1, AstNode* n2);
 static inline NodeType assignementTokenToNodeType(const Token& token)
 {
     return (NodeType) ((int)token.type - (int)TokenType::EQUAL + (int)NodeType::ASSIGNMENT) ;

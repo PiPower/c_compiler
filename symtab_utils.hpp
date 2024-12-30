@@ -9,33 +9,37 @@
 #define SYMTAB_CEND(parser) (parser)->symtab->symbols.cend()
 //-----------------
 // type groups
-// signed int group
-// bits 0, 1
-#define INT8_S 0x00
-#define INT16_S 0x01
-#define INT32_S 0x02
-#define INT64_S 0x03
+//-----------------
+// signed int group 
+#define INT8_S (0x01 << 0)
+#define INT16_S (0x01 << 1)
+#define INT32_S (0x01 << 2)
+#define INT64_S (0x01 << 3)
 //-----------------
 // unsigned int group
-// bits 2, 3
-#define INT8_U (0x00 << 2)
-#define INT16_U (0x01 << 2)
-#define INT32_U (0x02 << 2)
-#define INT64_U (0x03 << 2)
+#define INT8_U (0x01 << 4)
+#define INT16_U (0x01 << 5)
+#define INT32_U (0x01 << 6)
+#define INT64_U (0x01 << 7)
 //-----------------
-// float group
+// float group 
 // bits 4, 5
-#define FLOAT32 (0x00 << 4)
-#define DOUBLE64 (0x01 << 4)
-#define DOUBLE128 (0x02 << 4)
-//#define UNUSED (0x03 << 4)
+#define FLOAT32 (0x01 << 8)
+#define DOUBLE64 (0x01 << 9)
+#define DOUBLE128 (0x01 << 10)
+//#define UNUSED (0x01 << 11)
 //-----------------
 //special group
 // bits 6, 7
-#define POINTER_GR (0x00 << 6)
-#define VOID_GR (0x01 << 6)
-#define STRUCT_GR (0x02 << 6)
-//#define UNUSED (0x03 << 6)
+#define POINTER_GR (0x01 << 12)
+#define VOID_GR (0x01 << 13)
+#define STRUCT_GR (0x01 << 14)
+//#define UNUSED (0x01 << 15)
+//-----------------
+#define SIGNED_INT_GROUP 0x00
+#define UNSIGNED_INT_GROUP 0x01
+#define FLOAT_GROUP 0x03
+#define SPECIAL_GROUP 0x04
 
 Symbol* getSymbol(SymbolTable* symtab, const std::string& name, uint64_t* scopeLevel = nullptr);
 Symbol* getSymbolLocal(SymbolTable* symtab, const std::string& name);

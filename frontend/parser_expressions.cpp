@@ -530,24 +530,43 @@ void processConstant(ParserState *parser, AstNode *constant)
 
 std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
 {
-    string* leftType = new string((*left->type).substr(0, (*left->type).find('|')) );
-    string* rightType = new string((*right->type).substr(0, (*right->type).find('|')));
+    size_t lp = (*left->type).find('|');
+    string* leftType = new string((*left->type).substr(0, lp) );
+    size_t rp = (*right->type).find('|');
+    string* rightType = new string((*right->type).substr(0, rp));
+
+    AstNode* lNode = ALLOCATE_NODE(parser);
+    lNode->data = leftType;
+    AstNode* rNode = ALLOCATE_NODE(parser);
+    rNode->data = rightType;
+
+    uint8_t leftGroup = getTypeGroup(parser, lNode);
+    uint8_t rightGroup = getTypeGroup(parser, rNode);
 
     if((*leftType == "void" || *rightType == "void" ) ||
-       (leftType->find("struct") || rightType->find("struct")) )
+       (leftType->find("struct") != string::npos || rightType->find("struct") != string::npos) )
     {
         goto trigger_error;
     }
-
     
-
     if(*leftType == *rightType)
     {
         delete leftType;
-        return rightType;
+        string* type = new string(*rightType);
+        *type += '|';
+        *type += 0x01;
+        return type;
     }
 
-
+    if( rightGroup == leftGroup)
+    {
+        string* type = copyStrongerType(parser, lNode, rNode);
+        // in general for expressions qualifiers do not matter
+        // but it is needed for consistency
+        *type += '|';
+        *type += 0x01;
+        return type;
+    }
 
 trigger_error:
     AstNode* holder = ALLOCATE_NODE(parser);
