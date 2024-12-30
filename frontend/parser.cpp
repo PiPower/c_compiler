@@ -25,6 +25,7 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocato
     vector<AstNode *> statements; 
     while (parser.scanner->peekToken().type != TokenType::END_OF_FILE)
     {
+        while (TOKEN_MATCH(&parser, TokenType::SEMICOLON)){}//clear floating semicolons
         AstNode* tree = parseDeclaration(&parser);
         if(tree == PARSER_SUCC)
         {

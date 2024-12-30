@@ -167,6 +167,7 @@ AstNode* parseCompoundStatement(ParserState* parser)
     CONSUME_TOKEN(parser, TokenType::L_BRACE);
     while (PEEK_TOKEN(parser).type != TokenType::R_BRACE)
     {
+        while (TOKEN_MATCH(parser, TokenType::SEMICOLON)){}//clear floating semicolons
         AstNode* root = parseDeclaration(parser);
         if(root && root != PARSER_SUCC)
         {

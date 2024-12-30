@@ -53,7 +53,7 @@ struct Point3D fn1()
 int main()
 {
     //x.x = 2;
-
+;;;;;;;;;;;;;;;;;
     Point2D y;
     // Point3D dy; <- error
     struct Point3D p3;
