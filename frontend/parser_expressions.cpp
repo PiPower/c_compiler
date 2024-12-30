@@ -540,8 +540,8 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
     AstNode* rNode = ALLOCATE_NODE(parser);
     rNode->data = rightType;
 
-    uint8_t leftGroup = getTypeGroup(parser, lNode);
-    uint8_t rightGroup = getTypeGroup(parser, rNode);
+    uint8_t leftGroup;
+    uint8_t rightGroup;
 
     if((*leftType == "void" || *rightType == "void" ) ||
        (leftType->find("struct") != string::npos || rightType->find("struct") != string::npos) )
@@ -558,6 +558,9 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
         return type;
     }
 
+    leftGroup = getTypeGroup(parser, lNode);
+    rightGroup = getTypeGroup(parser, rNode);
+
     if( rightGroup == leftGroup)
     {
         string* type = copyStrongerType(parser, lNode, rNode);
@@ -567,6 +570,20 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
         *type += 0x01;
         return type;
     }
+
+    if( (leftGroup == SIGNED_INT_GROUP &&  rightGroup == UNSIGNED_INT_GROUP) ||
+        (leftGroup == UNSIGNED_INT_GROUP &&  rightGroup == SIGNED_INT_GROUP) )
+    {
+        string* targetType = resolveSignedUnsignedImpCast(parser, lNode, rNode, leftGroup, rightGroup);
+        triggerParserWarning(parser, 
+        "Implicit conversion between \"%s\" and \"%s\" into \"%s\", possible loss of data\n",
+        leftType->c_str(), rightType->c_str(), targetType->c_str());
+        *targetType += '|';
+        *targetType += 0x01;
+        return targetType;
+    }
+
+
 
 trigger_error:
     AstNode* holder = ALLOCATE_NODE(parser);

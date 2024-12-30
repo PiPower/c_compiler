@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <random>
-
+#include <algorithm>
 using namespace std;
 
 void triggerParserError(ParserState* parser, int value, const char* format, ...)
@@ -82,17 +82,7 @@ NodeType tokenMathTypeToNodeType(const Token& token)
 
 uint8_t getTypeGroup(ParserState *parser,  AstNode *typeNode)
 {   
-    Symbol* sym = GET_SYMBOL(parser, *typeNode->data);
-    if(!sym)
-    {
-        triggerParserError(parser, 1, "type named %s does not exist\n", typeNode->data->c_str());
-    }
-    if(sym->symClass != SymbolClass::TYPE)
-    {
-        triggerParserError(parser, 1, "Implementation error: %s is not a typename\n", typeNode->data->c_str());
-    }
-    SymbolType* symType = (SymbolType*)sym;
-
+    SymbolType* symType = getSymbolType(parser, typeNode->data);
     if( (symType->affiliation & 0x0F) > 0)
     {
         return SIGNED_INT_GROUP;
@@ -111,32 +101,38 @@ uint8_t getTypeGroup(ParserState *parser,  AstNode *typeNode)
 // n1 and n2 are assumed to be from the same type group
 std::string *copyStrongerType(ParserState* parser, AstNode *n1, AstNode *n2)
 {
-    Symbol* sym1 = GET_SYMBOL(parser, *n1->data);
-    Symbol* sym2 = GET_SYMBOL(parser, *n2->data);
-    if(!sym1)
-    {
-        triggerParserError(parser, 1, "type named %s does not exist\n", n1->data->c_str());
-    }
-    if(sym1->symClass != SymbolClass::TYPE)
-    {
-        triggerParserError(parser, 1, "Implementation error: %s is not a typename\n", n1->data->c_str());
-    }
-    if(!sym2)
-    {
-        triggerParserError(parser, 1, "type named %s does not exist\n", n1->data->c_str());
-    }
-    if(sym2->symClass != SymbolClass::TYPE)
-    {
-        triggerParserError(parser, 1, "Implementation error: %s is not a typename\n", n1->data->c_str());
-    }
-    SymbolType* symType1 = (SymbolType*)sym1;
-    SymbolType* symType2 = (SymbolType*)sym2;
+    SymbolType* symType1 = getSymbolType(parser, n1->data);
+    SymbolType* symType2 = getSymbolType(parser, n2->data);
     if(symType1->affiliation > symType2->affiliation)
     {
         return new string(*n1->data);
     }
 
     return new string(*n2->data);
+}
+
+std::string* resolveSignedUnsignedImpCast(ParserState* parser, 
+                                            AstNode* n1, 
+                                            AstNode* n2, 
+                                            uint8_t g1, 
+                                            uint8_t g2)
+{
+    static const char* signedTypes[] = { "char", "short", "int", "long"};
+
+
+    AstNode* signedNode = g1 == SIGNED_INT_GROUP ? n1 : n2;
+    AstNode* unsignedNode = g1 == UNSIGNED_INT_GROUP ? n1 : n2;
+    SymbolType* signedSym = getSymbolType(parser, signedNode->data);
+    SymbolType* unsignedSym = getSymbolType(parser, unsignedNode->data);
+
+    uint8_t signedStrength = signedSym->affiliation - SIGNED_INT_GROUP;
+    uint8_t unsignedStrength = unsignedSym->affiliation - UNSIGNED_INT_GROUP;
+
+    uint8_t stronger = max(signedStrength, unsignedStrength);
+    uint8_t lo = 0;
+    uint8_t hi = 3;
+    uint8_t idx = clamp(stronger, lo, hi);
+    return new string(signedTypes[idx]);
 }
 
 std::vector<AstNode*> processDeclarationTree(AstNode *root, ParserState* parser)
@@ -390,4 +386,18 @@ void addParameterToStruct(ParserState *parser,
 
     typeVar->types.push_back( *type + '#' + *typeNode->data);
     typeVar->names.push_back( std::move(*identifier->data) );
+}
+
+SymbolType* getSymbolType(ParserState *parser, std::string* name)
+{
+    Symbol* sym = GET_SYMBOL(parser, *name);
+    if(!sym)
+    {
+        triggerParserError(parser, 1, "type named %s does not exist\n", name->c_str());
+    }
+    if(sym->symClass != SymbolClass::TYPE)
+    {
+        triggerParserError(parser, 1, "Implementation error: %s is not a typename\n", name->c_str());
+    }
+    return (SymbolType*)sym;
 }

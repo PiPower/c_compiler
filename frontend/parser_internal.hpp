@@ -97,4 +97,13 @@ void validateStructAccess(ParserState *parser, AstNode* root);
 std::string* drefPtrType(const std::string* ptrType);
 void processConstant(ParserState *parser, AstNode* constant);
 std::string* typeConversion(ParserState *parser, AstNode* left, AstNode* right);
+AstNode* parseLoop(ParserState* parser, 
+                    parseFunctionPtr parsingFunction,
+                    AstNode* root, 
+                    const std::vector<TokenType>& types);
+AstNode* parseLoop(ParserState* parser, 
+                    parseFunctionPtr parsingFunction,
+                    AstNode* root, 
+                    const TokenType* types,
+                    const uint64_t typesCount);
 #endif

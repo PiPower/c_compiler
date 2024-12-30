@@ -1,5 +1,6 @@
 #include "symtab_utils.hpp"
 
+
 Symbol* getSymbol(SymbolTable *symtab, const std::string &name, uint64_t* scopeLevel)
 {
     while (symtab)
@@ -28,3 +29,4 @@ Symbol *getSymbolLocal(SymbolTable *symtab, const std::string &name)
     }
     return nullptr;
 }
+

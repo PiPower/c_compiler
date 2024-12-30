@@ -54,19 +54,15 @@ void triggerParserError(ParserState* parser,
 void triggerParserWarning(ParserState* parser,
                          const char* format, ...);
 
-AstNode* parseLoop(ParserState* parser, 
-                    parseFunctionPtr parsingFunction,
-                    AstNode* root, 
-                    const std::vector<TokenType>& types);
-AstNode* parseLoop(ParserState* parser, 
-                    parseFunctionPtr parsingFunction,
-                    AstNode* root, 
-                    const TokenType* types,
-                    const uint64_t typesCount);
 AstNode* fillSymtab(AstNode* root);
 NodeType tokenMathTypeToNodeType(const Token& token);
 uint8_t getTypeGroup(ParserState* parser, AstNode* typeNode);
 std::string* copyStrongerType(ParserState* parser, AstNode* n1, AstNode* n2);
+std::string* resolveSignedUnsignedImpCast(ParserState* parser, 
+                                            AstNode* n1, 
+                                            AstNode* n2, 
+                                            uint8_t g1, 
+                                            uint8_t g2);
 static inline NodeType assignementTokenToNodeType(const Token& token)
 {
     return (NodeType) ((int)token.type - (int)TokenType::EQUAL + (int)NodeType::ASSIGNMENT) ;
@@ -82,4 +78,5 @@ void addParameterToStruct(ParserState *parser,
                             SymbolType *typeVar,
                             AstNode *typeNode, 
                             const std::string* type);
+SymbolType* getSymbolType(ParserState *parser, std::string* name);
 #endif

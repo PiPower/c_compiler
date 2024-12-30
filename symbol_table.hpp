@@ -16,9 +16,13 @@ Type casting
 
     Types are divided into four groups.
     Implicit conversions between groups are not allwed,
-    except for INT_*_S and INT_*_U. In this case compiler wanring is triggered.
-    Demoting implicit conversion within grups trigger warning.
-    In special group conversions between any members are not allwed
+    except for INT_*_S and INT_*_U. During this cast
+    stronger is used, and treated as an offset into INT_*_S
+    group. This type of implicit conversion triggers compiler 
+    warning.
+    Demoting implicit conversion within grups triggers warning.
+    In special group implicit conversions between any members are not allwed
+    unless stated later
 */
 
 
