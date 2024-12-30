@@ -325,6 +325,9 @@ Token Scanner::parsePunctuators(const char *c)
             token.type = TokenType::GREATER;
         }
         break;
+    case '.':
+        index++;
+        token.type = TokenType::DOT;
     }
 
     return token;

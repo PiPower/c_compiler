@@ -38,10 +38,18 @@ typedef struct Point2D
 } Point2D;
 
 typedef struct Point2D XDDDD;
+
+struct composite
+{
+    XDDDD x;
+    struct Point3D y;
+};
+
 int main()
 {
     //x.x = 2;
     Point2D y;
     // Point3D dy; <- error
     struct Point3D p3;
+    p3.x = 3;
 }

@@ -247,17 +247,19 @@ AstNode *unaryExpression(ParserState *parser)
 
 AstNode *postfixExpression(ParserState *parser)
 {
-    AstNode* primaryExpr = primaryExpression(parser);
-    if(!TOKEN_MATCH(parser, TokenType::L_PARENTHESES))
+    static const TokenType postfixOperators[] = {TokenType::L_PARENTHESES, TokenType::DOT};
+    static constexpr uint64_t len = sizeof(unaryOperators)/sizeof(TokenType);
+
+    AstNode* postfixExpr = primaryExpression(parser);
+    while (parser->scanner->currentTokenOneOf(postfixOperators, len))
     {
-        return primaryExpr;
+        switch (PEEK_TOKEN(parser).type)
+        {
+        case TokenType::L_PARENTHESES: postfixExpr = parseFnCall(parser, postfixExpr); break;
+        case TokenType::DOT: postfixExpr = parseStructAccess(parser, postfixExpr); break;
+        }
     }
-    AstNode* fnCall = ALLOCATE_NODE(parser);
-    AstNode* args = parseArgExprList(parser);
-    CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
-    fnCall->nodeType = NodeType::FUNCTION_CALL;
-    fnCall->children = {primaryExpr, args};
-    return fnCall;  
+    return postfixExpr;  
 }
 
 AstNode *primaryExpression(ParserState *parser)
@@ -275,6 +277,10 @@ AstNode *primaryExpression(ParserState *parser)
         if(!sym)
         {
             triggerParserError(parser, 1, "%s is unrecognized symbol", root->data->c_str());
+        }
+        if( sym->symClass == SymbolClass::VARIABLE)
+        {
+            root->type = new string(*((SymbolVariable*) sym)->varType);
         }
         return root;
     }
@@ -296,3 +302,63 @@ AstNode *primaryExpression(ParserState *parser)
     return nullptr;
 }
 
+AstNode *parseFnCall(ParserState *parser, AstNode* root)
+{
+    AstNode* fnCall = ALLOCATE_NODE(parser);
+    CONSUME_TOKEN(parser, TokenType::L_PARENTHESES);
+    AstNode* args = parseArgExprList(parser);
+    CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
+    fnCall->nodeType = NodeType::FUNCTION_CALL;
+    fnCall->children = {root, args};
+    return fnCall;  
+}
+
+AstNode *parseStructAccess(ParserState *parser, AstNode *root)
+{
+    CONSUME_TOKEN(parser, TokenType::DOT);
+    Token token = GET_TOKEN(parser);
+    if(token.type != TokenType::IDENTIFIER)
+    {
+        triggerParserError(parser, 1, "expected identifier\n");
+    }
+    AstNode* access = ALLOCATE_NODE(parser);
+    access->nodeType = NodeType::ACCESS;
+    access->data = token.data;
+    access->children.push_back(root);
+    validateStructAccess(parser, access);
+    return access;
+}
+
+void validateStructAccess(ParserState *parser, AstNode *root)
+{
+    string::size_type pos = (*root->children[0]->type).find('|');
+    string* symbol = new string((*root->children[0]->type).substr(0, pos));
+    Symbol* sym = GET_SYMBOL(parser, *symbol);
+    if(!sym)
+    {
+        delete symbol;
+        triggerParserError(parser, 1, "accessing undefined type\n");
+    }
+    if(sym->symClass != SymbolClass::TYPE)
+    {
+        delete symbol;
+        triggerParserError(parser, 1, "accessing symbol that is not a type\n");
+    }
+    SymbolType* symType = (SymbolType*) sym;
+    string* elemType = nullptr;
+    for(int i =0; i < symType->names.size(); i++)
+    {
+        if(symType->names[i] == *root->data)
+        {
+            elemType = &symType->types[i];
+            break;
+        }
+    }
+
+    if(!elemType)
+    {
+        triggerParserError(parser, 1, "accessing element that is not defined inside a struct\n");
+    }
+
+    root->type = new string(*elemType);
+}
