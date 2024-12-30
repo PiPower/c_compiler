@@ -91,6 +91,7 @@ AstNode* unaryExpression(ParserState *parser);
 AstNode* postfixExpression(ParserState *parser);
 AstNode* primaryExpression(ParserState *parser);
 AstNode* parseFnCall(ParserState *parser, AstNode* root);
+void validateFnCall(ParserState *parser, AstNode* root);
 AstNode* parseStructAccess(ParserState *parser, AstNode* root);
 void validateStructAccess(ParserState *parser, AstNode* root);
 #endif

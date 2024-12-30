@@ -448,21 +448,6 @@ AstNode *parseInitDeclarator(ParserState *parser, AstNode *declarator)
     return declarator;
 }
 
-AstNode *parseArgExprList(ParserState *parser)
-{
-    AstNode* args = ALLOCATE_NODE(parser);
-    args->nodeType = NodeType::ARGS_EXPR_LIST;
-    bool executeLoop = true;
-    do
-    {
-        AstNode* expr = assignmentExpression(parser);
-        args->children.push_back(expr);
-        executeLoop = PEEK_TOKEN(parser).type == TokenType::COMMA;
-        if(executeLoop){ POP_TOKEN(parser);}
-    }while (executeLoop);
-    return args;
-}
-
 AstNode *parseFnArgs(ParserState *parser)
 {
     if(PEEK_TOKEN(parser).type == TokenType::R_PARENTHESES)

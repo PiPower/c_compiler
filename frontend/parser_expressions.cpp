@@ -310,7 +310,48 @@ AstNode *parseFnCall(ParserState *parser, AstNode* root)
     CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
     fnCall->nodeType = NodeType::FUNCTION_CALL;
     fnCall->children = {root, args};
+    validateFnCall(parser, fnCall);
+
     return fnCall;  
+}
+
+void validateFnCall(ParserState *parser, AstNode *root)
+{
+    string* symbol = new string((*root->children[0]->data));
+    Symbol* sym = GET_SYMBOL(parser, *symbol);
+    if(!sym)
+    {
+        AstNode* handler = ALLOCATE_NODE(parser);
+        handler->data = symbol;
+        triggerParserError(parser, 1 , "there is no declared function named %s", symbol->c_str());
+    }
+    if(sym->symClass != SymbolClass::FUNCTION)
+    {
+        AstNode* handler = ALLOCATE_NODE(parser);
+        handler->data = symbol;
+        triggerParserError(parser, 1 , "symbol %s does not name a function", symbol->c_str());
+    }
+    SymbolFunction* symFn = (SymbolFunction*)sym;
+    root->type =  new string(*symFn->retType);
+}
+
+AstNode *parseArgExprList(ParserState *parser)
+{
+    AstNode* args = ALLOCATE_NODE(parser);
+    args->nodeType = NodeType::ARGS_EXPR_LIST;
+    if(PEEK_TOKEN(parser).type == TokenType::R_PARENTHESES)
+    {
+        return args;
+    }
+    bool executeLoop = true;
+    do
+    {
+        AstNode* expr = assignmentExpression(parser);
+        args->children.push_back(expr);
+        executeLoop = PEEK_TOKEN(parser).type == TokenType::COMMA;
+        if(executeLoop){ POP_TOKEN(parser);}
+    }while (executeLoop);
+    return args;
 }
 
 AstNode *parseStructAccess(ParserState *parser, AstNode *root)
