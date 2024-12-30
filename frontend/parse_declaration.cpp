@@ -222,6 +222,10 @@ std::string* parseSpecQualList(ParserState *parser)
     else if(token.type == TokenType::IDENTIFIER)
     {
         Symbol* sym = GET_SYMBOL(parser, *token.data);
+        if(!sym)
+        {
+            return nullptr;
+        }
         if(sym->symClass == SymbolClass::ALIAS)
         {
             delete token.data;
