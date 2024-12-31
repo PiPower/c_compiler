@@ -122,7 +122,9 @@ AstNode *assignmentExpression(ParserState *parser)
         assignement->nodeType = operators.top();
         assignement->children.push_back(nodes.top());
         assignement->children.push_back(root);
+        validateAssignment(parser, nodes.top(), root);
         assignement->type = new string(*nodes.top()->type);
+
         operators.pop();
         nodes.pop();
         root = assignement;
@@ -572,12 +574,24 @@ void processConstant(ParserState *parser, AstNode *constant)
     *constant->type += EMPTY_QUALIFIERS;
 }
 
-std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
+void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
 {
+    if(left->type->find('#') != string::npos && right->type->find('#') &&
+       *left->type != *right->type)
+    {
+        triggerParserError(parser, 1, 
+            "Pointer assignenment between pointers of different types is invalid\n");
+    }
+
+    if(*left->type == *right->type)
+    {
+        return;
+    }
+
     size_t lp = (*left->type).find('|');
     string* leftType = new string((*left->type).substr(0, lp) );
     lp+=2;
-    while (lp < left->type->size())
+    while (lp < left->type->length())
     {
         *leftType += (*left->type)[lp];
         lp+=2;
@@ -585,16 +599,73 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
     size_t rp = (*right->type).find('|');
     string* rightType = new string((*right->type).substr(0, rp));
     rp+=2;
-    while (rp < left->type->size())
+    while (rp < right->type->length())
     {
-        *leftType += (*right->type)[rp++];
+        *rightType += (*right->type)[rp++];
         rp+=2;
     }
 
     AstNode* lNode = ALLOCATE_NODE(parser);
-    lNode->data = leftType;
+    lNode->type = leftType;
     AstNode* rNode = ALLOCATE_NODE(parser);
-    rNode->data = rightType;
+    rNode->type = rightType;
+
+    uint8_t leftGroup = getTypeGroup(parser, lNode);
+    uint8_t rightGroup = getTypeGroup(parser, rNode);
+    uint8_t leftAffiliation = getTypeAffiliation(parser, lNode->type);
+    uint8_t rightAffiliation = getTypeAffiliation(parser, rNode->type);
+    if( rightGroup == leftGroup)
+    {
+        if(leftAffiliation < rightAffiliation)
+        {
+            triggerParserWarning(parser,  "Assignment betwen \"%s\"<-\"%s\" may cause loss of data\n", 
+            lNode->type->c_str(), rNode->type->c_str());
+        }
+        return;
+    }
+    if( leftGroup == UNSIGNED_INT_GROUP && rightGroup == SIGNED_INT_GROUP)
+    {
+         triggerParserWarning(parser,  "Assignment betwen \"%s\"<-\"%s\" may cause loss of data\n", 
+         lNode->type->c_str(), rNode->type->c_str());
+         return;
+    }
+
+    if( leftGroup == SIGNED_INT_GROUP && rightGroup == UNSIGNED_INT_GROUP)
+    {
+        if(leftAffiliation - SIGNED_INT_GROUP <= rightAffiliation - UNSIGNED_INT_GROUP)
+        {
+            triggerParserWarning(parser,  "Assignment betwen \"%s\"<-\"%s\" may cause loss of data\n", 
+            lNode->type->c_str(), rNode->type->c_str());
+        }
+         return;
+    }
+
+    triggerParserError(parser, 1, "Assignment betwen \"%s\"<-\"%s\" is forbidden\n");
+}
+
+std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
+{
+    size_t lp = (*left->type).find('|');
+    string* leftType = new string((*left->type).substr(0, lp) );
+    lp+=2;
+    while (lp < left->type->length())
+    {
+        *leftType += (*left->type)[lp];
+        lp+=2;
+    }
+    size_t rp = (*right->type).find('|');
+    string* rightType = new string((*right->type).substr(0, rp));
+    rp+=2;
+    while (rp < right->type->length())
+    {
+        *rightType += (*right->type)[rp++];
+        rp+=2;
+    }
+
+    AstNode* lNode = ALLOCATE_NODE(parser);
+    lNode->type = leftType;
+    AstNode* rNode = ALLOCATE_NODE(parser);
+    rNode->type = rightType;
 
     uint8_t leftGroup;
     uint8_t rightGroup;
@@ -609,6 +680,7 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
     {
         delete leftType;
         string* type = new string(*rightType);
+        delete rightType;
         *type += '|';
         *type += EMPTY_QUALIFIERS;
         return type;

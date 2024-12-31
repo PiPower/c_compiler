@@ -83,12 +83,12 @@ NodeType tokenMathTypeToNodeType(const Token& token)
 uint8_t getTypeGroup(ParserState *parser,  AstNode *typeNode)
 {   
 
-    if(typeNode->data->find('*')!= string::npos )
+    if(typeNode->type->find('*')!= string::npos )
     {
         return SPECIAL_GROUP;
     }
 
-    SymbolType* symType = getSymbolType(parser, typeNode->data);
+    SymbolType* symType = getSymbolType(parser, typeNode->type);
     if( (symType->affiliation & 0x0F) > 0)
     {
         return SIGNED_INT_GROUP;
@@ -107,14 +107,14 @@ uint8_t getTypeGroup(ParserState *parser,  AstNode *typeNode)
 // n1 and n2 are assumed to be from the same type group
 std::string *copyStrongerType(ParserState* parser, AstNode *n1, AstNode *n2)
 {
-    SymbolType* symType1 = getSymbolType(parser, n1->data);
-    SymbolType* symType2 = getSymbolType(parser, n2->data);
+    SymbolType* symType1 = getSymbolType(parser, n1->type);
+    SymbolType* symType2 = getSymbolType(parser, n2->type);
     if(symType1->affiliation > symType2->affiliation)
     {
-        return new string(*n1->data);
+        return new string(*n1->type);
     }
 
-    return new string(*n2->data);
+    return new string(*n2->type);
 }
 
 std::string* resolveSignedUnsignedImpCast(ParserState* parser, 
@@ -128,8 +128,8 @@ std::string* resolveSignedUnsignedImpCast(ParserState* parser,
 
     AstNode* signedNode = g1 == SIGNED_INT_GROUP ? n1 : n2;
     AstNode* unsignedNode = g1 == UNSIGNED_INT_GROUP ? n1 : n2;
-    SymbolType* signedSym = getSymbolType(parser, signedNode->data);
-    SymbolType* unsignedSym = getSymbolType(parser, unsignedNode->data);
+    SymbolType* signedSym = getSymbolType(parser, signedNode->type);
+    SymbolType* unsignedSym = getSymbolType(parser, unsignedNode->type);
 
     uint8_t signedStrength = signedSym->affiliation - SIGNED_INT_GROUP;
     uint8_t unsignedStrength = unsignedSym->affiliation - UNSIGNED_INT_GROUP;
@@ -405,4 +405,14 @@ SymbolType* getSymbolType(ParserState *parser, std::string* name)
         triggerParserError(parser, 1, "Implementation error: \"%s\" is not a typename\n", name->c_str());
     }
     return (SymbolType*)sym;
+}
+
+uint16_t getTypeAffiliation(ParserState *parser, std::string* name)
+{
+    if(name->find('*') != string::npos)
+    {
+        return POINTER_GR;
+    }
+    SymbolType* symType = getSymbolType(parser, name);
+    return symType->affiliation;
 }

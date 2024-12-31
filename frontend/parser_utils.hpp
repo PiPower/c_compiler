@@ -79,4 +79,6 @@ void addParameterToStruct(ParserState *parser,
                             AstNode *typeNode, 
                             const std::string* type);
 SymbolType* getSymbolType(ParserState *parser, std::string* name);
+uint16_t getTypeAffiliation(ParserState *parser, std::string* name);
+
 #endif
