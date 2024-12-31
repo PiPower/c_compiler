@@ -80,15 +80,15 @@ NodeType tokenMathTypeToNodeType(const Token& token)
     exit(-1);
 }
 
-uint8_t getTypeGroup(ParserState *parser,  AstNode *typeNode)
+uint8_t getTypeGroup(ParserState *parser, const std::string* name)
 {   
 
-    if(typeNode->type->find('*')!= string::npos )
+    if(name->find('*')!= string::npos )
     {
         return SPECIAL_GROUP;
     }
 
-    SymbolType* symType = getSymbolType(parser, typeNode->type);
+    SymbolType* symType = getSymbolType(parser, name);
     if( (symType->affiliation & 0x0F) > 0)
     {
         return SIGNED_INT_GROUP;
@@ -105,31 +105,36 @@ uint8_t getTypeGroup(ParserState *parser,  AstNode *typeNode)
     return SPECIAL_GROUP;
 }
 // n1 and n2 are assumed to be from the same type group
-std::string *copyStrongerType(ParserState* parser, AstNode *n1, AstNode *n2)
+std::string *copyStrongerType(ParserState* parser, const std::string* t1, const std::string* t2)
 {
-    SymbolType* symType1 = getSymbolType(parser, n1->type);
-    SymbolType* symType2 = getSymbolType(parser, n2->type);
-    if(symType1->affiliation > symType2->affiliation)
+    if(*t1 == *t2)
     {
-        return new string(*n1->type);
+        return new string(*t1);
     }
 
-    return new string(*n2->type);
+    SymbolType* symType1 = getSymbolType(parser, t1);
+    SymbolType* symType2 = getSymbolType(parser, t2);
+    if(symType1->affiliation > symType2->affiliation)
+    {
+        return new string(*t1);
+    }
+
+    return new string(*t2);
 }
 
 std::string* resolveSignedUnsignedImpCast(ParserState* parser, 
-                                            AstNode* n1, 
-                                            AstNode* n2, 
+                                            const std::string* t1, 
+                                           const std::string* t2, 
                                             uint8_t g1, 
                                             uint8_t g2)
 {
     static const char* signedTypes[] = { "char", "short", "int", "long"};
 
 
-    AstNode* signedNode = g1 == SIGNED_INT_GROUP ? n1 : n2;
-    AstNode* unsignedNode = g1 == UNSIGNED_INT_GROUP ? n1 : n2;
-    SymbolType* signedSym = getSymbolType(parser, signedNode->type);
-    SymbolType* unsignedSym = getSymbolType(parser, unsignedNode->type);
+    const string* signedType = g1 == SIGNED_INT_GROUP ? t1 : t2;
+    const string* unsignedType = g1 == UNSIGNED_INT_GROUP ? t1 : t2;
+    SymbolType* signedSym = getSymbolType(parser, signedType);
+    SymbolType* unsignedSym = getSymbolType(parser, unsignedType);
 
     uint8_t signedStrength = signedSym->affiliation - SIGNED_INT_GROUP;
     uint8_t unsignedStrength = unsignedSym->affiliation - UNSIGNED_INT_GROUP;
@@ -224,12 +229,35 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
     {
         var = new SymbolVariable();
         var->symClass = SymbolClass::VARIABLE;
-        var->varType = root->type;
-        root->type = nullptr;
+        // decoding type/qualifier info
+        var->varType = new string();
+        var->qualifiers = new string();
+        int i;
+        for( i=0; i < root->type->length(); i++)
+        {
+            if((*root->type)[i] == '|')
+            {
+                i++;
+                break;
+            }
+            *var->varType += (*root->type)[i];
+        }
+        *var->qualifiers += (*root->type)[i++];
+        while (i < root->type->length())
+        {
+            *var->varType += '*';
+            i++;
+            *var->qualifiers += (*root->type)[i];
+            i++;
+        }
+        
         SET_SYMBOL(parser, *root->data, (Symbol*)var);
         setDefinedAttr(var);
         if(initializer)
         {
+            delete root->type;
+            // copy properly decoded type info
+            root->type = new string(*var->varType);
             return root;
         }
     }
@@ -393,7 +421,7 @@ void addParameterToStruct(ParserState *parser,
     typeVar->names.push_back( std::move(*identifier->data) );
 }
 
-SymbolType* getSymbolType(ParserState *parser, std::string* name)
+SymbolType* getSymbolType(ParserState *parser, const std::string* name)
 {
     Symbol* sym = GET_SYMBOL(parser, *name);
     if(!sym)

@@ -286,7 +286,27 @@ AstNode *parseCastingType(ParserState *parser)
 
     AstNode* cast = ALLOCATE_NODE(parser);
     cast->nodeType = NodeType::CAST;
-    cast->type = type;
+    cast->type = new string(); // hold type info
+    cast->data = new string(); // hold qualifier info
+    int i;
+    for( i=0; i < type->length(); i++)
+    {
+        if((*type)[i] == '|')
+        {
+            i++;
+            break;
+        }
+        *cast->type += (*type)[i];
+    }
+    *cast->data += (*type)[i++];
+    while (i < type->length())
+    {
+        *cast->type +='*';
+        i++;
+        *cast->data += (*type)[i];
+        i++;
+    }
+    delete type;
     return cast;
 }
 
@@ -457,8 +477,7 @@ AstNode *parseStructAccess(ParserState *parser, AstNode *root)
 
 void validateStructAccess(ParserState *parser, AstNode *root)
 {
-    string::size_type pos = (*root->children[0]->type).find('|');
-    string* symbol = new string((*root->children[0]->type).substr(0, pos));
+    string* symbol = new string(*root->children[0]->type);
     Symbol* sym = GET_SYMBOL(parser, *symbol);
     if(!sym)
     {
@@ -551,8 +570,6 @@ void processConstant(ParserState *parser, AstNode *constant)
             constant->type = new string("int");
         }
         value.erase(value.size()-suffix, suffix);
-        *constant->type += '|';
-        *constant->type += EMPTY_QUALIFIERS;
         return;
     }
 
@@ -570,13 +587,11 @@ void processConstant(ParserState *parser, AstNode *constant)
     {
         constant->type = new string("double");
     }
-    *constant->type += '|';
-    *constant->type += EMPTY_QUALIFIERS;
 }
 
 void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
 {
-    if(left->type->find('#') != string::npos && right->type->find('#') &&
+    if(left->type->find('*') != string::npos && right->type->find('*') &&
        *left->type != *right->type)
     {
         triggerParserError(parser, 1, 
@@ -588,45 +603,23 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
         return;
     }
 
-    size_t lp = (*left->type).find('|');
-    string* leftType = new string((*left->type).substr(0, lp) );
-    lp+=2;
-    while (lp < left->type->length())
-    {
-        *leftType += (*left->type)[lp];
-        lp+=2;
-    }
-    size_t rp = (*right->type).find('|');
-    string* rightType = new string((*right->type).substr(0, rp));
-    rp+=2;
-    while (rp < right->type->length())
-    {
-        *rightType += (*right->type)[rp++];
-        rp+=2;
-    }
-
-    AstNode* lNode = ALLOCATE_NODE(parser);
-    lNode->type = leftType;
-    AstNode* rNode = ALLOCATE_NODE(parser);
-    rNode->type = rightType;
-
-    uint8_t leftGroup = getTypeGroup(parser, lNode);
-    uint8_t rightGroup = getTypeGroup(parser, rNode);
-    uint8_t leftAffiliation = getTypeAffiliation(parser, lNode->type);
-    uint8_t rightAffiliation = getTypeAffiliation(parser, rNode->type);
+    uint8_t leftGroup = getTypeGroup(parser, left->type);
+    uint8_t rightGroup = getTypeGroup(parser, right->type);
+    uint8_t leftAffiliation = getTypeAffiliation(parser, left->type);
+    uint8_t rightAffiliation = getTypeAffiliation(parser, right->type);
     if( rightGroup == leftGroup)
     {
         if(leftAffiliation< rightAffiliation)
         {
             triggerParserWarning(parser,  "Assignment betwen \"%s\"<-\"%s\" may cause loss of data\n", 
-            lNode->type->c_str(), rNode->type->c_str());
+            left->type->c_str(), right->type->c_str());
         }
         return;
     }
     if( leftGroup == UNSIGNED_INT_GROUP && rightGroup == SIGNED_INT_GROUP)
     {
          triggerParserWarning(parser,  "Assignment betwen \"%s\" <- \"%s\" may cause loss of data\n", 
-         lNode->type->c_str(), rNode->type->c_str());
+         left->type->c_str(), right->type->c_str());
          return;
     }
 
@@ -635,7 +628,7 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
         if(leftAffiliation >> SIGNED_INT_GROUP *4 <= rightAffiliation >> UNSIGNED_INT_GROUP *4)
         {
             triggerParserWarning(parser,  "Assignment betwen \"%s\" <- \"%s\" may cause loss of data\n", 
-            lNode->type->c_str(), rNode->type->c_str());
+            left->type->c_str(), right->type->c_str());
         }
          return;
     }
@@ -645,79 +638,42 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
 
 std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
 {
-    size_t lp = (*left->type).find('|');
-    string* leftType = new string((*left->type).substr(0, lp) );
-    lp+=2;
-    while (lp < left->type->length())
-    {
-        *leftType += (*left->type)[lp];
-        lp+=2;
-    }
-    size_t rp = (*right->type).find('|');
-    string* rightType = new string((*right->type).substr(0, rp));
-    rp+=2;
-    while (rp < right->type->length())
-    {
-        *rightType += (*right->type)[rp++];
-        rp+=2;
-    }
-
-    AstNode* lNode = ALLOCATE_NODE(parser);
-    lNode->type = leftType;
-    AstNode* rNode = ALLOCATE_NODE(parser);
-    rNode->type = rightType;
-
     uint8_t leftGroup;
     uint8_t rightGroup;
 
-    if((*leftType == "void" || *rightType == "void" ) ||
-       (leftType->find("struct") != string::npos || rightType->find("struct") != string::npos) )
+    if((*left->type == "void" || *right->type == "void" ) ||
+       (left->type->find("struct") != string::npos || right->type->find("struct") != string::npos) )
     {
         goto trigger_error;
     }
 
-    if(*leftType == *rightType)
+    if(*left->type == *right->type)
     {
-        delete leftType;
-        string* type = new string(*rightType);
-        delete rightType;
-        *type += '|';
-        *type += EMPTY_QUALIFIERS;
-        return type;
+        return new string(*right->type);
     }
 
-    leftGroup = getTypeGroup(parser, lNode);
-    rightGroup = getTypeGroup(parser, rNode);
+    leftGroup = getTypeGroup(parser, left->type);
+    rightGroup = getTypeGroup(parser, right->type);
 
     if( rightGroup == leftGroup)
     {
-        string* type = copyStrongerType(parser, lNode, rNode);
-        // in general for expressions qualifiers do not matter
-        // but it is needed for consistency
-        *type += '|';
-        *type += EMPTY_QUALIFIERS;
-        return type;
+        return copyStrongerType(parser, left->type, right->type);
     }
 
     if( (leftGroup == SIGNED_INT_GROUP &&  rightGroup == UNSIGNED_INT_GROUP) ||
         (leftGroup == UNSIGNED_INT_GROUP &&  rightGroup == SIGNED_INT_GROUP) )
     {
-        string* targetType = resolveSignedUnsignedImpCast(parser, lNode, rNode, leftGroup, rightGroup);
+        string* targetType = resolveSignedUnsignedImpCast(parser, left->type, right->type, leftGroup, rightGroup);
         triggerParserWarning(parser, 
         "Implicit conversion between \"%s\" and \"%s\" into \"%s\", possible loss of data\n",
-        leftType->c_str(), rightType->c_str(), targetType->c_str());
+         left->type->c_str(), right->type->c_str(), targetType->c_str());
         *targetType += '|';
         *targetType += EMPTY_QUALIFIERS;
         return targetType;
     }
 
-
-
 trigger_error:
-    AstNode* holder = ALLOCATE_NODE(parser);
-    holder->data = leftType;
-    holder->type = rightType;
     triggerParserError(parser, 1, "Implicit conversion between \"%s\" and \"%s\" is not allowed\n",
-    leftType->c_str(),  rightType->c_str());
+     left->type->c_str(),   right->type->c_str());
     return nullptr;
 }

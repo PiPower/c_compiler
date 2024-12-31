@@ -56,18 +56,18 @@ void triggerParserWarning(ParserState* parser,
 
 AstNode* fillSymtab(AstNode* root);
 NodeType tokenMathTypeToNodeType(const Token& token);
-uint8_t getTypeGroup(ParserState* parser, AstNode* typeNode);
-std::string* copyStrongerType(ParserState* parser, AstNode* n1, AstNode* n2);
+uint8_t getTypeGroup(ParserState* parser, const std::string* name);
+std::string* copyStrongerType(ParserState* parser, const std::string* t1, const std::string* t2);
 std::string* resolveSignedUnsignedImpCast(ParserState* parser, 
-                                            AstNode* n1, 
-                                            AstNode* n2, 
+                                           const std::string* t1, 
+                                           const std::string* t2, 
                                             uint8_t g1, 
                                             uint8_t g2);
 static inline NodeType assignementTokenToNodeType(const Token& token)
 {
     return (NodeType) ((int)token.type - (int)TokenType::EQUAL + (int)NodeType::ASSIGNMENT) ;
 }
-//fills and checks symbol table
+// fills and checks symbol table
 // removes nodes that are more abstact
 std::vector<AstNode*> processDeclarationTree(AstNode* root, ParserState* parser);
 AstNode* processVariable(AstNode *root, ParserState *parser);
@@ -78,7 +78,7 @@ void addParameterToStruct(ParserState *parser,
                             SymbolType *typeVar,
                             AstNode *typeNode, 
                             const std::string* type);
-SymbolType* getSymbolType(ParserState *parser, std::string* name);
+SymbolType* getSymbolType(ParserState *parser, const std::string* name);
 uint16_t getTypeAffiliation(ParserState *parser, std::string* name);
 
 #endif

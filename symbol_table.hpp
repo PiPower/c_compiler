@@ -76,6 +76,7 @@ struct SymbolVariable
 {
     SymbolClass symClass;
     std::string* varType;
+    std::string* qualifiers;
     // bit 0 is defined
     uint64_t attributes;
 
