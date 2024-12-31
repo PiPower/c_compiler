@@ -230,26 +230,9 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
         var = new SymbolVariable();
         var->symClass = SymbolClass::VARIABLE;
         // decoding type/qualifier info
-        var->varType = new string();
-        var->qualifiers = new string();
-        int i;
-        for( i=0; i < root->type->length(); i++)
-        {
-            if((*root->type)[i] == '|')
-            {
-                i++;
-                break;
-            }
-            *var->varType += (*root->type)[i];
-        }
-        *var->qualifiers += (*root->type)[i++];
-        while (i < root->type->length())
-        {
-            *var->varType += '*';
-            i++;
-            *var->qualifiers += (*root->type)[i];
-            i++;
-        }
+        TypePair typeInfo = decodeType(root->type);
+        var->varType = typeInfo.type;
+        var->qualifiers = typeInfo.qualifiers;
         
         SET_SYMBOL(parser, *root->data, (Symbol*)var);
         setDefinedAttr(var);
@@ -307,7 +290,9 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
         fn->attributes = 0;
         fn->fnStackSize = 0;
         fn->symClass = SymbolClass::FUNCTION;
-        fn->retType = root->type;
+        TypePair pair = decodeType(root->type);
+        fn->retType = pair.type;
+        fn->qualifiers = pair.qualifiers;
         root->type = nullptr;
         SET_SYMBOL(parser, *root->data, (Symbol*)fn);
 
@@ -318,8 +303,10 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
 
         for( AstNode* param : args->children)
         {
-            fn->argTypes.push_back(param->type);
-            param->type = nullptr;
+            pair = decodeType(param->type);
+            fn->argTypes.push_back(pair.type);
+            fn->argQualifiers.push_back(pair.qualifiers);
+            
         }
     }
     // if function definition retain function declaration
@@ -443,4 +430,32 @@ uint16_t getTypeAffiliation(ParserState *parser, std::string* name)
     }
     SymbolType* symType = getSymbolType(parser, name);
     return symType->affiliation;
+}
+
+//decode encoded type into (type, qualifier)
+TypePair decodeType(const std::string *encodedType)
+{
+    TypePair pair;
+    pair.type = new string();
+    pair.qualifiers = new string();
+    int i;
+    for( i=0; i < encodedType->length(); i++)
+    {
+        if((*encodedType)[i] == '|')
+        {
+            i++;
+            break;
+        }
+        *pair.type += (*encodedType)[i];
+    }
+    *pair.qualifiers += (*encodedType)[i++];
+    while (i < encodedType->length())
+    {
+        *pair.type += '*';
+        i++;
+        *pair.qualifiers += (*encodedType)[i];
+        i++;
+    }
+
+    return pair;
 }

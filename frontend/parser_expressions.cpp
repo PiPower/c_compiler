@@ -286,26 +286,9 @@ AstNode *parseCastingType(ParserState *parser)
 
     AstNode* cast = ALLOCATE_NODE(parser);
     cast->nodeType = NodeType::CAST;
-    cast->type = new string(); // hold type info
-    cast->data = new string(); // hold qualifier info
-    int i;
-    for( i=0; i < type->length(); i++)
-    {
-        if((*type)[i] == '|')
-        {
-            i++;
-            break;
-        }
-        *cast->type += (*type)[i];
-    }
-    *cast->data += (*type)[i++];
-    while (i < type->length())
-    {
-        *cast->type +='*';
-        i++;
-        *cast->data += (*type)[i];
-        i++;
-    }
+    TypePair typeInfo = decodeType(type);
+    cast->type = typeInfo.type;
+    cast->data = typeInfo.qualifiers;
     delete type;
     return cast;
 }
@@ -667,8 +650,6 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
         triggerParserWarning(parser, 
         "Implicit conversion between \"%s\" and \"%s\" into \"%s\", possible loss of data\n",
          left->type->c_str(), right->type->c_str(), targetType->c_str());
-        *targetType += '|';
-        *targetType += EMPTY_QUALIFIERS;
         return targetType;
     }
 

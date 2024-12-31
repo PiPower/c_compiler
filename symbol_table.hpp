@@ -91,6 +91,7 @@ struct SymbolFunction
 {
     SymbolClass symClass;
     std::string* retType;
+    std::string* qualifiers;
     // bit 0 is defined
     uint64_t attributes;
     // does not include args
@@ -98,6 +99,7 @@ struct SymbolFunction
     SymbolTable localSymtab;
     std::vector<std::string*> argTypes;
     std::vector<std::string*> argNames;
+    std::vector<std::string*> argQualifiers;
     SymbolFunction()
     :
     symClass(SymbolClass::VARIABLE), retType(nullptr), attributes(0)

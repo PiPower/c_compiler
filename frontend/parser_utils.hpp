@@ -42,6 +42,12 @@ enum class NodeType
     POINTER, DREF_PTR, ACCESS, CAST
 };
 
+struct TypePair
+{
+    std::string* type;
+    std::string* qualifiers;
+};
+
 struct ParserState;
 struct AstNode;
 
@@ -80,5 +86,5 @@ void addParameterToStruct(ParserState *parser,
                             const std::string* type);
 SymbolType* getSymbolType(ParserState *parser, const std::string* name);
 uint16_t getTypeAffiliation(ParserState *parser, std::string* name);
-
+TypePair decodeType(const std::string* encodedType);
 #endif
