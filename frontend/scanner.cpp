@@ -137,11 +137,6 @@ Token Scanner::parsePunctuators(const char *c)
         break;
     case '-':
         index++;
-        if(c[index]>='0' && c[index]<='9')
-        {
-            index--;
-            return parseConstant(src_buffer);
-        }
         switch (c[index])
         {
         case '=':
@@ -384,9 +379,6 @@ Token Scanner::parseConstant(const char *c)
 
 
     string* str = new string();
-    if(c[index] == '+' ) {index++;}
-    else if(c[index] == '-') { *str += c[index++];}
-
     while (isDigit(c[index]))
     {
         (*str) += c[index];
