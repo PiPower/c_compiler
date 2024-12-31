@@ -493,7 +493,7 @@ std::string *drefPtrType(const std::string *ptrType)
     int i;
     for(i = type.size()- 1; i >=0; i--)
     {
-        if(type[i] == '#')
+        if(type[i] == '*')
         {
             break;
         }
@@ -550,7 +550,7 @@ void processConstant(ParserState *parser, AstNode *constant)
         }
         value.erase(value.size()-suffix, suffix);
         *constant->type += '|';
-        *constant->type += (char)0x01;
+        *constant->type += EMPTY_QUALIFIERS;
         return;
     }
 
@@ -569,15 +569,27 @@ void processConstant(ParserState *parser, AstNode *constant)
         constant->type = new string("double");
     }
     *constant->type += '|';
-    *constant->type += (char)0x01;
+    *constant->type += EMPTY_QUALIFIERS;
 }
 
 std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
 {
     size_t lp = (*left->type).find('|');
     string* leftType = new string((*left->type).substr(0, lp) );
+    lp+=2;
+    while (lp < left->type->size())
+    {
+        *leftType += (*left->type)[lp];
+        lp+=2;
+    }
     size_t rp = (*right->type).find('|');
     string* rightType = new string((*right->type).substr(0, rp));
+    rp+=2;
+    while (rp < left->type->size())
+    {
+        *leftType += (*right->type)[rp++];
+        rp+=2;
+    }
 
     AstNode* lNode = ALLOCATE_NODE(parser);
     lNode->data = leftType;
@@ -592,13 +604,13 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
     {
         goto trigger_error;
     }
-    
+
     if(*leftType == *rightType)
     {
         delete leftType;
         string* type = new string(*rightType);
         *type += '|';
-        *type += 0x01;
+        *type += EMPTY_QUALIFIERS;
         return type;
     }
 
@@ -611,7 +623,7 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
         // in general for expressions qualifiers do not matter
         // but it is needed for consistency
         *type += '|';
-        *type += 0x01;
+        *type += EMPTY_QUALIFIERS;
         return type;
     }
 
@@ -623,7 +635,7 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
         "Implicit conversion between \"%s\" and \"%s\" into \"%s\", possible loss of data\n",
         leftType->c_str(), rightType->c_str(), targetType->c_str());
         *targetType += '|';
-        *targetType += 0x01;
+        *targetType += EMPTY_QUALIFIERS;
         return targetType;
     }
 

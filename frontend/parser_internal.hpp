@@ -20,7 +20,7 @@
 #define PEEK_NEXT_TOKEN(parser) (parser)->scanner->peekNextToken() 
 #define PUT_FRONT(parser, token) (parser)->scanner->putfront(token);
 #define GLOBAL_SCOPE 0
-
+#define EMPTY_QUALIFIERS 0x01
 struct ParserState
 {
     Scanner* scanner;

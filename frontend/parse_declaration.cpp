@@ -121,6 +121,7 @@ AstNode *parseDeclarator(ParserState *parser)
     {
         CONSUME_TOKEN(parser, TokenType::STAR);
         uint8_t qualifier = parseQualifierList(parser);
+        perPtrQualifier += '*'; 
         perPtrQualifier += (char)qualifier; 
     }
     if(perPtrQualifier.size() > 0 )
@@ -252,7 +253,7 @@ std::string* parseSpecQualList(ParserState *parser)
         (*type)[type->length()-1] = (char)oldQualifiers;
     }
 
-    if(!type && qualifiers != 0x01)
+    if(!type && qualifiers != EMPTY_QUALIFIERS)
     {
         triggerParserError(parser, 1, "Type qualifiers can only be used with type symbols\n");
     }
@@ -311,15 +312,14 @@ std::string *parseStruct(ParserState *parser)
             symType->symClass = SymbolClass::TYPE;
             symType->attributes = 0x00;
             SET_SYMBOL(parser, *structName, (Symbol*)symType);
-            uint8_t qualifiers = 0x01;
             *structName += '|';
-            *structName += (char)qualifiers;
+            *structName += EMPTY_QUALIFIERS;
             return structName;
         }
         else if (PEEK_TOKEN(parser).type == TokenType::SEMICOLON)
         {
             *structName += '|';
-            *structName += (char)(char)0x01;
+            *structName += EMPTY_QUALIFIERS;
             return structName;
         }
     }
@@ -340,7 +340,7 @@ std::string *parseStruct(ParserState *parser)
             triggerParserError(parser, 1, "Symbol \"%s\" does not correspond to DEFINED type\n", structName->c_str());
         }
         *structName += '|';
-        *structName += (char)0x01;
+        *structName += EMPTY_QUALIFIERS;
         return structName;
     }
 
@@ -354,7 +354,7 @@ std::string *parseStruct(ParserState *parser)
     parseStructDeclList(parser, structName);
     CONSUME_TOKEN(parser, TokenType::R_BRACE);
     *structName += '|';
-    *structName += (char)0x01;
+    *structName += EMPTY_QUALIFIERS;
 
     return structName;
 }
@@ -369,7 +369,7 @@ std::string *parseTypeName(ParserState *parser)
     {
         CONSUME_TOKEN(parser, TokenType::STAR);
         uint8_t qualifier = parseQualifierList(parser);
-        *type += '#';
+        *type += '*';
         *type += (char)qualifier;
     }
     

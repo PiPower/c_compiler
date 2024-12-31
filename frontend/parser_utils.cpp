@@ -82,6 +82,12 @@ NodeType tokenMathTypeToNodeType(const Token& token)
 
 uint8_t getTypeGroup(ParserState *parser,  AstNode *typeNode)
 {   
+
+    if(typeNode->data->find('*')!= string::npos )
+    {
+        return SPECIAL_GROUP;
+    }
+
     SymbolType* symType = getSymbolType(parser, typeNode->data);
     if( (symType->affiliation & 0x0F) > 0)
     {
@@ -176,7 +182,6 @@ std::vector<AstNode*> processDeclarationTree(AstNode *root, ParserState* parser)
                 }
                 declarator->type = ptr->type;
                 ptr->type = nullptr;
-                *declarator->type += '#'; //mark ptr attributes
                 *declarator->type += *ptr->data;
                 FREE_NODE(parser, ptr);
             }
@@ -384,7 +389,7 @@ void addParameterToStruct(ParserState *parser,
 
     AstNode* identifier = typeNode->children[0];  
 
-    typeVar->types.push_back( *type + '#' + *typeNode->data);
+    typeVar->types.push_back( *type + '*' + *typeNode->data);
     typeVar->names.push_back( std::move(*identifier->data) );
 }
 
@@ -393,11 +398,11 @@ SymbolType* getSymbolType(ParserState *parser, std::string* name)
     Symbol* sym = GET_SYMBOL(parser, *name);
     if(!sym)
     {
-        triggerParserError(parser, 1, "type named %s does not exist\n", name->c_str());
+        triggerParserError(parser, 1, "type named \"%s\" does not exist\n", name->c_str());
     }
     if(sym->symClass != SymbolClass::TYPE)
     {
-        triggerParserError(parser, 1, "Implementation error: %s is not a typename\n", name->c_str());
+        triggerParserError(parser, 1, "Implementation error: \"%s\" is not a typename\n", name->c_str());
     }
     return (SymbolType*)sym;
 }
