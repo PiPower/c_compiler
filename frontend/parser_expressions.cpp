@@ -616,7 +616,8 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
          return;
     }
 
-    triggerParserError(parser, 1, "Assignment betwen \"%s\" <- \"%s\" is forbidden\n");
+    triggerParserError(parser, 1, "Assignment between \"%s\" <- \"%s\" is forbidden\n", 
+    left->type->c_str(), right->type->c_str());
 }
 
 std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
