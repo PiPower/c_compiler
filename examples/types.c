@@ -37,7 +37,7 @@ typedef struct Point2D
    float x, y, z;
 } Point2D;
 
-typedef struct Point2D XDDDD;
+typedef const struct Point2D XDDDD;
 
 struct composite
 {

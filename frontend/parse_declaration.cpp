@@ -182,6 +182,33 @@ AstNode *parseStructDeclaration(ParserState *parser)
 
 std::string *parseDeclSpec(ParserState *parser)
 {
+    string* type = nullptr;
+    Token token = PEEK_TOKEN(parser);
+    if(token.type == TokenType::TYPEDEF)
+    {
+        CONSUME_TOKEN(parser, TokenType::TYPEDEF);
+        type = parseSpecQualList(parser);
+        Token alias = GET_TOKEN(parser);
+        if(alias.type != TokenType::IDENTIFIER)
+        {
+            AstNode* handle = ALLOCATE_NODE(parser);
+            handle->data = alias.data;
+            triggerParserError(parser, 1, "expected identifier \n");
+        }
+        SymbolAlias* symAlias = new SymbolAlias();
+        symAlias->symClass = SymbolClass::ALIAS;
+        symAlias->realName = new string(*type);
+        SET_SYMBOL(parser, *alias.data, (Symbol*)symAlias);
+        if(PEEK_TOKEN(parser).type != TokenType::SEMICOLON)
+        {
+            triggerParserError(parser, 1, "typedef ends with ; \n");
+        }
+        return new string("");
+    }
+    else
+    {
+        return parseSpecQualList(parser);
+    }
     return parseSpecQualList(parser);
 }
 
@@ -200,26 +227,6 @@ std::string* parseSpecQualList(ParserState *parser)
     {
         type = parseStruct(parser);
     }
-    else if(token.type == TokenType::TYPEDEF)
-    {
-        CONSUME_TOKEN(parser, TokenType::TYPEDEF);
-        type = parseStruct(parser);
-        Token alias = GET_TOKEN(parser);
-        if(alias.type != TokenType::IDENTIFIER)
-        {
-            AstNode* handle = ALLOCATE_NODE(parser);
-            handle->data = alias.data;
-            triggerParserError(parser, 1, "expected identifier \n");
-        }
-        SymbolAlias* symAlias = new SymbolAlias();
-        symAlias->symClass = SymbolClass::ALIAS;
-        symAlias->realName = new string(*type);
-        SET_SYMBOL(parser, *alias.data, (Symbol*)symAlias);
-        if(PEEK_TOKEN(parser).type != TokenType::SEMICOLON)
-        {
-            triggerParserError(parser, 1, "typedef ends with ; \n");
-        }
-    }
     else if(token.type == TokenType::IDENTIFIER)
     {
         Symbol* sym = GET_SYMBOL(parser, *token.data);
@@ -231,13 +238,15 @@ std::string* parseSpecQualList(ParserState *parser)
         {
             delete token.data;
             string name ="";
-            for(int i=0; (*((SymbolAlias*)sym)->realName)[i] != '|'; i++)
+            int i;
+            SymbolAlias* symName = ( SymbolAlias*)sym;
+            for(i=0; (*symName->realName)[i] != '|'; i++)
             {
-                name += (*((SymbolAlias*)sym)->realName)[i];
+                name += (*symName->realName)[i];
             }
 
-            Symbol* alias = GET_SYMBOL(parser, name);
-            if(alias->symClass != SymbolClass::TYPE )
+            Symbol* aliasedSymbol = GET_SYMBOL(parser, name);
+            if(aliasedSymbol->symClass != SymbolClass::TYPE )
             {
                 triggerParserError(parser, 1, "Incorrect typedef\n");
             }
@@ -248,9 +257,10 @@ std::string* parseSpecQualList(ParserState *parser)
 
     if(type)
     {
-        uint8_t oldQualifiers = (uint8_t) (*type)[type->length()-1];
+        size_t j = type->find('|');
+        uint8_t oldQualifiers = (uint8_t) (*type)[j + 1];
         oldQualifiers |= qualifiers;
-        (*type)[type->length()-1] = (char)oldQualifiers;
+        (*type)[j + 1] = (char)oldQualifiers;
     }
 
     if(!type && qualifiers != EMPTY_QUALIFIERS)
