@@ -13,6 +13,7 @@ public:
     Scanner(const char* sourceCode);
     bool currentTokenOneOf(const std::vector<TokenType>& types);
     bool currentTokenOneOf(const TokenType* types, uint32_t tokenCount);
+    void putfront(Token token);
     Token getToken();
     Token peekToken();
     Token peekNextToken();
@@ -33,7 +34,7 @@ public:
     unsigned int line;
 private:
     const char* src_buffer;
-    std::queue<Token> token_queue;
+    std::deque<Token> token_queue;
     std::unordered_map<std::string, TokenType> keywordMap;
 };
 

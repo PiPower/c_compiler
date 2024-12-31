@@ -462,7 +462,7 @@ bool Scanner::currentTokenOneOf(const std::vector<TokenType>& types)
     Token* token;
     if( token_queue.size() == 0)
     {
-        token_queue.push( getToken() );
+        token_queue.push_back( getToken() );
     }
     token = &token_queue.front();
 
@@ -475,7 +475,7 @@ bool Scanner::currentTokenOneOf(const TokenType *types, uint32_t tokenCount)
     Token* token;
     if( token_queue.size() == 0)
     {
-        token_queue.push( getToken() );
+        token_queue.push_back( getToken() );
     }
     token = &token_queue.front();
 
@@ -491,12 +491,17 @@ bool Scanner::currentTokenOneOf(const TokenType *types, uint32_t tokenCount)
     return false;
 }
 
+void Scanner::putfront(Token token)
+{
+    token_queue.push_front(token);
+}
+
 Token Scanner::getToken()
 {
     if(token_queue.size() != 0)
     {
         Token token = token_queue.front();
-        token_queue.pop();
+        token_queue.pop_front();
         return token;
     }
  
@@ -545,7 +550,7 @@ Token Scanner::peekToken()
         return token_queue.front();
     }
     Token token = getToken();
-    token_queue.push(token);
+    token_queue.push_back(token);
     return token;
 }
 
@@ -553,13 +558,12 @@ Token Scanner::peekNextToken()
 {
     while (token_queue.size() < 2 )
     {
-        token_queue.push(getToken());
+        token_queue.push_back(getToken());
     }
-
     Token holder = token_queue.front();
-    token_queue.pop();
+    token_queue.pop_front();
     Token targetToken = token_queue.front();
-    token_queue.push(holder);
+    token_queue.push_front(holder);
     return targetToken;
 }
 
@@ -567,13 +571,13 @@ bool Scanner::match(TokenType type)
 {
     if(token_queue.size() == 0)
     {
-        token_queue.push(getToken());
+        token_queue.push_back(getToken());
     }
 
     Token token = token_queue.front();
     if(token.type == type)
     {
-        token_queue.pop();
+        token_queue.pop_front();
         return true;
     }
     return false;
@@ -585,7 +589,7 @@ void Scanner::consume(TokenType type)
     if(token_queue.size() != 0)
     {
         token = token_queue.front();
-        token_queue.pop();
+        token_queue.pop_front();
     }
     else
     {
