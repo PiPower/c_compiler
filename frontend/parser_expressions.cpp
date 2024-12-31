@@ -122,6 +122,7 @@ AstNode *assignmentExpression(ParserState *parser)
         assignement->nodeType = operators.top();
         assignement->children.push_back(nodes.top());
         assignement->children.push_back(root);
+        assignement->type = new string(*nodes.top()->type);
         operators.pop();
         nodes.pop();
         root = assignement;
@@ -223,6 +224,8 @@ AstNode *multiplicativeExpression(ParserState *parser)
 
 AstNode *castExpression(ParserState *parser)
 {
+    AstNode* castOperator = parseCastingType(parser);
+
     if(parser->isParsingAssignment)
     {
         static constexpr uint64_t len = sizeof(assignmentTypes)/sizeof(TokenType);
@@ -234,14 +237,55 @@ AstNode *castExpression(ParserState *parser)
         buff[0] = parser->assignmentJmp[0];
 
         AstNode* root = unaryExpression(parser);
-        if(!parser->scanner->currentTokenOneOf(assignmentTypes, len))
+        if(!parser->scanner->currentTokenOneOf(assignmentTypes, len) || castOperator)
         {
+            if(castOperator)
+            {
+                castOperator->children.push_back(root);
+                root = castOperator;
+            }
             return root;
         }
         parser->jmpHolder = root;
         longjmp(buff, 1);
     }
-    return unaryExpression(parser);
+
+    AstNode* root = unaryExpression(parser);
+    if(castOperator)
+    {
+        castOperator->children.push_back(root);
+        root = castOperator;
+    }
+    return root;
+}
+
+AstNode *parseCastingType(ParserState *parser)
+{
+     //outer most cast is only needed to be considered
+    if(PEEK_TOKEN(parser).type != TokenType::L_PARENTHESES)
+    {
+        return nullptr;
+    }
+    Token t = GET_TOKEN(parser);
+    string* type = parseTypeName(parser);
+    if(!type)
+    {
+        PUT_FRONT(parser, t);
+        return nullptr;
+    }
+    else
+    {
+        CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
+        // possible chain of casting, casts further down the chain
+        // are useless
+        AstNode* unused_type = parseCastingType(parser);
+        FREE_NODE(parser, unused_type);
+    }
+
+    AstNode* cast = ALLOCATE_NODE(parser);
+    cast->nodeType = NodeType::CAST;
+    cast->type = type;
+    return cast;
 }
 
 AstNode *unaryExpression(ParserState *parser)

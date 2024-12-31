@@ -3,9 +3,9 @@ int main()
 
     unsigned int x, b, c, g;
     long int y = -230000000000000000;
-    unsigned int d = x + y;
-    68 * 3  * (293 + 32 - 4) / x + y;
+    unsigned int d = x + (unsigned int)y;
+    68 * 3  * (293 + 32 - 4) / (long)x + y;
 
-    x = b = c *2 + 23 * (g = 2);
+    x = b = (long)c *2 + 23 * (long)(g = 2);
     return 2;
 }

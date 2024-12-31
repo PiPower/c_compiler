@@ -18,6 +18,7 @@
 #define POP_TOKEN(parser) GET_TOKEN( (parser) )
 #define PEEK_TOKEN(parser) (parser)->scanner->peekToken() 
 #define PEEK_NEXT_TOKEN(parser) (parser)->scanner->peekNextToken() 
+#define PUT_FRONT(parser, token) (parser)->scanner->putfront(token);
 #define GLOBAL_SCOPE 0
 
 struct ParserState
@@ -66,6 +67,7 @@ std::string* parseDeclSpec(ParserState* parser);
 std::string* parseSpecQualList(ParserState* parser);
 std::string* parseBuiltInType(ParserState* parser);
 std::string* parseStruct(ParserState* parser);
+std::string* parseTypeName(ParserState* parser);
 void parseStructDeclList(ParserState* parser, const std::string* structName);
 uint8_t parseQualifierList(ParserState* parser);
 AstNode* parseDirectDeclarator(ParserState* parser);
@@ -87,6 +89,7 @@ AstNode* shiftExpression(ParserState *parser);
 AstNode* additiveExpression(ParserState *parser);
 AstNode* multiplicativeExpression(ParserState *parser);
 AstNode* castExpression(ParserState *parser);
+AstNode* parseCastingType(ParserState *parser);
 AstNode* unaryExpression(ParserState *parser);
 AstNode* postfixExpression(ParserState *parser);
 AstNode* primaryExpression(ParserState *parser);

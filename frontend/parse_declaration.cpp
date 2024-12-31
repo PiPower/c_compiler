@@ -359,6 +359,23 @@ std::string *parseStruct(ParserState *parser)
     return structName;
 }
 
+std::string *parseTypeName(ParserState *parser)
+{
+    // for now does not support pointer_opt direct-abstract-declarator
+    // only pointer !!!!!
+    string* type = parseSpecQualList(parser);
+
+    while (CURRENT_TOKEN_ON_OF(parser, {TokenType::STAR}))
+    {
+        CONSUME_TOKEN(parser, TokenType::STAR);
+        uint8_t qualifier = parseQualifierList(parser);
+        *type += '#';
+        *type += (char)qualifier;
+    }
+    
+    return type;
+}
+
 void parseStructDeclList(ParserState *parser, const std::string *structName)
 {
     SymbolType* symType = defineTypeSymbol(parser, structName);
