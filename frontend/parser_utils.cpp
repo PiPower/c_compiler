@@ -256,6 +256,7 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
     SymbolFunction * fn;
     if(sym)
     {
+        TypePair pair = decodeType(root->type);
         if( sym->symClass != SymbolClass::FUNCTION)
         {
             triggerParserError(parser, 1, "Identifier %s is not a function", root->data->c_str());
@@ -267,21 +268,27 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
             triggerParserError(parser, 1, "Redefiniction of function named %s", root->data->c_str());
         }
         // check if args are consistent
-        if( *root->type != *fn->retType)
+        if( *pair.type != *fn->retType)
         {
             triggerParserError(parser, 1, "Redeclared function %s has different return type than before\n", root->data->c_str());
         }
-
+        delete pair.type;
+        delete pair.qualifiers;
         if( args->children.size() != fn->argTypes.size())
         {
             triggerParserError(parser, 1, "Redeclared function %s has different arguments than before\n", root->data->c_str());
         }
         for(int i = 0; i < args->children.size(); i++ )
         {
-            if(*(args->children[i]->type) != *(fn->argTypes[i]) )
+            pair =  decodeType(args->children[i]->type);
+            if(*(pair.type) != *(fn->argTypes[i]) )
             {
+                delete pair.type;
+                delete pair.qualifiers;
                 triggerParserError(parser, 1, "Redeclared function %s has different arguments than before\n", root->data->c_str());
             }
+            delete pair.type;
+            delete pair.qualifiers;
         }
     }
     else
