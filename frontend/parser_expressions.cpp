@@ -616,7 +616,7 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
     uint8_t rightAffiliation = getTypeAffiliation(parser, rNode->type);
     if( rightGroup == leftGroup)
     {
-        if(leftAffiliation < rightAffiliation)
+        if(leftAffiliation< rightAffiliation)
         {
             triggerParserWarning(parser,  "Assignment betwen \"%s\"<-\"%s\" may cause loss of data\n", 
             lNode->type->c_str(), rNode->type->c_str());
@@ -625,22 +625,22 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
     }
     if( leftGroup == UNSIGNED_INT_GROUP && rightGroup == SIGNED_INT_GROUP)
     {
-         triggerParserWarning(parser,  "Assignment betwen \"%s\"<-\"%s\" may cause loss of data\n", 
+         triggerParserWarning(parser,  "Assignment betwen \"%s\" <- \"%s\" may cause loss of data\n", 
          lNode->type->c_str(), rNode->type->c_str());
          return;
     }
 
     if( leftGroup == SIGNED_INT_GROUP && rightGroup == UNSIGNED_INT_GROUP)
     {
-        if(leftAffiliation - SIGNED_INT_GROUP <= rightAffiliation - UNSIGNED_INT_GROUP)
+        if(leftAffiliation >> SIGNED_INT_GROUP *4 <= rightAffiliation >> UNSIGNED_INT_GROUP *4)
         {
-            triggerParserWarning(parser,  "Assignment betwen \"%s\"<-\"%s\" may cause loss of data\n", 
+            triggerParserWarning(parser,  "Assignment betwen \"%s\" <- \"%s\" may cause loss of data\n", 
             lNode->type->c_str(), rNode->type->c_str());
         }
          return;
     }
 
-    triggerParserError(parser, 1, "Assignment betwen \"%s\"<-\"%s\" is forbidden\n");
+    triggerParserError(parser, 1, "Assignment betwen \"%s\" <- \"%s\" is forbidden\n");
 }
 
 std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)

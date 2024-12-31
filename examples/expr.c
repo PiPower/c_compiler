@@ -7,7 +7,7 @@ int main()
     68 * 3  * (293 + 32 - 4) / (long)x + y;
 
     x = b = (long)c *2 + 23 * (long)(g = 2);
-    long int ds = 231;
+    int ds = 231;
     ds = x;
     return 2;
 }
