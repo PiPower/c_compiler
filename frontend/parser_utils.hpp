@@ -22,6 +22,7 @@ enum class NodeType
     AND, EXC_OR, OR, COMPLIMENT,
 // prefix ops
     PRE_INC, POST_INC, PRE_DEC, POST_DEC,
+    PLUS, MINUS,
 //logical ops    
     LOG_AND, LOG_OR, LOG_NOT,
 // comparisons

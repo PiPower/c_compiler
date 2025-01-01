@@ -14,7 +14,7 @@ static constexpr TokenType assignmentTypes[] = {
 
 static constexpr TokenType unaryOperators[] = {
     TokenType::PLUS_PLUS,TokenType::MINUS_MINUS,
-    TokenType::BANG, TokenType::TILDE, TokenType::PLUS, TokenType::STAR
+    TokenType::BANG, TokenType::TILDE, TokenType::PLUS, TokenType::STAR, TokenType::MINUS
     };
 
 static constexpr TokenType mulTypes[] = {
@@ -323,7 +323,24 @@ AstNode *unaryExpression(ParserState *parser)
             root->nodeType = NodeType::COMPLIMENT; 
             root->type = new string(*root->children[0]->type);
             break;
-        case TokenType::PLUS: root->nodeType = NodeType::ADD; break;
+        case TokenType::PLUS: 
+            root->nodeType = NodeType::ADD;
+            root->type = new string(*root->children[0]->type);
+            break;
+        case TokenType::MINUS: 
+        {
+            root->nodeType = NodeType::MINUS;
+            root->type = new string(*root->children[0]->type);
+            uint8_t affi = getTypeAffiliation(parser, root->type);
+            if(affi == STRUCT_GR || affi == VOID_GR || affi == POINTER_GR)
+            {
+                triggerParserError(parser, 1, "- operator has no meaning for type \"%s\"\n", root->type->c_str());
+            }
+            else if( affi >= INT8_U && affi <= INT64_U)
+            {
+                triggerParserWarning(parser, "- operator for type \"%s\" may cause loss of data\n", root->type->c_str());
+            }
+        }break;
         case TokenType::STAR:
             root->nodeType = NodeType::DREF_PTR; 
             root->type = drefPtrType(root->children[0]->type);
