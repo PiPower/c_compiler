@@ -1,6 +1,7 @@
 #include "parser_internal.hpp"
 #include "parser_utils.hpp"
 #include <stack>
+#include <algorithm>
 
 using namespace std;
 
@@ -91,7 +92,25 @@ AstNode *parseLoop(ParserState *parser,
 
 AstNode *parsePtrStructAccess(ParserState *parser, AstNode *root)
 {
-    return nullptr;
+    CONSUME_TOKEN(parser, TokenType::ARROW);
+    Token token = GET_TOKEN(parser);
+    if(token.type != TokenType::IDENTIFIER)
+    {
+        triggerParserError(parser, 1, "expected identifier\n");
+    }
+    AstNode* ptrAccess = ALLOCATE_NODE(parser);
+    ptrAccess->nodeType = NodeType::PTR_ACCESS;
+    ptrAccess->data = token.data;
+    ptrAccess->children.push_back(root);
+    string::difference_type n = count(
+        ptrAccess->children[0]->type->begin(),  ptrAccess->children[0]->type->end(), '*');
+    if(n != 1)
+    {
+        triggerParserError(parser, 1, "Operator \"->\" in inapriopriate for type %s \n", 
+        ptrAccess->children[0]->type->c_str());
+    }
+    validateStructAccess(parser, ptrAccess, true);
+    return ptrAccess;
 }
 
 AstNode *parseExpression(ParserState *parser)
@@ -360,7 +379,7 @@ AstNode *unaryExpression(ParserState *parser)
 
 AstNode *postfixExpression(ParserState *parser)
 {
-    static const TokenType postfixOperators[] = {TokenType::L_PARENTHESES, TokenType::DOT};
+    static const TokenType postfixOperators[] = {TokenType::L_PARENTHESES, TokenType::DOT, TokenType::ARROW};
     static constexpr uint64_t len = sizeof(unaryOperators)/sizeof(TokenType);
 
     AstNode* postfixExpr = primaryExpression(parser);
@@ -485,9 +504,19 @@ AstNode *parseStructAccess(ParserState *parser, AstNode *root)
     return access;
 }
 
-void validateStructAccess(ParserState *parser, AstNode *root)
+void validateStructAccess(ParserState *parser, AstNode *root, bool ptrAccess)
 {
-    string* symbol = new string(*root->children[0]->type);
+    string* type = root->children[0]->type;
+    if(ptrAccess)
+    {
+        type = new string(*type);
+        type->pop_back();
+    }
+    string* symbol = new string(*type);
+    if(ptrAccess)
+    {
+        delete type;
+    }
     Symbol* sym = GET_SYMBOL(parser, *symbol);
     if(!sym)
     {

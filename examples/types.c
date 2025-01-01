@@ -61,6 +61,7 @@ int main()
     struct Point3D p3;
     //p3.x = fn1().x;
     struct Point3D* p4, **p5;
+    (&p3)->x = 223;
     p4 = &p3;
     p5 = &p4;
     p4->y = 23;

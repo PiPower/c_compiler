@@ -96,7 +96,7 @@ AstNode* primaryExpression(ParserState *parser);
 AstNode* parseFnCall(ParserState *parser, AstNode* root);
 void validateFnCall(ParserState *parser, AstNode* root);
 AstNode* parseStructAccess(ParserState *parser, AstNode* root);
-void validateStructAccess(ParserState *parser, AstNode* root);
+void validateStructAccess(ParserState *parser, AstNode* root, bool ptrAccess = false);
 std::string* drefPtrType(const std::string* ptrType);
 void processConstant(ParserState *parser, AstNode* constant);
 void validateAssignment(ParserState *parser, AstNode* left, AstNode* right);
