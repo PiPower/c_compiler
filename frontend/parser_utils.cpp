@@ -256,7 +256,7 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
         
         SET_SYMBOL(parser, *root->data, (Symbol*)var);
         setDefinedAttr(var);
-        if(initializer)
+        if(initializer || parser->symtab->scopeLevel == 0)
         {
             delete root->type;
             // copy properly decoded type info

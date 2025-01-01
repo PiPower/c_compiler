@@ -1,3 +1,5 @@
+
+const long long volatile int xyf1;
 const long long volatile int xyf = 2;
 
 struct YOLO;
