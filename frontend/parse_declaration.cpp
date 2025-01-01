@@ -130,7 +130,7 @@ AstNode *parseDeclarator(ParserState *parser)
         ptr = ALLOCATE_NODE(parser);
         ptr->nodeType = NodeType::POINTER;
         // in case of pointers it is vector of uints8 
-        ptr->data = new string(std::move(perPtrQualifier));
+        ptr->type = new string(std::move(perPtrQualifier));
     }
 
     AstNode* root = parseDirectDeclarator(parser);
@@ -397,7 +397,15 @@ void parseStructDeclList(ParserState *parser, const std::string *structName)
         {
             for(int i =0; i < decl->children.size(); i++)
             {
-                addParameterToStruct(parser, symType, decl->children[i], decl->type);
+                if(!decl->children[i]->type)
+                {
+                    decl->children[i]->type = new string(*decl->type);
+                }
+                else
+                {
+                    *decl->children[i]->type = *decl->type +  *decl->children[i]->type;
+                }
+                addParameterToStruct(parser, symType, decl->children[i]);
             }
         }
         FREE_NODE_REC(parser, decl);

@@ -62,6 +62,7 @@ struct SymbolType
     // store references types themselves and their names
     // in the following vectors
     std::vector<std::string> types;
+    std::vector<std::string> qualifiers;
     std::vector<std::string> names;
 
 };

@@ -595,7 +595,7 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
        *left->type != *right->type)
     {
         triggerParserError(parser, 1, 
-            "Pointer assignenment between pointers of different types is invalid\n");
+            "Pointer assignment \"%s\" <- \"%s\" is invalid\n",left->type->c_str(), right->type->c_str() );
     }
 
     if(*left->type == *right->type)

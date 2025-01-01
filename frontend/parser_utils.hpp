@@ -83,8 +83,7 @@ SymbolType* defineTypeSymbol(ParserState *parser, const std::string* typeName);
 std::string* generateAnonymousStructName(ParserState *parser);
 void addParameterToStruct(ParserState *parser, 
                             SymbolType *typeVar,
-                            AstNode *typeNode, 
-                            const std::string* type);
+                            AstNode *paramNode);
 SymbolType* getSymbolType(ParserState *parser, const std::string* name);
 uint16_t getTypeAffiliation(ParserState *parser, std::string* name);
 TypePair decodeType(const std::string* encodedType);

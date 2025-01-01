@@ -414,25 +414,29 @@ std::string *generateAnonymousStructName(ParserState *parser)
 
 void addParameterToStruct(ParserState *parser, 
                             SymbolType *typeVar,
-                            AstNode *typeNode, 
-                            const std::string* type)
+                            AstNode *paramNode)
 {
-    if(typeNode->nodeType != NodeType::IDENTIFIER && 
-        typeNode->nodeType != NodeType::POINTER)
+    if(paramNode->nodeType != NodeType::IDENTIFIER && 
+        paramNode->nodeType != NodeType::POINTER)
     {
         triggerParserError(parser, 1, "Incorrect declaration of name of the type\n");
     }
-    if(typeNode->nodeType == NodeType::IDENTIFIER)
+
+    if(paramNode->nodeType == NodeType::POINTER)
     {
-        typeVar->types.push_back(*type);
-        typeVar->names.push_back( std::move(*typeNode->data) );
-        return;
+        paramNode->children[0]->type = paramNode->type;
+        paramNode->type = nullptr;
+        paramNode = paramNode->children[0];
     }
 
-    AstNode* identifier = typeNode->children[0];  
+    TypePair pair = decodeType(paramNode->type);
+    typeVar->types.push_back(std::move(*pair.type));
+    typeVar->qualifiers.push_back(std::move(*pair.qualifiers));
+    typeVar->names.push_back( std::move(*paramNode->data) );
 
-    typeVar->types.push_back( *type + '*' + *typeNode->data);
-    typeVar->names.push_back( std::move(*identifier->data) );
+    delete pair.type;
+    delete pair.qualifiers;
+    return;
 }
 
 SymbolType* getSymbolType(ParserState *parser, const std::string* name)

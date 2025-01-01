@@ -54,6 +54,8 @@ int main()
 {
     //x.x = 2;
 ;;;;;;;;;;;;;;;;;
+    // po.x = 234; <- error
+    po.x = (float**)234; // correct 
     Point2D y;
     // Point3D dy; <- error
     struct Point3D p3;
