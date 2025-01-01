@@ -616,7 +616,9 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
         }
         return;
     }
-    if( leftGroup == UNSIGNED_INT_GROUP && rightGroup == SIGNED_INT_GROUP)
+    if( leftGroup != rightGroup && 
+        leftGroup != VOID_GR  && leftGroup != STRUCT_GR &&
+        rightGroup != VOID_GR  && rightGroup != STRUCT_GR)
     {
          triggerParserWarning(parser,  "Assignment betwen \"%s\" <- \"%s\" may cause loss of data\n", 
          left->type->c_str(), right->type->c_str());
@@ -627,7 +629,7 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
     {
         if(leftAffiliation >> SIGNED_INT_GROUP *4 <= rightAffiliation >> UNSIGNED_INT_GROUP *4)
         {
-            triggerParserWarning(parser,  "Assignment betwen \"%s\" <- \"%s\" may cause loss of data\n", 
+            triggerParserWarning(parser,  "Assignment between \"%s\" <- \"%s\" may cause loss of data\n", 
             left->type->c_str(), right->type->c_str());
         }
          return;
@@ -661,10 +663,11 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
         return copyStrongerType(parser, left->type, right->type);
     }
 
-    if( (leftGroup == SIGNED_INT_GROUP &&  rightGroup == UNSIGNED_INT_GROUP) ||
-        (leftGroup == UNSIGNED_INT_GROUP &&  rightGroup == SIGNED_INT_GROUP) )
+    if( leftGroup != rightGroup && 
+        leftGroup != VOID_GR  && leftGroup != STRUCT_GR &&
+        rightGroup != VOID_GR  && rightGroup != STRUCT_GR )
     {
-        string* targetType = resolveSignedUnsignedImpCast(parser, left->type, right->type, leftGroup, rightGroup);
+        string* targetType = resolveImpConv(parser, left->type, right->type, leftGroup, rightGroup);
         triggerParserWarning(parser, 
         "Implicit conversion between \"%s\" and \"%s\" into \"%s\", possible loss of data\n",
          left->type->c_str(), right->type->c_str(), targetType->c_str());

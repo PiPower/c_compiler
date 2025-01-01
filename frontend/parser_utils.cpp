@@ -122,13 +122,33 @@ std::string *copyStrongerType(ParserState* parser, const std::string* t1, const 
     return new string(*t2);
 }
 
-std::string* resolveSignedUnsignedImpCast(ParserState* parser, 
+std::string* resolveImpConv(ParserState* parser, 
                                             const std::string* t1, 
-                                           const std::string* t2, 
+                                            const std::string* t2, 
                                             uint8_t g1, 
                                             uint8_t g2)
 {
     static const char* signedTypes[] = { "char", "short", "int", "long"};
+    if( g1 == FLOAT_GROUP || g2 == FLOAT_GROUP)
+    {
+        const string* intType = g1 == FLOAT_GROUP ? t2 : t1;
+        const string* floatType = g1 == FLOAT_GROUP ? t1 : t2;
+
+        const uint8_t intGroup = g1 == FLOAT_GROUP? g2 : g1;
+
+        SymbolType* signedSym = getSymbolType(parser, intType);
+        SymbolType* floatSym = getSymbolType(parser, floatType);
+        uint8_t intStrength = signedSym->affiliation - intGroup;
+
+        bool below64Bit = intStrength <= (0x01 << 2);
+
+        if( below64Bit && floatSym->affiliation == FLOAT32)
+        {
+            return new string("float");
+        }
+        return new string("double");
+    }
+
 
 
     const string* signedType = g1 == SIGNED_INT_GROUP ? t1 : t2;

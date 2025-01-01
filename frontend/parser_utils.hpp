@@ -65,7 +65,7 @@ AstNode* fillSymtab(AstNode* root);
 NodeType tokenMathTypeToNodeType(const Token& token);
 uint8_t getTypeGroup(ParserState* parser, const std::string* name);
 std::string* copyStrongerType(ParserState* parser, const std::string* t1, const std::string* t2);
-std::string* resolveSignedUnsignedImpCast(ParserState* parser, 
+std::string* resolveImpConv(ParserState* parser, 
                                            const std::string* t1, 
                                            const std::string* t2, 
                                             uint8_t g1, 
