@@ -426,6 +426,7 @@ void addParameterToStruct(ParserState *parser,
     {
         paramNode->children[0]->type = paramNode->type;
         paramNode->type = nullptr;
+        *paramNode->children[0]->type += *paramNode->data;
         paramNode = paramNode->children[0];
     }
 
