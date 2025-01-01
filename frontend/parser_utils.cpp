@@ -66,11 +66,11 @@ NodeType tokenMathTypeToNodeType(const Token& token)
         return NodeType::NOT_EQUAL;
     case TokenType::PIPE :
         return NodeType::OR;
-    case TokenType::AMPRESAND :
+    case TokenType::AMPERSAND :
         return NodeType::AND;
     case TokenType::CARET :
         return NodeType::EXC_OR;
-    case TokenType::DOUBLE_AMPRESAND :
+    case TokenType::DOUBLE_AMPERSAND :
         return NodeType::LOG_AND;
     case TokenType::DOUBLE_PIPE :
         return NodeType::LOG_OR;

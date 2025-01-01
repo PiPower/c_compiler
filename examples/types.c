@@ -59,7 +59,9 @@ int main()
     Point2D y;
     // Point3D dy; <- error
     struct Point3D p3;
-    p3.x = fn1().x;
-    struct Point3D p4;
-    p4 = p3;
+    //p3.x = fn1().x;
+    struct Point3D* p4, **p5;
+    p4 = &p3;
+    p5 = &p4;
+    p4->y = 23;
 }

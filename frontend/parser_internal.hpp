@@ -59,7 +59,7 @@ AstNode* parseJumpStatement(ParserState *parser);
 
 // if returns nullptr no decleration has been detected
 AstNode* parseDeclaration(ParserState* parser);
-AstNode* parseInitDeclList(ParserState* parser, const std::string* typeName);
+AstNode* parseInitDeclList(ParserState* parser, const std::string* encodedTypeName);
 AstNode* parseDeclarator(ParserState* parser);
 AstNode* parseInitializer(ParserState* parser);
 AstNode* parseStructDeclaration(ParserState* parser);
@@ -100,6 +100,7 @@ void validateStructAccess(ParserState *parser, AstNode* root);
 std::string* drefPtrType(const std::string* ptrType);
 void processConstant(ParserState *parser, AstNode* constant);
 void validateAssignment(ParserState *parser, AstNode* left, AstNode* right);
+void processGetAddr(ParserState* parser, AstNode* getAddr);
 std::string* typeConversion(ParserState *parser, AstNode* left, AstNode* right);
 AstNode* parseLoop(ParserState* parser, 
                     parseFunctionPtr parsingFunction,
@@ -110,4 +111,5 @@ AstNode* parseLoop(ParserState* parser,
                     AstNode* root, 
                     const TokenType* types,
                     const uint64_t typesCount);
+AstNode *parsePtrStructAccess(ParserState *parser, AstNode *root);
 #endif

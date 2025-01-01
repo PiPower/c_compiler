@@ -25,17 +25,17 @@ const char* tokenTypeString[] = {
     "L_BRACKET", "R_BRACKET", "L_PARENTHESES", "R_PARENTHESES",
     "L_BRACE", "R_BRACE",
  // math ops
-    "AMPRESAND", "STAR", "PLUS", "MINUS", "TILDE", "BANG", "SLASH",
+    "AMPERSAND", "STAR", "PLUS", "MINUS", "TILDE", "BANG", "SLASH",
     "PERCENT", "LESS", "GREATER", "L_SHIFT",
     "R_SHIFT", "LESS_EQUAL", "GREATER_EQUAL", "EQUAL_EQUAL", "BANG_EQUAL",
-    "PIPE", "CARET", "DOUBLE_AMPRESAND", "DOUBLE_PIPE", "QUESTION_MARK",
+    "PIPE", "CARET", "DOUBLE_AMPERSAND", "DOUBLE_PIPE", "QUESTION_MARK",
     "PLUS_PLUS", "MINUS_MINUS",
 // assignment types
     "EQUAL", "STAR_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "PLUS_EQUAL",
     "MINUS_EQUAL", "L_SHIFT_EQUAL", "R_SHIFT_EQUAL", "AMPRESAND_EQUAL",
     "CARET_EQUAL", "PIPE_EQUAL",
  // miscellaneous
-    "COLON", "COMMA", "SEMICOLON", "DOT",
+    "COLON", "COMMA", "SEMICOLON", "DOT", "ARROW",
  // for internal usage
     "COMMENT"
 };
@@ -145,6 +145,10 @@ Token Scanner::parsePunctuators(const char *c)
             break;
         case '-':
             token.type = TokenType::MINUS_MINUS;
+            index++;
+            break;
+        case '>':
+            token.type = TokenType::ARROW;
             index++;
             break;
         default:
@@ -265,7 +269,7 @@ Token Scanner::parsePunctuators(const char *c)
         switch (c[index])
         {
         case '&':
-            token.type = TokenType::DOUBLE_AMPRESAND;
+            token.type = TokenType::DOUBLE_AMPERSAND;
             index++;
             break;
         case '=':
@@ -273,7 +277,7 @@ Token Scanner::parsePunctuators(const char *c)
             index++;
             break;
         default:
-            token.type = TokenType::AMPRESAND;
+            token.type = TokenType::AMPERSAND;
             break;
         }
         break;

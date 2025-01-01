@@ -3,23 +3,23 @@ using namespace std;
 
 AstNode *parseDeclaration(ParserState *parser)
 {
-    string* typeName = parseDeclSpec(parser);
-    if(!typeName)
+    string* encodedTypeName = parseDeclSpec(parser);
+    if(!encodedTypeName)
     {
         return nullptr;
     }
     if(PEEK_TOKEN(parser).type == TokenType::SEMICOLON)
     {
-        delete typeName;
+        delete encodedTypeName;
         CONSUME_TOKEN(parser, TokenType::SEMICOLON);
         return PARSER_SUCC;
     }
-    AstNode* declarations = parseInitDeclList(parser, typeName);
+    AstNode* declarations = parseInitDeclList(parser, encodedTypeName);
     if(declarations->nodeType != NodeType::FUNCTION_DEF)
     {
         CONSUME_TOKEN(parser, TokenType::SEMICOLON);
     }
-    delete typeName;
+    delete encodedTypeName;
 
     return declarations;
 }
@@ -84,7 +84,7 @@ AstNode *parseParameterTypeList(ParserState *parser)
     return paramList;
 }
 
-AstNode *parseInitDeclList(ParserState *parser, const std::string* typeName)
+AstNode *parseInitDeclList(ParserState *parser, const std::string* encodedTypeName)
 {
     AstNode* declarationList = ALLOCATE_NODE(parser);
     declarationList->nodeType = NodeType::DECLARATION_LIST;
@@ -93,7 +93,7 @@ AstNode *parseInitDeclList(ParserState *parser, const std::string* typeName)
     {
         // parse init declarator
         AstNode* declarator = parseDeclarator(parser);
-        declarator->type = new string(*typeName);
+        declarator->type = new string(*encodedTypeName);
         if(declarator->nodeType == NodeType::FUNCTION_DEF)
         {
             if(declarationList->children.size() > 0 )
@@ -129,8 +129,8 @@ AstNode *parseDeclarator(ParserState *parser)
         ptr = ALLOCATE_NODE(parser);
         ptr = ALLOCATE_NODE(parser);
         ptr->nodeType = NodeType::POINTER;
-        // in case of pointers it is vector of uints8 
-        ptr->type = new string(std::move(perPtrQualifier));
+        // data field stores all the pointer context
+        ptr->data = new string(std::move(perPtrQualifier));
     }
 
     AstNode* root = parseDirectDeclarator(parser);

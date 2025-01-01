@@ -14,7 +14,8 @@ static constexpr TokenType assignmentTypes[] = {
 
 static constexpr TokenType unaryOperators[] = {
     TokenType::PLUS_PLUS,TokenType::MINUS_MINUS,
-    TokenType::BANG, TokenType::TILDE, TokenType::PLUS, TokenType::STAR, TokenType::MINUS
+    TokenType::BANG, TokenType::TILDE, TokenType::PLUS, TokenType::STAR, 
+    TokenType::MINUS, TokenType::AMPERSAND
     };
 
 static constexpr TokenType mulTypes[] = {
@@ -39,7 +40,7 @@ static constexpr TokenType eqTypes[] =  {
     };
 
     static constexpr TokenType andTypes[] = {
-    TokenType::AMPRESAND
+    TokenType::AMPERSAND
     };
 
 static constexpr TokenType escOrTypes[] =  {
@@ -51,7 +52,7 @@ static constexpr TokenType incOrTypes[] =  {
     };
 
 static constexpr TokenType logAndTypes[] =  {
-    TokenType::DOUBLE_AMPRESAND
+    TokenType::DOUBLE_AMPERSAND
     };
 
 static constexpr TokenType logOrTypes[] =  {
@@ -86,6 +87,11 @@ AstNode *parseLoop(ParserState *parser,
     }
 
     return root;
+}
+
+AstNode *parsePtrStructAccess(ParserState *parser, AstNode *root)
+{
+    return nullptr;
 }
 
 AstNode *parseExpression(ParserState *parser)
@@ -344,6 +350,9 @@ AstNode *unaryExpression(ParserState *parser)
         case TokenType::STAR:
             root->nodeType = NodeType::DREF_PTR; 
             root->type = drefPtrType(root->children[0]->type);
+        case TokenType::AMPERSAND:
+            root->nodeType = NodeType::GET_ADDR;
+            processGetAddr(parser, root);
             break;
     }
     return root;
@@ -361,6 +370,7 @@ AstNode *postfixExpression(ParserState *parser)
         {
         case TokenType::L_PARENTHESES: postfixExpr = parseFnCall(parser, postfixExpr); break;
         case TokenType::DOT: postfixExpr = parseStructAccess(parser, postfixExpr); break;
+        case TokenType::ARROW: postfixExpr = parsePtrStructAccess(parser, postfixExpr); break;
         }
     }
     return postfixExpr;  
@@ -638,6 +648,31 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
     triggerParserError(parser, 1, "Assignment between \"%s\" <- \"%s\" is forbidden\n", 
     left->type->c_str(), right->type->c_str());
 }
+
+void processGetAddr(ParserState *parser, AstNode *getAddr)
+{
+    AstNode* owner = getAddr->children[0];
+    if(owner->data->find('*')!= string::npos)
+    {
+        triggerParserError(parser, 1, "\"%s\" does not have internal elements\n", owner->data->c_str());
+    }
+    Symbol* sym = GET_SYMBOL(parser, *owner->data);
+    if(!sym)
+    {
+        triggerParserError(parser, 1, "Requested symbol \"%s\" does not exist\n", owner->data->c_str());
+    }
+    
+    if(sym->symClass != SymbolClass::VARIABLE)
+    {
+        triggerParserError(parser, 1, "Requested symbol \"%s\" is not lvalue\n", owner->data->c_str());
+    }
+    SymbolVariable* symVar = (SymbolVariable*)sym;
+    getAddr->type = new string(*symVar->varType);
+    *getAddr->type += '*';
+    getAddr->data = new string(*symVar->qualifiers);
+    *getAddr->data += EMPTY_QUALIFIERS;
+}
+
 
 std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
 {
