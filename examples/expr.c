@@ -1,7 +1,7 @@
+unsigned int x, b, c, g;
+
 int main()
 {
-
-    unsigned int x, b, c, g;
     long int y = -230000000000000000;
     unsigned long pdpr = 20103;
     pdpr =  (unsigned long) -(int)pdpr;

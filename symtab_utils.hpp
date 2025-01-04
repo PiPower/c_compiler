@@ -3,10 +3,10 @@
 #ifndef SYMTAB_UTILS
 #define SYMTAB_UTILS
 
-#define GET_SYMBOL(parser, name)  getSymbol((parser)->symtab, (name)) 
-#define GET_SYMBOL_EX(parser, name, ptr)  getSymbol((parser)->symtab, (name), (ptr) ) 
-#define SET_SYMBOL(parser, name, symbol) (parser)->symtab->symbols[(name)] = (symbol)
-#define SYMTAB_CEND(parser) (parser)->symtab->symbols.cend()
+#define GET_SYMBOL(holder, name)  getSymbol((holder)->symtab, (name)) 
+#define GET_SYMBOL_EX(holder, name, ptr)  getSymbol((holder)->symtab, (name), (ptr) ) 
+#define SET_SYMBOL(holder, name, symbol) (holder)->symtab->symbols[(name)] = (symbol)
+#define SYMTAB_CEND(holder) (holder)->symtab->symbols.cend()
 //-----------------
 // type groups
 //-----------------

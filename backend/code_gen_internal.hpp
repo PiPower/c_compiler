@@ -6,8 +6,9 @@ struct FunctionLayout
 {
     /* data */
 };
-
-
+#define GET_SCOPED_SYM(gen, name)  getSymbol((gen)->scopedSymtab, (name)) 
+// symbol table variable translation
 void translateFunction(CodeGenerator* gen, AstNode* parseTree);
-
+void translateDeclaration(CodeGenerator* gen, AstNode* parseTree);
+void emitGlobalVariable(CodeGenerator* gen, AstNode* parseTree);
 #endif

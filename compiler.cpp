@@ -17,6 +17,9 @@ void compile(const char *file)
     CodeGenerator gen;
     gen.symtab = &symtab;
     gen.parseTrees = &statements;
+    gen.allocator = &allocator;
+    gen.scope = 0; // for global scope
+    gen.scopedSymtab = &symtab;
     generate_code(&gen);
 
     int x = 2;
