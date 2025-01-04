@@ -1,5 +1,6 @@
 #include "code_gen.hpp"
 #include "code_gen_internal.hpp"
+using namespace std;
 
 char* generate_code(CodeGenerator *gen)
 {
@@ -25,5 +26,16 @@ void dispatcher(CodeGenerator *gen, AstNode *parseTree)
     
     default:
         break;
+    }
+}
+
+void write_to_file(const InstructionSeq &instructions, FILE* stream)
+{
+    for(const Instruction& inst : instructions)
+    {
+        if( inst.mnemonic.find(':') != string::npos)
+        {
+            fprintf(stream, "%s%s\n%s", inst.src.c_str(), inst.mnemonic.c_str(), inst.dest.c_str());
+        }
     }
 }

@@ -3,6 +3,6 @@
 #include "symtab_utils.hpp"
 
 
-void compile(const char* file);
+void compile(const char* file, FILE* stream);
 void initSymbolTalbe(SymbolTable* symTab);
 #endif

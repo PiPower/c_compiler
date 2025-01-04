@@ -55,15 +55,16 @@ struct SymbolType
 {
     SymbolClass symClass;
     uint16_t affiliation;
+    uint64_t typeSize;
     // bit 0: isDefined
     uint64_t attributes;
-    uint64_t typeSize;
     // if symbol consists of many subtypes like struct
     // store references types themselves and their names
     // in the following vectors
     std::vector<std::string> types;
     std::vector<std::string> qualifiers;
     std::vector<std::string> names;
+    std::vector<uint32_t> paramOffset;
 
 };
 

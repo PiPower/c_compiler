@@ -21,17 +21,18 @@ struct Instruction
     std::string dest;
 };
 
+typedef std::vector<Instruction> InstructionSeq;
 struct CodeGenerator
 {
     SymbolTable* scopedSymtab;
     SymbolTable* symtab;
     NodeAllocator* allocator;
     std::vector<AstNode*>* parseTrees;
-    std::vector<Instruction> code;
+    InstructionSeq code;
     uint64_t scope;
 };
 
 char* generate_code(CodeGenerator* gen);
 void dispatcher(CodeGenerator* gen, AstNode* parseTree);
-
+void write_to_file(const InstructionSeq& instructions, FILE* stream);
 #endif

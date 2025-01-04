@@ -5,7 +5,7 @@
 #include "backend/code_gen.cpp"
 using namespace std;
 
-void compile(const char *file)
+void compile(const char *file, FILE* stream)
 {
     SymbolTable symtab;
     initSymbolTalbe(&symtab);
@@ -21,6 +21,7 @@ void compile(const char *file)
     gen.scope = 0; // for global scope
     gen.scopedSymtab = &symtab;
     generate_code(&gen);
+    write_to_file(gen.code, stream);
 
     int x = 2;
 }

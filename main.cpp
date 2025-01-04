@@ -3,9 +3,10 @@
 #include "compiler.hpp"
 #include <errno.h>
 #include <string.h>
+#include <fcntl.h>
 
 const char* loadFile(const char* filename);
-
+FILE* openOutputFile(const char* outputFile);
 int main(int agrc, char* args[])
 {
     if (agrc != 2 )
@@ -15,7 +16,10 @@ int main(int agrc, char* args[])
     }
 
     const char* file = loadFile(args[agrc -1 ]);
-    compile(file);
+    FILE* stream = openOutputFile(nullptr);
+
+    compile(file, stream);
+    fclose(stream);
 }
 
 const char* loadFile(const char* filename)
@@ -48,4 +52,20 @@ const char* loadFile(const char* filename)
 
     fclose(file);
     return buffer;
+}
+
+FILE* openOutputFile(const char *outputFile)
+{
+    if(outputFile == nullptr)
+    {
+        outputFile = "out.s";
+    }
+
+    FILE* file = fopen(outputFile, "wb");
+    if (file == NULL)
+    {
+        printf("%s",  strerror(errno));
+        exit(-1);
+    }
+    return file;
 }
