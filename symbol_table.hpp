@@ -56,6 +56,7 @@ struct SymbolType
     SymbolClass symClass;
     uint16_t affiliation;
     uint64_t typeSize;
+    uint64_t typeAlignment;
     // bit 0: isDefined
     uint64_t attributes;
     // if symbol consists of many subtypes like struct

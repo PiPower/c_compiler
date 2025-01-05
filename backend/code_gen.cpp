@@ -33,9 +33,27 @@ void write_to_file(const InstructionSeq &instructions, FILE* stream)
 {
     for(const Instruction& inst : instructions)
     {
-        if( inst.mnemonic.find(':') != string::npos)
+        if( inst.type == LABEL)
         {
-            fprintf(stream, "%s%s\n%s", inst.src.c_str(), inst.mnemonic.c_str(), inst.dest.c_str());
+            write_label(&inst, stream);
         }
+    }
+}
+
+void write_label(const Instruction *inst, FILE *stream)
+{
+    size_t offset = 0;
+    while (offset < inst->src.size())
+    {
+        offset += fprintf(stream, "\t%s\n", inst->src.c_str() + offset);
+        offset += 1 - 2; // null_char - \t - \n 
+    }
+    fprintf(stream, "%s:\n", inst->mnemonic.c_str());
+    
+    offset = 0;
+    while (offset < inst->dest.size())
+    {
+        offset += fprintf(stream, "\t%s\n", inst->dest.c_str() + offset);
+        offset += 1 - 2; // null_char - \t - \n 
     }
 }

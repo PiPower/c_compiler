@@ -1,5 +1,9 @@
 #include "code_gen_internal.hpp"
 #include "code_gen_utils.hpp"
+#include <string>
+using namespace std;
+
+
 void translateFunction(CodeGenerator *gen, AstNode *parseTree)
 {
     
@@ -22,8 +26,11 @@ void emitGlobalVariable(CodeGenerator *gen, AstNode *parseTree)
         fillTypeHwdInfo(symType);
     }
     Instruction inst;
+    inst.type = LABEL;
     inst.mnemonic = std::move(*parseTree->data);
-    inst.mnemonic += ':';
-
+    if(parseTree->children.size() == 0)
+    {
+        zeroInitVariable(&inst, symType, inst.mnemonic);
+    }
     ADD_INST_MV(gen, inst);
 }
