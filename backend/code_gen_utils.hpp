@@ -8,5 +8,6 @@ void fillTypeHwdInfo(SymbolType* symType);
 // alignment is first power of 2 that is <= type_size
 uint32_t getTypeAlignment(SymbolType* symType);
 std::string encodeAsAsmData(AstNode* dataNode);
+Instruction generateFunctionLabel(AstNode* fnDef);
 void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName);
 #endif

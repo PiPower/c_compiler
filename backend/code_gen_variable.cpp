@@ -6,7 +6,12 @@ using namespace std;
 
 void translateFunction(CodeGenerator *gen, AstNode *parseTree)
 {
-    
+    SymbolFunction* symFn = (SymbolFunction*)GET_SCOPED_SYM(gen, *parseTree->data);
+    Instruction inst = generateFunctionLabel(parseTree);
+    ADD_INST_MV(gen, inst);
+    ADD_INST(gen, {INSTRUCTION, "pushq", "%rbp", ""} );
+    ADD_INST(gen, {INSTRUCTION, "movq", "%rsp", "%rbp"} );
+    gen->scopedSymtab = (SymbolTable*)parseTree->data;
 }
 
 void translateDeclaration(CodeGenerator *gen, AstNode *parseTree)
@@ -33,4 +38,5 @@ void emitGlobalVariable(CodeGenerator *gen, AstNode *parseTree)
         zeroInitVariable(&inst, symType, inst.mnemonic);
     }
     ADD_INST_MV(gen, inst);
+    FREE_NODE_REC(gen, parseTree);
 }

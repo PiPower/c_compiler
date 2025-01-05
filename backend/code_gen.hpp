@@ -19,7 +19,6 @@
 struct Instruction
 {
     uint8_t type;
-    uint8_t padd[7];
     std::string mnemonic;
     std::string src;
     std::string dest;
@@ -40,4 +39,5 @@ char* generate_code(CodeGenerator* gen);
 void dispatcher(CodeGenerator* gen, AstNode* parseTree);
 void write_to_file(const InstructionSeq& instructions, FILE* stream);
 void write_label(const Instruction* inst, FILE* stream);
+void write_instruction(const Instruction* inst, FILE* stream);
 #endif

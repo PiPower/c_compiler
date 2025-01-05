@@ -1,4 +1,5 @@
 #include "code_gen_utils.hpp"
+#include "code_gen.hpp"
 
 using namespace std;
 
@@ -16,13 +17,31 @@ std::string encodeAsAsmData(AstNode* dataNode)
     return std::string();
 }
 
+Instruction generateFunctionLabel(AstNode *fnDef)
+{
+    Instruction fn;
+    fn.type = LABEL;
+    fn.mnemonic =  std::move(*fnDef->data);
+    // before label
+    fn.src += ".text";
+    fn.src += '\0';
+    fn.src += ".globl ";
+    fn.src += fn.mnemonic;
+    fn.src += '\0';
+    fn.src += ".type ";
+    fn.src += fn.mnemonic;
+    fn.src += ", @function";
+    fn.src += '\0';
+    return fn;
+}
+
 void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName)
 {
     // before label
+    inst->src += ".bss";
+    inst->src += '\0';
     inst->src += ".globl ";
     inst->src += symName;
-    inst->src += '\0';
-    inst->src += ".bss";
     inst->src += '\0';
     inst->src += ".align ";
     inst->src += to_string(symType->typeAlignment);

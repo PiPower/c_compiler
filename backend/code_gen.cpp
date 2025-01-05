@@ -37,6 +37,10 @@ void write_to_file(const InstructionSeq &instructions, FILE* stream)
         {
             write_label(&inst, stream);
         }
+        else if(inst.type == INSTRUCTION)
+        {
+            write_instruction(&inst, stream);
+        }
     }
 }
 
@@ -56,4 +60,18 @@ void write_label(const Instruction *inst, FILE *stream)
         offset += fprintf(stream, "\t%s\n", inst->dest.c_str() + offset);
         offset += 1 - 2; // null_char - \t - \n 
     }
+}
+
+void write_instruction(const Instruction *inst, FILE *stream)
+{
+    fprintf(stream, "\t%s ", inst->mnemonic.c_str());
+    if(inst->src.size() > 0)
+    {
+        fprintf(stream, "%s ", inst->src.c_str());
+    }
+    if(inst->dest.size() > 0)
+    {
+        fprintf(stream, "%s", inst->dest.c_str());
+    }
+    fprintf(stream, "\n");
 }
