@@ -3,7 +3,7 @@
 #include "code_gen.hpp"
 #include "../frontend/node_allocator.hpp"
 
-#define GET_SCOPED_SYM(gen, name)  getSymbol((gen)->scopedSymtab, (name)) 
+#define GET_SCOPED_SYM(gen, name)  getSymbol((gen)->localSymtab, (name)) 
 #define ADD_INST(gen, ...) (gen)->code.push_back(__VA_ARGS__ )
 #define ADD_INST_MV(gen, inst) (gen)->code.push_back(std::move(inst))
 #define FREE_NODE(gen, node) freeNode((gen)->allocator, (node))

@@ -9,5 +9,6 @@ void fillTypeHwdInfo(SymbolType* symType);
 uint32_t getTypeAlignment(SymbolType* symType);
 std::string encodeAsAsmData(AstNode* dataNode);
 Instruction generateFunctionLabel(AstNode* fnDef);
+CpuState* generateCpuState(AstNode* fnDef, SymbolTable* localSymtab, SymbolFunction* symFn);
 void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName);
 #endif

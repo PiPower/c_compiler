@@ -1,7 +1,6 @@
 #ifndef CODE_GEN
 #define CODE_GEN
 #include "../frontend/parser.hpp"
-
 /*
     Mnemomic can either be instruction or label.
     If it is a label then src is a sequence of
@@ -25,14 +24,15 @@ struct Instruction
 };
 
 typedef std::vector<Instruction> InstructionSeq;
+struct CpuState;
 struct CodeGenerator
 {
-    SymbolTable* scopedSymtab;
+    SymbolTable* localSymtab;
     SymbolTable* symtab;
     NodeAllocator* allocator;
     std::vector<AstNode*>* parseTrees;
     InstructionSeq code;
-    uint64_t scope;
+    CpuState* cpu;
 };
 
 char* generate_code(CodeGenerator* gen);

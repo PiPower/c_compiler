@@ -1,5 +1,7 @@
 #include "code_gen.hpp"
 #include "code_gen_internal.hpp"
+#include "cpu.hpp"
+
 using namespace std;
 
 char* generate_code(CodeGenerator *gen)

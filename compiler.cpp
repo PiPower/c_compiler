@@ -18,8 +18,8 @@ void compile(const char *file, FILE* stream)
     gen.symtab = &symtab;
     gen.parseTrees = &statements;
     gen.allocator = &allocator;
-    gen.scope = 0; // for global scope
-    gen.scopedSymtab = &symtab;
+    gen.cpu = nullptr; // for global scope
+    gen.localSymtab = &symtab;
     generate_code(&gen);
     write_to_file(gen.code, stream);
 

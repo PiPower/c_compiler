@@ -1,6 +1,6 @@
 #include "code_gen_utils.hpp"
 #include "code_gen.hpp"
-
+#include "cpu.hpp"
 using namespace std;
 
 void fillTypeHwdInfo(SymbolType *symType)
@@ -33,6 +33,16 @@ Instruction generateFunctionLabel(AstNode *fnDef)
     fn.src += ", @function";
     fn.src += '\0';
     return fn;
+}
+
+CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunction* symFn)
+{
+    CpuState* cpu = new CpuState();
+    cpu->frameSize = 0;
+    
+
+
+    return cpu;
 }
 
 void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName)

@@ -7,16 +7,22 @@ using namespace std;
 void translateFunction(CodeGenerator *gen, AstNode *parseTree)
 {
     SymbolFunction* symFn = (SymbolFunction*)GET_SCOPED_SYM(gen, *parseTree->data);
+    gen->localSymtab = (SymbolTable*)parseTree->data;
+    gen->cpu = generateCpuState(parseTree, gen->localSymtab, symFn);
+
     Instruction inst = generateFunctionLabel(parseTree);
     ADD_INST_MV(gen, inst);
+    // function preambule
     ADD_INST(gen, {INSTRUCTION, "pushq", "%rbp", ""} );
     ADD_INST(gen, {INSTRUCTION, "movq", "%rsp", "%rbp"} );
-    gen->scopedSymtab = (SymbolTable*)parseTree->data;
+    ADD_INST(gen, {INSTRUCTION, "subq", "", "rsp"} );
+    size_t fillSubInstInd = gen->code.size() - 1;
+
 }
 
 void translateDeclaration(CodeGenerator *gen, AstNode *parseTree)
 {
-    if(gen->scopedSymtab->scopeLevel == 0)
+    if(gen->localSymtab->scopeLevel == 0)
     {
         emitGlobalVariable(gen, parseTree);
     }
