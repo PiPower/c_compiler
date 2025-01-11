@@ -630,8 +630,9 @@ void processConstant(ParserState *parser, AstNode *constant)
 
 void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
 {
-    if(left->type->find('*') != string::npos && right->type->find('*') &&
-       *left->type != *right->type)
+    if(left->type->find('*') != string::npos &&
+        right->type->find('*') != string::npos&&
+        *left->type != *right->type)
     {
         triggerParserError(parser, 1, 
             "Pointer assignment \"%s\" <- \"%s\" is invalid\n",left->type->c_str(), right->type->c_str() );
