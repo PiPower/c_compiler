@@ -67,5 +67,6 @@ void initSymbolTalbe(SymbolTable *symTab)
     symTab->symbols["long double"] = (Symbol*)new SymbolType{SymbolClass::TYPE, DOUBLE128, 16, 16};
     // special
     symTab->symbols["void"] = (Symbol*)new SymbolType{SymbolClass::TYPE, VOID_GR, 0, 0};
+    symTab->symbols["*"] = (Symbol*)new SymbolType{SymbolClass::TYPE, POINTER_GR, 8, 8};
 }
 

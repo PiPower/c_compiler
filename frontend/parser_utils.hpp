@@ -87,4 +87,5 @@ void addParameterToStruct(ParserState *parser,
 SymbolType* getSymbolType(ParserState *parser, const std::string* name);
 uint16_t getTypeAffiliation(ParserState *parser, std::string* name);
 TypePair decodeType(const std::string* encodedType);
+AstNode* unwindReturnType(ParserState *parser, AstNode* retPtr);
 #endif

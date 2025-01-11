@@ -94,6 +94,13 @@ AstNode *parseInitDeclList(ParserState *parser, const std::string* encodedTypeNa
         // parse init declarator
         AstNode* declarator = parseDeclarator(parser);
         declarator->type = new string(*encodedTypeName);
+        if(declarator->nodeType== NodeType::POINTER &&
+        (declarator->children[0]->nodeType == NodeType::FUNCTION_DEF ||
+            declarator->children[0]->nodeType == NodeType::FUNCTION_DECL) )
+        {
+            declarator = unwindReturnType(parser, declarator);
+        }
+
         if(declarator->nodeType == NodeType::FUNCTION_DEF)
         {
             if(declarationList->children.size() > 0 )

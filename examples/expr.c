@@ -1,5 +1,21 @@
 unsigned int x, b, c, g;
 
+struct expr
+{
+    char x;
+    float y;
+    double z;
+};
+
+struct expr* builder(char x, float y, double z)
+{
+    struct expr example;
+    example.x = x;
+    example.y = y;
+    example.z = z;
+    return &example;
+}
+
 int main()
 {
     long int y = -230000000000000000;

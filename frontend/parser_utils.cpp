@@ -492,3 +492,15 @@ TypePair decodeType(const std::string *encodedType)
 
     return pair;
 }
+
+AstNode* unwindReturnType(ParserState *parser, AstNode *retPtr)
+{
+
+    AstNode* fn = retPtr->children[0];
+    fn->type = retPtr->type;
+    retPtr->type = nullptr;
+    *fn->type += *retPtr->data;
+
+    FREE_NODE(parser, retPtr);
+    return fn;
+}
