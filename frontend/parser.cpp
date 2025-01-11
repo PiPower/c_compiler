@@ -19,6 +19,7 @@ std::vector<AstNode *> parse(Scanner *scanner, SymbolTable *symtab, NodeAllocato
     {
         freeAllNodes(parser.allocator);
         printf("%s", parser.errorMessage);
+        exit(-1);
         return {nullptr};
     }
     

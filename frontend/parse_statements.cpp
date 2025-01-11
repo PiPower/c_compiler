@@ -105,8 +105,18 @@ AstNode *parseJumpStatement(ParserState *parser)
         out->nodeType = NodeType::RETURN;
         if(!CURRENT_TOKEN_ON_OF(parser, {TokenType::SEMICOLON}))
         {
-            out->children.push_back(parseExpression(parser));
+            AstNode* ret = parseExpression(parser);
+            SymbolVariable* retType = (SymbolVariable*)GET_SYMBOL(parser, "<return_val>");
+            if( *retType->varType != *ret->type)
+            {
+                triggerParserError(parser, 1, 
+                "Return type \"%s\" does not match function return type \"%s\"", 
+                ret->type->c_str(), retType->varType->c_str());
+            }
+
+            out->children.push_back(ret);
         }
+
         break;
     case TokenType::BREAK :
         out->nodeType = NodeType::BREAK;

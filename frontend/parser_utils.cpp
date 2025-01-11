@@ -320,9 +320,8 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
         TypePair pair = decodeType(root->type);
         fn->retType = pair.type;
         fn->qualifiers = pair.qualifiers;
-        root->type = nullptr;
         SET_SYMBOL(parser, *root->data, (Symbol*)fn);
-
+        *root->type = *fn->retType;
         if(root->nodeType == NodeType::FUNCTION_DEF)
         {
             setDefinedAttr(fn);

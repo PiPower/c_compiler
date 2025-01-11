@@ -534,6 +534,12 @@ AstNode *parseFunctionBody(ParserState *parser, AstNode *function)
         param->data = nullptr;
         freeNode(parser->allocator, param);
     }
+
+    SymbolVariable* symVar = new SymbolVariable;
+    symVar->varType = new string(*fnSym->retType);
+    symVar->qualifiers = new string(*fnSym->qualifiers);
+    SET_SYMBOL(parser, "<return_val>", (Symbol*)symVar);
+
     freeNode(parser->allocator, function->children[0]);
 
     AstNode* functionBlock = parseCompoundStatement(parser);
