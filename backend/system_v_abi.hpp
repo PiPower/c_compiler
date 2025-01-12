@@ -2,6 +2,7 @@
 #define SYSTEM_V_ABI_H
 
 
+#define SYSV_NONE (0x00)
 #define SYSV_INTEGER (0x01 << 0)
 #define SYSV_SSE (0x01 << 1)
 #define SYSV_SSE_UP (0x01 << 2)
@@ -19,5 +20,12 @@
 #define RET_XMM0 (0x01 << 2)
 #define RET_XMM1 (0x01 << 3)
 #define RET_MEM (0x01 << 4)
+
+
+struct SysVgrDesc
+{
+    uint64_t gr[2];
+};
+
 
 #endif

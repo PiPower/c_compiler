@@ -45,8 +45,16 @@
 #define FLOAT_GROUP 0x03
 #define SPECIAL_GROUP 0x04
 
+struct FieldDesc
+{
+    SymbolType* type;
+    uint32_t offset;
+};
+
+
 Symbol* getSymbol(SymbolTable* symtab, const std::string& name, uint64_t* scopeLevel = nullptr);
 Symbol* getSymbolLocal(SymbolTable* symtab, const std::string& name);
+FieldDesc getNthFieldDesc(SymbolTable* symtab, SymbolType* type, int idx);
 // function symbol
 inline constexpr void setDefinedAttr(SymbolFunction* fn)
 {

@@ -43,7 +43,7 @@ typedef const struct Point2D XDDDD;
 
 struct composite
 {
-    XDDDD x;
+    XDDDD xcopm;
     struct Point3D y;
 };
 
@@ -52,7 +52,14 @@ struct Point3D fn1()
 
 }
 
-int main()
+struct test
+{
+    long y;
+    float x;
+    int z;
+};
+
+struct test main()
 {
     //x.x = 2;
 ;;;;;;;;;;;;;;;;;

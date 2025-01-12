@@ -50,5 +50,8 @@ struct CpuState
 CpuState* generateCpuState(AstNode* fnDef, SymbolTable* localSymtab, SymbolFunction* symFn);
 void bindReturnValue(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
 void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType);
-uint8_t getSysVGroup(SymbolType* type);
+SysVgrDesc tryPackToRegisters(SymbolTable *localSymtab, SymbolType* symType);
+uint8_t is8ByteAligned(SymbolTable *localSymtab, SymbolType* symType);
+SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType* type);
+uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2);
 #endif
