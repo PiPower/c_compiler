@@ -15,12 +15,14 @@
 #define INT16_S (0x01 << 1)
 #define INT32_S (0x01 << 2)
 #define INT64_S (0x01 << 3)
+#define INT_S_MASK (0x000F)
 //-----------------
 // unsigned int group
 #define INT8_U (0x01 << 4)
 #define INT16_U (0x01 << 5)
 #define INT32_U (0x01 << 6)
 #define INT64_U (0x01 << 7)
+#define INT_U_MASK (0x00F0)
 //-----------------
 // float group 
 // bits 4, 5
@@ -28,6 +30,7 @@
 #define DOUBLE64 (0x01 << 9)
 #define DOUBLE128 (0x01 << 10)
 //#define UNUSED (0x01 << 11)
+#define FLOAT_MASK (0x0F00)
 //-----------------
 //special group
 // bits 6, 7
@@ -35,6 +38,7 @@
 #define VOID_GR (0x01 << 13)
 #define STRUCT_GR (0x01 << 14)
 //#define UNUSED (0x01 << 15)
+#define SPECIAL_MASK (0xF000)
 //-----------------
 #define SIGNED_INT_GROUP 0x00
 #define UNSIGNED_INT_GROUP 0x01
@@ -56,7 +60,7 @@ inline constexpr void disableDefinedAttr(SymbolFunction* fn)
 
 inline constexpr bool isSetDefinedAttr(SymbolFunction* fn)
 {
-    return fn->attributes & 0x01 > 0 ;
+    return (fn->attributes & 0x01) > 0 ;
 }
 
 // variable symbol
@@ -72,7 +76,7 @@ inline constexpr void disableDefinedAttr(SymbolVariable* var)
 
 inline constexpr bool isSetDefinedAttr(SymbolVariable* var)
 {
-    return var->attributes & 0x01 > 0 ;
+    return (var->attributes & 0x01) > 0 ;
 }
 
 // symbol type
@@ -88,7 +92,27 @@ inline constexpr void disableDefinedAttr(SymbolType* type)
 
 inline constexpr bool isSetDefinedAttr(SymbolType* type)
 {
-    return type->attributes & 0x01 > 0 ;
+    return (type->attributes & 0x01) > 0 ;
+}
+
+inline constexpr void setTranslatedToHwd(SymbolType* type)
+{
+    type->attributes |= 0x02;
+}
+
+inline constexpr void disableTranslatedToHwd(SymbolType* type)
+{
+    type->attributes &=  ~0x02;
+}
+
+inline constexpr bool isSetTranslatedToHwd(SymbolType* type)
+{
+    return (type->attributes & 0x02 )> 0 ;
+}
+
+inline bool isBuiltInType(SymbolType* type)
+{
+    return type->names.size() == 0 ;
 }
 
 #endif

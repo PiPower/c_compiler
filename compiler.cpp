@@ -64,7 +64,7 @@ void initSymbolTalbe(SymbolTable *symTab)
     // floats
     symTab->symbols["float"] = (Symbol*)new SymbolType{SymbolClass::TYPE, FLOAT32, 4, 4};
     symTab->symbols["double"] = (Symbol*)new SymbolType{SymbolClass::TYPE, DOUBLE64, 8, 8};
-    symTab->symbols["long double"] = (Symbol*)new SymbolType{SymbolClass::TYPE, DOUBLE128, 16, 16};
+    //symTab->symbols["long double"] = (Symbol*)new SymbolType{SymbolClass::TYPE, DOUBLE128, 16, 16};
     // special
     symTab->symbols["void"] = (Symbol*)new SymbolType{SymbolClass::TYPE, VOID_GR, 0, 0};
     symTab->symbols["*"] = (Symbol*)new SymbolType{SymbolClass::TYPE, POINTER_GR, 8, 8};

@@ -51,14 +51,23 @@ struct SymbolTable
     uint64_t scopeLevel; 
 };
 
+/*
+attributes:
+    bit0: is type defined
+    bit1: is type translated to hardware
+if symbol consists of many subtypes (like struct)
+store references to variable names and names of their types 
+int the types and names vectors
+Base types can be differentiated by lack of subtypes(ie names.size() == 0)
+*/
 struct SymbolType
 {
     SymbolClass symClass;
     uint16_t affiliation;
     uint64_t typeSize;
     uint64_t typeAlignment;
-    // bit 0: isDefined
     uint64_t attributes;
+    uint8_t sysVGr;
     // if symbol consists of many subtypes like struct
     // store references types themselves and their names
     // in the following vectors
@@ -75,12 +84,15 @@ struct SymbolAlias
     std::string* realName;
 };
 
+/*
+    attributes:
+    bit0 is variable defined
+*/
 struct SymbolVariable
 {
     SymbolClass symClass;
     std::string* varType;
     std::string* qualifiers;
-    // bit 0 is defined
     uint64_t attributes;
 
     SymbolVariable()
@@ -89,13 +101,15 @@ struct SymbolVariable
     {}
 };
 
-
+/*
+    attributes:
+    bit0 is function defined
+*/
 struct SymbolFunction
 {
     SymbolClass symClass;
     std::string* retType;
     std::string* qualifiers;
-    // bit 0 is defined
     uint64_t attributes;
     // does not include args
     uint64_t fnStackSize;
