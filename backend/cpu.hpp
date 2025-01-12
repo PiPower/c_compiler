@@ -49,8 +49,6 @@ struct CpuState
 
 CpuState* generateCpuState(AstNode* fnDef, SymbolTable* localSymtab, SymbolFunction* symFn);
 void bindReturnValue(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
-void fillTypeHwdInfo(SymbolType* symType);
-uint16_t getTypeClass(SymbolType* type);
-bool isRdiUsedOnEntry(SymbolType* type);
+void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType);
 uint8_t getSysVGroup(SymbolType* type);
 #endif

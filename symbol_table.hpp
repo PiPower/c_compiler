@@ -59,13 +59,14 @@ if symbol consists of many subtypes (like struct)
 store references to variable names and names of their types 
 int the types and names vectors
 Base types can be differentiated by lack of subtypes(ie names.size() == 0)
+dataAlignment is alignment of individual members of struct
 */
 struct SymbolType
 {
     SymbolClass symClass;
     uint16_t affiliation;
     uint64_t typeSize;
-    uint64_t typeAlignment;
+    uint64_t dataAlignment;
     uint64_t attributes;
     uint8_t sysVGr;
     // if symbol consists of many subtypes like struct

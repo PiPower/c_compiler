@@ -7,13 +7,13 @@ struct expr
     double z;
 };
 
-struct expr* builder(char x, float y, double z)
+struct expr builder(char x, float y, double z)
 {
     struct expr example;
     example.x = x;
     example.y = y;
     example.z = z;
-    return &example;
+    return example;
 }
 
 int main()

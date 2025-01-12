@@ -5,7 +5,13 @@ using namespace std;
 
 uint32_t getTypeAlignment(SymbolType *symType)
 {
-    return 0;
+    uint32_t alignment = 1;
+    while (alignment * 2 < symType->typeSize && alignment * 2 < 64)
+    {
+        alignment*=2;
+    }
+    
+    return alignment;
 }
 
 std::string encodeAsAsmData(AstNode* dataNode)
@@ -40,7 +46,7 @@ void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string 
     inst->src += symName;
     inst->src += '\0';
     inst->src += ".align ";
-    inst->src += to_string(symType->typeAlignment);
+    inst->src += to_string(getTypeAlignment(symType));
     inst->src += '\0';
     inst->src += ".type ";
     inst->src += symName;

@@ -1,6 +1,9 @@
 #include "cpu.hpp"
 #include "code_gen_utils.hpp"
 #include <string.h>
+#include <algorithm>
+using namespace std;
+
 CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunction* symFn)
 {
     CpuState* cpu = new CpuState();
@@ -14,7 +17,7 @@ CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunct
         SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symFn->argTypes[i]);
         if(isSetTranslatedToHwd(type))
         {
-            fillTypeHwdInfo(type);
+            fillTypeHwdInfo(localSymtab, type);
         }
     }
     
@@ -28,7 +31,7 @@ void bindReturnValue(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *sy
     SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symFn->retType);
     if(!isSetTranslatedToHwd(type))
     {
-        fillTypeHwdInfo(type);
+        fillTypeHwdInfo(localSymtab, type);
     }
     if(isBuiltInType(type))
     {
@@ -49,7 +52,7 @@ void bindReturnValue(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *sy
     }
 }
 
-void fillTypeHwdInfo(SymbolType* symType)
+void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType)
 {
     if(isBuiltInType(symType))
     {
@@ -57,25 +60,29 @@ void fillTypeHwdInfo(SymbolType* symType)
         setTranslatedToHwd(symType);
         return;
     }
-}
 
-uint16_t getTypeClass(SymbolType *type)
-{
-    if(isSetTranslatedToHwd(type))
+    uint64_t currOffset = 0;
+    SymbolType* subType;
+    for(int i =0; i < symType->names.size(); i++)
     {
-        fillTypeHwdInfo(type);
+        subType = (SymbolType*)getSymbol(localSymtab, symType->types[i]);
+        symType->dataAlignment = max(subType->dataAlignment, symType->dataAlignment);
+        uint64_t mod = currOffset % subType->dataAlignment;
+        if(mod != 0)
+        {
+            currOffset += subType->dataAlignment - mod;
+        }
+        symType->paramOffset.push_back(currOffset);
+        currOffset += 1;
+    }
+    symType->typeSize = currOffset - 1 + subType->typeSize;
+    uint64_t mod = symType->typeSize % symType->dataAlignment;
+    if(mod != 0)
+    {
+        symType->typeSize  += symType->dataAlignment - mod;
     }
 }
 
-bool isRdiUsedOnEntry(SymbolType *type)
-{
-    if(type->typeSize == 0)
-    {
-        fillTypeHwdInfo(type);
-    }
-
-    return type->typeSize > 2 * PTR_SIZE;
-}
 
 uint8_t getSysVGroup(SymbolType *type)
 {

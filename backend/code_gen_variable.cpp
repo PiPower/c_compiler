@@ -33,7 +33,7 @@ void emitGlobalVariable(CodeGenerator *gen, AstNode *parseTree)
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
     if(symType->typeSize == 0)
     {
-        fillTypeHwdInfo(symType);
+        fillTypeHwdInfo(gen->localSymtab, symType);
     }
     Instruction inst;
     inst.type = LABEL;
