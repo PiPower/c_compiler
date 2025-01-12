@@ -72,6 +72,12 @@ AstNode *parseDoWhileLoop(ParserState *parser)
 AstNode *parseForLoop(ParserState *parser)
 {
     AstNode* init_expr = nullptr, *cond_expr = nullptr, *update_expr = nullptr ;
+    SymbolTable* blockSymtab = new SymbolTable();
+    blockSymtab->scopeLevel = parser->symtab->scopeLevel + 1;
+    blockSymtab->parent = parser->symtab;
+    parser->symtab = blockSymtab;
+
+
     CONSUME_TOKEN(parser, TokenType::L_PARENTHESES);
     if(!TOKEN_MATCH(parser, TokenType::SEMICOLON)) 
     {
@@ -91,8 +97,14 @@ AstNode *parseForLoop(ParserState *parser)
         CONSUME_TOKEN(parser, TokenType::R_PARENTHESES);
     }
 
-    AstNode* body = parseStatement(parser);
-    return new AstNode{NodeType::FOR_LOOP, {init_expr, cond_expr, update_expr, body}};
+    AstNode* body = parseStatement(parser, true);
+    AstNode* out = ALLOCATE_NODE(parser);
+    out->nodeType = NodeType::FOR_LOOP;
+    out->children = {init_expr, cond_expr, update_expr, body};
+    out->data = (std::string*)parser->symtab;
+    parser->symtab = parser->symtab->parent;
+
+    return out;
 }
 
 AstNode *parseJumpStatement(ParserState *parser)
@@ -107,13 +119,7 @@ AstNode *parseJumpStatement(ParserState *parser)
         {
             AstNode* ret = parseExpression(parser);
             SymbolVariable* retType = (SymbolVariable*)GET_SYMBOL(parser, "<return_val>");
-            if( *retType->varType != *ret->type)
-            {
-                triggerParserError(parser, 1, 
-                "Return type \"%s\" does not match function return type \"%s\"", 
-                ret->type->c_str(), retType->varType->c_str());
-            }
-
+            validateAssignment(parser, retType->varType, ret->type);
             out->children.push_back(ret);
         }
 
@@ -131,7 +137,7 @@ AstNode *parseJumpStatement(ParserState *parser)
     return out;
 }
 
-AstNode *parseStatement(ParserState *parser)
+AstNode *parseStatement(ParserState *parser, bool predefBlockSymtab)
 {
     AstNode* root;
     if(CURRENT_TOKEN_ON_OF(parser, {TokenType::END_OF_FILE}))
@@ -144,13 +150,19 @@ AstNode *parseStatement(ParserState *parser)
     }
     else if(CURRENT_TOKEN_ON_OF(parser, {TokenType::L_BRACE}))
     {
-        SymbolTable* blockSymtab = new SymbolTable();
-        blockSymtab->scopeLevel = parser->symtab->scopeLevel + 1;
-        blockSymtab->parent = parser->symtab;
-        parser->symtab = blockSymtab;
+        if(!predefBlockSymtab)
+        {
+            SymbolTable* blockSymtab = new SymbolTable();
+            blockSymtab->scopeLevel = parser->symtab->scopeLevel + 1;
+            blockSymtab->parent = parser->symtab;
+            parser->symtab = blockSymtab;
+        }
         root = parseCompoundStatement(parser);
 
-        parser->symtab = parser->symtab->parent;
+        if(!predefBlockSymtab)
+        {
+            parser->symtab = parser->symtab->parent;
+        }
         return root;
     }
     else if(CURRENT_TOKEN_ON_OF(parser, {TokenType::WHILE, TokenType::FOR, TokenType::DO}))

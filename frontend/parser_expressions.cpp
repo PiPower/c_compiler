@@ -147,7 +147,7 @@ AstNode *assignmentExpression(ParserState *parser)
         assignement->nodeType = operators.top();
         assignement->children.push_back(nodes.top());
         assignement->children.push_back(root);
-        validateAssignment(parser, nodes.top(), root);
+        validateAssignment(parser, nodes.top()->type, root->type);
         assignement->type = new string(*nodes.top()->type);
 
         operators.pop();
@@ -628,31 +628,31 @@ void processConstant(ParserState *parser, AstNode *constant)
     }
 }
 
-void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
+void validateAssignment(ParserState *parser, std::string* left, std::string* right)
 {
-    if(left->type->find('*') != string::npos &&
-        right->type->find('*') != string::npos&&
-        *left->type != *right->type)
+    if(left->find('*') != string::npos &&
+        right->find('*') != string::npos&&
+        *left != *right)
     {
         triggerParserError(parser, 1, 
-            "Pointer assignment \"%s\" <- \"%s\" is invalid\n",left->type->c_str(), right->type->c_str() );
+            "Pointer assignment \"%s\" <- \"%s\" is invalid\n",left->c_str(), right->c_str() );
     }
 
-    if(*left->type == *right->type)
+    if(*left == *right)
     {
         return;
     }
 
-    uint8_t leftGroup = getTypeGroup(parser, left->type);
-    uint8_t rightGroup = getTypeGroup(parser, right->type);
-    uint8_t leftAffiliation = getTypeAffiliation(parser, left->type);
-    uint8_t rightAffiliation = getTypeAffiliation(parser, right->type);
+    uint8_t leftGroup = getTypeGroup(parser, left);
+    uint8_t rightGroup = getTypeGroup(parser, right);
+    uint8_t leftAffiliation = getTypeAffiliation(parser, left);
+    uint8_t rightAffiliation = getTypeAffiliation(parser, right);
     if( rightGroup == leftGroup)
     {
         if(leftAffiliation< rightAffiliation)
         {
             triggerParserWarning(parser,  "Assignment betwen \"%s\"<-\"%s\" may cause loss of data\n", 
-            left->type->c_str(), right->type->c_str());
+            left->c_str(), right->c_str());
         }
         return;
     }
@@ -661,7 +661,7 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
         rightGroup != VOID_GR  && rightGroup != STRUCT_GR)
     {
          triggerParserWarning(parser,  "Assignment betwen \"%s\" <- \"%s\" may cause loss of data\n", 
-         left->type->c_str(), right->type->c_str());
+         left->c_str(), right->c_str());
          return;
     }
 
@@ -670,13 +670,13 @@ void validateAssignment(ParserState *parser, AstNode *left, AstNode *right)
         if(leftAffiliation >> SIGNED_INT_GROUP *4 <= rightAffiliation >> UNSIGNED_INT_GROUP *4)
         {
             triggerParserWarning(parser,  "Assignment between \"%s\" <- \"%s\" may cause loss of data\n", 
-            left->type->c_str(), right->type->c_str());
+            left->c_str(), right->c_str());
         }
          return;
     }
 
     triggerParserError(parser, 1, "Assignment between \"%s\" <- \"%s\" is forbidden\n", 
-    left->type->c_str(), right->type->c_str());
+    left->c_str(), right->c_str());
 }
 
 void processGetAddr(ParserState *parser, AstNode *getAddr)

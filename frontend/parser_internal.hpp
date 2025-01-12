@@ -46,7 +46,7 @@ AstNode* parseFunctionBody(ParserState* parser, AstNode* function);
 // parser for statements
 // ----------------------------------------------
 
-AstNode* parseStatement(ParserState* parser);
+AstNode* parseStatement(ParserState* parser, bool predefBlockSymtab = false);
 AstNode* parseCompoundStatement(ParserState* parser);
 AstNode* parseSelectionStatement(ParserState* parser);
 AstNode* parseIterationStatement(ParserState *parser);
@@ -99,7 +99,7 @@ AstNode* parseStructAccess(ParserState *parser, AstNode* root);
 void validateStructAccess(ParserState *parser, AstNode* root, bool ptrAccess = false);
 std::string* drefPtrType(const std::string* ptrType);
 void processConstant(ParserState *parser, AstNode* constant);
-void validateAssignment(ParserState *parser, AstNode* left, AstNode* right);
+void validateAssignment(ParserState *parser, std::string* left, std::string* right);
 void processGetAddr(ParserState* parser, AstNode* getAddr);
 std::string* typeConversion(ParserState *parser, AstNode* left, AstNode* right);
 AstNode* parseLoop(ParserState* parser, 
