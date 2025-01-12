@@ -4,11 +4,9 @@
 #include "../frontend/parser.hpp"
 #include "code_gen.hpp"
 
-void fillTypeHwdInfo(SymbolType* symType);
 // alignment is first power of 2 that is <= type_size
 uint32_t getTypeAlignment(SymbolType* symType);
 std::string encodeAsAsmData(AstNode* dataNode);
 Instruction generateFunctionLabel(AstNode* fnDef);
-CpuState* generateCpuState(AstNode* fnDef, SymbolTable* localSymtab, SymbolFunction* symFn);
 void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName);
 #endif

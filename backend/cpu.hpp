@@ -1,6 +1,9 @@
 #ifndef CPU_H
 #define CPU_H
 #include <stdint.h>
+#include "system_v_abi.hpp"
+#include "../symtab_utils.hpp"
+#include "../frontend/parser.hpp"
 
 #define RAX 0
 #define RCX 1
@@ -41,6 +44,13 @@ struct CpuState
 {
     uint64_t frameSize;
     Reg reg[16];
+    uint8_t retSignature[2];
 };
 
+CpuState* generateCpuState(AstNode* fnDef, SymbolTable* localSymtab, SymbolFunction* symFn);
+void bindReturnValue(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
+void fillTypeHwdInfo(SymbolType* symType);
+uint16_t getTypeClass(SymbolType* type);
+bool isRdiUsedOnEntry(SymbolType* type);
+uint8_t getSysVGroup(SymbolType* type);
 #endif

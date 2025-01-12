@@ -2,6 +2,8 @@
 #define CODE_GEN_INTERNAL
 #include "code_gen.hpp"
 #include "../frontend/node_allocator.hpp"
+#include "cpu.hpp"
+
 
 #define GET_SCOPED_SYM(gen, name)  getSymbol((gen)->localSymtab, (name)) 
 #define ADD_INST(gen, ...) (gen)->code.push_back(__VA_ARGS__ )

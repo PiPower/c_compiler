@@ -20,6 +20,7 @@ void dispatcher(CodeGenerator *gen, AstNode *parseTree)
     switch (parseTree->nodeType)
     {
     case NodeType::FUNCTION_DEF:
+        gen->localSymtab = (SymbolTable*)parseTree->children[0]->data;
         translateFunction(gen, parseTree);
         break;
     case NodeType::IDENTIFIER:

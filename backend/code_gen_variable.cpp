@@ -7,7 +7,6 @@ using namespace std;
 void translateFunction(CodeGenerator *gen, AstNode *parseTree)
 {
     SymbolFunction* symFn = (SymbolFunction*)GET_SCOPED_SYM(gen, *parseTree->data);
-    gen->localSymtab = (SymbolTable*)parseTree->data;
     gen->cpu = generateCpuState(parseTree, gen->localSymtab, symFn);
 
     Instruction inst = generateFunctionLabel(parseTree);
