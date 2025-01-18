@@ -100,6 +100,7 @@ CpuState* generateCpuState(AstNode* fnDef, SymbolTable* localSymtab, SymbolFunct
 void bindReturnValue(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
 void bindArgs(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
 void bindArg(CpuState* cpu, SymbolVariable* symVar, SymbolType* symType, const std::string& varname, SysVgrDesc cls);
+void reserveCalleSavedRegs(CpuState* cpu);
 void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType);
 SysVgrDesc tryPackToRegisters(SymbolTable *localSymtab, SymbolType* symType);
 uint8_t is8ByteAligned(SymbolTable *localSymtab, SymbolType* symType);

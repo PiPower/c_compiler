@@ -19,6 +19,7 @@ CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunct
 
     bindReturnValue(cpu, localSymtab, symFn);
     bindArgs(cpu, localSymtab, symFn);
+    reserveCalleSavedRegs(cpu);
 
     return cpu;
 }
@@ -126,6 +127,16 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
     }
 }
 
+void reserveCalleSavedRegs(CpuState *cpu)
+{
+    for(uint8_t i=0;i < 5; i ++)
+    {
+        cpu->reg[gpRegsCalleSaved[i]].state = REG_USED;
+        cpu->reg[gpRegsCalleSaved[i]].symbol = "<calle_saved:" + to_string(i) +'>';
+        cpu->data[cpu->reg[gpRegsCalleSaved[i]].symbol] = {Storage::REG, gpRegsCalleSaved[i]};
+    }
+}
+
 void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType)
 {
     if(isBuiltInType(symType))
@@ -201,10 +212,6 @@ SysVgrDesc tryPackToRegisters(SymbolTable *localSymtab, SymbolType *symType)
     return {lowRegClass, hiRegClass};
 }
 
-uint8_t is8ByteAligned(SymbolTable *localSymtab, SymbolType *symType)
-{
-    return 0;
-}
 
 SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType *type)
 {
@@ -240,7 +247,7 @@ SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType *type)
        SysVgrDesc packed = tryPackToRegisters(localSymtab, type);
        if(packed.gr[0] != SYSV_NONE)
        {
-        return packed;
+            return packed;
        }
     }
     return {SYSV_MEMORY, type->typeSize};
