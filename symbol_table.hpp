@@ -45,7 +45,8 @@ struct Symbol
 
 struct SymbolTable
 {
-    std::unordered_map<std::string, Symbol*> symbols;
+    std::vector<Symbol*> symbols;
+    std::unordered_map<std::string, size_t> symId;
     SymbolTable* parent;
     // 0 is for global scope
     uint64_t scopeLevel; 
@@ -124,6 +125,6 @@ struct SymbolFunction
     {}
 };
 
-typedef std::unordered_map<std::string, Symbol*>::iterator SymtabIter;
+typedef std::unordered_map<std::string, size_t>::iterator IdIter;
 
 #endif

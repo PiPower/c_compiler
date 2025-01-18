@@ -9,26 +9,25 @@ Symbol* getSymbol(SymbolTable *symtab, const std::string &name, uint64_t* scopeL
         {
             *scopeLevel = 0;
         }
-        SymbolTable * glob = symtab;
+        SymbolTable *glob = symtab;
         while (glob->parent)
         {
             glob = glob->parent;
         }
-        
-        SymtabIter iter = glob->symbols.find("*");
-        return (Symbol*)(*iter).second;
+        IdIter iter = symtab->symId.find("*");
+        return symtab->symbols[iter->second];
     }
 
     while (symtab)
     {
-        SymtabIter iter = symtab->symbols.find(name);
-        if(iter != symtab->symbols.cend())
+        IdIter iter = symtab->symId.find(name);
+        if(iter != symtab->symId.cend())
         {
             if(scopeLevel)
             {
                 *scopeLevel = symtab->scopeLevel;
             }
-            return (Symbol*)(*iter).second;
+            return symtab->symbols[iter->second];
         }
         symtab = symtab->parent;
     }
@@ -38,12 +37,19 @@ Symbol* getSymbol(SymbolTable *symtab, const std::string &name, uint64_t* scopeL
 
 Symbol *getSymbolLocal(SymbolTable *symtab, const std::string &name)
 {
-    SymtabIter iter = symtab->symbols.find(name);
-    if(iter != symtab->symbols.cend())
+    IdIter iter = symtab->symId.find(name);
+    if(iter != symtab->symId.cend())
     {
-        return (Symbol*)(*iter).second;
+        return symtab->symbols[iter->second];
     }
     return nullptr;
+}
+
+void insertSymbol(SymbolTable *symtab, const std::string &name, Symbol *sym)
+{
+    symtab->symbols.push_back(sym);
+    size_t id = symtab->symbols.size() - 1;
+    symtab->symId[name] = id;
 }
 
 FieldDesc getNthFieldDesc(SymbolTable *symtab, SymbolType *type, int idx)

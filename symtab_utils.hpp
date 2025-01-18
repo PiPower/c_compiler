@@ -3,9 +3,11 @@
 #ifndef SYMTAB_UTILS
 #define SYMTAB_UTILS
 
+void insertSymbol(SymbolTable* symtab, const std::string& name, Symbol* sym);
+
 #define GET_SYMBOL(holder, name)  getSymbol((holder)->symtab, (name)) 
 #define GET_SYMBOL_EX(holder, name, ptr)  getSymbol((holder)->symtab, (name), (ptr) ) 
-#define SET_SYMBOL(holder, name, symbol) (holder)->symtab->symbols[(name)] = (symbol)
+#define SET_SYMBOL(holder, name, symbol) insertSymbol((holder)->symtab,  name, symbol )
 #define SYMTAB_CEND(holder) (holder)->symtab->symbols.cend()
 //-----------------
 // type groups
@@ -54,6 +56,7 @@ struct FieldDesc
 
 Symbol* getSymbol(SymbolTable* symtab, const std::string& name, uint64_t* scopeLevel = nullptr);
 Symbol* getSymbolLocal(SymbolTable* symtab, const std::string& name);
+void insertSymbol(SymbolTable* symtab, const std::string& name, Symbol* sym);
 FieldDesc getNthFieldDesc(SymbolTable* symtab, SymbolType* type, int idx);
 // function symbol
 inline constexpr void setDefinedAttr(SymbolFunction* fn)
