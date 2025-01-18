@@ -21,37 +21,87 @@
 #define R13 13
 #define R14 14
 #define R15 15
-#define RIP 16
-#define FLAGS 17
-#define CS 18
-#define SS 19
-#define DS 20
-#define ES 21
-#define FS 22
-#define GS 23
+
+#define XMM0 16
+#define XMM1 17
+#define XMM2 18
+#define XMM3 19
+#define XMM4 20
+#define XMM5 21
+#define XMM6 22
+#define XMM7 23
+#define XMM8 24
+#define XMM9 25
+#define XMM10 26
+#define XMM11 27
+#define XMM12 28
+#define XMM13 29
+#define XMM14 30
+#define XMM15 31
+
+#define RIP 32
+#define FLAGS 33
+#define CS 34
+#define SS 35
+#define DS 36
+#define ES 37
+#define FS 38
+#define GS 39
+
+
 
 #define REG_FREE 0x00
 #define REG_USED 0x01
 #define REG_CALLER_RES 0x02
 
+/* 
+    state: on of REG_FREE, REG_USED, REG_CALLER_RES
+    symbol: name of symbol stack( it might be in symtab but that is not guaranteed!!!!)
+*/
 struct Reg
 {
     uint8_t state;
     std::string symbol;
 };
 
+enum class Storage
+{
+    MEMORY,
+    REG,
+};
+
+/*
+    Storage == MEMORY -> offset represent offset in memory from rsp on function entry 
+    Storage == REG -> offset represent id of register used to store variable
+    offset -> if Storage == REG stores ID of assigned register else stores address of the variable 
+*/
+struct VariableDesc
+{
+    Storage storageType;
+    long int offset;
+};
+
 struct CpuState
 {
+    Reg reg[32];
     uint64_t frameSize;
-    Reg reg[16];
+    std::unordered_map<std::string,VariableDesc> data;
+    uint64_t stackArgsSize;
+    uint64_t currentStackSize;
+    uint64_t maxStackSize;
     uint8_t retSignature[2];
 };
 
 CpuState* generateCpuState(AstNode* fnDef, SymbolTable* localSymtab, SymbolFunction* symFn);
 void bindReturnValue(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
+void bindArgs(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
+void bindArg(CpuState* cpu, SymbolVariable* symVar, const std::string& varname, SysVgrDesc cls);
 void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType);
 SysVgrDesc tryPackToRegisters(SymbolTable *localSymtab, SymbolType* symType);
 uint8_t is8ByteAligned(SymbolTable *localSymtab, SymbolType* symType);
 SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType* type);
 uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2);
+void putVariableIntoCpuData(CpuState* cpu, VariableDesc desc, const std::string& varname);
+void bindStructToStack(CpuState* cpu, SymbolTable *localSymtab, SymbolVariable* symVar);
+
 #endif

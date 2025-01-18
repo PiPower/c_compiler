@@ -4,24 +4,21 @@
 #include <algorithm>
 using namespace std;
 
+uint8_t intParamRegs[] = {RDI, RSI, RDX, RCX, R8, R9 };
+uint8_t sseParamRegs[] = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 };
+
 CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunction* symFn)
 {
     CpuState* cpu = new CpuState();
     cpu->frameSize = 0;
+    cpu->maxStackSize = 0;
+    cpu->currentStackSize = 0;
+    cpu->stackArgsSize = 0;
     cpu->retSignature[0] = 0;
     cpu->retSignature[1] = 0;
+
     bindReturnValue(cpu, localSymtab, symFn);
-
-    for (size_t i = 0; i < symFn->argNames.size(); i++)
-    {
-        SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symFn->argTypes[i]);
-        if(isSetTranslatedToHwd(type))
-        {
-            fillTypeHwdInfo(localSymtab, type);
-        }
-    }
-    
-
+    bindArgs(cpu, localSymtab, symFn);
 
     return cpu;
 }
@@ -29,10 +26,6 @@ CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunct
 void bindReturnValue(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *symFn)
 {
     SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symFn->retType);
-    if(!isSetTranslatedToHwd(type))
-    {
-        fillTypeHwdInfo(localSymtab, type);
-    }
     SysVgrDesc retGroup = getSysVclass(localSymtab, type);
     uint8_t retINT = RET_RAX;
     uint8_t retSSE = RET_XMM0;
@@ -40,8 +33,10 @@ void bindReturnValue(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *sy
     if(retGroup.gr[0] == RET_MEM)
     {
         cpu->reg[RDI].state = REG_USED;
+        cpu->reg[RDI].symbol = "<retPtrToStruct>";
         cpu->retSignature[0] = retGroup.gr[0];
         cpu->retSignature[1] = retGroup.gr[1];
+        cpu->data[cpu->reg[RDI].symbol ] = {Storage::REG, RDI};
         return;
     }
 
@@ -62,8 +57,75 @@ void bindReturnValue(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *sy
             retSSE <<=1;
         }
     }
+}
 
+void bindArgs(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *symFn)
+{
 
+    for (size_t i = 0; i < symFn->argNames.size(); i++)
+    {
+        SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symFn->argTypes[i]);
+        SymbolVariable* var = (SymbolVariable*)getSymbol(localSymtab, *symFn->argNames[i]);
+        SysVgrDesc argClass = getSysVclass(localSymtab, type);
+        bindArg(cpu, var, *symFn->argNames[i],argClass);
+    }
+    
+}
+
+void bindArg(CpuState *cpu, SymbolVariable *symVar, const std::string& varname, SysVgrDesc cls)
+{
+    if(cpu->reg[R8].state == REG_USED && cls.gr[0] == cls.gr[1] && cls.gr[0] == SYSV_INTEGER)
+    {
+
+    }
+    
+    if(cpu->reg[XMM6].state == REG_USED && cls.gr[0] == cls.gr[1] && cls.gr[0] == SYSV_SSE)
+    {
+        
+    }
+
+    for(uint8_t i =0; i < 2; i++)
+    {
+        if( cls.gr[i] == SYSV_NONE)
+        {   
+            return;
+        }
+        if(cls.gr[i] == SYSV_INTEGER)
+        {
+            uint8_t freeRegId;
+            for(freeRegId =0; freeRegId < 7; freeRegId++)
+            {
+                if(freeRegId == 7)
+                {
+                    break;
+                }
+                if(cpu->reg[intParamRegs[freeRegId]].state == REG_FREE)
+                {
+                    break;
+                }
+            }
+            if(freeRegId < 7)
+            {
+                cpu->reg[intParamRegs[freeRegId]].state = REG_USED;
+                VariableDesc desc = {Storage::REG, intParamRegs[freeRegId]};
+                cpu->data[varname] = desc;
+            }
+        }  
+        else if(cls.gr[i] == SYSV_SSE)
+        {
+
+        }
+        else if(cls.gr[i] == SYSV_MEMORY)
+        {
+
+        }
+        else
+        {
+            printf("Internal error: given group is not supported");
+            exit(-1);
+        }
+
+    }
 }
 
 void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType)
@@ -137,8 +199,6 @@ SysVgrDesc tryPackToRegisters(SymbolTable *localSymtab, SymbolType *symType)
         }
         i++;
     }
-    
-
 
     return {lowRegClass, hiRegClass};
 }
@@ -150,6 +210,11 @@ uint8_t is8ByteAligned(SymbolTable *localSymtab, SymbolType *symType)
 
 SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType *type)
 {
+    if(!isSetTranslatedToHwd(type))
+    {
+        fillTypeHwdInfo(localSymtab, type);
+    }
+
     if(isBuiltInType(type))
     {
         if( (type->affiliation & INT_S_MASK) > 0 ||
@@ -211,4 +276,21 @@ uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2)
     }
 
     return SYSV_SSE;
+}
+
+void putVariableIntoCpuData(CpuState *cpu, VariableDesc desc, const std::string& varname)
+{
+    auto iter = cpu->data.find(varname);
+    if(iter == cpu->data.cend())
+    {
+
+        cpu->data[varname] = std::move(desc);
+        return;
+    }
+
+    
+}
+
+void bindStructToStack(CpuState *cpu, SymbolTable *localSymtab, SymbolVariable *symVar)
+{
 }

@@ -6,7 +6,7 @@ using namespace std;
 uint32_t getTypeAlignment(SymbolType *symType)
 {
     uint32_t alignment = 1;
-    while (alignment * 2 < symType->typeSize && alignment * 2 < 64)
+    while (alignment * 2 <= symType->typeSize && alignment * 2 < 64)
     {
         alignment*=2;
     }
