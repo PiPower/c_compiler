@@ -16,7 +16,7 @@ void translateFunction(CodeGenerator *gen, AstNode *parseTree)
     // function preambule
     ADD_INST(gen, {INSTRUCTION, "pushq", "%rbp", ""} );
     ADD_INST(gen, {INSTRUCTION, "movq", "%rsp", "%rbp"} );
-    ADD_INST(gen, {INSTRUCTION, "subq", "", "rsp"} );
+    ADD_INST(gen, {INSTRUCTION, "subq", "", "%rsp"} );
     size_t fillSubInstInd = gen->code.size() - 1;
 
     AstNode* fnBody = parseTree->children[0];
@@ -25,7 +25,7 @@ void translateFunction(CodeGenerator *gen, AstNode *parseTree)
         AstNode* parseTree = fnBody->children[i];
         dispatcher(gen, parseTree);
     }
-    
+    gen->code[fillSubInstInd].src = '$' + to_string(gen->cpu->maxStackSize);
     ADD_INST(gen, {INSTRUCTION, "leave"} );
     ADD_INST(gen, {INSTRUCTION, "ret"} );
 
@@ -37,6 +37,20 @@ void translateDeclaration(CodeGenerator *gen, AstNode *parseTree)
     if(gen->localSymtab->scopeLevel == 0)
     {
         emitGlobalVariable(gen, parseTree);
+    }
+    parseLocalAssignment(gen, parseTree);
+}
+
+void translateExpression(CodeGenerator *gen, AstNode *parseTree)
+{
+    switch (parseTree->nodeType)
+    {
+    case NodeType::ASSIGNMENT:
+        /* code */
+        break;
+    
+    default:
+        break;
     }
 }
 

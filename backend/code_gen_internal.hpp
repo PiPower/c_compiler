@@ -13,5 +13,9 @@
 // symbol table variable translation
 void translateFunction(CodeGenerator* gen, AstNode* parseTree);
 void translateDeclaration(CodeGenerator* gen, AstNode* parseTree);
+void translateExpression(CodeGenerator* gen, AstNode* parseTree);
 void emitGlobalVariable(CodeGenerator* gen, AstNode* parseTree);
+
+//expressions
+void parseLocalAssignment(CodeGenerator* gen, AstNode* parseTree);
 #endif
