@@ -6,7 +6,7 @@ using namespace std;
 
 uint8_t intParamRegs[] = {RDI, RSI, RDX, RCX, R8, R9 };
 uint8_t sseParamRegs[] = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 };
-
+uint8_t gpRegsCalleSaved[] = { RBX, R12, R13, R14, R15 };
 CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunction* symFn)
 {
     CpuState* cpu = new CpuState();
@@ -86,12 +86,6 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
         exit(-1);
     }
 
-    if( cls.gr[0] == SYSV_MEMORY)
-    {
-        printf(" NOT SUPPORTED \n");\
-        exit(-1);
-    }
-
     for(uint8_t i =0; i < 2; i++)
     {
         if( cls.gr[i] == SYSV_NONE)
@@ -100,21 +94,10 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
         }
         if(cls.gr[i] == SYSV_INTEGER)
         {
-            uint8_t freeRegId;
-            for(freeRegId =0; freeRegId < 7; freeRegId++)
+            char freeRegId = getUnusedArgRegId(cpu);
+            if(freeRegId >= 0)
             {
-                if(freeRegId == 7)
-                {
-                    break;
-                }
-                if(cpu->reg[intParamRegs[freeRegId]].state == REG_FREE)
-                {
-                    break;
-                }
-            }
-            if(freeRegId < 7)
-            {
-                cpu->reg[intParamRegs[freeRegId]].state = REG_USED;
+                cpu->reg[freeRegId].state = REG_USED;
                 VariableDesc desc = {Storage::REG, intParamRegs[freeRegId]};
                 cpu->data[varname] = desc;
             }
@@ -130,8 +113,8 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
         }
         else if(cls.gr[i] == SYSV_MEMORY)
         {
-                printf(" NOT SUPPORTED \n");\
-                exit(-1);
+            bindVariableToCpuStack(cpu, symType, varname);
+            return;
         }
         else
         {
@@ -304,4 +287,18 @@ void bindVariableToCpuStack(CpuState *cpu, SymbolType* symType, const std::strin
     cpu->stackArgsOffset += eightbytes * 8;
 }
 
-
+char getUnusedArgRegId(CpuState* cpu)
+{
+    for(char freeRegId =0; freeRegId < 7; freeRegId++)
+    {
+        if(freeRegId == 6)
+        {
+            return -1;
+        }
+        if(cpu->reg[intParamRegs[freeRegId]].state == REG_FREE)
+        {
+            return intParamRegs[freeRegId];
+        }
+    }
+    return -1;
+}

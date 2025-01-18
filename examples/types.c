@@ -47,7 +47,7 @@ struct composite
     struct Point3D y;
 };
 
-struct Point3D fn1()
+struct Point3D fn1(int x,int x2, int x3, int x4, int x5, int x6, int x7, struct composite x8)
 {
 
 }

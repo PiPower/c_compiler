@@ -106,5 +106,5 @@ uint8_t is8ByteAligned(SymbolTable *localSymtab, SymbolType* symType);
 SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType* type);
 uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2);
 void bindVariableToCpuStack(CpuState* cpu, SymbolType* symType, const std::string& varname);
-
+char getUnusedArgRegId(CpuState* cpu);
 #endif
