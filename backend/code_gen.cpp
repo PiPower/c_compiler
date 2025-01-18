@@ -4,15 +4,16 @@
 
 using namespace std;
 
-char* generate_code(CodeGenerator *gen)
+void generate_code(CodeGenerator *gen)
 {
+    fillTypeHwdInfoForBlock(gen->symtab);
     for (size_t i = 0; i < gen->parseTrees->size(); i++)
     {
         AstNode* parseTree = (*gen->parseTrees)[i];
         dispatcher(gen, parseTree);
     }
     
-    return nullptr;
+    return;
 }
 
 void dispatcher(CodeGenerator *gen, AstNode *parseTree)

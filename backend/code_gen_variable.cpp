@@ -6,6 +6,7 @@ using namespace std;
 
 void translateFunction(CodeGenerator *gen, AstNode *parseTree)
 {
+    fillTypeHwdInfoForBlock(gen->symtab);
     SymbolFunction* symFn = (SymbolFunction*)GET_SCOPED_SYM(gen, *parseTree->data);
     gen->cpu = generateCpuState(parseTree, gen->localSymtab, symFn);
 
@@ -31,10 +32,6 @@ void emitGlobalVariable(CodeGenerator *gen, AstNode *parseTree)
 {
     SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, *parseTree->data);
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
-    if(symType->typeSize == 0)
-    {
-        fillTypeHwdInfo(gen->localSymtab, symType);
-    }
     Instruction inst;
     inst.type = LABEL;
     inst.mnemonic = std::move(*parseTree->data);

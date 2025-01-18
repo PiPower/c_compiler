@@ -10,7 +10,6 @@ uint8_t gpRegsCalleSaved[] = { RBX, R12, R13, R14, R15 };
 CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunction* symFn)
 {
     CpuState* cpu = new CpuState();
-    cpu->frameSize = 0;
     cpu->maxStackSize = 0;
     cpu->currentStackSize = 0;
     cpu->stackArgsOffset = 16;
@@ -20,12 +19,19 @@ CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunct
     bindReturnValue(cpu, localSymtab, symFn);
     bindArgs(cpu, localSymtab, symFn);
     reserveCalleSavedRegs(cpu);
+    bindBlockToStack(cpu, localSymtab);
 
     return cpu;
 }
 
 void bindReturnValue(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *symFn)
 {
+    if(*symFn->retType == "void")
+    {
+        cpu->retSignature[0] = SYSV_NONE;
+        cpu->retSignature[1] = SYSV_NONE;
+        return;
+    }
     SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symFn->retType);
     SysVgrDesc retGroup = getSysVclass(localSymtab, type);
     uint8_t retINT = RET_RAX;
@@ -69,6 +75,7 @@ void bindArgs(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *symFn)
         SymbolVariable* var = (SymbolVariable*)getSymbol(localSymtab, *symFn->argNames[i]);
         SysVgrDesc argClass = getSysVclass(localSymtab, type);
         bindArg(cpu, var, type, *symFn->argNames[i],argClass);
+        setIsArg(var);
     }
     
 }
@@ -105,7 +112,7 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
             }
             else
             {
-                bindVariableToCpuStack(cpu, symType, varname);
+                bindArgToCpuStack(cpu, symType, varname);
             }
         }  
         else if(cls.gr[i] == SYSV_SSE)
@@ -115,7 +122,7 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
         }
         else if(cls.gr[i] == SYSV_MEMORY)
         {
-            bindVariableToCpuStack(cpu, symType, varname);
+            bindArgToCpuStack(cpu, symType, varname);
             return;
         }
         else
@@ -137,6 +144,32 @@ void reserveCalleSavedRegs(CpuState *cpu)
     }
 }
 
+void bindBlockToStack(CpuState* cpu, SymbolTable* localSymtab)
+{
+    uint32_t blockSize = 0;
+    vector<long int*> updates;
+    for(size_t i =0; i < localSymtab->symbols.size(); i++)
+    {
+        Symbol* sym = localSymtab->symbols[i];
+        SymbolVariable* symVar = (SymbolVariable*)sym;
+        if(localSymtab->symbolNames[i] == "<return_val>" ||
+           sym->symClass != SymbolClass::VARIABLE || 
+           isSetIsArg(symVar))
+        {
+            continue;
+        }
+        SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symVar->varType);
+        blockSize += type->typeSize;
+        blockSize += blockSize%type->typeSize; // make sure data is aligned
+        
+        cpu->data[localSymtab->symbolNames[i]] = {Storage::MEMORY,  -(long)blockSize - cpu->currentStackSize};
+        updates.push_back(&cpu->data[localSymtab->symbolNames[i]].offset);
+
+    }
+    cpu->currentStackSize += blockSize;
+    cpu->maxStackSize = std::max(cpu->currentStackSize, cpu->maxStackSize );
+}
+
 void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType)
 {
     if(isBuiltInType(symType))
@@ -151,10 +184,6 @@ void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType)
     for(int i =0; i < symType->names.size(); i++)
     {
         subType = (SymbolType*)getSymbol(localSymtab, symType->types[i]);
-        if(!isSetTranslatedToHwd(subType))
-        {
-            fillTypeHwdInfo(localSymtab, subType);
-        }
         symType->dataAlignment = max(subType->dataAlignment, symType->dataAlignment);
         uint64_t mod = symType->typeSize % subType->dataAlignment;
         if(mod != 0)
@@ -215,11 +244,6 @@ SysVgrDesc tryPackToRegisters(SymbolTable *localSymtab, SymbolType *symType)
 
 SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType *type)
 {
-    if(!isSetTranslatedToHwd(type))
-    {
-        fillTypeHwdInfo(localSymtab, type);
-    }
-
     if(isBuiltInType(type))
     {
         if( (type->affiliation & INT_S_MASK) > 0 ||
@@ -283,16 +307,12 @@ uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2)
     return SYSV_SSE;
 }
 
-void bindVariableToCpuStack(CpuState *cpu, SymbolType* symType, const std::string& varname)
+void bindArgToCpuStack(CpuState *cpu, SymbolType* symType, const std::string& varname)
 {
     VariableDesc desc = {Storage::MEMORY, cpu->stackArgsOffset};
     cpu->data[varname] = desc;
-    uint64_t eightbytes = symType->typeSize / 8;
-    if( symType->typeSize % 8 != 0)
-    {
-        eightbytes += 1;
-    }
-    cpu->stackArgsOffset += eightbytes * 8;
+    uint64_t bytes = symType->typeSize + symType->typeSize % 8;
+    cpu->stackArgsOffset += bytes;
 }
 
 char getUnusedArgRegId(CpuState* cpu)
@@ -309,4 +329,19 @@ char getUnusedArgRegId(CpuState* cpu)
         }
     }
     return -1;
+}
+
+void fillTypeHwdInfoForBlock(SymbolTable* localSymtab)
+{
+    for(size_t i =0; i < localSymtab->symbolNames.size(); i++)
+    {
+        if(localSymtab->symbols[i]->symClass == SymbolClass::TYPE)
+        {
+            SymbolType* symType = (SymbolType*)localSymtab->symbols[i];
+            if(!isSetTranslatedToHwd(symType))
+            {
+                fillTypeHwdInfo(localSymtab, symType);
+            }
+        }
+    }
 }

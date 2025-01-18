@@ -88,7 +88,6 @@ struct VariableDesc
 struct CpuState
 {
     Reg reg[32];
-    uint64_t frameSize;
     std::unordered_map<std::string,VariableDesc> data;
     uint32_t stackArgsOffset;
     uint32_t currentStackSize;
@@ -101,11 +100,13 @@ void bindReturnValue(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* sy
 void bindArgs(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
 void bindArg(CpuState* cpu, SymbolVariable* symVar, SymbolType* symType, const std::string& varname, SysVgrDesc cls);
 void reserveCalleSavedRegs(CpuState* cpu);
+void bindBlockToStack(CpuState* cpu, SymbolTable* localSymtab);
 void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType);
 SysVgrDesc tryPackToRegisters(SymbolTable *localSymtab, SymbolType* symType);
 uint8_t is8ByteAligned(SymbolTable *localSymtab, SymbolType* symType);
 SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType* type);
 uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2);
-void bindVariableToCpuStack(CpuState* cpu, SymbolType* symType, const std::string& varname);
+void bindArgToCpuStack(CpuState* cpu, SymbolType* symType, const std::string& varname);
 char getUnusedArgRegId(CpuState* cpu);
+void fillTypeHwdInfoForBlock(SymbolTable* localSymtab);
 #endif

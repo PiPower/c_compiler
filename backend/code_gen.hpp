@@ -35,7 +35,7 @@ struct CodeGenerator
     CpuState* cpu;
 };
 
-char* generate_code(CodeGenerator* gen);
+void generate_code(CodeGenerator* gen);
 void dispatcher(CodeGenerator* gen, AstNode* parseTree);
 void write_to_file(const InstructionSeq& instructions, FILE* stream);
 void write_label(const Instruction* inst, FILE* stream);

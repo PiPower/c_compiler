@@ -121,6 +121,21 @@ inline constexpr bool isSetTranslatedToHwd(SymbolType* type)
     return (type->attributes & 0x02 )> 0 ;
 }
 
+inline constexpr void setIsArg(SymbolVariable* type)
+{
+    type->attributes |= 0x02;
+}
+
+inline constexpr void disableIsArg(SymbolVariable* type)
+{
+    type->attributes &=  ~0x02;
+}
+
+inline constexpr bool isSetIsArg(SymbolVariable* type)
+{
+    return (type->attributes & 0x02 ) > 0 ;
+}
+
 inline bool isBuiltInType(SymbolType* type)
 {
     return type->names.size() == 0 ;

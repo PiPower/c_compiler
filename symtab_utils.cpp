@@ -48,6 +48,7 @@ Symbol *getSymbolLocal(SymbolTable *symtab, const std::string &name)
 void insertSymbol(SymbolTable *symtab, const std::string &name, Symbol *sym)
 {
     symtab->symbols.push_back(sym);
+    symtab->symbolNames.push_back(name);
     size_t id = symtab->symbols.size() - 1;
     symtab->symId[name] = id;
 }

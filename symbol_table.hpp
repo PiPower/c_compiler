@@ -46,6 +46,7 @@ struct Symbol
 struct SymbolTable
 {
     std::vector<Symbol*> symbols;
+    std::vector<std::string> symbolNames;
     std::unordered_map<std::string, size_t> symId;
     SymbolTable* parent;
     // 0 is for global scope
@@ -89,6 +90,7 @@ struct SymbolAlias
 /*
     attributes:
     bit0 is variable defined
+    bit1: is used as argument in a function
 */
 struct SymbolVariable
 {
