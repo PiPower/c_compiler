@@ -30,12 +30,11 @@ struct CodeGenerator
     SymbolTable* localSymtab;
     SymbolTable* symtab;
     NodeAllocator* allocator;
-    std::vector<AstNode*>* parseTrees;
     InstructionSeq code;
     CpuState* cpu;
 };
 
-void generate_code(CodeGenerator* gen);
+void generate_code(CodeGenerator* gen, std::vector<AstNode*>* parseTrees);
 void dispatcher(CodeGenerator* gen, AstNode* parseTree);
 void write_to_file(const InstructionSeq& instructions, FILE* stream);
 void write_label(const Instruction* inst, FILE* stream);

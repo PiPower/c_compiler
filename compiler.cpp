@@ -16,11 +16,10 @@ void compile(const char *file, FILE* stream)
 
     CodeGenerator gen;
     gen.symtab = &symtab;
-    gen.parseTrees = &statements;
     gen.allocator = &allocator;
     gen.cpu = nullptr; // for global scope
     gen.localSymtab = &symtab;
-    generate_code(&gen);
+    generate_code(&gen, &statements);
     write_to_file(gen.code, stream);
 
     int x = 2;

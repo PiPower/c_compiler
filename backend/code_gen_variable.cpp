@@ -6,6 +6,7 @@ using namespace std;
 
 void translateFunction(CodeGenerator *gen, AstNode *parseTree)
 {
+    gen->localSymtab = (SymbolTable*)parseTree->children[0]->data;
     fillTypeHwdInfoForBlock(gen->symtab);
     SymbolFunction* symFn = (SymbolFunction*)GET_SCOPED_SYM(gen, *parseTree->data);
     gen->cpu = generateCpuState(parseTree, gen->localSymtab, symFn);
@@ -18,6 +19,17 @@ void translateFunction(CodeGenerator *gen, AstNode *parseTree)
     ADD_INST(gen, {INSTRUCTION, "subq", "", "rsp"} );
     size_t fillSubInstInd = gen->code.size() - 1;
 
+    AstNode* fnBody = parseTree->children[0];
+    for (size_t i = 0; i < fnBody->children.size(); i++)
+    {
+        AstNode* parseTree = fnBody->children[i];
+        dispatcher(gen, parseTree);
+    }
+    
+    ADD_INST(gen, {INSTRUCTION, "leave"} );
+    ADD_INST(gen, {INSTRUCTION, "ret"} );
+
+    gen->localSymtab = gen->localSymtab->parent;
 }
 
 void translateDeclaration(CodeGenerator *gen, AstNode *parseTree)

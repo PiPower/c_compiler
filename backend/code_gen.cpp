@@ -4,12 +4,12 @@
 
 using namespace std;
 
-void generate_code(CodeGenerator *gen)
+void generate_code(CodeGenerator *gen, std::vector<AstNode*>* globalTrees)
 {
     fillTypeHwdInfoForBlock(gen->symtab);
-    for (size_t i = 0; i < gen->parseTrees->size(); i++)
+    for (size_t i = 0; i < globalTrees->size(); i++)
     {
-        AstNode* parseTree = (*gen->parseTrees)[i];
+        AstNode* parseTree = (*globalTrees)[i];
         dispatcher(gen, parseTree);
     }
     
@@ -21,7 +21,6 @@ void dispatcher(CodeGenerator *gen, AstNode *parseTree)
     switch (parseTree->nodeType)
     {
     case NodeType::FUNCTION_DEF:
-        gen->localSymtab = (SymbolTable*)parseTree->children[0]->data;
         translateFunction(gen, parseTree);
         break;
     case NodeType::IDENTIFIER:
