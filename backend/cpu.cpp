@@ -98,6 +98,7 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
             if(freeRegId >= 0)
             {
                 cpu->reg[freeRegId].state = REG_USED;
+                cpu->reg[freeRegId].symbol = varname;
                 VariableDesc desc = {Storage::REG, intParamRegs[freeRegId]};
                 cpu->data[varname] = desc;
             }
