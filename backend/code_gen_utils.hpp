@@ -4,6 +4,7 @@
 #include "../frontend/parser.hpp"
 #include "code_gen.hpp"
 
+#define CLEAR_OP(gen) (gen)->opDesc.op = OP::NONE;  (gen)->opDesc.operand.clear();
 // alignment is first power of 2 that is <= type_size
 uint32_t getTypeAlignment(SymbolType* symType);
 std::string encodeAsAsmData(AstNode* dataNode);

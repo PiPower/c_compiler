@@ -25,6 +25,29 @@ struct Instruction
 
 typedef std::vector<Instruction> InstructionSeq;
 struct CpuState;
+
+/*
+localSymtab - symboltable of currently translated block;
+symtab - global symboltable ;
+allocator - ast nodes allocator;
+code - sequence of translated instructions in x86-64 gnu asm;
+operand - used to pass translation context between calls;
+cpu - pointer to structure representing cpu;
+*/
+
+enum class OP
+{
+    NONE,
+    CONSTANT,
+    VARIABLE
+};
+
+struct OpDesc
+{
+    OP op;
+    std::string operand;
+};
+
 struct CodeGenerator
 {
     SymbolTable* localSymtab;
@@ -32,10 +55,11 @@ struct CodeGenerator
     NodeAllocator* allocator;
     InstructionSeq code;
     CpuState* cpu;
+    OpDesc opDesc;
 };
 
 void generate_code(CodeGenerator* gen, std::vector<AstNode*>* parseTrees);
-void dispatcher(CodeGenerator* gen, AstNode* parseTree);
+void dispatch(CodeGenerator* gen, AstNode* parseTree);
 void write_to_file(const InstructionSeq& instructions, FILE* stream);
 void write_label(const Instruction* inst, FILE* stream);
 void write_instruction(const Instruction* inst, FILE* stream);

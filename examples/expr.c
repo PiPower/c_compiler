@@ -2,7 +2,7 @@ unsigned int x, b, c, g;
 
 int main()
 {
-    long int y = -230000000000000000;
+    long int y = -230000000000000000, z = 21;
     unsigned long pdpr = 20103;
     pdpr =  (unsigned long) -(int)pdpr;
     unsigned int d = x + (unsigned int)y;

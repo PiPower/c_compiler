@@ -23,7 +23,7 @@ void translateFunction(CodeGenerator *gen, AstNode *parseTree)
     for (size_t i = 0; i < fnBody->children.size(); i++)
     {
         AstNode* parseTree = fnBody->children[i];
-        dispatcher(gen, parseTree);
+        dispatch(gen, parseTree);
     }
     gen->code[fillSubInstInd].src = '$' + to_string(gen->cpu->maxStackSize);
     ADD_INST(gen, {INSTRUCTION, "leave"} );
@@ -38,7 +38,10 @@ void translateDeclaration(CodeGenerator *gen, AstNode *parseTree)
     {
         emitGlobalVariable(gen, parseTree);
     }
-    parseLocalAssignment(gen, parseTree);
+    else
+    {
+        translateLocalAssignment(gen, parseTree);
+    }
 }
 
 void translateExpression(CodeGenerator *gen, AstNode *parseTree)
@@ -52,6 +55,18 @@ void translateExpression(CodeGenerator *gen, AstNode *parseTree)
     default:
         break;
     }
+}
+
+void prepareVariable(CodeGenerator *gen, AstNode *parseTree)
+{
+    gen->opDesc.op = OP::VARIABLE;
+    gen->opDesc.operand =  *parseTree->data;
+}
+
+void prepareConstant(CodeGenerator *gen, AstNode *parseTree)
+{
+    gen->opDesc.op = OP::CONSTANT;
+    gen->opDesc.operand =  *parseTree->data;
 }
 
 void emitGlobalVariable(CodeGenerator *gen, AstNode *parseTree)
