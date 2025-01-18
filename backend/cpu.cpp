@@ -13,7 +13,7 @@ CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunct
     cpu->frameSize = 0;
     cpu->maxStackSize = 0;
     cpu->currentStackSize = 0;
-    cpu->stackArgsSize = 0;
+    cpu->stackArgsOffset = 16;
     cpu->retSignature[0] = 0;
     cpu->retSignature[1] = 0;
 
@@ -67,21 +67,29 @@ void bindArgs(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *symFn)
         SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symFn->argTypes[i]);
         SymbolVariable* var = (SymbolVariable*)getSymbol(localSymtab, *symFn->argNames[i]);
         SysVgrDesc argClass = getSysVclass(localSymtab, type);
-        bindArg(cpu, var, *symFn->argNames[i],argClass);
+        bindArg(cpu, var, type, *symFn->argNames[i],argClass);
     }
     
 }
 
-void bindArg(CpuState *cpu, SymbolVariable *symVar, const std::string& varname, SysVgrDesc cls)
+void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const std::string& varname, SysVgrDesc cls)
 {
     if(cpu->reg[R8].state == REG_USED && cls.gr[0] == cls.gr[1] && cls.gr[0] == SYSV_INTEGER)
     {
-
+        printf(" NOT SUPPORTED \n");\
+        exit(-1);
     }
     
     if(cpu->reg[XMM6].state == REG_USED && cls.gr[0] == cls.gr[1] && cls.gr[0] == SYSV_SSE)
     {
-        
+        printf(" NOT SUPPORTED \n");\
+        exit(-1);
+    }
+
+    if( cls.gr[0] == SYSV_MEMORY)
+    {
+        printf(" NOT SUPPORTED \n");\
+        exit(-1);
     }
 
     for(uint8_t i =0; i < 2; i++)
@@ -110,14 +118,20 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, const std::string& varname, 
                 VariableDesc desc = {Storage::REG, intParamRegs[freeRegId]};
                 cpu->data[varname] = desc;
             }
+            else
+            {
+                bindVariableToCpuStack(cpu, symType, varname);
+            }
         }  
         else if(cls.gr[i] == SYSV_SSE)
         {
-
+                printf(" NOT SUPPORTED \n");\
+                exit(-1);
         }
         else if(cls.gr[i] == SYSV_MEMORY)
         {
-
+                printf(" NOT SUPPORTED \n");\
+                exit(-1);
         }
         else
         {
@@ -278,19 +292,16 @@ uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2)
     return SYSV_SSE;
 }
 
-void putVariableIntoCpuData(CpuState *cpu, VariableDesc desc, const std::string& varname)
+void bindVariableToCpuStack(CpuState *cpu, SymbolType* symType, const std::string& varname)
 {
-    auto iter = cpu->data.find(varname);
-    if(iter == cpu->data.cend())
+    VariableDesc desc = {Storage::MEMORY, cpu->stackArgsOffset};
+    cpu->data[varname] = desc;
+    uint64_t eightbytes = symType->typeSize / 8;
+    if( symType->typeSize % 8 != 0)
     {
-
-        cpu->data[varname] = std::move(desc);
-        return;
+        eightbytes += 1;
     }
-
-    
+    cpu->stackArgsOffset += eightbytes * 8;
 }
 
-void bindStructToStack(CpuState *cpu, SymbolTable *localSymtab, SymbolVariable *symVar)
-{
-}
+

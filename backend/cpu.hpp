@@ -81,27 +81,30 @@ struct VariableDesc
     long int offset;
 };
 
+/*
+    stack is allowed to be 32 bit long above and below rbp value on entry
+
+*/
 struct CpuState
 {
     Reg reg[32];
     uint64_t frameSize;
     std::unordered_map<std::string,VariableDesc> data;
-    uint64_t stackArgsSize;
-    uint64_t currentStackSize;
-    uint64_t maxStackSize;
+    uint32_t stackArgsOffset;
+    uint32_t currentStackSize;
+    uint32_t maxStackSize;
     uint8_t retSignature[2];
 };
 
 CpuState* generateCpuState(AstNode* fnDef, SymbolTable* localSymtab, SymbolFunction* symFn);
 void bindReturnValue(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
 void bindArgs(CpuState* cpu, SymbolTable* localSymtab, SymbolFunction* symFn);
-void bindArg(CpuState* cpu, SymbolVariable* symVar, const std::string& varname, SysVgrDesc cls);
+void bindArg(CpuState* cpu, SymbolVariable* symVar, SymbolType* symType, const std::string& varname, SysVgrDesc cls);
 void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType);
 SysVgrDesc tryPackToRegisters(SymbolTable *localSymtab, SymbolType* symType);
 uint8_t is8ByteAligned(SymbolTable *localSymtab, SymbolType* symType);
 SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType* type);
 uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2);
-void putVariableIntoCpuData(CpuState* cpu, VariableDesc desc, const std::string& varname);
-void bindStructToStack(CpuState* cpu, SymbolTable *localSymtab, SymbolVariable* symVar);
+void bindVariableToCpuStack(CpuState* cpu, SymbolType* symType, const std::string& varname);
 
 #endif
