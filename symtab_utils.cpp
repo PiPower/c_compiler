@@ -14,7 +14,7 @@ Symbol* getSymbol(SymbolTable *symtab, const std::string &name, uint64_t* scopeL
         {
             glob = glob->parent;
         }
-        IdIter iter = symtab->symId.find("*");
+        IdIter iter = glob->symId.find("*");
         return symtab->symbols[iter->second];
     }
 
