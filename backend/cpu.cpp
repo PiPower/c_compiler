@@ -7,6 +7,51 @@ using namespace std;
 uint8_t intParamRegs[] = {RDI, RSI, RDX, RCX, R8, R9 };
 uint8_t sseParamRegs[] = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 };
 uint8_t gpRegsCalleSaved[] = { RBX, R12, R13, R14, R15 };
+
+const char* registers[][5] = {
+        {"rax", "eax", "ax","al", "ah"}, 
+        {"rbx", "ebx", "bx", "bl","bh"}, 
+        {"rcx", "ecx", "cx", "cl","ch"},
+        {"rdx", "edx", "dx", "dl","dh"}, 
+        {"rsi", "esi", "si", "sil"},  
+        {"rdi", "edi", "di", "dil"},  
+        {"rbp", "ebp", "bp", "bpl"}, 
+        {"rsp", "esp", "sp", "spl"},  
+        {"r8", "r8d", "r8w", "r8b"}, 
+        {"r9", "r9d", "r9w", "r9b"}, 
+        {"r10", "r10d", "r10w", "r10b"}, 
+        {"r11", "r11d", "r11w", "r11b"}, 
+        {"r12", "r12d", "r12w", "r12b"}, 
+        {"r13", "r13d", "r13w", "r13b"}, 
+        {"r14", "r14d", "r14w", "r14b"}, 
+        {"r15", "r15d", "r15w", "r15b"}, 
+        {"zmm0", "ymm0", "xmm0"},
+        {"zmm1", "ymm1", "xmm1"},
+        {"zmm2", "ymm2", "xmm2"},
+        {"zmm3", "ymm3", "xmm3"},
+        {"zmm4", "ymm4", "xmm4"},
+        {"zmm5", "ymm5", "xmm5"},
+        {"zmm6", "ymm6", "xmm6"},
+        {"zmm7", "ymm7", "xmm7"},
+        {"zmm8", "ymm8", "xmm8"},
+        {"zmm9", "ymm9", "xmm9"},
+        {"zmm10", "ymm10", "xmm10"},
+        {"zmm11", "ymm11", "xmm11"},
+        {"zmm12", "ymm12", "xmm12"},
+        {"zmm13", "ymm13", "xmm13"},
+        {"zmm14", "ymm14", "xmm14"},
+        {"zmm15", "ymm15", "xmm15"},
+        {"rip", "eip", "ip"},
+        {"rflags", "eflags"},
+        {0,0, "cs"},
+        {0,0, "ds"},
+        {0,0, "es"},
+        {0,0, "ss"},
+        {0,0, "fs"},
+        {0,0, "gs"},
+
+    };
+
 CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunction* symFn)
 {
     CpuState* cpu = new CpuState();

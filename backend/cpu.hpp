@@ -48,11 +48,11 @@
 #define FS 38
 #define GS 39
 
-
-
 #define REG_FREE 0x00
 #define REG_USED 0x01
 #define REG_CALLER_RES 0x02
+
+extern const char* registers[][5];
 
 /* 
     state: on of REG_FREE, REG_USED, REG_CALLER_RES
@@ -66,6 +66,7 @@ struct Reg
 
 enum class Storage
 {
+    NONE,
     MEMORY,
     REG,
 };
