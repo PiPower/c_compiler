@@ -92,6 +92,7 @@ struct CpuState
     std::unordered_map<std::string,VariableDesc> data;
     uint32_t stackArgsOffset;
     uint32_t currentStackSize;
+    uint32_t runtimeStackSize;
     uint32_t maxStackSize;
     uint8_t retSignature[2];
 };

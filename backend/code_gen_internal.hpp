@@ -31,4 +31,6 @@ A - Assignment
 C - Constant
 */
 void generateCodeForSICA(CodeGenerator* gen, const std::string& constant,  const OpDesc &destDesc);
+uint8_t allocateRRegister(CodeGenerator* gen, std::string symName);
+void freeRRegister(CodeGenerator* gen, int index);
 #endif

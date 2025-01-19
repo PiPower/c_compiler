@@ -28,6 +28,7 @@ void generateCodeForSICA(CodeGenerator *gen, const std::string &constant, const 
     long int value = encodeAsSignedBin(constant);
     Instruction inst;
     inst.type = INSTRUCTION;
+    int regIdx = -1;
     if(destDesc.operandAffi == INT8_S)
     {
         inst.mnemonic = "movb";
@@ -46,7 +47,20 @@ void generateCodeForSICA(CodeGenerator *gen, const std::string &constant, const 
     else if(destDesc.operandAffi  == INT64_S)
     {
         inst.mnemonic = "movq";
-        inst.src = encodeIntAsString(value, 8);
+        if( (uint64_t)(value >> 32 ) > 0)
+        {
+            regIdx = (int)allocateRRegister(gen, "init_tmp");
+            Instruction instLocal = {INSTRUCTION, "movabsq", 
+                                encodeIntAsString(value, 8), 
+                                cpu_registers_str[regIdx][0] };
+            instLocal.dest = '%' + instLocal.dest;
+            inst.src = instLocal.dest;
+            ADD_INST_MV(gen, instLocal);
+        }
+        else
+        {
+            inst.src = encodeIntAsString(value, 8);
+        }
     }
 
     if(destDesc.scope > 0)
@@ -68,4 +82,30 @@ void generateCodeForSICA(CodeGenerator *gen, const std::string &constant, const 
         }
     }
     ADD_INST_MV(gen, inst);
+    freeRRegister(gen, regIdx);
+}
+
+uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
+{
+    for(uint8_t i =0; i < 15; i++)
+    {
+        if(gen->cpu->reg[i].state == REG_FREE)
+        {
+            gen->cpu->reg[i].state = REG_USED;
+            gen->cpu->reg[i].symbol = std::move(symName);
+            return i;
+        }
+    }
+    printf("No free Registers \n");
+    exit(-1);
+}
+
+void freeRRegister(CodeGenerator *gen, int index)
+{
+    if(index < 0)
+    {
+        return;
+    }
+    gen->cpu->reg[index].state = REG_FREE;
+    gen->cpu->reg[index].symbol.clear();
 }

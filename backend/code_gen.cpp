@@ -80,11 +80,11 @@ void write_instruction(const Instruction *inst, FILE *stream)
     fprintf(stream, "\t%s ", inst->mnemonic.c_str());
     if(inst->src.size() > 0)
     {
-        fprintf(stream, "%s ", inst->src.c_str());
+        fprintf(stream, "%s", inst->src.c_str());
     }
     if(inst->dest.size() > 0)
     {
-        fprintf(stream, "%s", inst->dest.c_str());
+        fprintf(stream, ", %s", inst->dest.c_str());
     }
     fprintf(stream, "\n");
 }

@@ -161,7 +161,7 @@ std::string encodeIntAsString(long int constant, uint8_t byteSize)
         break;
     }
     string constProcessed;
-    constProcessed+= '$';
+    constProcessed += '$';
     constProcessed += to_string(constant);
     
         

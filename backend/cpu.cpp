@@ -60,7 +60,7 @@ CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunct
     cpu->stackArgsOffset = 16;
     cpu->retSignature[0] = 0;
     cpu->retSignature[1] = 0;
-
+    cpu->runtimeStackSize = 0;
     bindReturnValue(cpu, localSymtab, symFn);
     bindArgs(cpu, localSymtab, symFn);
     reserveCalleSavedRegs(cpu);
