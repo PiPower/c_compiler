@@ -108,5 +108,6 @@ SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType* type);
 uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2);
 void bindArgToCpuStack(CpuState* cpu, SymbolType* symType, const std::string& varname);
 char getUnusedArgRegId(CpuState* cpu);
+char getUnusedArgXRegId(CpuState* cpu);
 void fillTypeHwdInfoForBlock(SymbolTable* localSymtab);
 #endif

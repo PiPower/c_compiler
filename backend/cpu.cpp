@@ -107,7 +107,7 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
             {
                 cpu->reg[freeRegId].state = REG_USED;
                 cpu->reg[freeRegId].symbol = varname;
-                VariableDesc desc = {Storage::REG, intParamRegs[freeRegId]};
+                VariableDesc desc = {Storage::REG, freeRegId};
                 cpu->data[varname] = desc;
             }
             else
@@ -117,8 +117,18 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
         }  
         else if(cls.gr[i] == SYSV_SSE)
         {
-                printf(" NOT SUPPORTED \n");\
-                exit(-1);
+            char freeRegId = getUnusedArgXRegId(cpu);
+            if(freeRegId >= 0)
+            {
+                cpu->reg[freeRegId].state = REG_USED;
+                cpu->reg[freeRegId].symbol = varname;
+                VariableDesc desc = {Storage::REG, freeRegId};
+                cpu->data[varname] = desc;
+            }
+            else
+            {
+                bindArgToCpuStack(cpu, symType, varname);
+            }
         }
         else if(cls.gr[i] == SYSV_MEMORY)
         {
@@ -317,15 +327,23 @@ void bindArgToCpuStack(CpuState *cpu, SymbolType* symType, const std::string& va
 
 char getUnusedArgRegId(CpuState* cpu)
 {
-    for(char freeRegId =0; freeRegId < 7; freeRegId++)
+    for(char freeRegId =0; freeRegId < 6; freeRegId++)
     {
-        if(freeRegId == 6)
-        {
-            return -1;
-        }
         if(cpu->reg[intParamRegs[freeRegId]].state == REG_FREE)
         {
             return intParamRegs[freeRegId];
+        }
+    }
+    return -1;
+}
+
+char getUnusedArgXRegId(CpuState *cpu)
+{
+    for(char freeRegId =0; freeRegId < 6; freeRegId++)
+    {
+        if(cpu->reg[sseParamRegs[freeRegId]].state == REG_FREE)
+        {
+            return sseParamRegs[freeRegId];
         }
     }
     return -1;
