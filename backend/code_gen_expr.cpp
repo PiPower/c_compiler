@@ -90,11 +90,6 @@ void generateCodeForU_SICA(CodeGenerator *gen, const std::string &constant, cons
     freeRRegister(gen, regIdx);
 }
 
-void generateCodeForUICA(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
-{
-
-}
-
 uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
 {
     for(uint8_t i =0; i < 15; i++)
