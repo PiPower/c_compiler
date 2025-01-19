@@ -88,21 +88,7 @@ uint8_t getTypeGr(uint16_t affiliation)
     return SPECIAL_GROUP;
 }
 
-long unsigned int encodeAsUnsignedBin(const std::string &constant)
-{
-    const char* data = constant.c_str();
-    long int value;
-
-    while (*data >= '0' && *data <= '9')
-    {
-        value *= 10;
-        value += *data - '0';
-        data++;
-    }
-    return value;
-}
-
-long int encodeAsSignedBin(const std::string &constant)
+long int encodeAsBinary(const std::string &constant)
 {
     const char* data = constant.c_str();
     long int sign = 1;
@@ -141,14 +127,14 @@ std::string encodeIntAsString(long int constant, uint8_t byteSize)
         break;
     case 2:
         {
-            short x = (char)constant;
+            short x = (short)constant;
             memset(&constant, 0, sizeof(long int));
             constant = x;
         }
         break;
     case 4:
         {
-            int x = (char)constant;
+            int x = (int)constant;
             memset(&constant, 0, sizeof(long int));
             constant = x;   
         }

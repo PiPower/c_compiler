@@ -22,29 +22,30 @@ void translateNegation(CodeGenerator *gen, AstNode *parseTree)
     }
 }
 
-void generateCodeForSICA(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
+void generateCodeForU_SICA(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
 {
     //first process value to be sure it is in correct range
-    long int value = encodeAsSignedBin(constant);
+    long int value = encodeAsBinary(constant);
+    unsigned long int* v2 = (unsigned long int*)&value;
     Instruction inst;
     inst.type = INSTRUCTION;
     int regIdx = -1;
-    if(destDesc.operandAffi == INT8_S)
+    if(destDesc.operandAffi == INT8_S || destDesc.operandAffi == INT8_U)
     {
         inst.mnemonic = "movb";
         inst.src = encodeIntAsString(value, 1);
     }
-    else if(destDesc.operandAffi  == INT16_S)
+    else if(destDesc.operandAffi  == INT16_S || destDesc.operandAffi == INT16_U)
     {
         inst.mnemonic = "movw";
         inst.src = encodeIntAsString(value, 2);
     }
-    else if(destDesc.operandAffi  == INT32_S)
+    else if(destDesc.operandAffi  == INT32_S  || destDesc.operandAffi == INT32_U)
     {
         inst.mnemonic = "movl";
         inst.src = encodeIntAsString(value, 4);
     }
-    else if(destDesc.operandAffi  == INT64_S)
+    else if(destDesc.operandAffi  == INT64_S ||  destDesc.operandAffi == INT64_U)
     {
         inst.mnemonic = "movq";
         if( (uint64_t)(value >> 32 ) > 0)
@@ -81,8 +82,17 @@ void generateCodeForSICA(CodeGenerator *gen, const std::string &constant, const 
             break;
         }
     }
+    else
+    {
+
+    }
     ADD_INST_MV(gen, inst);
     freeRRegister(gen, regIdx);
+}
+
+void generateCodeForUICA(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
+{
+
 }
 
 uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)

@@ -75,14 +75,9 @@ void writeConstantToSym(CodeGenerator *gen, std::string constant, const std::str
     OpDesc destDesc = parseEncodedAccess(gen, dest);
     uint8_t gr = getTypeGr(destDesc.operandAffi);
 
-    if(gr == SIGNED_INT_GROUP)
+    if(gr == SIGNED_INT_GROUP || gr == UNSIGNED_INT_GROUP)
     {
-        generateCodeForSICA(gen, constant, destDesc);
-    }
-    else if (gr == UNSIGNED_INT_GROUP)
-    {
-        printf("Internal Error: Unsupported group\n");
-        exit(-1);
+        generateCodeForU_SICA(gen, constant, destDesc);
     }
     else if (gr == FLOAT_GROUP)
     {

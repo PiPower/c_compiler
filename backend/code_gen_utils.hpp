@@ -11,8 +11,7 @@ Instruction generateFunctionLabel(AstNode* fnDef);
 void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName);
 uint8_t getAffiliationIndex(uint16_t typeGroup);
 uint8_t getTypeGr(uint16_t affiliation);
-long unsigned int encodeAsUnsignedBin(const std::string& constant);
-long int encodeAsSignedBin(const std::string& constant);
+long int encodeAsBinary(const std::string& constant);
 std::string encodeIntAsString(long int constant, uint8_t byteSize);
 
 /*
