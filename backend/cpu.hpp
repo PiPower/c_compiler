@@ -6,13 +6,13 @@
 #include "../frontend/parser.hpp"
 
 #define RAX 0
-#define RCX 1
-#define RDX 2
-#define RBX 3
-#define RSP 4
-#define RBP 5
-#define RSI 6
-#define RDI 7
+#define RBX 1
+#define RCX 2
+#define RDX 3
+#define RSI 4
+#define RDI 5
+#define RSP 6
+#define RBP 7
 #define R8  8
 #define R9  9
 #define R10 10
@@ -52,7 +52,7 @@
 #define REG_USED 0x01
 #define REG_CALLER_RES 0x02
 
-extern const char* registers[][5];
+extern const char* cpu_registers_str[][5];
 
 /* 
     state: on of REG_FREE, REG_USED, REG_CALLER_RES
@@ -67,7 +67,7 @@ struct Reg
 enum class Storage
 {
     NONE,
-    MEMORY,
+    STACK,
     REG,
 };
 

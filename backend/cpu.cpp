@@ -8,15 +8,15 @@ uint8_t intParamRegs[] = {RDI, RSI, RDX, RCX, R8, R9 };
 uint8_t sseParamRegs[] = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 };
 uint8_t gpRegsCalleSaved[] = { RBX, R12, R13, R14, R15 };
 
-const char* registers[][5] = {
+const char* cpu_registers_str[][5] = {
         {"rax", "eax", "ax","al", "ah"}, 
         {"rbx", "ebx", "bx", "bl","bh"}, 
         {"rcx", "ecx", "cx", "cl","ch"},
         {"rdx", "edx", "dx", "dl","dh"}, 
         {"rsi", "esi", "si", "sil"},  
-        {"rdi", "edi", "di", "dil"},  
+        {"rdi", "edi", "di", "dil"}, 
+        {"rsp", "esp", "sp", "spl"},   
         {"rbp", "ebp", "bp", "bpl"}, 
-        {"rsp", "esp", "sp", "spl"},  
         {"r8", "r8d", "r8w", "r8b"}, 
         {"r9", "r9d", "r9w", "r9b"}, 
         {"r10", "r10d", "r10w", "r10b"}, 
@@ -215,9 +215,11 @@ void bindBlockToStack(CpuState* cpu, SymbolTable* localSymtab)
         }
         SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symVar->varType);
         blockSize += type->typeSize;
-        blockSize += blockSize%type->typeSize; // make sure data is aligned
-        
-        cpu->data[localSymtab->symbolNames[i]] = {Storage::MEMORY,  -(long)blockSize - cpu->currentStackSize};
+        if(blockSize%type->dataAlignment) // make sure data is aligned
+        {
+            blockSize+= type->dataAlignment - blockSize%type->dataAlignment;
+        }
+        cpu->data[localSymtab->symbolNames[i]] = {Storage::STACK,  -(long)blockSize - cpu->currentStackSize};
         updates.push_back(&cpu->data[localSymtab->symbolNames[i]].offset);
 
     }
@@ -364,9 +366,13 @@ uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2)
 
 void bindArgToCpuStack(CpuState *cpu, SymbolType* symType, const std::string& varname)
 {
-    VariableDesc desc = {Storage::MEMORY, cpu->stackArgsOffset};
+    VariableDesc desc = {Storage::STACK, cpu->stackArgsOffset};
     cpu->data[varname] = desc;
-    uint64_t bytes = symType->typeSize + symType->typeSize % 8;
+    uint64_t bytes = symType->typeSize;
+    if( symType->typeSize % 8 );
+    {
+        bytes += 8 - symType->typeSize;
+    }
     cpu->stackArgsOffset += bytes;
 }
 
