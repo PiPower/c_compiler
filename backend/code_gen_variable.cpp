@@ -36,11 +36,11 @@ void translateDeclaration(CodeGenerator *gen, AstNode *parseTree)
 {
     if(gen->localSymtab->scopeLevel == 0)
     {
-        emitGlobalVariable(gen, parseTree);
+        translateGlobalInit(gen, parseTree);
     }
     else
     {
-        translateLocalAssignment(gen, parseTree);
+        translateLocalInit(gen, parseTree);
     }
 }
 
@@ -69,7 +69,34 @@ void prepareConstant(CodeGenerator *gen, AstNode *parseTree)
     gen->opDesc.operand =  *parseTree->data;
 }
 
-void emitGlobalVariable(CodeGenerator *gen, AstNode *parseTree)
+void writeConstantToSym(CodeGenerator *gen, std::string constant, const std::string& dest)
+{
+    SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, dest);
+    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
+    uint8_t gr = getTypeGroup(symType->affiliation);
+    if(gr == SIGNED_INT_GROUP)
+    {
+
+    }
+    else if (gr == UNSIGNED_INT_GROUP)
+    {
+        printf("Internal Error: Unsupported group\n");
+        exit(-1);
+    }
+    else if (gr == FLOAT_GROUP)
+    {
+        printf("Internal Error: Unsupported group\n");
+        exit(-1);
+    }
+    else
+    {
+        printf("Internal Error: Unsupported group\n");
+        exit(-1);
+    }
+    
+}   
+
+void translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
 {
     SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, *parseTree->data);
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
@@ -82,4 +109,22 @@ void emitGlobalVariable(CodeGenerator *gen, AstNode *parseTree)
     }
     ADD_INST_MV(gen, inst);
     FREE_NODE_REC(gen, parseTree);
+}
+
+void translateLocalInit(CodeGenerator *gen, AstNode *parseTree)
+{
+    CLEAR_OP(gen);
+    dispatch(gen, parseTree->children[0]->children[0]);
+    writeToLocalVariable(gen, *parseTree->data, gen->opDesc);
+}
+
+
+void writeToLocalVariable(CodeGenerator *gen, const std::string &varname, OpDesc operandDesc)
+{
+    if(gen->opDesc.op == OP::CONSTANT)
+    {
+        writeConstantToSym(gen, gen->opDesc.operand, varname);
+    }
+
+
 }

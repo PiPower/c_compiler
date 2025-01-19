@@ -14,11 +14,13 @@
 void translateFunction(CodeGenerator* gen, AstNode* parseTree);
 void translateDeclaration(CodeGenerator* gen, AstNode* parseTree);
 void translateExpression(CodeGenerator* gen, AstNode* parseTree);
-void emitGlobalVariable(CodeGenerator* gen, AstNode* parseTree);
+void writeToLocalVariable(CodeGenerator* gen, const std::string& varname, OpDesc operandDesc);
 void prepareVariable(CodeGenerator* gen, AstNode* parseTree);
 void prepareConstant(CodeGenerator* gen, AstNode* parseTree);
+void writeConstantToSym(CodeGenerator* gen, std::string constant, const std::string& dest);
 //expressions
-void translateLocalAssignment(CodeGenerator* gen, AstNode* parseTree);
+void translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);
+void translateLocalInit(CodeGenerator* gen, AstNode* parseTree);
 void translateExpr(CodeGenerator* gen, AstNode* parseTree);
 void translateNegation(CodeGenerator* gen, AstNode* parseTree);
 #endif

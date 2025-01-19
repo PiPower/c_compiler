@@ -58,6 +58,7 @@ Symbol* getSymbol(SymbolTable* symtab, const std::string& name, uint64_t* scopeL
 Symbol* getSymbolLocal(SymbolTable* symtab, const std::string& name);
 void insertSymbol(SymbolTable* symtab, const std::string& name, Symbol* sym);
 FieldDesc getNthFieldDesc(SymbolTable* symtab, SymbolType* type, int idx);
+uint8_t getTypeGroup(uint16_t affiliation);
 // function symbol
 inline constexpr void setDefinedAttr(SymbolFunction* fn)
 {

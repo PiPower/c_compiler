@@ -10,4 +10,7 @@ uint32_t getTypeAlignment(SymbolType* symType);
 std::string encodeAsAsmData(AstNode* dataNode);
 Instruction generateFunctionLabel(AstNode* fnDef);
 void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName);
+uint8_t getAffiliationIndex(uint16_t typeGroup);
+uint8_t getTypeGroup(uint16_t affiliation);
+
 #endif

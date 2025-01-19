@@ -39,13 +39,15 @@ enum class OP
 {
     NONE,
     CONSTANT,
-    VARIABLE
+    VARIABLE,
+    TEMP_VAR,
 };
 
 struct OpDesc
 {
     OP op;
     std::string operand;
+    uint16_t operandAffi;
 };
 
 struct CodeGenerator

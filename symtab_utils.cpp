@@ -108,3 +108,21 @@ get_aggr:
     
     return {out, memoryOffset};
 }
+
+uint8_t getTypeGroup(uint16_t affiliation)
+{
+    if( (affiliation & 0x0F) > 0)
+    {
+        return SIGNED_INT_GROUP;
+    }
+    if( (affiliation & (0x0F << 4)) > 0)
+    {
+        return UNSIGNED_INT_GROUP;
+    }
+    if( (affiliation &  (0x0F << 8)) > 0)
+    {
+        return FLOAT_GROUP;
+    }
+        
+    return SPECIAL_GROUP;
+}

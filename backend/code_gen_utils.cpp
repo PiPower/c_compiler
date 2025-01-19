@@ -61,3 +61,32 @@ void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string 
     inst->dest += to_string(symType->typeSize);
     inst->dest += '\0';
 }
+
+uint8_t getAffiliationIndex(uint16_t typeGroup)
+{
+    uint8_t id = 0;
+    while (typeGroup > 0)
+    {
+        typeGroup >>=1;
+        id++;
+    }
+    return id;
+}
+
+uint8_t getTypeGroup(uint16_t affiliation)
+{
+    if( (affiliation & 0x0F) > 0)
+    {
+        return SIGNED_INT_GROUP;
+    }
+    if( (affiliation & (0x0F << 4)) > 0)
+    {
+        return UNSIGNED_INT_GROUP;
+    }
+    if( (affiliation &  (0x0F << 8)) > 0)
+    {
+        return FLOAT_GROUP;
+    }
+        
+    return SPECIAL_GROUP;
+}
