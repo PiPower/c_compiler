@@ -59,24 +59,25 @@ void translateExpression(CodeGenerator *gen, AstNode *parseTree)
 
 void prepareVariable(CodeGenerator *gen, AstNode *parseTree)
 {
-    gen->opDesc.op = OP::VARIABLE;
-    gen->opDesc.operand =  *parseTree->data;
+    gen->opDesc = parseEncodedAccess(gen, *parseTree->data);
 }
 
 void prepareConstant(CodeGenerator *gen, AstNode *parseTree)
 {
     gen->opDesc.op = OP::CONSTANT;
     gen->opDesc.operand =  *parseTree->data;
+    gen->opDesc.operandAffi = 0;
+    gen->opDesc.scope = 0;
 }
 
 void writeConstantToSym(CodeGenerator *gen, std::string constant, const std::string& dest)
 {
-    SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, dest);
-    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
-    uint8_t gr = getTypeGroup(symType->affiliation);
+    OpDesc destDesc = parseEncodedAccess(gen, dest);
+    uint8_t gr = getTypeGr(destDesc.operandAffi);
+
     if(gr == SIGNED_INT_GROUP)
     {
-
+        generateCodeForSICA(gen, constant, destDesc);
     }
     else if (gr == UNSIGNED_INT_GROUP)
     {
@@ -123,7 +124,7 @@ void writeToLocalVariable(CodeGenerator *gen, const std::string &varname, OpDesc
 {
     if(gen->opDesc.op == OP::CONSTANT)
     {
-        writeConstantToSym(gen, gen->opDesc.operand, varname);
+        writeConstantToSym(gen, operandDesc.operand, varname);
     }
 
 

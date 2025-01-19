@@ -6,6 +6,7 @@
 
 
 #define GET_SCOPED_SYM(gen, name)  getSymbol((gen)->localSymtab, (name)) 
+#define GET_SCOPED_SYM_EX(gen, name, scope)  getSymbol((gen)->localSymtab, name, scope) 
 #define ADD_INST(gen, ...) (gen)->code.push_back(__VA_ARGS__ )
 #define ADD_INST_MV(gen, inst) (gen)->code.push_back(std::move(inst))
 #define FREE_NODE(gen, node) freeNode((gen)->allocator, (node))
@@ -23,4 +24,11 @@ void translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);
 void translateLocalInit(CodeGenerator* gen, AstNode* parseTree);
 void translateExpr(CodeGenerator* gen, AstNode* parseTree);
 void translateNegation(CodeGenerator* gen, AstNode* parseTree);
+/*
+S - signed
+I - Int
+A - Assignment
+C - Constant
+*/
+void generateCodeForSICA(CodeGenerator* gen, const std::string& constant,  const OpDesc &destDesc);
 #endif

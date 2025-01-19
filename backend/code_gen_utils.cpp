@@ -1,6 +1,8 @@
 #include "code_gen_utils.hpp"
 #include "code_gen.hpp"
 #include "cpu.hpp"
+#include "code_gen_internal.hpp"
+#include <string.h>
 using namespace std;
 
 uint32_t getTypeAlignment(SymbolType *symType)
@@ -12,11 +14,6 @@ uint32_t getTypeAlignment(SymbolType *symType)
     }
     
     return alignment;
-}
-
-std::string encodeAsAsmData(AstNode* dataNode)
-{
-    return std::string();
 }
 
 Instruction generateFunctionLabel(AstNode *fnDef)
@@ -73,7 +70,7 @@ uint8_t getAffiliationIndex(uint16_t typeGroup)
     return id;
 }
 
-uint8_t getTypeGroup(uint16_t affiliation)
+uint8_t getTypeGr(uint16_t affiliation)
 {
     if( (affiliation & 0x0F) > 0)
     {
@@ -89,4 +86,103 @@ uint8_t getTypeGroup(uint16_t affiliation)
     }
         
     return SPECIAL_GROUP;
+}
+
+long unsigned int encodeAsUnsignedBin(const std::string &constant)
+{
+    const char* data = constant.c_str();
+    long int value;
+
+    while (*data >= '0' && *data <= '9')
+    {
+        value *= 10;
+        value += *data - '0';
+        data++;
+    }
+    return value;
+}
+
+long int encodeAsSignedBin(const std::string &constant)
+{
+    const char* data = constant.c_str();
+    long int sign = 1;
+    long int value = 0;
+    if(*data == '-')
+    {
+        sign = -1;
+        data++;
+    }
+    while (*data >= '0' && *data <= '9')
+    {
+        value *= 10;
+        value += *data - '0';
+        data++;
+    }
+    value *= sign;
+    return value;
+}
+
+std::string encodeIntAsString(long int constant, uint8_t byteSize)
+{
+    if (byteSize > 8)
+    {
+        printf("Internal Error: byteSize cannot be larger than 8\n");
+        exit(-1);
+    }
+    
+    switch (byteSize)
+    {
+    case 1:
+        {
+            char x = (char)constant;
+            memset(&constant, 0, sizeof(long int));
+            constant = x;
+        }
+        break;
+    case 2:
+        {
+            short x = (char)constant;
+            memset(&constant, 0, sizeof(long int));
+            constant = x;
+        }
+        break;
+    case 4:
+        {
+            int x = (char)constant;
+            memset(&constant, 0, sizeof(long int));
+            constant = x;   
+        }
+        break;
+    case 8:
+        break;
+    default:
+        printf("Internal Error: Incorrect byteSize\n");
+        exit(-1);
+        break;
+    }
+    string constProcessed;
+    constProcessed+= '$';
+    constProcessed += to_string(constant);
+    
+        
+    return constProcessed;
+}
+
+OpDesc parseEncodedAccess(CodeGenerator *gen, const std::string &accesSpec)
+{
+    if(accesSpec.find(':') == string::npos)
+    {
+        uint64_t scope = 0;
+        SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM_EX(gen, accesSpec, &scope);
+        SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
+        OpDesc desc;
+        desc.op = OP::VARIABLE;
+        desc.operand = accesSpec;
+        desc.scope = scope;
+        desc.operandAffi = symType->affiliation;
+        return desc;
+    }
+    printf("Unsupported\n");
+    exit(-1);
+    return OpDesc();
 }

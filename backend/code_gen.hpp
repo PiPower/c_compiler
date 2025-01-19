@@ -48,6 +48,7 @@ struct OpDesc
     OP op;
     std::string operand;
     uint16_t operandAffi;
+    uint8_t scope;
 };
 
 struct CodeGenerator
