@@ -11,9 +11,10 @@ Instruction generateFunctionLabel(AstNode* fnDef);
 void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName);
 uint8_t getAffiliationIndex(uint16_t typeGroup);
 uint8_t getTypeGr(uint16_t affiliation);
-long int encodeAsBinary(const std::string& constant);
+int64_t encodeIntAsBinary(const std::string& constant);
+uint64_t encodeFloatAsBinary(const std::string& constant, uint8_t floatSize);
 std::string encodeIntAsString(long int constant, uint8_t byteSize);
-
+std::string genAssignmentDest(const CpuState* cpu, const OpDesc& destDesc);
 /*
 to make it possible to acces struct the format is
 name:name:...:name:variable

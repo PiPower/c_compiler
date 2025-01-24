@@ -1,7 +1,7 @@
 #include "code_gen.hpp"
 #include "code_gen_internal.hpp"
 #include "cpu.hpp"
-
+#include <string.h>
 using namespace std;
 
 void generate_code(CodeGenerator *gen, std::vector<AstNode*>* globalTrees)
@@ -42,7 +42,8 @@ void dispatch(CodeGenerator *gen, AstNode *parseTree)
     }
 }
 
-void write_to_file(const InstructionSeq &instructions, FILE* stream)
+void write_to_file(const InstructionSeq& instructions, 
+        const std::map<uint64_t, std::string>& floatConsts, FILE* stream)
 {
     for(const Instruction& inst : instructions)
     {
@@ -55,6 +56,29 @@ void write_to_file(const InstructionSeq &instructions, FILE* stream)
             write_instruction(&inst, stream);
         }
     }
+    auto constIter = floatConsts.begin();
+    while (constIter != floatConsts.end())
+    {
+        int lo, hi;
+        memcpy(&lo, &constIter->first, sizeof(int));
+        memcpy(&hi, (char*)(&constIter->first) + 4, sizeof(int));
+        if(hi != 0 )
+        {
+            fprintf(stream, ".section .rodata \n.align 8\n");
+        }
+        else
+        {
+            fprintf(stream, ".section .rodata \n.align 4\n");
+        }
+
+        fprintf(stream, "%s:\n\t.long %d\n", constIter->second.c_str(), lo);
+        if(hi != 0 )
+        {
+            fprintf(stream, "\t.long %d\n", hi);
+        }
+        advance(constIter, 1);
+    }
+    
 }
 
 void write_label(const Instruction *inst, FILE *stream)

@@ -88,11 +88,11 @@ uint8_t getTypeGr(uint16_t affiliation)
     return SPECIAL_GROUP;
 }
 
-long int encodeAsBinary(const std::string &constant)
+int64_t encodeIntAsBinary(const std::string &constant)
 {
     const char* data = constant.c_str();
-    long int sign = 1;
-    long int value = 0;
+    int64_t sign = 1;
+    int64_t value = 0;
     if(*data == '-')
     {
         sign = -1;
@@ -106,6 +106,29 @@ long int encodeAsBinary(const std::string &constant)
     }
     value *= sign;
     return value;
+}
+
+uint64_t encodeFloatAsBinary(const std::string &constant, uint8_t floatSize)
+{
+    uint64_t val = 0;
+    switch (floatSize)
+    {
+    case 4:
+    {
+        float buff = stof(constant);
+        memcpy(&val, &buff, sizeof(float));
+    }    break;
+    case 8:
+    {
+        double buff = stod(constant);
+        memcpy(&val, &buff, sizeof(double));
+    }    break;
+    default:    
+        printf("Internal Error: Unsupported float type\n");
+        exit(-1);
+        break;
+    }
+    return val;
 }
 
 std::string encodeIntAsString(long int constant, uint8_t byteSize)
@@ -152,6 +175,39 @@ std::string encodeIntAsString(long int constant, uint8_t byteSize)
     
         
     return constProcessed;
+}
+
+std::string genAssignmentDest(const CpuState* cpu,const OpDesc& destDesc)
+{
+    string dest;
+
+    if(destDesc.scope > 0)
+    {
+        auto varDescIter = cpu->data.find(destDesc.operand);
+        const VariableDesc* desc = &varDescIter->second;
+        switch( desc->storageType)
+        {
+        case Storage::REG:
+            printf("Internal Error: storage type error \n");
+            exit(-1);
+            break;
+        case Storage::STACK:
+        {
+            dest = to_string(desc->offset) +
+                        '('  + '%'+ cpu_registers_str[RBP][0] + ')';
+            return dest;
+        }break;
+        default:
+            printf("Internal Error: storage type error \n");
+            exit(-1);
+            break;
+        }
+    }
+    else
+    {
+        printf("Assignment to global not supported \n");
+        exit(-1);
+    }
 }
 
 OpDesc parseEncodedAccess(CodeGenerator *gen, const std::string &accesSpec)

@@ -5,6 +5,10 @@
 #include "../symtab_utils.hpp"
 #include "../frontend/parser.hpp"
 
+#define IDX_XMM 2
+#define IDX_YMM 1
+#define IDX_ZMM 0
+
 #define RAX 0
 #define RBX 1
 #define RCX 2
@@ -51,7 +55,7 @@
 #define REG_FREE 0x00
 #define REG_USED 0x01
 #define REG_CALLER_RES 0x02
-
+#define REG_FORBIDDEN 0x03
 extern const char* cpu_registers_str[][5];
 
 /* 
@@ -110,6 +114,7 @@ SysVgrDesc getSysVclass(SymbolTable *localSymtab, SymbolType* type);
 uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2);
 void bindArgToCpuStack(CpuState* cpu, SymbolType* symType, const std::string& varname);
 char getUnusedArgRegId(CpuState* cpu);
-char getUnusedArgXRegId(CpuState* cpu);
+char getUnusedArgMMRegId(CpuState* cpu);
 void fillTypeHwdInfoForBlock(SymbolTable* localSymtab);
+std::string generateLocalConstantLabel();
 #endif

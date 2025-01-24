@@ -64,10 +64,12 @@ void prepareVariable(CodeGenerator *gen, AstNode *parseTree)
 
 void prepareConstant(CodeGenerator *gen, AstNode *parseTree)
 {
-    gen->opDesc.op = OP::CONSTANT;
-    gen->opDesc.operand =  *parseTree->data;
-    gen->opDesc.operandAffi = 0;
-    gen->opDesc.scope = 0;
+    gen->opDesc = {
+        .op =  OP::CONSTANT,
+        .operand =  *parseTree->data,
+        .operandAffi = 0,
+        .scope = 0
+    };
 }
 
 void writeConstantToSym(CodeGenerator *gen, std::string constant, const std::string& dest)
@@ -81,8 +83,7 @@ void writeConstantToSym(CodeGenerator *gen, std::string constant, const std::str
     }
     else if (gr == FLOAT_GROUP)
     {
-        printf("Internal Error: Unsupported group\n");
-        exit(-1);
+        generateCodeForSf_DfCA(gen, constant, destDesc);
     }
     else
     {
@@ -121,6 +122,10 @@ void writeToLocalVariable(CodeGenerator *gen, const std::string &varname, OpDesc
     {
         writeConstantToSym(gen, operandDesc.operand, varname);
     }
-
+    else
+    {
+        printf("Non constant assignment not supported \n");
+        exit(-1);
+    }
 
 }

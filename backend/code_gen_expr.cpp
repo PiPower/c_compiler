@@ -25,7 +25,7 @@ void translateNegation(CodeGenerator *gen, AstNode *parseTree)
 void generateCodeForU_SICA(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
 {
     //first process value to be sure it is in correct range
-    long int value = encodeAsBinary(constant);
+    long int value = encodeIntAsBinary(constant);
     unsigned long int* v2 = (unsigned long int*)&value;
     Instruction inst;
     inst.type = INSTRUCTION;
@@ -64,30 +64,61 @@ void generateCodeForU_SICA(CodeGenerator *gen, const std::string &constant, cons
         }
     }
 
-    if(destDesc.scope > 0)
+    inst.dest = genAssignmentDest(gen->cpu, destDesc);
+    ADD_INST_MV(gen, inst);
+    freeRRegister(gen, regIdx);
+}
+
+void generateCodeForSf_DfCA(CodeGenerator* gen, const std::string& constant,  const OpDesc &destDesc)
+{
+    string label;
+    uint64_t val = 0;
+    Instruction movToReg = {
+        .type = INSTRUCTION
+    }; 
+     Instruction movToVar = {
+        .type = INSTRUCTION
+     };
+
+    if(destDesc.operandAffi == FLOAT32)
     {
-        switch( gen->cpu->data[destDesc.operand].storageType)
-        {
-        case Storage::REG:
-            printf("Internal Error: storage type error \n");
-            exit(-1);
-            break;
-        case Storage::STACK:
-            inst.dest += to_string(gen->cpu->data[destDesc.operand].offset) +
-                        '('  + '%'+ cpu_registers_str[RBP][0] + ')';
-            break;
-        default:
-            printf("Internal Error: storage type error \n");
-            exit(-1);
-            break;
-        }
+        val = encodeFloatAsBinary(constant, 4);
+        movToReg.mnemonic = "movss";
+    }
+    else if(destDesc.operandAffi == DOUBLE64 )
+    {
+        val = encodeFloatAsBinary(constant, 8);
+        movToReg.mnemonic = "movsd";
     }
     else
     {
-
+        printf("Internal error: Unsupported float type \n");
+        exit(-1);
     }
-    ADD_INST_MV(gen, inst);
-    freeRRegister(gen, regIdx);
+
+    auto floatConst = gen->floatConsts.find(val);
+    if(floatConst == gen->floatConsts.cend())
+    {
+        label = generateLocalConstantLabel();
+        gen->floatConsts[val] = label;
+    }
+    else
+    {
+        label = gen->floatConsts[val];
+    }
+
+    uint8_t reg = allocateMMRegister(gen, "init_float_tmp");
+    movToReg.src = label + "(%rip)";
+    movToReg.dest = cpu_registers_str[reg][IDX_XMM];
+    movToReg.dest = '%' + movToReg.dest;
+
+    movToVar.src = movToReg.dest ;
+    movToVar.mnemonic = movToReg.mnemonic;
+    movToVar.dest = genAssignmentDest(gen->cpu, destDesc);
+
+    ADD_INST_MV(gen, movToReg);
+    ADD_INST_MV(gen, movToVar);
+    freeMMRegister(gen, reg);
 }
 
 uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
@@ -106,6 +137,31 @@ uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
 }
 
 void freeRRegister(CodeGenerator *gen, int index)
+{
+    if(index < 0)
+    {
+        return;
+    }
+    gen->cpu->reg[index].state = REG_FREE;
+    gen->cpu->reg[index].symbol.clear();
+}
+
+uint8_t allocateMMRegister(CodeGenerator *gen, std::string symName)
+{
+    for(uint8_t i = XMM0; i <= XMM15; i++)
+    {
+        if(gen->cpu->reg[i].state == REG_FREE)
+        {
+            gen->cpu->reg[i].state = REG_USED;
+            gen->cpu->reg[i].symbol = std::move(symName);
+            return i;
+        }
+    }
+    printf("No free MM Registers \n");
+    exit(-1);
+}
+
+void freeMMRegister(CodeGenerator *gen, int index)
 {
     if(index < 0)
     {

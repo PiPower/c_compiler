@@ -1,6 +1,7 @@
 #ifndef CODE_GEN
 #define CODE_GEN
 #include "../frontend/parser.hpp"
+#include <map>
 /*
     Mnemomic can either be instruction or label.
     If it is a label then src is a sequence of
@@ -57,13 +58,15 @@ struct CodeGenerator
     SymbolTable* symtab;
     NodeAllocator* allocator;
     InstructionSeq code;
+    std::map<uint64_t, std::string> floatConsts;
     CpuState* cpu;
     OpDesc opDesc;
 };
 
 void generate_code(CodeGenerator* gen, std::vector<AstNode*>* parseTrees);
 void dispatch(CodeGenerator* gen, AstNode* parseTree);
-void write_to_file(const InstructionSeq& instructions, FILE* stream);
+void write_to_file(const InstructionSeq& instructions, 
+        const std::map<uint64_t, std::string>& floatConsts, FILE* stream);
 void write_label(const Instruction* inst, FILE* stream);
 void write_instruction(const Instruction* inst, FILE* stream);
 #endif

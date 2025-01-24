@@ -15,7 +15,6 @@ add_executable(c_compiler main.cpp compiler.cpp symtab_utils.cpp )
 
 target_link_libraries(c_compiler PUBLIC frontend)
 target_link_libraries(c_compiler PUBLIC backend)
-target_link_libraries(c_compiler PUBLIC asan)
 set_property(TARGET c_compiler PROPERTY CXX_STANDARD 17)
 
 include(CTest)

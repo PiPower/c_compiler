@@ -20,7 +20,7 @@ void compile(const char *file, FILE* stream)
     gen.cpu = nullptr; // for global scope
     gen.localSymtab = &symtab;
     generate_code(&gen, &statements);
-    write_to_file(gen.code, stream);
+    write_to_file(gen.code, gen.floatConsts, stream);
 
     int x = 2;
 }

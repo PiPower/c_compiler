@@ -25,14 +25,19 @@ void translateLocalInit(CodeGenerator* gen, AstNode* parseTree);
 void translateExpr(CodeGenerator* gen, AstNode* parseTree);
 void translateNegation(CodeGenerator* gen, AstNode* parseTree);
 /*
-    S - signed
+    S - Signed
     I - Int
     A - Assignment
     C - Constant
-    U - unsigned
-    _ - means and
+    U - Unsigned
+    _ - And
+    Sf - signle precission float
+    Df - double precission float
 */
 void generateCodeForU_SICA(CodeGenerator* gen, const std::string& constant,  const OpDesc &destDesc);
+void generateCodeForSf_DfCA(CodeGenerator* gen, const std::string& constant,  const OpDesc &destDesc);
 uint8_t allocateRRegister(CodeGenerator* gen, std::string symName);
 void freeRRegister(CodeGenerator* gen, int index);
+uint8_t allocateMMRegister(CodeGenerator* gen, std::string symName);
+void freeMMRegister(CodeGenerator* gen, int index);
 #endif

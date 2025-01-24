@@ -61,6 +61,8 @@ CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunct
     cpu->retSignature[0] = 0;
     cpu->retSignature[1] = 0;
     cpu->runtimeStackSize = 0;
+    cpu->reg[RSP].state = REG_FORBIDDEN;
+    cpu->reg[RBP].state = REG_FORBIDDEN;
     bindReturnValue(cpu, localSymtab, symFn);
     bindArgs(cpu, localSymtab, symFn);
     reserveCalleSavedRegs(cpu);
@@ -162,7 +164,7 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
         }  
         else if(cls.gr[i] == SYSV_SSE)
         {
-            char freeRegId = getUnusedArgXRegId(cpu);
+            char freeRegId = getUnusedArgMMRegId(cpu);
             if(freeRegId >= 0)
             {
                 cpu->reg[freeRegId].state = REG_USED;
@@ -388,7 +390,7 @@ char getUnusedArgRegId(CpuState* cpu)
     return -1;
 }
 
-char getUnusedArgXRegId(CpuState *cpu)
+char getUnusedArgMMRegId(CpuState *cpu)
 {
     for(char freeRegId =0; freeRegId < 6; freeRegId++)
     {
@@ -413,4 +415,10 @@ void fillTypeHwdInfoForBlock(SymbolTable* localSymtab)
             }
         }
     }
+}
+
+std::string generateLocalConstantLabel()
+{
+    static uint64_t id = 0;
+    return ".LC" + to_string(id++);
 }
