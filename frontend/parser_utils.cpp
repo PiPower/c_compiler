@@ -74,10 +74,11 @@ NodeType tokenMathTypeToNodeType(const Token& token)
         return NodeType::LOG_AND;
     case TokenType::DOUBLE_PIPE :
         return NodeType::LOG_OR;
+    default:
+        fprintf(stdout, "unexpected token at line %d \n", token.line);
+        exit(-1);
     }
 
-    fprintf(stdout, "unexpected token at line %d \n", token.line);
-    exit(-1);
 }
 
 uint8_t getTypeGroup(ParserState *parser, const std::string* name)
@@ -298,7 +299,7 @@ AstNode *processFunction(AstNode *root, ParserState *parser)
         {
             triggerParserError(parser, 1, "Redeclared function %s has different arguments than before\n", root->data->c_str());
         }
-        for(int i = 0; i < args->children.size(); i++ )
+        for(size_t i = 0; i < args->children.size(); i++ )
         {
             pair =  decodeType(args->children[i]->type);
             if(*(pair.type) != *(fn->argTypes[i]) )
@@ -393,7 +394,7 @@ std::string *generateAnonymousStructName(ParserState *parser)
     {
         double seed = dist(e2);
         char *ptr = (char *)&seed;
-        for(int i =0; i< sizeof(double); i++)
+        for(uint64_t i =0; i< sizeof(double); i++)
         {
             *out+=ptr[i];
         }
@@ -470,7 +471,7 @@ TypePair decodeType(const std::string *encodedType)
     TypePair pair;
     pair.type = new string();
     pair.qualifiers = new string();
-    int i;
+    size_t i;
     for( i=0; i < encodedType->length(); i++)
     {
         if((*encodedType)[i] == '|')

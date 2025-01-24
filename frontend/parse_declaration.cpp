@@ -286,8 +286,8 @@ std::string *parseBuiltInType(ParserState *parser)
 
     Token token = PEEK_TOKEN(parser);
     string* type;
-    if(!(uint64_t)token.type >= (uint64_t)TokenType::UNSIGNED &&
-        (uint64_t)token.type <= (uint64_t)TokenType::COMPLEX)
+    if(!((uint64_t)token.type >= (uint64_t)TokenType::UNSIGNED &&
+        (uint64_t)token.type <= (uint64_t)TokenType::COMPLEX))
     {
         return nullptr;
     }
@@ -402,7 +402,7 @@ void parseStructDeclList(ParserState *parser, const std::string *structName)
         AstNode* decl = parseStructDeclaration(parser);
         if(decl)
         {
-            for(int i =0; i < decl->children.size(); i++)
+            for(size_t i =0; i < decl->children.size(); i++)
             {
                 if(!decl->children[i]->type)
                 {
@@ -521,7 +521,7 @@ AstNode *parseFunctionBody(ParserState *parser, AstNode *function)
     funcSymtab->parent = parser->symtab;
     parser->symtab = funcSymtab;
 
-    for(int i =0; i <function->children[0]->children.size(); i++)
+    for(size_t i =0; i <function->children[0]->children.size(); i++)
     {
         AstNode* param = function->children[0]->children[i];
         SymbolVariable* symVar = new SymbolVariable;

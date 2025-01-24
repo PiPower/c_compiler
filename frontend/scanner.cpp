@@ -42,7 +42,7 @@ const char* tokenTypeString[] = {
 
 Scanner::Scanner(const char *sourceCode)
     :
-line(1), index(0), src_buffer(sourceCode)
+index(0), line(1), src_buffer(sourceCode)
 {
     keywordMapInit();
 }

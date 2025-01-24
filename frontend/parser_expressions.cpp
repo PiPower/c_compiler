@@ -373,6 +373,9 @@ AstNode *unaryExpression(ParserState *parser)
             root->nodeType = NodeType::GET_ADDR;
             processGetAddr(parser, root);
             break;
+        default:
+            printf("Internal Error: Unepxected token type\n");
+            exit(-1);
     }
     return root;
 }
@@ -390,6 +393,9 @@ AstNode *postfixExpression(ParserState *parser)
         case TokenType::L_PARENTHESES: postfixExpr = parseFnCall(parser, postfixExpr); break;
         case TokenType::DOT: postfixExpr = parseStructAccess(parser, postfixExpr); break;
         case TokenType::ARROW: postfixExpr = parsePtrStructAccess(parser, postfixExpr); break;
+        default:
+            printf("Internal Error: Unepxected token type\n");
+            exit(-1);
         }
     }
     return postfixExpr;  
@@ -530,7 +536,7 @@ void validateStructAccess(ParserState *parser, AstNode *root, bool ptrAccess)
     }
     SymbolType* symType = (SymbolType*) sym;
     string* elemType = nullptr;
-    for(int i =0; i < symType->names.size(); i++)
+    for(size_t i =0; i < symType->names.size(); i++)
     {
         if(symType->names[i] == *root->data)
         {
@@ -569,7 +575,7 @@ std::string *drefPtrType(const std::string *ptrType)
 void processConstant(ParserState *parser, AstNode *constant)
 {
     string& value = *constant->data;
-    int i;
+    size_t i;
     for(i=0; i < value.size(); i++)
     {
         if(value[i] == '.')

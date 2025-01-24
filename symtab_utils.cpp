@@ -64,7 +64,7 @@ FieldDesc getNthFieldDesc(SymbolTable *symtab, SymbolType *type, int idx)
     struct AggrDesc
     {
         SymbolType* aggr;
-        int offset;
+        uint32_t offset;
         uint32_t memoryBase;
     };
     
@@ -82,7 +82,7 @@ get_aggr:
             return {nullptr, 0};
         }
         SymbolType* currType = aggrTypes.top().aggr;
-        int* offset = &aggrTypes.top().offset;
+        uint32_t* offset = &aggrTypes.top().offset;
         uint32_t* memoryBase = &aggrTypes.top().memoryBase;
 
         if(*offset >= currType->types.size())

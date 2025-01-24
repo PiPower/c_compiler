@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 file(GLOB frontendSources ./frontend/*.cpp)
 file(GLOB backendSources ./backend/*.cpp)
 
-add_compile_options(-Wall)
+add_compile_options(-Wall )
 add_library(frontend STATIC ${frontendSources} symtab_utils.cpp)
 add_library(backend STATIC ${backendSources} symtab_utils.cpp)
 add_executable(c_compiler main.cpp compiler.cpp symtab_utils.cpp )
@@ -15,7 +15,7 @@ add_executable(c_compiler main.cpp compiler.cpp symtab_utils.cpp )
 
 target_link_libraries(c_compiler PUBLIC frontend)
 target_link_libraries(c_compiler PUBLIC backend)
-
+target_link_libraries(c_compiler PUBLIC asan)
 set_property(TARGET c_compiler PROPERTY CXX_STANDARD 17)
 
 include(CTest)
