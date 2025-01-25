@@ -16,29 +16,20 @@ void generate_code(CodeGenerator *gen, std::vector<AstNode*>* globalTrees)
     return;
 }
 
-void dispatch(CodeGenerator *gen, AstNode *parseTree)
+OpDesc dispatch(CodeGenerator *gen, AstNode *parseTree)
 {
     switch (parseTree->nodeType)
     {
     case NodeType::FUNCTION_DEF:
-        translateFunction(gen, parseTree);
-        break;
+        return translateFunction(gen, parseTree);
     case NodeType::CONSTANT:
-        prepareConstant(gen, parseTree);
-        break;
+        return prepareConstant(gen, parseTree);
+    case NodeType::DECLARATOR:
+        return translateDeclaration(gen, parseTree);
     case NodeType::IDENTIFIER:
-        if(parseTree->children.size() == 0 && gen->localSymtab->scopeLevel != 0)
-        {
-            prepareVariable(gen, parseTree);
-        }
-        else
-        {
-            translateDeclaration(gen, parseTree);
-        }
-        break;
+        return prepareVariable(gen, parseTree);
     default:
-        translateExpr(gen, parseTree);
-        break;
+        return translateExpr(gen, parseTree);
     }
 }
 

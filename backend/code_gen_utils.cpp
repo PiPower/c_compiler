@@ -177,26 +177,30 @@ std::string encodeIntAsString(long int constant, uint8_t byteSize)
     return constProcessed;
 }
 
-std::string genAssignmentDest(const CpuState* cpu,const OpDesc& destDesc)
+std::string generateOperand(const CpuState* cpu,const OpDesc& destDesc, int regByteSize)
 {
     string dest;
 
     if(destDesc.scope > 0)
     {
-        auto varDescIter = cpu->data.find(destDesc.operand);
-        const VariableDesc* desc = &varDescIter->second;
-        switch( desc->storageType)
+  
+        VariableCpuDesc desc = fetchVariable(cpu, destDesc.operand);
+        switch( desc.storageType)
         {
         case Storage::REG:
         {
+            if(regByteSize == -1)
+            {
+                regByteSize = desc.offset < 16 ? 0 : 2;
+            }
             string out;
             out += '%';
-            out += cpu_registers_str[desc->offset][2];
+            out += cpu_registers_str[desc.offset][regByteSize];
             return out;
         }break;
         case Storage::STACK:
         {
-            dest = to_string(desc->offset) +
+            dest = to_string(desc.offset) +
                         '('  + '%'+ cpu_registers_str[RBP][0] + ')';
             return dest;
         }break;
@@ -221,7 +225,7 @@ OpDesc parseEncodedAccess(CodeGenerator *gen, const std::string &accesSpec)
         SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM_EX(gen, accesSpec, &scope);
         SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
         OpDesc desc;
-        desc.op = OP::VARIABLE;
+        desc.operandType = OP::VARIABLE;
         desc.operand = accesSpec;
         desc.scope = scope;
         desc.operandAffi = symType->affiliation;

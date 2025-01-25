@@ -262,7 +262,11 @@ AstNode* processVariable(AstNode *root, ParserState *parser)
             delete root->type;
             // copy properly decoded type info
             root->type = new string(*var->varType);
-            return root;
+
+            AstNode* out = ALLOCATE_NODE(parser);
+            out->nodeType = NodeType::DECLARATOR;
+            out->children.push_back(root);
+            return out;
         }
     }
     // if not initializer we can free node

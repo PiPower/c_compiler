@@ -2,24 +2,42 @@
 #include "code_gen_utils.hpp"
 using namespace std;
 
-void translateExpr(CodeGenerator *gen, AstNode *parseTree)
+OpDesc translateExpr(CodeGenerator *gen, AstNode *parseTree)
 {
     switch (parseTree->nodeType)
     {
     case NodeType::MINUS:
-        translateNegation(gen, parseTree);
-        break;
+        return translateNegation(gen, parseTree);
+    case NodeType::ASSIGNMENT:
+        return translateAssignment(gen, parseTree);
+    case NodeType::CAST:
+        return translateCast(gen, parseTree);
     }
 }
 
-void translateNegation(CodeGenerator *gen, AstNode *parseTree)
+OpDesc translateNegation(CodeGenerator *gen, AstNode *parseTree)
 {
-    CLEAR_OP(gen);
-    dispatch(gen, parseTree->children[0]);
-    if(gen->opDesc.op == OP::CONSTANT)
+    OpDesc opDesc = processChild(gen, parseTree, 0);
+    if(opDesc.operandType == OP::CONSTANT)
     {
-        gen->opDesc.operand.insert(0, 1, '-');
+       opDesc.operand.insert(0, 1, '-');
+       return opDesc;
     }
+
+    VariableCpuDesc cpuDesc = fetchVariable(gen->cpu, opDesc.operand);
+    return opDesc;
+}
+
+OpDesc translateAssignment(CodeGenerator *gen, AstNode *parseTree)
+{
+    OpDesc opDesc = processChild(gen, parseTree, 1);
+
+}
+
+OpDesc translateCast(CodeGenerator *gen, AstNode *parseTree)
+{
+    OpDesc opDesc = processChild(gen, parseTree, 0);
+    //uint8_t gr = getTypeGroup()
 }
 
 void moveConstantInt(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
@@ -47,11 +65,10 @@ void moveConstantInt(CodeGenerator *gen, const std::string &constant, const OpDe
     }
     else if(destDesc.operandAffi  == INT64_S ||  destDesc.operandAffi == INT64_U)
     {
-        auto varDescIter = gen->cpu->data.find(destDesc.operand);
-        const VariableDesc* desc = &varDescIter->second;
+        VariableCpuDesc varCpu = fetchVariable(gen->cpu, destDesc.operand);
         if( (uint64_t)(value >> 32 ) > 0)
         {
-            if(desc->storageType != Storage::REG)
+            if(varCpu.storageType != Storage::REG)
             {
                 regIdx = (int)allocateRRegister(gen, "init_tmp");
                 Instruction instLocal = {INSTRUCTION, "movabsq", 
@@ -74,20 +91,20 @@ void moveConstantInt(CodeGenerator *gen, const std::string &constant, const OpDe
         }
     }
 
-    inst.dest = genAssignmentDest(gen->cpu, destDesc);
+    inst.dest = generateOperand(gen->cpu, destDesc);
     ADD_INST_MV(gen, inst);
     freeRRegister(gen, regIdx);
-    gen->opDesc = { .op = OP::NONE };
 }
 
 void moveConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc)
 {
     int reg = -1;
-    OpDesc tempDesc = { .op = OP::NONE};
-    if(gen->cpu->data[destDesc.operand].storageType != Storage::REG)
+    OpDesc tempDesc = { .operandType = OP::NONE};
+    VariableCpuDesc varCpu = fetchVariable(gen->cpu, destDesc.operand);
+    if(varCpu.storageType != Storage::REG)
     {
         tempDesc = {
-            .op = OP::TEMP_VAR,
+            .operandType = OP::TEMP_VAR,
             .operand =  "init_float_tmp",
             .operandAffi = destDesc.operandAffi,
             .scope = destDesc.scope
@@ -129,29 +146,103 @@ void moveConstantFloat(CodeGenerator* gen, const std::string& constant, const Op
     }
 
     movToReg.src = label + "(%rip)";
-    if(tempDesc.op == OP::NONE)
+    if(tempDesc.operandType == OP::NONE)
     {
-        movToReg.dest = genAssignmentDest(gen->cpu, destDesc);
+        movToReg.dest = generateOperand(gen->cpu, destDesc);
     }
     else
     {
-        movToReg.dest = genAssignmentDest(gen->cpu, tempDesc);
+        movToReg.dest = generateOperand(gen->cpu, tempDesc);
     }
 
     ADD_INST_MV(gen, movToReg);
-    if(tempDesc.op != OP::NONE)
+    if(tempDesc.operandType != OP::NONE)
     {
         const Instruction& prev = gen->code.back();
         Instruction moveToTarget = {
             .type = INSTRUCTION,
             .mnemonic = prev.mnemonic,
             .src = prev.dest,
-            .dest = genAssignmentDest(gen->cpu, destDesc)
+            .dest = generateOperand(gen->cpu, destDesc)
         };
         ADD_INST_MV(gen, moveToTarget);
     }
     freeMMRegister(gen, reg);
-    gen->opDesc = {};
+}
+
+
+
+void loadVariableToReg(CodeGenerator *gen, const OpDesc &varDesc, uint8_t targetGr)
+{
+    Instruction loadInst;
+    string src = generateOperand(gen->cpu, varDesc);
+    if(targetGr == SIGNED_INT_GROUP)
+    {
+        uint8_t reg = allocateRRegister(gen, varDesc.operand);
+        switch (varDesc.operandAffi)
+        {
+        case INT8_S:
+            loadInst = { 
+                .type = INSTRUCTION,
+                .mnemonic = "movsbq",
+                .src = std::move(src),
+                .dest = generateOperand(gen->cpu, varDesc)};
+            ADD_INST_MV(gen, loadInst);
+            break;
+        case INT16_S:
+            loadInst = { 
+                .type = INSTRUCTION,
+                .mnemonic = "movswq",
+                .src = std::move(src),
+                .dest = generateOperand(gen->cpu, varDesc)};
+            ADD_INST_MV(gen, loadInst);
+            break;
+        case INT32_S:
+            if(!registerStores(gen->cpu, RAX, varDesc.operand))
+            {
+                ADD_INST(gen, {INSTRUCTION, "pushq", "%rax"});
+            }
+            loadInst = { 
+                .type = INSTRUCTION,
+                .mnemonic = "movl",
+                .src = std::move(src),
+                .dest = "%eax"
+            };
+            ADD_INST_MV(gen, loadInst);
+            ADD_INST(gen, {INSTRUCTION, "cltq"});
+            if(!registerStores(gen->cpu, RAX, varDesc.operand))
+            {
+                ADD_INST(gen, {INSTRUCTION, "movq", "%rax", generateOperand(gen->cpu, varDesc)});
+                ADD_INST(gen, {INSTRUCTION, "popq", "%rax"});
+            }
+            break;
+        case INT64_S:
+            loadInst = { 
+                .type = INSTRUCTION,
+                .mnemonic = "movq",
+                .src = std::move(src),
+                .dest = generateOperand(gen->cpu, varDesc)};
+            ADD_INST_MV(gen, loadInst);
+            break; 
+        }
+    }
+    else if(targetGr == UNSIGNED_INT_GROUP)
+    {
+        printf("Unsupported group \n");
+        exit(-1);
+    }
+    else if(targetGr == FLOAT_GROUP)
+    {
+        printf("Unsupported group \n");
+        exit(-1);
+    }
+    else
+    {
+        printf("Unsupported group \n");
+        exit(-1);
+    }
+    
+    uint8_t reg = allocateRRegister(gen, varDesc.operand);
 }
 
 uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
@@ -160,7 +251,7 @@ uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
     {
         if(gen->cpu->reg[i].state == REG_FREE)
         {
-            gen->cpu->data[symName] = {
+            gen->cpu->regData[symName] = {
                 .storageType = Storage::REG,
                 .offset = i
             };
@@ -179,9 +270,15 @@ void freeRRegister(CodeGenerator *gen, int index)
     {
         return;
     }
-    gen->cpu->data.erase(gen->cpu->reg[index].symbol);
+    gen->cpu->regData.erase(gen->cpu->reg[index].symbol);
     gen->cpu->reg[index].state = REG_FREE;
     gen->cpu->reg[index].symbol.clear();
+}
+
+void freeRRegister(CodeGenerator *gen, const string &symName)
+{
+    printf("NOT SUPPORTE RREG FREE\n");
+    exit(-1);
 }
 
 uint8_t allocateMMRegister(CodeGenerator *gen, std::string symName)
@@ -190,7 +287,7 @@ uint8_t allocateMMRegister(CodeGenerator *gen, std::string symName)
     {
         if(gen->cpu->reg[i].state == REG_FREE)
         {
-            gen->cpu->data[symName] = {
+            gen->cpu->regData[symName] = {
                 .storageType = Storage::REG,
                 .offset = i
             };
@@ -209,7 +306,13 @@ void freeMMRegister(CodeGenerator *gen, int index)
     {
         return;
     }
-    gen->cpu->data.erase(gen->cpu->reg[index].symbol);
+    gen->cpu->regData.erase(gen->cpu->reg[index].symbol);
     gen->cpu->reg[index].state = REG_FREE;
     gen->cpu->reg[index].symbol.clear();
+}
+
+void freeMMRegister(CodeGenerator *gen, const string &symName)
+{
+    printf("NOT SUPPORTE RREG FREE\n");
+    exit(-1);
 }

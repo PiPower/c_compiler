@@ -9,6 +9,13 @@
 #define IDX_YMM 1
 #define IDX_ZMM 0
 
+#define IDX_R8HI 4
+#define IDX_R8LO 3
+#define IDX_R16 2
+#define IDX_R32 1
+#define IDX_R64 0
+
+
 #define RAX 0
 #define RBX 1
 #define RCX 2
@@ -68,6 +75,14 @@ struct Reg
     std::string symbol;
 };
 
+enum class hwdVarType
+{
+    SIGNED,
+    UNSIGNED,
+    FLOAT_32,
+    FLOAT_64
+};
+
 enum class Storage
 {
     NONE,
@@ -80,7 +95,7 @@ enum class Storage
     Storage == REG -> offset represent id of register used to store variable
     offset -> if Storage == REG stores ID of assigned register else stores address of the variable 
 */
-struct VariableDesc
+struct VariableCpuDesc
 {
     Storage storageType;
     long int offset;
@@ -88,12 +103,14 @@ struct VariableDesc
 
 /*
     stack is allowed to be 32 bit long above and below rbp value on entry
-
+    every variable(expect for temporary) will be stored on stack, if there is 
+    assginment expression data is ALWAYS to be flushed to stack
 */
 struct CpuState
 {
     Reg reg[32];
-    std::unordered_map<std::string,VariableDesc> data;
+    std::unordered_map<std::string,VariableCpuDesc> stackData;
+    std::unordered_map<std::string,VariableCpuDesc> regData;
     uint32_t stackArgsOffset;
     uint32_t currentStackSize;
     uint32_t runtimeStackSize;
@@ -116,5 +133,10 @@ void bindArgToCpuStack(CpuState* cpu, SymbolType* symType, const std::string& va
 char getUnusedArgRegId(CpuState* cpu);
 char getUnusedArgMMRegId(CpuState* cpu);
 void fillTypeHwdInfoForBlock(SymbolTable* localSymtab);
+void increaseStackSize(CpuState* cpu, int64_t size);
+std::string getCpuRegStr(uint8_t regIdx, uint8_t regSize);
+VariableCpuDesc fetchVariable(const CpuState* cpu, const std::string& varName);
 std::string generateLocalConstantLabel();
+bool isRegisterUsed(const CpuState* cpu, uint8_t regIdx);
+bool registerStores(const CpuState* cpu, uint8_t regIdx, const std::string& varName);
 #endif

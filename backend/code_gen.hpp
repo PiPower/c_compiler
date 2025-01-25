@@ -46,7 +46,7 @@ enum class OP
 
 struct OpDesc
 {
-    OP op;
+    OP operandType;
     std::string operand;
     uint16_t operandAffi;
     uint8_t scope;
@@ -60,11 +60,10 @@ struct CodeGenerator
     InstructionSeq code;
     std::map<uint64_t, std::string> floatConsts;
     CpuState* cpu;
-    OpDesc opDesc;
 };
 
 void generate_code(CodeGenerator* gen, std::vector<AstNode*>* parseTrees);
-void dispatch(CodeGenerator* gen, AstNode* parseTree);
+OpDesc dispatch(CodeGenerator* gen, AstNode* parseTree);
 void write_to_file(const InstructionSeq& instructions, 
         const std::map<uint64_t, std::string>& floatConsts, FILE* stream);
 void write_label(const Instruction* inst, FILE* stream);

@@ -90,7 +90,7 @@ void bindReturnValue(CpuState *cpu, SymbolTable *localSymtab, SymbolFunction *sy
         cpu->reg[RDI].symbol = "<retPtrToStruct>";
         cpu->retSignature[0] = retGroup.gr[0];
         cpu->retSignature[1] = retGroup.gr[1];
-        cpu->data[cpu->reg[RDI].symbol ] = {Storage::REG, RDI};
+        cpu->regData[cpu->reg[RDI].symbol ] = {Storage::REG, RDI};
         return;
     }
 
@@ -154,8 +154,8 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
             {
                 cpu->reg[freeRegId].state = REG_USED;
                 cpu->reg[freeRegId].symbol = varname;
-                VariableDesc desc = {Storage::REG, freeRegId};
-                cpu->data[varname] = desc;
+                VariableCpuDesc desc = {Storage::REG, freeRegId};
+                cpu->regData[varname] = desc;
             }
             else
             {
@@ -169,8 +169,8 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
             {
                 cpu->reg[freeRegId].state = REG_USED;
                 cpu->reg[freeRegId].symbol = varname;
-                VariableDesc desc = {Storage::REG, freeRegId};
-                cpu->data[varname] = desc;
+                VariableCpuDesc desc = {Storage::REG, freeRegId};
+                cpu->regData[varname] = desc;
             }
             else
             {
@@ -197,7 +197,7 @@ void reserveCalleSavedRegs(CpuState *cpu)
     {
         cpu->reg[gpRegsCalleSaved[i]].state = REG_USED;
         cpu->reg[gpRegsCalleSaved[i]].symbol = "<calle_saved:" + to_string(i) +'>';
-        cpu->data[cpu->reg[gpRegsCalleSaved[i]].symbol] = {Storage::REG, gpRegsCalleSaved[i]};
+        cpu->regData[cpu->reg[gpRegsCalleSaved[i]].symbol] = {Storage::REG, gpRegsCalleSaved[i]};
     }
 }
 
@@ -221,8 +221,8 @@ void bindBlockToStack(CpuState* cpu, SymbolTable* localSymtab)
         {
             blockSize+= type->dataAlignment - blockSize%type->dataAlignment;
         }
-        cpu->data[localSymtab->symbolNames[i]] = {Storage::STACK,  -(long)blockSize - cpu->currentStackSize};
-        updates.push_back(&cpu->data[localSymtab->symbolNames[i]].offset);
+        cpu->stackData[localSymtab->symbolNames[i]] = {Storage::STACK,  -(long)blockSize - cpu->currentStackSize};
+        updates.push_back(&cpu->stackData[localSymtab->symbolNames[i]].offset);
 
     }
     cpu->currentStackSize += blockSize;
@@ -368,8 +368,8 @@ uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2)
 
 void bindArgToCpuStack(CpuState *cpu, SymbolType* symType, const std::string& varname)
 {
-    VariableDesc desc = {Storage::STACK, cpu->stackArgsOffset};
-    cpu->data[varname] = desc;
+    VariableCpuDesc desc = {Storage::STACK, cpu->stackArgsOffset};
+    cpu->stackData[varname] = desc;
     uint64_t bytes = symType->typeSize;
     if( symType->typeSize % 8 );
     {
@@ -417,8 +417,59 @@ void fillTypeHwdInfoForBlock(SymbolTable* localSymtab)
     }
 }
 
+void increaseStackSize(CpuState *cpu, int64_t size)
+{
+}
+
+std::string getCpuRegStr(uint8_t regIdx, uint8_t regSize)
+{
+    return cpu_registers_str[regIdx][regSize];
+}
+
+VariableCpuDesc fetchVariable(const CpuState* cpu, const std::string &varName)
+{
+    auto regVarIter = cpu->regData.find(varName);
+    if(regVarIter != cpu->regData.end())
+    {
+        VariableCpuDesc out = {
+            .storageType = regVarIter->second.storageType,
+            .offset = regVarIter->second.offset
+        };
+        return out;
+    }
+
+    auto stackVarIter = cpu->stackData.find(varName);
+    if(stackVarIter != cpu->stackData.end())
+    {
+        VariableCpuDesc out = {
+            .storageType = stackVarIter->second.storageType,
+            .offset = stackVarIter->second.offset
+        };
+        return out;
+    }
+
+    return { .storageType = Storage::NONE};
+}
+
 std::string generateLocalConstantLabel()
 {
     static uint64_t id = 0;
     return ".LC" + to_string(id++);
 }
+
+bool isRegisterUsed(const CpuState* cpu, uint8_t regIdx)
+{
+    return cpu->reg[regIdx].state == REG_USED;
+}
+
+bool registerStores(const CpuState* cpu, uint8_t regIdx, const std::string &varName)
+{
+    if(cpu->reg[regIdx].state == REG_USED)
+    {
+        return false;
+    }
+    return cpu->reg[regIdx].symbol == varName;
+}
+
+
+

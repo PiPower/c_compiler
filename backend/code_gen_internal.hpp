@@ -12,26 +12,33 @@
 #define FREE_NODE(gen, node) freeNode((gen)->allocator, (node))
 #define FREE_NODE_REC(gen, node) freeRecursive((gen)->allocator, (node))
 // symbol table variable translation
-void translateFunction(CodeGenerator* gen, AstNode* parseTree);
-void translateDeclaration(CodeGenerator* gen, AstNode* parseTree);
-void translateExpression(CodeGenerator* gen, AstNode* parseTree);
-void writeToLocalVariable(CodeGenerator* gen, const std::string& varname, OpDesc operandDesc);
-void prepareVariable(CodeGenerator* gen, AstNode* parseTree);
-void prepareConstant(CodeGenerator* gen, AstNode* parseTree);
-void writeConstantToSym(CodeGenerator* gen, std::string constant, const std::string& dest);
+OpDesc translateFunction(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateDeclaration(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateExpression(CodeGenerator* gen, AstNode* parseTree);
+OpDesc writeToLocalVariable(CodeGenerator* gen, const std::string& varname, OpDesc operandDesc);
+OpDesc prepareConstant(CodeGenerator* gen, AstNode* parseTree);
+OpDesc prepareVariable(CodeGenerator* gen, AstNode* parseTree);
+OpDesc writeConstantToSym(CodeGenerator* gen, std::string constant, const std::string& dest);
+OpDesc processChild(CodeGenerator* gen, AstNode* parseTree, std::size_t child_index);
 //expressions
-void translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);
-void translateLocalInit(CodeGenerator* gen, AstNode* parseTree);
-void translateExpr(CodeGenerator* gen, AstNode* parseTree);
-void translateNegation(CodeGenerator* gen, AstNode* parseTree);
-
+OpDesc translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateLocalInit(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateExpr(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateNegation(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateAssignment(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateCast(CodeGenerator* gen, AstNode* parseTree);
 // moves constant int to either register or memory location
+// caller allocates either memory or register for destination
 void moveConstantInt(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
 // moves constant float to either register or memory location
+// caller allocates either memory or register for destination
 void moveConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
-
+// loads integer into register
+void loadVariableToReg(CodeGenerator* gen, const OpDesc &varDesc, uint8_t targetGr);
 uint8_t allocateRRegister(CodeGenerator* gen, std::string symName);
 void freeRRegister(CodeGenerator* gen, int index);
+void freeRRegister(CodeGenerator* gen, const std::string& symName);
 uint8_t allocateMMRegister(CodeGenerator* gen, std::string symName);
 void freeMMRegister(CodeGenerator* gen, int index);
+void freeMMRegister(CodeGenerator* gen, const std::string& symName);
 #endif

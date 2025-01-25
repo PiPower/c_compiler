@@ -4,7 +4,7 @@
 using namespace std;
 
 
-void translateFunction(CodeGenerator *gen, AstNode *parseTree)
+OpDesc translateFunction(CodeGenerator *gen, AstNode *parseTree)
 {
     gen->localSymtab = (SymbolTable*)parseTree->children[0]->data;
     fillTypeHwdInfoForBlock(gen->symtab);
@@ -30,49 +30,41 @@ void translateFunction(CodeGenerator *gen, AstNode *parseTree)
     ADD_INST(gen, {INSTRUCTION, "ret"} );
 
     gen->localSymtab = gen->localSymtab->parent;
+    return {OP::NONE};
 }
 
-void translateDeclaration(CodeGenerator *gen, AstNode *parseTree)
+OpDesc translateDeclaration(CodeGenerator *gen, AstNode *parseTree)
 {
     if(gen->localSymtab->scopeLevel == 0)
     {
-        translateGlobalInit(gen, parseTree);
+        return translateGlobalInit(gen, parseTree->children[0]);
     }
     else
     {
-        translateLocalInit(gen, parseTree);
+        return translateLocalInit(gen, parseTree->children[0]);
     }
+    return {OP::NONE};
 }
 
-void translateExpression(CodeGenerator *gen, AstNode *parseTree)
-{
-    switch (parseTree->nodeType)
-    {
-    case NodeType::ASSIGNMENT:
-        /* code */
-        break;
-    
-    default:
-        break;
-    }
-}
 
-void prepareVariable(CodeGenerator *gen, AstNode *parseTree)
-{
-    gen->opDesc = parseEncodedAccess(gen, *parseTree->data);
-}
 
-void prepareConstant(CodeGenerator *gen, AstNode *parseTree)
+OpDesc prepareConstant(CodeGenerator *gen, AstNode *parseTree)
 {
-    gen->opDesc = {
-        .op =  OP::CONSTANT,
+    OpDesc opDesc = {
+        .operandType =  OP::CONSTANT,
         .operand =  *parseTree->data,
         .operandAffi = 0,
         .scope = 0
     };
+    return opDesc;
 }
 
-void writeConstantToSym(CodeGenerator *gen, std::string constant, const std::string& dest)
+OpDesc prepareVariable(CodeGenerator *gen, AstNode *parseTree)
+{
+    return parseEncodedAccess(gen,  *parseTree->data);
+}
+
+OpDesc writeConstantToSym(CodeGenerator *gen, std::string constant, const std::string& dest)
 {
     OpDesc destDesc = parseEncodedAccess(gen, dest);
     uint8_t gr = getTypeGr(destDesc.operandAffi);
@@ -90,10 +82,27 @@ void writeConstantToSym(CodeGenerator *gen, std::string constant, const std::str
         printf("Internal Error: Unsupported group\n");
         exit(-1);
     }
-    
-}   
+    return {OP::NONE};
+}
 
-void translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
+OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_index)
+{
+    if( parseTree->children[child_index]->nodeType == NodeType::IDENTIFIER )
+    {
+        OpDesc varDesc = prepareVariable(gen, parseTree->children[child_index]);
+        VariableCpuDesc var = fetchVariable(gen->cpu, varDesc.operand);
+        if(var.storageType != Storage::REG)
+        {
+            SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
+            loadVariableToReg(gen, varDesc, getTypeGr(symType->affiliation));
+        }
+
+        return varDesc;
+    }
+    return dispatch(gen, parseTree->children[child_index]);
+}
+
+OpDesc translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
 {
     SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, *parseTree->data);
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
@@ -106,19 +115,20 @@ void translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
     }
     ADD_INST_MV(gen, inst);
     FREE_NODE_REC(gen, parseTree);
+    return {OP::NONE};
 }
 
-void translateLocalInit(CodeGenerator *gen, AstNode *parseTree)
+OpDesc translateLocalInit(CodeGenerator *gen, AstNode *parseTree)
 {
-    CLEAR_OP(gen);
-    dispatch(gen, parseTree->children[0]->children[0]);
-    writeToLocalVariable(gen, *parseTree->data, gen->opDesc);
+    OpDesc opDesc = dispatch(gen, parseTree->children[0]->children[0]);
+    writeToLocalVariable(gen, *parseTree->data, opDesc);
+    return {OP::NONE};
 }
 
 
-void writeToLocalVariable(CodeGenerator *gen, const std::string &varname, OpDesc operandDesc)
+OpDesc writeToLocalVariable(CodeGenerator *gen, const std::string &varname, OpDesc operandDesc)
 {
-    if(gen->opDesc.op == OP::CONSTANT)
+    if(operandDesc.operandType == OP::CONSTANT)
     {
         writeConstantToSym(gen, operandDesc.operand, varname);
     }
@@ -127,5 +137,5 @@ void writeToLocalVariable(CodeGenerator *gen, const std::string &varname, OpDesc
         printf("Non constant assignment not supported \n");
         exit(-1);
     }
-
+    return {OP::NONE};
 }
