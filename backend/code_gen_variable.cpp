@@ -79,11 +79,11 @@ void writeConstantToSym(CodeGenerator *gen, std::string constant, const std::str
 
     if(gr == SIGNED_INT_GROUP || gr == UNSIGNED_INT_GROUP)
     {
-        generateCodeForU_SICA(gen, constant, destDesc);
+        moveConstantInt(gen, constant, destDesc);
     }
     else if (gr == FLOAT_GROUP)
     {
-        generateCodeForSf_DfCA(gen, constant, destDesc);
+        moveConstantFloat(gen, constant, destDesc);
     }
     else
     {

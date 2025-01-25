@@ -64,11 +64,11 @@ void write_to_file(const InstructionSeq& instructions,
         memcpy(&hi, (char*)(&constIter->first) + 4, sizeof(int));
         if(hi != 0 )
         {
-            fprintf(stream, ".section .rodata \n.align 8\n");
+            fprintf(stream, "\t.section .rodata \n\t.align 8\n");
         }
         else
         {
-            fprintf(stream, ".section .rodata \n.align 4\n");
+            fprintf(stream, "\t.section .rodata \n\t.align 4\n");
         }
 
         fprintf(stream, "%s:\n\t.long %d\n", constIter->second.c_str(), lo);

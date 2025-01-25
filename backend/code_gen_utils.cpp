@@ -188,9 +188,12 @@ std::string genAssignmentDest(const CpuState* cpu,const OpDesc& destDesc)
         switch( desc->storageType)
         {
         case Storage::REG:
-            printf("Internal Error: storage type error \n");
-            exit(-1);
-            break;
+        {
+            string out;
+            out += '%';
+            out += cpu_registers_str[desc->offset][2];
+            return out;
+        }break;
         case Storage::STACK:
         {
             dest = to_string(desc->offset) +

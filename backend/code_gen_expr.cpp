@@ -22,7 +22,7 @@ void translateNegation(CodeGenerator *gen, AstNode *parseTree)
     }
 }
 
-void generateCodeForU_SICA(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
+void moveConstantInt(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
 {
     //first process value to be sure it is in correct range
     long int value = encodeIntAsBinary(constant);
@@ -47,19 +47,29 @@ void generateCodeForU_SICA(CodeGenerator *gen, const std::string &constant, cons
     }
     else if(destDesc.operandAffi  == INT64_S ||  destDesc.operandAffi == INT64_U)
     {
-        inst.mnemonic = "movq";
+        auto varDescIter = gen->cpu->data.find(destDesc.operand);
+        const VariableDesc* desc = &varDescIter->second;
         if( (uint64_t)(value >> 32 ) > 0)
         {
-            regIdx = (int)allocateRRegister(gen, "init_tmp");
-            Instruction instLocal = {INSTRUCTION, "movabsq", 
-                                encodeIntAsString(value, 8), 
-                                cpu_registers_str[regIdx][0] };
-            instLocal.dest = '%' + instLocal.dest;
-            inst.src = instLocal.dest;
-            ADD_INST_MV(gen, instLocal);
+            if(desc->storageType != Storage::REG)
+            {
+                regIdx = (int)allocateRRegister(gen, "init_tmp");
+                Instruction instLocal = {INSTRUCTION, "movabsq", 
+                                    encodeIntAsString(value, 8), 
+                                    cpu_registers_str[regIdx][0] };
+                instLocal.dest = '%' + instLocal.dest;
+                inst.src = instLocal.dest;
+                inst.mnemonic = "movq";
+                ADD_INST_MV(gen, instLocal);
+            }
+            else
+            {
+                inst.mnemonic = "movabsq";
+            }
         }
         else
-        {
+        {   
+            inst.mnemonic = "movq";
             inst.src = encodeIntAsString(value, 8);
         }
     }
@@ -67,18 +77,29 @@ void generateCodeForU_SICA(CodeGenerator *gen, const std::string &constant, cons
     inst.dest = genAssignmentDest(gen->cpu, destDesc);
     ADD_INST_MV(gen, inst);
     freeRRegister(gen, regIdx);
+    gen->opDesc = { .op = OP::NONE };
 }
 
-void generateCodeForSf_DfCA(CodeGenerator* gen, const std::string& constant,  const OpDesc &destDesc)
+void moveConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc)
 {
+    int reg = -1;
+    OpDesc tempDesc = { .op = OP::NONE};
+    if(gen->cpu->data[destDesc.operand].storageType != Storage::REG)
+    {
+        tempDesc = {
+            .op = OP::TEMP_VAR,
+            .operand =  "init_float_tmp",
+            .operandAffi = destDesc.operandAffi,
+            .scope = destDesc.scope
+        };
+        reg = (int)allocateMMRegister(gen, "init_float_tmp");
+    }
+
     string label;
     uint64_t val = 0;
     Instruction movToReg = {
         .type = INSTRUCTION
     }; 
-     Instruction movToVar = {
-        .type = INSTRUCTION
-     };
 
     if(destDesc.operandAffi == FLOAT32)
     {
@@ -107,18 +128,30 @@ void generateCodeForSf_DfCA(CodeGenerator* gen, const std::string& constant,  co
         label = gen->floatConsts[val];
     }
 
-    uint8_t reg = allocateMMRegister(gen, "init_float_tmp");
     movToReg.src = label + "(%rip)";
-    movToReg.dest = cpu_registers_str[reg][IDX_XMM];
-    movToReg.dest = '%' + movToReg.dest;
-
-    movToVar.src = movToReg.dest ;
-    movToVar.mnemonic = movToReg.mnemonic;
-    movToVar.dest = genAssignmentDest(gen->cpu, destDesc);
+    if(tempDesc.op == OP::NONE)
+    {
+        movToReg.dest = genAssignmentDest(gen->cpu, destDesc);
+    }
+    else
+    {
+        movToReg.dest = genAssignmentDest(gen->cpu, tempDesc);
+    }
 
     ADD_INST_MV(gen, movToReg);
-    ADD_INST_MV(gen, movToVar);
+    if(tempDesc.op != OP::NONE)
+    {
+        const Instruction& prev = gen->code.back();
+        Instruction moveToTarget = {
+            .type = INSTRUCTION,
+            .mnemonic = prev.mnemonic,
+            .src = prev.dest,
+            .dest = genAssignmentDest(gen->cpu, destDesc)
+        };
+        ADD_INST_MV(gen, moveToTarget);
+    }
     freeMMRegister(gen, reg);
+    gen->opDesc = {};
 }
 
 uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
@@ -127,6 +160,10 @@ uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
     {
         if(gen->cpu->reg[i].state == REG_FREE)
         {
+            gen->cpu->data[symName] = {
+                .storageType = Storage::REG,
+                .offset = i
+            };
             gen->cpu->reg[i].state = REG_USED;
             gen->cpu->reg[i].symbol = std::move(symName);
             return i;
@@ -142,6 +179,7 @@ void freeRRegister(CodeGenerator *gen, int index)
     {
         return;
     }
+    gen->cpu->data.erase(gen->cpu->reg[index].symbol);
     gen->cpu->reg[index].state = REG_FREE;
     gen->cpu->reg[index].symbol.clear();
 }
@@ -152,6 +190,10 @@ uint8_t allocateMMRegister(CodeGenerator *gen, std::string symName)
     {
         if(gen->cpu->reg[i].state == REG_FREE)
         {
+            gen->cpu->data[symName] = {
+                .storageType = Storage::REG,
+                .offset = i
+            };
             gen->cpu->reg[i].state = REG_USED;
             gen->cpu->reg[i].symbol = std::move(symName);
             return i;
@@ -167,6 +209,7 @@ void freeMMRegister(CodeGenerator *gen, int index)
     {
         return;
     }
+    gen->cpu->data.erase(gen->cpu->reg[index].symbol);
     gen->cpu->reg[index].state = REG_FREE;
     gen->cpu->reg[index].symbol.clear();
 }
