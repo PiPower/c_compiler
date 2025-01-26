@@ -21,6 +21,8 @@ OpDesc prepareVariable(CodeGenerator* gen, AstNode* parseTree);
 OpDesc writeConstantToSym(CodeGenerator* gen, std::string constant, const std::string& dest);
 OpDesc processChild(CodeGenerator* gen, AstNode* parseTree, std::size_t child_index);
 void loadSignedInt(CodeGenerator *gen, const OpDesc &varDesc);
+void loadUnsignedInt(CodeGenerator *gen, const OpDesc &varDesc);
+void loadFloat(CodeGenerator *gen, const OpDesc &varDesc, uint16_t operationAffi);
 //expressions
 OpDesc translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateLocalInit(CodeGenerator* gen, AstNode* parseTree);
@@ -35,7 +37,7 @@ void moveConstantInt(CodeGenerator* gen, const std::string& constant, const OpDe
 // caller allocates either memory or register for destination
 void moveConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
 // loads integer into register
-void loadVariableToReg(CodeGenerator* gen, const OpDesc &varDesc, uint8_t targetGr);
+void loadVariableToReg(CodeGenerator* gen, const OpDesc &varDesc, uint16_t operationAffi);
 uint8_t allocateRRegister(CodeGenerator* gen, std::string symName);
 void freeRRegister(CodeGenerator* gen, int index);
 void freeRRegister(CodeGenerator* gen, const std::string& symName);

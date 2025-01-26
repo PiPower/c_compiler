@@ -94,7 +94,7 @@ OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_in
         if(var.storageType != Storage::REG)
         {
             SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
-            loadVariableToReg(gen, varDesc, getTypeGr(symType->affiliation));
+            loadVariableToReg(gen, varDesc, symType->affiliation);
         }
 
         return varDesc;

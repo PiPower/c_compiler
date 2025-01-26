@@ -92,7 +92,7 @@ void write_label(const Instruction *inst, FILE *stream)
 
 void write_instruction(const Instruction *inst, FILE *stream)
 {
-    fprintf(stream, "\t%s ", inst->mnemonic.c_str());
+    fprintf(stream, "\t%s\t", inst->mnemonic.c_str());
     if(inst->src.size() > 0)
     {
         fprintf(stream, "%s", inst->src.c_str());
