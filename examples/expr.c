@@ -2,21 +2,13 @@ unsigned int x, b, c, g;
 int main()
 {
     
-    unsigned char df1 = 3;
+    float df1 = 3.324;
     long int x1;
     x1 = df1;
 
-    unsigned short df2 = 3;
+    double df2 = 3.54554;
     long int x2;
     x2 = df2;
-
-    unsigned int df3 = 3;
-    long int x3;
-    x3 = df3;
-
-    unsigned long df4 = 3;
-    long int x4;
-    x4 = df4;
     
     float df = 0.1231f;
     double xdas = 32923.30292;

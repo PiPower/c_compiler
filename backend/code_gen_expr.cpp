@@ -253,8 +253,20 @@ void loadSignedInt(CodeGenerator *gen, const OpDesc &varDesc)
         ADD_INST_MV(gen, loadInst);
         break;
     case FLOAT32:
+        {
+            uint8_t mmReg = allocateMMRegister(gen, "float_to_sint_temp");
+            ADD_INST(gen, {INSTRUCTION, "movss", std::move(src), getCpuRegStr(mmReg, IDX_XMM)});
+            ADD_INST(gen, {INSTRUCTION, "cvttss2siq", getCpuRegStr(mmReg, IDX_XMM), generateOperand(gen->cpu, varDesc)});
+            freeMMRegister(gen, mmReg);
+        }
         break;
     case DOUBLE64:
+        {
+            uint8_t mmReg = allocateMMRegister(gen, "float_to_sint_temp");
+            ADD_INST(gen, {INSTRUCTION, "movsd", std::move(src), getCpuRegStr(mmReg, IDX_XMM)});
+            ADD_INST(gen, {INSTRUCTION, "cvttsd2siq", getCpuRegStr(mmReg, IDX_XMM), generateOperand(gen->cpu, varDesc)});
+            freeMMRegister(gen, mmReg);
+        }
         break;
     }
 }
@@ -281,7 +293,6 @@ void loadVariableToReg(CodeGenerator *gen, const OpDesc &varDesc, uint8_t target
         exit(-1);
     }
     
-    uint8_t reg = allocateRRegister(gen, varDesc.operand);
 }
 
 uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
