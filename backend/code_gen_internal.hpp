@@ -20,6 +20,7 @@ OpDesc prepareConstant(CodeGenerator* gen, AstNode* parseTree);
 OpDesc prepareVariable(CodeGenerator* gen, AstNode* parseTree);
 OpDesc writeConstantToSym(CodeGenerator* gen, std::string constant, const std::string& dest);
 OpDesc processChild(CodeGenerator* gen, AstNode* parseTree, std::size_t child_index);
+void loadSignedInt(CodeGenerator *gen, const OpDesc &varDesc);
 //expressions
 OpDesc translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateLocalInit(CodeGenerator* gen, AstNode* parseTree);

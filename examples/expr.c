@@ -2,19 +2,19 @@ unsigned int x, b, c, g;
 int main()
 {
     
-    char df1 = 3;
+    unsigned char df1 = 3;
     long int x1;
     x1 = df1;
 
-    short df2 = 3;
+    unsigned short df2 = 3;
     long int x2;
     x2 = df2;
 
-    int df3 = 3;
+    unsigned int df3 = 3;
     long int x3;
     x3 = df3;
 
-    long df4 = 3;
+    unsigned long df4 = 3;
     long int x4;
     x4 = df4;
     

@@ -102,6 +102,7 @@ OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_in
     return dispatch(gen, parseTree->children[child_index]);
 }
 
+
 OpDesc translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
 {
     SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, *parseTree->data);

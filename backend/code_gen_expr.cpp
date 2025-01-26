@@ -170,61 +170,100 @@ void moveConstantFloat(CodeGenerator* gen, const std::string& constant, const Op
     freeMMRegister(gen, reg);
 }
 
-
+void loadSignedInt(CodeGenerator *gen, const OpDesc &varDesc)
+{
+    string src = generateOperand(gen->cpu, varDesc);
+    Instruction loadInst;
+    uint8_t reg = allocateRRegister(gen, varDesc.operand);
+    switch (varDesc.operandAffi)
+    {
+    case INT8_S:
+        loadInst = { 
+            .type = INSTRUCTION,
+            .mnemonic = "movsbq",
+            .src = std::move(src),
+            .dest = generateOperand(gen->cpu, varDesc)};
+        ADD_INST_MV(gen, loadInst);
+        break;
+    case INT16_S:
+        loadInst = { 
+            .type = INSTRUCTION,
+            .mnemonic = "movswq",
+            .src = std::move(src),
+            .dest = generateOperand(gen->cpu, varDesc)};
+        ADD_INST_MV(gen, loadInst);
+        break;
+    case INT32_S:
+        if(!registerStores(gen->cpu, RAX, varDesc.operand))
+        {
+            ADD_INST(gen, {INSTRUCTION, "pushq", "%rax"});
+        }
+        loadInst = { 
+            .type = INSTRUCTION,
+            .mnemonic = "movl",
+            .src = std::move(src),
+            .dest = "%eax"
+        };
+        ADD_INST_MV(gen, loadInst);
+        ADD_INST(gen, {INSTRUCTION, "cltq"});
+        if(!registerStores(gen->cpu, RAX, varDesc.operand))
+        {
+            ADD_INST(gen, {INSTRUCTION, "movq", "%rax", generateOperand(gen->cpu, varDesc)});
+            ADD_INST(gen, {INSTRUCTION, "popq", "%rax"});
+        }
+        break;
+    case INT64_S:
+        loadInst = { 
+            .type = INSTRUCTION,
+            .mnemonic = "movq",
+            .src = std::move(src),
+            .dest = generateOperand(gen->cpu, varDesc)};
+        ADD_INST_MV(gen, loadInst);
+        break; 
+    case INT8_U:
+        loadInst = { 
+            .type = INSTRUCTION,
+            .mnemonic = "movzbq",
+            .src = std::move(src),
+            .dest = generateOperand(gen->cpu, varDesc)};
+        ADD_INST_MV(gen, loadInst);
+        break;
+    case INT16_U:
+        loadInst = { 
+            .type = INSTRUCTION,
+            .mnemonic = "movzwq",
+            .src = std::move(src),
+            .dest = generateOperand(gen->cpu, varDesc)};
+        ADD_INST_MV(gen, loadInst);
+        break;
+    case INT32_U:
+        loadInst = { 
+            .type = INSTRUCTION,
+            .mnemonic = "movl",
+            .src = std::move(src),
+            .dest = generateOperand(gen->cpu, varDesc, IDX_R32)};
+        ADD_INST_MV(gen, loadInst);
+        break;
+    case INT64_U:
+        loadInst = { 
+            .type = INSTRUCTION,
+            .mnemonic = "movq",
+            .src = std::move(src),
+            .dest = generateOperand(gen->cpu, varDesc)};
+        ADD_INST_MV(gen, loadInst);
+        break;
+    case FLOAT32:
+        break;
+    case DOUBLE64:
+        break;
+    }
+}
 
 void loadVariableToReg(CodeGenerator *gen, const OpDesc &varDesc, uint8_t targetGr)
 {
-    Instruction loadInst;
-    string src = generateOperand(gen->cpu, varDesc);
     if(targetGr == SIGNED_INT_GROUP)
     {
-        uint8_t reg = allocateRRegister(gen, varDesc.operand);
-        switch (varDesc.operandAffi)
-        {
-        case INT8_S:
-            loadInst = { 
-                .type = INSTRUCTION,
-                .mnemonic = "movsbq",
-                .src = std::move(src),
-                .dest = generateOperand(gen->cpu, varDesc)};
-            ADD_INST_MV(gen, loadInst);
-            break;
-        case INT16_S:
-            loadInst = { 
-                .type = INSTRUCTION,
-                .mnemonic = "movswq",
-                .src = std::move(src),
-                .dest = generateOperand(gen->cpu, varDesc)};
-            ADD_INST_MV(gen, loadInst);
-            break;
-        case INT32_S:
-            if(!registerStores(gen->cpu, RAX, varDesc.operand))
-            {
-                ADD_INST(gen, {INSTRUCTION, "pushq", "%rax"});
-            }
-            loadInst = { 
-                .type = INSTRUCTION,
-                .mnemonic = "movl",
-                .src = std::move(src),
-                .dest = "%eax"
-            };
-            ADD_INST_MV(gen, loadInst);
-            ADD_INST(gen, {INSTRUCTION, "cltq"});
-            if(!registerStores(gen->cpu, RAX, varDesc.operand))
-            {
-                ADD_INST(gen, {INSTRUCTION, "movq", "%rax", generateOperand(gen->cpu, varDesc)});
-                ADD_INST(gen, {INSTRUCTION, "popq", "%rax"});
-            }
-            break;
-        case INT64_S:
-            loadInst = { 
-                .type = INSTRUCTION,
-                .mnemonic = "movq",
-                .src = std::move(src),
-                .dest = generateOperand(gen->cpu, varDesc)};
-            ADD_INST_MV(gen, loadInst);
-            break; 
-        }
+        loadSignedInt(gen, varDesc);
     }
     else if(targetGr == UNSIGNED_INT_GROUP)
     {
