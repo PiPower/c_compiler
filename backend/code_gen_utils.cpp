@@ -181,12 +181,9 @@ std::string generateOperand(const CpuState* cpu,const OpDesc& destDesc, int regB
 {
     string dest;
 
-    if(destDesc.scope > 0)
+    VariableCpuDesc desc = fetchVariable(cpu, destDesc.operand);
+    switch( desc.storageType)
     {
-  
-        VariableCpuDesc desc = fetchVariable(cpu, destDesc.operand);
-        switch( desc.storageType)
-        {
         case Storage::REG:
         {
             if(regByteSize == -1)
@@ -204,17 +201,42 @@ std::string generateOperand(const CpuState* cpu,const OpDesc& destDesc, int regB
                         '('  + '%'+ cpu_registers_str[RBP][0] + ')';
             return dest;
         }break;
-        default:
-            printf("Internal Error: storage type error \n");
-            exit(-1);
+        case Storage::MEMORY:
+            return destDesc.operand + "(%rip)";
             break;
-        }
-    }
-    else
-    {
-        printf("Assignment to global not supported \n");
+    default:
+        printf("Internal Error: storage type error \n");
         exit(-1);
+        break;
     }
+    
+}
+
+std::string generateTmpVarname()
+{
+    static uint64_t id;
+    std::string out = "tmp_var_" + to_string(id);
+    id++;
+    return out;
+}
+
+std::string generateRegisterName()
+{
+    static uint64_t id;
+    std::string out = "_reg_" + to_string(id);
+    id++;
+    return out;
+}
+
+OpDesc generateTmpVar(uint16_t affiliation, uint8_t scopeLvl)
+{
+    OpDesc destDesc = {
+        .operandType = OP::TEMP_VAR,
+        .operand = generateTmpVarname(),
+        .operandAffi = affiliation,
+        .scope = scopeLvl
+    };
+    return destDesc;
 }
 
 OpDesc parseEncodedAccess(CodeGenerator *gen, const std::string &accesSpec)

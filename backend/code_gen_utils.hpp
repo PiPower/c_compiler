@@ -14,7 +14,9 @@ int64_t encodeIntAsBinary(const std::string& constant);
 uint64_t encodeFloatAsBinary(const std::string& constant, uint8_t floatSize);
 std::string encodeIntAsString(long int constant, uint8_t byteSize);
 std::string generateOperand(const CpuState* cpu, const OpDesc& destDesc, int regByteSize = -1);
-
+std::string generateTmpVarname();
+std::string generateRegisterName();
+OpDesc generateTmpVar(uint16_t affiliation, uint8_t scopeLvl);
 /*
 to make it possible to acces struct the format is
 name:name:...:name:variable

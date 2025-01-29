@@ -87,6 +87,7 @@ enum class Storage
 {
     NONE,
     STACK,
+    MEMORY,
     REG,
 };
 

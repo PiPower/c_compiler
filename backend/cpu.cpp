@@ -448,7 +448,7 @@ VariableCpuDesc fetchVariable(const CpuState* cpu, const std::string &varName)
         return out;
     }
 
-    return { .storageType = Storage::NONE};
+    return { .storageType = Storage::MEMORY};
 }
 
 std::string generateLocalConstantLabel()
