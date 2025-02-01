@@ -22,29 +22,29 @@ int fp_write()
     df41 = x1;
     df41 = x2;
 
-    unsigned char df1;
-    df1 = x1;
-    df1 = x2;
+    //unsigned char df1;
+    //df1 = x1;
+    //df1 = x2;
 
-    unsigned short df2;
-    df2 = x1;
-    df2 = x2;
+    //unsigned short df2;
+    //df2 = x1;
+    //df2 = x2;
 
-    unsigned int df3;
-    df3 = x1;
-    df3 = x2;
+    //unsigned int df3;
+    //df3 = x1;
+    //df3 = x2;
 
-    unsigned long int df4;
-    df4 = x1;
-    df4 = x2;
+    //unsigned long int df4;
+    //df4 = x1;
+    //df4 = x2;
 
-    float df5 = 3;
-    df5 = x1;
-    df5 = x2;
+    //float df5 = 3;
+    //df5 = x1;
+    //df5 = x2;
 
-    double df6 = 3;
-    df6 = x1;
-    df6 = x2;
+    //double df6 = 3;
+    //df6 = x1;
+    //df6 = x2;
 
     return 0;
 }
@@ -87,13 +87,14 @@ int uint_write()
     x1 = df4;
     x2 = df4;
 
-    float df5;
-    x1 = df5;
-    x2 = df5;
+    //float df5;
+    //x1 = df5;
+    //x2 = df5;
 
-    double df6;
-    x1 = df6;
-    x2 = df6;
+    //double df6;
+    //x1 = df6;
+    //x2 = df6;
+
 
     return 2;
 }

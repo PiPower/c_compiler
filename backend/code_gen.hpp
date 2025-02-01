@@ -2,6 +2,14 @@
 #define CODE_GEN
 #include "../frontend/parser.hpp"
 #include <map>
+
+/*
+    MOST IMPORTANT ASSUMPTION
+    Every int value is stored in 64 bits(R64)
+    Floats can either be stored as 32 or 64 bits
+*/
+
+
 /*
     Mnemomic can either be instruction or label.
     If it is a label then src is a sequence of
@@ -28,12 +36,12 @@ typedef std::vector<Instruction> InstructionSeq;
 struct CpuState;
 
 /*
-localSymtab - symboltable of currently translated block;
-symtab - global symboltable ;
-allocator - ast nodes allocator;
-code - sequence of translated instructions in x86-64 gnu asm;
-operand - used to pass translation context between calls;
-cpu - pointer to structure representing cpu;
+    localSymtab - symboltable of currently translated block;
+    symtab - global symboltable ;
+    allocator - ast nodes allocator;
+    code - sequence of translated instructions in x86-64 gnu asm;
+    operand - used to pass translation context between calls;
+    cpu - pointer to structure representing cpu;
 */
 
 enum class OP

@@ -190,6 +190,11 @@ std::string generateOperand(const CpuState* cpu,const OpDesc& destDesc, int regB
             {
                 regByteSize = desc.offset < 16 ? 0 : 2;
             }
+            if(regByteSize == IDX_R8HI && desc.offset >= RSI)
+            {
+                printf("High 8 bits are not supported for register [%s]\n", cpu_registers_str[desc.offset][0]);
+                exit(-1);
+            }
             string out;
             out += '%';
             out += cpu_registers_str[desc.offset][regByteSize];

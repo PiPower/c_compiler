@@ -33,17 +33,17 @@ void freeRegister(CodeGenerator* gen, const std::string& symName);
 
 // load API
 // writes constant into memory/register
-OpDesc loadConstant(CodeGenerator* gen, std::string constant, const OpDesc &destDesc);
-void loadConstantInt(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
-void loadConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
-// writes register into memory reg -> mem
+OpDesc writeConstant(CodeGenerator* gen, std::string constant, const OpDesc &destDesc);
+void writeConstantInt(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
+void writeConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
+// writes  register into mem
 OpDesc writeRegToMem(CodeGenerator* gen, const OpDesc& srcDesc, const OpDesc &destDesc);
-void writeSignedIntToMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
-void writeUnsignedIntToMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
-void writeFloatToMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
+void writeToSignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
+void writeToUnsignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
+void writeToFloatMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
 // write memory/register into reg
-OpDesc loadVariableToReg(CodeGenerator* gen, const OpDesc &varDesc, uint16_t operationAffi);
-void loadSignedIntToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
-void loadUnsignedIntToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
-void loadFloatToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
+OpDesc writeVariableToReg(CodeGenerator* gen, const OpDesc &varDesc, const OpDesc& destDesc);
+void writeToSignedIntReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
+void writeToUnsignedIntReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
+void writeToFloatReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
 #endif

@@ -466,9 +466,9 @@ bool registerStores(const CpuState* cpu, uint8_t regIdx, const std::string &varN
 {
     if(cpu->reg[regIdx].state == REG_USED)
     {
-        return false;
+        return cpu->reg[regIdx].symbol == varName;
     }
-    return cpu->reg[regIdx].symbol == varName;
+    return false;
 }
 
 

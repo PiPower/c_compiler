@@ -73,7 +73,22 @@ OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_in
         if(loadVarToReg && var.storageType != Storage::REG)
         {
             SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
-            varDesc = loadVariableToReg(gen, varDesc, symType->affiliation);
+            OpDesc destDesc = {
+                .operandType = OP::VARIABLE,
+                .operand = varDesc.operand + generateRegisterName(),
+                .operandAffi = symType->affiliation,
+                .scope = gen->localSymtab->scopeLevel
+            };
+            uint8_t gr = getTypeGroup(symType->affiliation);
+            if(gr == FLOAT_GROUP)
+            {
+                allocateMMRegister(gen, destDesc.operand);
+            }
+            else
+            {
+                allocateRRegister(gen, destDesc.operand);
+            }
+            varDesc = writeVariableToReg(gen, varDesc, destDesc);
         }
 
         return varDesc;
@@ -82,10 +97,19 @@ OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_in
     {
         SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
         OpDesc constant = prepareConstant(gen, parseTree);
-        uint8_t gr = getTypeGr(constant.operandAffi);
-        OpDesc destDesc = generateTmpVar(symType->affiliation, gen->localSymtab->scopeLevel);
-        allocateRRegister(gen, destDesc.operand);
-        return loadConstant(gen, constant.operand, destDesc);
+        uint8_t gr = getTypeGr(symType->affiliation);
+        OpDesc destDesc;
+        if(gr == FLOAT_GROUP)
+        {
+            destDesc = generateTmpVar(symType->affiliation, gen->localSymtab->scopeLevel);
+            allocateMMRegister(gen, destDesc.operand);
+        }
+        else
+        {
+            destDesc = generateTmpVar(gr == SIGNED_INT_GROUP ? INT64_S: INT64_U, gen->localSymtab->scopeLevel);
+            allocateRRegister(gen, destDesc.operand);
+        }
+        return writeConstant(gen, constant.operand, destDesc);
     }
     
     return dispatch(gen, parseTree->children[child_index]);
@@ -116,7 +140,7 @@ OpDesc translateLocalInit(CodeGenerator *gen, AstNode *parseTree)
     if(operandDesc.operandType == OP::CONSTANT)
     {
         OpDesc destDesc = parseEncodedAccess(gen,  *parseTree->data);
-        loadConstant(gen, operandDesc.operand, destDesc);
+        writeConstant(gen, operandDesc.operand, destDesc);
     }
     else
     {
