@@ -17,18 +17,8 @@ OpDesc translateDeclaration(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateExpression(CodeGenerator* gen, AstNode* parseTree);
 OpDesc prepareConstant(CodeGenerator* gen, AstNode* parseTree);
 OpDesc prepareVariable(CodeGenerator* gen, AstNode* parseTree);
-OpDesc writeConstantToSym(CodeGenerator* gen, std::string constant, const std::string& dest);
-OpDesc processChild(CodeGenerator* gen, AstNode* parseTree, std::size_t child_index, bool loadConst = true);
-// loads memory into register mem -> reg
-OpDesc loadVariableToReg(CodeGenerator* gen, const OpDesc &varDesc, uint16_t operationAffi);
-void loadSignedIntToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
-void loadUnsignedIntToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
-void loadFloatToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
-// writes register into memory reg -> mem
-OpDesc writeRegToMem(CodeGenerator* gen, const OpDesc& srcDesc, const std::string& destName);
-void writeSignedIntToMem(CodeGenerator *gen, const OpDesc &varDesc);
-void writeUnsignedIntToMem(CodeGenerator *gen, const OpDesc &varDesc);
-void writeFloatToMem(CodeGenerator *gen, const OpDesc &varDesc, uint16_t operationAffi);
+OpDesc processChild(CodeGenerator* gen, AstNode* parseTree, std::size_t child_index, 
+                                                bool loadConst = true, bool loadVarToReg = true);
 //expressions
 OpDesc translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateLocalInit(CodeGenerator* gen, AstNode* parseTree);
@@ -36,14 +26,24 @@ OpDesc translateExpr(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateNegation(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateAssignment(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateCast(CodeGenerator* gen, AstNode* parseTree);
-// moves constant int to either register or memory location
-// caller allocates either memory or register for destination
-void moveConstantInt(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
-// moves constant float to either register or memory location
-// caller allocates either memory or register for destination
-void moveConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
 uint8_t allocateRRegister(CodeGenerator* gen, std::string symName);
 uint8_t allocateMMRegister(CodeGenerator* gen, std::string symName);
 void freeRegister(CodeGenerator* gen, int index);
 void freeRegister(CodeGenerator* gen, const std::string& symName);
+
+// load API
+// writes constant into memory/register
+OpDesc loadConstant(CodeGenerator* gen, std::string constant, const OpDesc &destDesc);
+void loadConstantInt(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
+void loadConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
+// writes register into memory reg -> mem
+OpDesc writeRegToMem(CodeGenerator* gen, const OpDesc& srcDesc, const OpDesc &destDesc);
+void writeSignedIntToMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
+void writeUnsignedIntToMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
+void writeFloatToMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
+// write memory/register into reg
+OpDesc loadVariableToReg(CodeGenerator* gen, const OpDesc &varDesc, uint16_t operationAffi);
+void loadSignedIntToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
+void loadUnsignedIntToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
+void loadFloatToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& destDesc);
 #endif

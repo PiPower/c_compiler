@@ -180,7 +180,7 @@ std::string encodeIntAsString(long int constant, uint8_t byteSize)
 std::string generateOperand(const CpuState* cpu,const OpDesc& destDesc, int regByteSize)
 {
     string dest;
-
+    
     VariableCpuDesc desc = fetchVariable(cpu, destDesc.operand);
     switch( desc.storageType)
     {

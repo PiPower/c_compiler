@@ -62,35 +62,15 @@ OpDesc prepareVariable(CodeGenerator *gen, AstNode *parseTree)
     return parseEncodedAccess(gen,  *parseTree->data);
 }
 
-OpDesc writeConstantToSym(CodeGenerator *gen, std::string constant, const std::string& dest)
-{
-    OpDesc destDesc = parseEncodedAccess(gen, dest);
-    uint8_t gr = getTypeGr(destDesc.operandAffi);
 
-    if(gr == SIGNED_INT_GROUP || gr == UNSIGNED_INT_GROUP)
-    {
-        moveConstantInt(gen, constant, destDesc);
-    }
-    else if (gr == FLOAT_GROUP)
-    {
-        moveConstantFloat(gen, constant, destDesc);
-    }
-    else
-    {
-        printf("Internal Error: Unsupported group\n");
-        exit(-1);
-    }
-    return {OP::NONE};
-}
-
-OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_index, bool loadConst)
+OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_index, bool loadConst, bool loadVarToReg)
 {
     if( parseTree->children[child_index]->nodeType == NodeType::IDENTIFIER )
     {
         OpDesc varDesc = prepareVariable(gen, parseTree->children[child_index]);
         VariableCpuDesc var = fetchVariable(gen->cpu, varDesc.operand);
 
-        if(var.storageType != Storage::REG)
+        if(loadVarToReg && var.storageType != Storage::REG)
         {
             SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
             varDesc = loadVariableToReg(gen, varDesc, symType->affiliation);
@@ -98,22 +78,14 @@ OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_in
 
         return varDesc;
     }
-    else if( parseTree->children[child_index]->nodeType == NodeType::CONSTANT && loadConst)
+    else if(loadConst && parseTree->children[child_index]->nodeType == NodeType::CONSTANT)
     {
         SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
         OpDesc constant = prepareConstant(gen, parseTree);
         uint8_t gr = getTypeGr(constant.operandAffi);
         OpDesc destDesc = generateTmpVar(symType->affiliation, gen->localSymtab->scopeLevel);
         allocateRRegister(gen, destDesc.operand);
-
-        if(gr == SIGNED_INT_GROUP || gr == UNSIGNED_INT_GROUP)
-        {
-            moveConstantInt(gen, constant.operand, destDesc);
-        }
-        else if (gr == FLOAT_GROUP)
-        {
-            moveConstantFloat(gen, constant.operand, destDesc);
-        }
+        return loadConstant(gen, constant.operand, destDesc);
     }
     
     return dispatch(gen, parseTree->children[child_index]);
@@ -140,13 +112,16 @@ OpDesc translateLocalInit(CodeGenerator *gen, AstNode *parseTree)
 {
     AstNode* init = parseTree->children[0]; 
     OpDesc operandDesc = processChild(gen, init, 0, false);
+
     if(operandDesc.operandType == OP::CONSTANT)
     {
-        writeConstantToSym(gen, operandDesc.operand, *parseTree->data);
+        OpDesc destDesc = parseEncodedAccess(gen,  *parseTree->data);
+        loadConstant(gen, operandDesc.operand, destDesc);
     }
     else
     {
-        writeRegToMem(gen, operandDesc, *parseTree->data);
+        OpDesc destDesc = parseEncodedAccess(gen,  *parseTree->data);
+        writeRegToMem(gen, operandDesc, destDesc);
     }
     
     return {OP::NONE};

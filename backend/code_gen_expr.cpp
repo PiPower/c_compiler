@@ -30,9 +30,10 @@ OpDesc translateNegation(CodeGenerator *gen, AstNode *parseTree)
 
 OpDesc translateAssignment(CodeGenerator *gen, AstNode *parseTree)
 {
-    OpDesc opDesc = processChild(gen, parseTree, 1);
-    
-    freeRegister(gen, opDesc.operand);
+    OpDesc rightSide = processChild(gen, parseTree, 1);
+    OpDesc destDesc = processChild(gen, parseTree, 0, true, false);
+    writeRegToMem(gen, rightSide, destDesc);
+    freeRegister(gen, rightSide.operand);
 }
 
 OpDesc translateCast(CodeGenerator *gen, AstNode *parseTree)
@@ -41,7 +42,27 @@ OpDesc translateCast(CodeGenerator *gen, AstNode *parseTree)
     //uint8_t gr = getTypeGroup()
 }
 
-void moveConstantInt(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
+OpDesc loadConstant(CodeGenerator *gen, std::string constant, const OpDesc &destDesc)
+{
+    uint8_t gr = getTypeGr(destDesc.operandAffi);
+
+    if(gr == SIGNED_INT_GROUP || gr == UNSIGNED_INT_GROUP)
+    {
+        loadConstantInt(gen, constant, destDesc);
+    }
+    else if (gr == FLOAT_GROUP)
+    {
+        loadConstantFloat(gen, constant, destDesc);
+    }
+    else
+    {
+        printf("Internal Error: Unsupported group\n");
+        exit(-1);
+    }
+    return {OP::NONE};
+}
+
+void loadConstantInt(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
 {
     //first process value to be sure it is in correct range
     long int value = encodeIntAsBinary(constant);
@@ -97,7 +118,7 @@ void moveConstantInt(CodeGenerator *gen, const std::string &constant, const OpDe
     freeRegister(gen, regIdx);
 }
 
-void moveConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc)
+void loadConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc)
 {
     int reg = -1;
     OpDesc tempDesc = { .operandType = OP::NONE};
@@ -453,24 +474,96 @@ void loadFloatToReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc& des
     freeRegister(gen, regR);
 }
 
-OpDesc writeRegToMem(CodeGenerator *gen, const OpDesc &srcDesc, const std::string &destName)
+OpDesc writeRegToMem(CodeGenerator *gen, const OpDesc &srcDesc, const OpDesc &destDesc)
 {
-    return OpDesc();
+    uint8_t gr = getTypeGroup(srcDesc.operandAffi);
+    if(fetchVariable(gen->cpu, destDesc.operand).storageType == Storage::REG)
+    {
+        printf("Internal error: Storage  type is not a memory\n");
+        exit(-1);
+    }
+    switch (gr)
+    {
+    case SIGNED_INT_GROUP:
+        writeSignedIntToMem(gen, srcDesc, destDesc);
+        break;
+    case UNSIGNED_INT_GROUP:
+        writeUnsignedIntToMem(gen, srcDesc, destDesc);
+        break;
+    case FLOAT_GROUP:
+        writeFloatToMem(gen, srcDesc, destDesc);
+        break;
+    default:
+        printf("Internal error: Unsupported group in assignment\n");
+        exit(-1);
+        break;
+    }
 }
 
-void writeSignedIntToMem(CodeGenerator *gen, const OpDesc &varDesc)
+void writeSignedIntToMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc)
 {
 
 }
 
-void writeUnsignedIntToMem(CodeGenerator *gen, const OpDesc &varDesc)
+void writeUnsignedIntToMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc)
 {
 
 }
 
-void writeFloatToMem(CodeGenerator *gen, const OpDesc &varDesc, uint16_t operationAffi)
+void writeFloatToMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc)
 {
-
+    switch (destDesc.operandAffi)
+    {
+    case INT8_S:
+        {
+            OpDesc tmpVar = generateTmpVar(INT64_S, gen->localSymtab->scopeLevel);
+            allocateRRegister(gen, tmpVar.operand);
+            const char* conv = srcDesc.operandAffi == FLOAT32 ?  "cvttss2sil" :  "cvttsd2sil";
+            ADD_INST(gen, {INSTRUCTION, conv, generateOperand(gen->cpu, srcDesc), 
+                                                generateOperand(gen->cpu, tmpVar, IDX_R32)});
+            ADD_INST(gen, {INSTRUCTION, "movb", generateOperand(gen->cpu, tmpVar, IDX_R16), 
+                                                generateOperand(gen->cpu, destDesc)});
+            freeRegister(gen, tmpVar.operand);                                    
+        }
+        break;
+    case INT16_S:
+        break;
+    case INT32_S:
+        break;
+    case INT64_S:
+        break; 
+    case INT8_U:
+        break;
+    case INT16_U:
+        break;
+    case INT32_U:
+        break;
+    case INT64_U:
+        break;
+    case FLOAT32:
+    {
+        OpDesc tmpVar;
+        if(srcDesc.operandAffi != FLOAT32)
+        {
+            tmpVar = generateTmpVar(DOUBLE64, gen->localSymtab->scopeLevel);
+            allocateMMRegister(gen, tmpVar.operand);
+            ADD_INST(gen, {INSTRUCTION, "pxor", generateOperand(gen->cpu, tmpVar), 
+                                                generateOperand(gen->cpu, tmpVar)});
+            ADD_INST(gen, {INSTRUCTION, "cvtsd2ss", generateOperand(gen->cpu, srcDesc), 
+                                                generateOperand(gen->cpu, tmpVar)});
+            ADD_INST(gen, {INSTRUCTION, "movss", generateOperand(gen->cpu, tmpVar), 
+                                                    generateOperand(gen->cpu, destDesc)});
+            freeRegister(gen, tmpVar.operand);
+        }
+        else
+        {
+            ADD_INST(gen, {INSTRUCTION, "movss", generateOperand(gen->cpu, srcDesc), 
+                                                    generateOperand(gen->cpu, destDesc)});
+        }
+    }    break;
+    case DOUBLE64:
+        break;
+    }
 }
 
 OpDesc loadVariableToReg(CodeGenerator *gen, const OpDesc &varDesc, uint16_t operationAffi)
