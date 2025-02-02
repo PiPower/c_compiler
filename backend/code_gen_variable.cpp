@@ -96,7 +96,7 @@ OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_in
     else if(loadConst && parseTree->children[child_index]->nodeType == NodeType::CONSTANT)
     {
         SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
-        OpDesc constant = prepareConstant(gen, parseTree);
+        OpDesc constant = prepareConstant(gen, parseTree->children[child_index]);
         uint8_t gr = getTypeGr(symType->affiliation);
         OpDesc destDesc;
         if(gr == FLOAT_GROUP)

@@ -11,6 +11,13 @@
 #define ADD_INST_MV(gen, inst) (gen)->code.push_back(std::move(inst))
 #define FREE_NODE(gen, node) freeNode((gen)->allocator, (node))
 #define FREE_NODE_REC(gen, node) freeRecursive((gen)->allocator, (node))
+
+// register manipulation
+uint8_t allocateRRegister(CodeGenerator* gen, std::string symName);
+uint8_t allocateMMRegister(CodeGenerator* gen, std::string symName);
+void freeRegister(CodeGenerator* gen, int index);
+void freeRegister(CodeGenerator* gen, const std::string& symName);
+
 // symbol table variable translation
 OpDesc translateFunction(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateDeclaration(CodeGenerator* gen, AstNode* parseTree);
@@ -26,11 +33,7 @@ OpDesc translateExpr(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateNegation(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateAssignment(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateCast(CodeGenerator* gen, AstNode* parseTree);
-uint8_t allocateRRegister(CodeGenerator* gen, std::string symName);
-uint8_t allocateMMRegister(CodeGenerator* gen, std::string symName);
-void freeRegister(CodeGenerator* gen, int index);
-void freeRegister(CodeGenerator* gen, const std::string& symName);
-
+OpDesc translateMultiplication(CodeGenerator* gen, AstNode* parseTree);
 // load API
 // writes constant into memory/register
 OpDesc writeConstant(CodeGenerator* gen, std::string constant, const OpDesc &destDesc);

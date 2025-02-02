@@ -12,6 +12,8 @@ OpDesc translateExpr(CodeGenerator *gen, AstNode *parseTree)
         return translateAssignment(gen, parseTree);
     case NodeType::CAST:
         return translateCast(gen, parseTree);
+    case NodeType::MULTIPLY:
+        return translateMultiplication(gen, parseTree);
     }
 }
 
@@ -42,6 +44,21 @@ OpDesc translateCast(CodeGenerator *gen, AstNode *parseTree)
     //uint8_t gr = getTypeGroup()
 }
 
+OpDesc translateMultiplication(CodeGenerator *gen, AstNode *parseTree)
+{
+    OpDesc left = processChild(gen, parseTree, 0);
+    OpDesc right = processChild(gen, parseTree, 1);
+    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
+    uint8_t opGr = getTypeGroup(symType->affiliation);
+    if(opGr == SIGNED_INT_GROUP)
+    {
+        ADD_INST(gen, {INSTRUCTION, "imulq", generateOperand(gen->cpu, left), generateOperand(gen->cpu, right)});
+    }
+
+    freeRegister(gen, right.operand);
+    return left;
+}
+
 OpDesc writeConstant(CodeGenerator *gen, std::string constant, const OpDesc &destDesc)
 {
     uint8_t gr = getTypeGr(destDesc.operandAffi);
@@ -59,7 +76,7 @@ OpDesc writeConstant(CodeGenerator *gen, std::string constant, const OpDesc &des
         printf("Internal Error: Unsupported group\n");
         exit(-1);
     }
-    return {OP::NONE};
+    return destDesc;
 }
 
 void writeConstantInt(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
@@ -503,6 +520,7 @@ OpDesc writeRegToMem(CodeGenerator *gen, const OpDesc &srcDesc, const OpDesc &de
         exit(-1);
         break;
     }
+    return destDesc;
 }
 
 void writeToSignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc)
