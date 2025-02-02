@@ -320,7 +320,7 @@ void writeToUnsignedIntReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDe
             ADD_INST(gen, {INSTRUCTION, "movl", generateOperand(gen->cpu, srcDesc, IDX_R32), "%eax"});
             ADD_INST(gen, {INSTRUCTION, "cltq"});
         }
-        if(registerStores(gen->cpu, RAX, srcDesc.operand))
+        else if(registerStores(gen->cpu, RAX, srcDesc.operand))
         {
             ADD_INST(gen, {INSTRUCTION, "movl", generateOperand(gen->cpu, srcDesc, IDX_R32), 
                                                         generateOperand(gen->cpu, destDesc, IDX_R32)}); // preserve original value in reg
@@ -579,8 +579,8 @@ void writeToFloatMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &de
     {
         //TODO when 32 bit int is considered value is converted to 64 bit which may cause some weird errors
         tmp = generateTmpVar(destDesc.operandAffi, gen->localSymtab->scopeLevel);
-        allocateRRegister(gen, generateTmpVarname());
-        writeToUnsignedIntReg(gen, srcDesc, destDesc);
+        allocateMMRegister(gen, generateTmpVarname());
+        writeToFloatReg(gen, srcDesc, destDesc);
         usedDesc = tmp;
     }
 
@@ -589,13 +589,13 @@ void writeToFloatMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &de
     case FLOAT32:
     {
         OpDesc tmpVar;
-        if(srcDesc.operandAffi != FLOAT32)
+        if(usedDesc.operandAffi != FLOAT32)
         {
             tmpVar = generateTmpVar(DOUBLE64, gen->localSymtab->scopeLevel);
             allocateMMRegister(gen, tmpVar.operand);
             ADD_INST(gen, {INSTRUCTION, "pxor", generateOperand(gen->cpu, tmpVar), 
                                                 generateOperand(gen->cpu, tmpVar)});
-            ADD_INST(gen, {INSTRUCTION, "cvtss2sd", generateOperand(gen->cpu, srcDesc), 
+            ADD_INST(gen, {INSTRUCTION, "cvtss2sd", generateOperand(gen->cpu, usedDesc), 
                                                 generateOperand(gen->cpu, tmpVar)});
             ADD_INST(gen, {INSTRUCTION, "movsd", generateOperand(gen->cpu, tmpVar), 
                                                     generateOperand(gen->cpu, destDesc)});
@@ -603,20 +603,20 @@ void writeToFloatMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &de
         }
         else
         {
-            ADD_INST(gen, {INSTRUCTION, "movss", generateOperand(gen->cpu, srcDesc), 
+            ADD_INST(gen, {INSTRUCTION, "movss", generateOperand(gen->cpu, usedDesc), 
                                                     generateOperand(gen->cpu, destDesc)});
         }
     }    break;
     case DOUBLE64:
     {
         OpDesc tmpVar;
-        if(srcDesc.operandAffi != DOUBLE64)
+        if(usedDesc.operandAffi != DOUBLE64)
         {
             tmpVar = generateTmpVar(FLOAT32, gen->localSymtab->scopeLevel);
             allocateMMRegister(gen, tmpVar.operand);
             ADD_INST(gen, {INSTRUCTION, "pxor", generateOperand(gen->cpu, tmpVar), 
                                                 generateOperand(gen->cpu, tmpVar)});
-            ADD_INST(gen, {INSTRUCTION, "cvtsd2ss", generateOperand(gen->cpu, srcDesc), 
+            ADD_INST(gen, {INSTRUCTION, "cvtsd2ss", generateOperand(gen->cpu, usedDesc), 
                                                 generateOperand(gen->cpu, tmpVar)});
             ADD_INST(gen, {INSTRUCTION, "movss", generateOperand(gen->cpu, tmpVar), 
                                                     generateOperand(gen->cpu, destDesc)});
@@ -624,7 +624,7 @@ void writeToFloatMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &de
         }
         else
         {
-            ADD_INST(gen, {INSTRUCTION, "movsd", generateOperand(gen->cpu, srcDesc), 
+            ADD_INST(gen, {INSTRUCTION, "movsd", generateOperand(gen->cpu, usedDesc), 
                                                     generateOperand(gen->cpu, destDesc)});
         }
     }break;
