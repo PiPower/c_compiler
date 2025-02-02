@@ -16,7 +16,9 @@ std::string encodeIntAsString(long int constant, uint8_t byteSize);
 std::string generateOperand(const CpuState* cpu, const OpDesc& destDesc, int regByteSize = -1);
 std::string generateTmpVarname();
 std::string generateRegisterName();
-void convertToProperArithemticType(CodeGenerator* gen, OpDesc* srcDesc, uint16_t expectedAffi); 
+void convertToProperArithemticType(CodeGenerator* gen, OpDesc* srcDesc, uint16_t expectedAffi);
+void performArithmeticOp(CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation,
+                            std::string op_si, std::string op_ui, std::string op_f32, std::string op_d64);
 OpDesc generateTmpVar(uint16_t affiliation, uint8_t scopeLvl);
 /*
 to make it possible to acces struct the format is

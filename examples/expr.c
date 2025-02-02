@@ -1,8 +1,7 @@
-
-int main()
+long main() 
 {
-    int x = 2;
-    int z = x * 2;
-    float k = 2.04 * (z * x);
-    return 2;
+    unsigned long x = 2;
+    unsigned int z = 343;
+    long p =  x * z;
+    return 0;
 }

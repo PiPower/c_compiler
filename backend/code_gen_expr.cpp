@@ -56,42 +56,9 @@ OpDesc translateMultiplication(CodeGenerator *gen, AstNode *parseTree)
     OpDesc left = processChild(gen, parseTree, 0);
     OpDesc right = processChild(gen, parseTree, 1);
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
-    uint8_t opGr = getTypeGroup(symType->affiliation);
-    OpDesc tmp;
-    if(opGr == SIGNED_INT_GROUP)
-    {
-        convertToProperArithemticType(gen, &left, INT64_S);
-        convertToProperArithemticType(gen, &right, INT64_S);
-        ADD_INST(gen, {INSTRUCTION, "imulq", generateOperand(gen->cpu, left), generateOperand(gen->cpu, right)});
-    }
-    else if(opGr == UNSIGNED_INT_GROUP)
-    {
-        convertToProperArithemticType(gen, &left, INT64_U);
-        convertToProperArithemticType(gen, &right, INT64_U);
-        ADD_INST(gen, {INSTRUCTION, "imulq", generateOperand(gen->cpu, left), generateOperand(gen->cpu, right)});
-    }
-    else if(symType->affiliation == FLOAT32)
-    {
-        convertToProperArithemticType(gen, &left, FLOAT32);
-        convertToProperArithemticType(gen, &right, FLOAT32);
-        ADD_INST(gen, {INSTRUCTION, "mulss", generateOperand(gen->cpu, left), generateOperand(gen->cpu, right)});
-    }
-    else if (symType->affiliation == DOUBLE64)
-    {
-        convertToProperArithemticType(gen, &left, DOUBLE64);
-        convertToProperArithemticType(gen, &right, DOUBLE64);
-        ADD_INST(gen, {INSTRUCTION, "mulsd", generateOperand(gen->cpu, left), generateOperand(gen->cpu, right)});
-    }
-    else
-    {
-        printf("Error: unsupproted affiliation\n");
-        exit(-1);
-    }
-    
-
-
-    freeRegister(gen, right.operand);
-    return left;
+    performArithmeticOp(gen, &left, &right, symType->affiliation, "imulq", "imulq", "mulss", "mulsd");
+    freeRegister(gen, left.operand);
+    return right;
 }
 
 OpDesc writeConstant(CodeGenerator *gen, std::string constant, const OpDesc &destDesc)

@@ -276,6 +276,41 @@ void convertToProperArithemticType(CodeGenerator *gen, OpDesc *srcDesc, uint16_t
     }
 }
 
+void performArithmeticOp(CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation,
+                                std::string op_si, std::string op_ui, std::string op_f32, std::string op_d64)
+{
+    uint8_t opGr = getTypeGroup(affiliation);
+    if(opGr == SIGNED_INT_GROUP)
+    {
+        convertToProperArithemticType(gen, left, INT64_S);
+        convertToProperArithemticType(gen, right, INT64_S);
+        ADD_INST(gen, {INSTRUCTION, std::move(op_si), generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+    }
+    else if(opGr == UNSIGNED_INT_GROUP)
+    {
+        convertToProperArithemticType(gen, left, INT64_U);
+        convertToProperArithemticType(gen, right, INT64_U);
+        ADD_INST(gen, {INSTRUCTION, std::move(op_ui), generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+    }
+    else if(affiliation == FLOAT32)
+    {
+        convertToProperArithemticType(gen, left, FLOAT32);
+        convertToProperArithemticType(gen, right, FLOAT32);
+        ADD_INST(gen, {INSTRUCTION,  std::move(op_f32), generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+    }
+    else if (affiliation == DOUBLE64)
+    {
+        convertToProperArithemticType(gen, left, DOUBLE64);
+        convertToProperArithemticType(gen, right, DOUBLE64);
+        ADD_INST(gen, {INSTRUCTION,  std::move(op_d64), generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+    }
+    else
+    {
+        printf("Error: unsupproted affiliation\n");
+        exit(-1);
+    }
+}
+
 OpDesc generateTmpVar(uint16_t affiliation, uint8_t scopeLvl)
 {
     OpDesc destDesc = {
