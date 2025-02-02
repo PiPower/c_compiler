@@ -13,6 +13,7 @@
 #define FREE_NODE_REC(gen, node) freeRecursive((gen)->allocator, (node))
 
 // register manipulation
+OpDesc assertThatRegIsOfAffi(uint8_t affiliaton, CpuState* cpu, OpDesc varDesc);
 uint8_t allocateRRegister(CodeGenerator* gen, std::string symName);
 uint8_t allocateMMRegister(CodeGenerator* gen, std::string symName);
 void freeRegister(CodeGenerator* gen, int index);

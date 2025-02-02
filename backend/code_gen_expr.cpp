@@ -57,10 +57,26 @@ OpDesc translateMultiplication(CodeGenerator *gen, AstNode *parseTree)
     OpDesc right = processChild(gen, parseTree, 1);
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
     uint8_t opGr = getTypeGroup(symType->affiliation);
-    if(opGr == SIGNED_INT_GROUP)
+    if(opGr == SIGNED_INT_GROUP ||opGr == UNSIGNED_INT_GROUP )
     {
         ADD_INST(gen, {INSTRUCTION, "imulq", generateOperand(gen->cpu, left), generateOperand(gen->cpu, right)});
     }
+    else if(symType->affiliation == FLOAT32)
+    {
+
+        ADD_INST(gen, {INSTRUCTION, "mulss", generateOperand(gen->cpu, left), generateOperand(gen->cpu, right)});
+    }
+    else if (symType->affiliation == DOUBLE64)
+    {
+        ADD_INST(gen, {INSTRUCTION, "mulsd", generateOperand(gen->cpu, left), generateOperand(gen->cpu, right)});
+    }
+    else
+    {
+        printf("Error: unsupproted affiliation\n");
+        exit(-1);
+    }
+    
+
 
     freeRegister(gen, right.operand);
     return left;
@@ -539,34 +555,37 @@ OpDesc writeRegToMem(CodeGenerator *gen, const OpDesc &srcDesc, const OpDesc &de
 void writeToSignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc)
 {
     OpDesc tmp = {OP::NONE};
+    OpDesc usedDesc = srcDesc;
+
     if(getTypeGroup(srcDesc.operandAffi) == FLOAT_GROUP)
     {
         //TODO when 32 bit int is considered value is converted to 64 bit which may cause some weird errors
-        OpDesc tmp = generateTmpVar(INT64_S, gen->localSymtab->scopeLevel);
+        tmp = generateTmpVar(INT64_S, gen->localSymtab->scopeLevel);
         allocateRRegister(gen, generateTmpVarname());
         writeToSignedIntReg(gen, srcDesc, tmp);
+        usedDesc = tmp;
     }
 
-    switch (srcDesc.operandAffi)
+    switch (destDesc.operandAffi)
     {
     case INT8_U:
     case INT8_S:
-        ADD_INST(gen, {INSTRUCTION, "movb", generateOperand(gen->cpu, srcDesc, IDX_R8LO), 
+        ADD_INST(gen, {INSTRUCTION, "movb", generateOperand(gen->cpu, usedDesc, IDX_R8LO), 
                                                     generateOperand(gen->cpu, destDesc, IDX_R8LO)});
         break;
     case INT16_U:
     case INT16_S:
-        ADD_INST(gen, {INSTRUCTION, "movw", generateOperand(gen->cpu, srcDesc, IDX_R16), 
+        ADD_INST(gen, {INSTRUCTION, "movw", generateOperand(gen->cpu, usedDesc, IDX_R16), 
                                                 generateOperand(gen->cpu, destDesc, IDX_R16)});
         break;
     case INT32_U:
     case INT32_S:
-        ADD_INST(gen, {INSTRUCTION, "movl", generateOperand(gen->cpu, srcDesc, IDX_R32), 
+        ADD_INST(gen, {INSTRUCTION, "movl", generateOperand(gen->cpu, usedDesc, IDX_R32), 
                                                 generateOperand(gen->cpu, destDesc, IDX_R32)});
         break;
     case INT64_U:
     case INT64_S:
-        ADD_INST(gen, {INSTRUCTION, "movq", generateOperand(gen->cpu, srcDesc), 
+        ADD_INST(gen, {INSTRUCTION, "movq", generateOperand(gen->cpu, usedDesc), 
                                                 generateOperand(gen->cpu, destDesc)});
         break; 
     }
@@ -580,34 +599,36 @@ void writeToSignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc
 void writeToUnsignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc)
 {
     OpDesc tmp = {OP::NONE};
+    OpDesc usedDesc = srcDesc;
     if(getTypeGroup(srcDesc.operandAffi) == FLOAT_GROUP)
     {
         //TODO when 32 bit int is considered value is converted to 64 bit which may cause some weird errors
-        OpDesc tmp = generateTmpVar(INT64_U, gen->localSymtab->scopeLevel);
+        tmp = generateTmpVar(INT64_U, gen->localSymtab->scopeLevel);
         allocateRRegister(gen, generateTmpVarname());
-        writeToUnsignedIntReg(gen, srcDesc, tmp);
+        writeToUnsignedIntReg(gen, srcDesc, destDesc);
+        usedDesc = tmp;
     }
-
-    switch (srcDesc.operandAffi)
+    
+    switch (destDesc.operandAffi)
     {
     case INT8_U:
     case INT8_S:
-        ADD_INST(gen, {INSTRUCTION, "movb", generateOperand(gen->cpu, srcDesc, IDX_R8LO), 
+        ADD_INST(gen, {INSTRUCTION, "movb", generateOperand(gen->cpu, usedDesc, IDX_R8LO), 
                                                     generateOperand(gen->cpu, destDesc, IDX_R8LO)});
         break;
     case INT16_U:
     case INT16_S:
-        ADD_INST(gen, {INSTRUCTION, "movw", generateOperand(gen->cpu, srcDesc, IDX_R16), 
+        ADD_INST(gen, {INSTRUCTION, "movw", generateOperand(gen->cpu, usedDesc, IDX_R16), 
                                                 generateOperand(gen->cpu, destDesc, IDX_R16)});
         break;
     case INT32_U:
     case INT32_S:
-        ADD_INST(gen, {INSTRUCTION, "movl", generateOperand(gen->cpu, srcDesc, IDX_R32), 
+        ADD_INST(gen, {INSTRUCTION, "movl", generateOperand(gen->cpu, usedDesc, IDX_R32), 
                                                 generateOperand(gen->cpu, destDesc, IDX_R32)});
         break;
     case INT64_U:
     case INT64_S:
-        ADD_INST(gen, {INSTRUCTION, "movq", generateOperand(gen->cpu, srcDesc), 
+        ADD_INST(gen, {INSTRUCTION, "movq", generateOperand(gen->cpu, usedDesc), 
                                                 generateOperand(gen->cpu, destDesc)});
         break; 
     }
@@ -620,40 +641,47 @@ void writeToUnsignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDe
 
 void writeToFloatMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc)
 {
-    switch (srcDesc.operandAffi)
+    OpDesc tmp = {OP::NONE};
+    OpDesc usedDesc = srcDesc;
+    if(getTypeGroup(srcDesc.operandAffi) == SIGNED_INT_GROUP || 
+        getTypeGroup(srcDesc.operandAffi) == UNSIGNED_INT_GROUP )
     {
-    case INT8_S:
-        {
-            OpDesc tmpVar = generateTmpVar(INT64_S, gen->localSymtab->scopeLevel);
-            allocateRRegister(gen, tmpVar.operand);
-            const char* conv = srcDesc.operandAffi == FLOAT32 ?  "cvttss2sil" :  "cvttsd2sil";
-            ADD_INST(gen, {INSTRUCTION, conv, generateOperand(gen->cpu, srcDesc), 
-                                                generateOperand(gen->cpu, tmpVar, IDX_R32)});
-            ADD_INST(gen, {INSTRUCTION, "movb", generateOperand(gen->cpu, tmpVar, IDX_R16), 
-                                                generateOperand(gen->cpu, destDesc)});
-            freeRegister(gen, tmpVar.operand);                                    
-        }
-        break;
-    case INT16_S:
-        break;
-    case INT32_S:
-        break;
-    case INT64_S:
-        break; 
-    case INT8_U:
-        break;
-    case INT16_U:
-        break;
-    case INT32_U:
-        break;
-    case INT64_U:
-        break;
+        //TODO when 32 bit int is considered value is converted to 64 bit which may cause some weird errors
+        tmp = generateTmpVar(destDesc.operandAffi, gen->localSymtab->scopeLevel);
+        allocateRRegister(gen, generateTmpVarname());
+        writeToUnsignedIntReg(gen, srcDesc, destDesc);
+        usedDesc = tmp;
+    }
+
+    switch (usedDesc.operandAffi)
+    {
     case FLOAT32:
     {
         OpDesc tmpVar;
         if(srcDesc.operandAffi != FLOAT32)
         {
             tmpVar = generateTmpVar(DOUBLE64, gen->localSymtab->scopeLevel);
+            allocateMMRegister(gen, tmpVar.operand);
+            ADD_INST(gen, {INSTRUCTION, "pxor", generateOperand(gen->cpu, tmpVar), 
+                                                generateOperand(gen->cpu, tmpVar)});
+            ADD_INST(gen, {INSTRUCTION, "cvtss2sd", generateOperand(gen->cpu, srcDesc), 
+                                                generateOperand(gen->cpu, tmpVar)});
+            ADD_INST(gen, {INSTRUCTION, "movsd", generateOperand(gen->cpu, tmpVar), 
+                                                    generateOperand(gen->cpu, destDesc)});
+            freeRegister(gen, tmpVar.operand);
+        }
+        else
+        {
+            ADD_INST(gen, {INSTRUCTION, "movss", generateOperand(gen->cpu, srcDesc), 
+                                                    generateOperand(gen->cpu, destDesc)});
+        }
+    }    break;
+    case DOUBLE64:
+    {
+        OpDesc tmpVar;
+        if(srcDesc.operandAffi != DOUBLE64)
+        {
+            tmpVar = generateTmpVar(FLOAT32, gen->localSymtab->scopeLevel);
             allocateMMRegister(gen, tmpVar.operand);
             ADD_INST(gen, {INSTRUCTION, "pxor", generateOperand(gen->cpu, tmpVar), 
                                                 generateOperand(gen->cpu, tmpVar)});
@@ -665,12 +693,15 @@ void writeToFloatMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &de
         }
         else
         {
-            ADD_INST(gen, {INSTRUCTION, "movss", generateOperand(gen->cpu, srcDesc), 
+            ADD_INST(gen, {INSTRUCTION, "movsd", generateOperand(gen->cpu, srcDesc), 
                                                     generateOperand(gen->cpu, destDesc)});
         }
-    }    break;
-    case DOUBLE64:
-        break;
+    }break;
+    }
+
+    if(tmp.operandType != OP::NONE)
+    {
+        freeRegister(gen, tmp.operand);
     }
 }
 
@@ -702,6 +733,11 @@ OpDesc writeVariableToReg(CodeGenerator *gen, const OpDesc &varDesc, const OpDes
     }
     
     return destDesc;
+}
+
+OpDesc assertThatRegIsOfAffi(uint8_t affiliaton, CpuState *cpu, OpDesc varDesc)
+{
+    return OpDesc();
 }
 
 uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
