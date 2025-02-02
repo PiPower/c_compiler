@@ -41,6 +41,7 @@ OpDesc writeConstant(CodeGenerator* gen, std::string constant, const OpDesc &des
 void writeConstantInt(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
 void writeConstantFloat(CodeGenerator* gen, const std::string& constant, const OpDesc &destDesc);
 // writes  register into mem
+// each register variable is assumed to be either 64bit sint/uint or float32 or float64
 OpDesc writeRegToMem(CodeGenerator* gen, const OpDesc& srcDesc, const OpDesc &destDesc);
 void writeToSignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);
 void writeToUnsignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc);

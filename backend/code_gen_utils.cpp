@@ -233,6 +233,49 @@ std::string generateRegisterName()
     return out;
 }
 
+void convertToProperArithemticType(CodeGenerator *gen, OpDesc *srcDesc, uint16_t expectedAffi)
+{
+    OpDesc tmp;
+    if(expectedAffi == INT64_S || expectedAffi == INT64_U)
+    {   
+        if(srcDesc->operandAffi == expectedAffi)
+        {
+            return;
+        }
+        tmp = generateTmpVar(expectedAffi, gen->localSymtab->scopeLevel);
+        allocateRRegister(gen, tmp.operand);
+        if(expectedAffi == INT64_S)
+        {
+            writeToSignedIntReg(gen, *srcDesc, tmp);
+        }
+        else
+        {
+            writeToUnsignedIntReg(gen, *srcDesc, tmp);
+        }
+        freeRegister(gen, srcDesc->operand);
+        *srcDesc = tmp;
+        return;
+    }
+    else if(expectedAffi == FLOAT32 || expectedAffi == DOUBLE64)
+    {   
+        if(srcDesc->operandAffi == expectedAffi)
+        {
+            return;
+        }
+        tmp = generateTmpVar(expectedAffi, gen->localSymtab->scopeLevel);
+        allocateMMRegister(gen, tmp.operand);
+        writeToFloatReg(gen, *srcDesc, tmp);
+        freeRegister(gen, srcDesc->operand);
+        *srcDesc = tmp;
+        return;
+    }
+    else
+    {
+        printf("Error: Specified affilitation is NOT proper arithmetic type\n");
+        exit(-1);
+    }
+}
+
 OpDesc generateTmpVar(uint16_t affiliation, uint8_t scopeLvl)
 {
     OpDesc destDesc = {

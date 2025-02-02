@@ -76,16 +76,17 @@ OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_in
             OpDesc destDesc = {
                 .operandType = OP::VARIABLE,
                 .operand = varDesc.operand + generateRegisterName(),
-                .operandAffi = symType->affiliation,
                 .scope = gen->localSymtab->scopeLevel
             };
             uint8_t gr = getTypeGroup(symType->affiliation);
             if(gr == FLOAT_GROUP)
             {
+                destDesc.operandAffi = symType->affiliation;
                 allocateMMRegister(gen, destDesc.operand);
             }
             else
             {
+                destDesc.operandAffi =  gr == SIGNED_INT_GROUP ? INT64_S: INT64_U;
                 allocateRRegister(gen, destDesc.operand);
             }
             varDesc = writeVariableToReg(gen, varDesc, destDesc);
