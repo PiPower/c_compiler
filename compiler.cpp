@@ -13,7 +13,6 @@ void compile(const char *file, FILE* stream)
     Scanner scanner(file);
 
     vector<AstNode*> statements = parse(&scanner, &symtab, &allocator);
-
     CodeGenerator gen;
     gen.symtab = &symtab;
     gen.allocator = &allocator;
@@ -21,8 +20,6 @@ void compile(const char *file, FILE* stream)
     gen.localSymtab = &symtab;
     generate_code(&gen, &statements);
     write_to_file(gen.code, gen.floatConsts, stream);
-
-    int x = 2;
 }
 
 void initSymbolTalbe(SymbolTable *symTab)

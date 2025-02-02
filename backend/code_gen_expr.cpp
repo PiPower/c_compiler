@@ -14,7 +14,12 @@ OpDesc translateExpr(CodeGenerator *gen, AstNode *parseTree)
         return translateCast(gen, parseTree);
     case NodeType::MULTIPLY:
         return translateMultiplication(gen, parseTree);
+    default:
+        printf("Unused node type \n");
+        break;
+        //exit(-1);
     }
+    return {OP::NONE};
 }
 
 OpDesc translateNegation(CodeGenerator *gen, AstNode *parseTree)
@@ -26,7 +31,7 @@ OpDesc translateNegation(CodeGenerator *gen, AstNode *parseTree)
        return opDesc;
     }
 
-    VariableCpuDesc cpuDesc = fetchVariable(gen->cpu, opDesc.operand);
+    //VariableCpuDesc cpuDesc = fetchVariable(gen->cpu, opDesc.operand);
     return opDesc;
 }
 
@@ -36,12 +41,14 @@ OpDesc translateAssignment(CodeGenerator *gen, AstNode *parseTree)
     OpDesc destDesc = processChild(gen, parseTree, 0, true, false);
     writeRegToMem(gen, rightSide, destDesc);
     freeRegister(gen, rightSide.operand);
+    return destDesc;
 }
 
 OpDesc translateCast(CodeGenerator *gen, AstNode *parseTree)
 {
     OpDesc opDesc = processChild(gen, parseTree, 0);
     //uint8_t gr = getTypeGroup()
+    return opDesc;
 }
 
 OpDesc translateMultiplication(CodeGenerator *gen, AstNode *parseTree)
@@ -83,7 +90,6 @@ void writeConstantInt(CodeGenerator *gen, const std::string &constant, const OpD
 {
     //first process value to be sure it is in correct range
     long int value = encodeIntAsBinary(constant);
-    unsigned long int* v2 = (unsigned long int*)&value;
     Instruction inst;
     inst.type = INSTRUCTION;
     int regNr = -1;
@@ -91,13 +97,11 @@ void writeConstantInt(CodeGenerator *gen, const std::string &constant, const OpD
     if(destDesc.operandAffi == INT8_S || destDesc.operandAffi == INT8_U)
     {
         inst.mnemonic = "movb";
-        regIdx = IDX_R8LO;
         inst.src = encodeIntAsString(value, 1);
     }
     else if(destDesc.operandAffi  == INT16_S || destDesc.operandAffi == INT16_U)
     {
         inst.mnemonic = "movw";
-        regIdx = IDX_R16;
         inst.src = encodeIntAsString(value, 2);
     }
     else if(destDesc.operandAffi  == INT32_S  || destDesc.operandAffi == INT32_U)
@@ -135,7 +139,16 @@ void writeConstantInt(CodeGenerator *gen, const std::string &constant, const OpD
         }
     }
 
-    inst.dest = generateOperand(gen->cpu, destDesc);
+    VariableCpuDesc cpuDesc = fetchVariable(gen->cpu, destDesc.operand);
+    if(cpuDesc.storageType == Storage::REG
+        && (destDesc.operandAffi  == INT16_S || destDesc.operandAffi == INT16_U ||
+            destDesc.operandAffi == INT8_S || destDesc.operandAffi == INT8_U) )
+    {
+        inst.mnemonic = "movl";
+        regIdx =  IDX_R32;
+    }
+
+    inst.dest = generateOperand(gen->cpu, destDesc, regIdx);
     ADD_INST_MV(gen, inst);
     freeRegister(gen, regNr);
 }
@@ -525,7 +538,6 @@ OpDesc writeRegToMem(CodeGenerator *gen, const OpDesc &srcDesc, const OpDesc &de
 
 void writeToSignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc)
 {
-    int regId = -1;
     OpDesc tmp = {OP::NONE};
     if(getTypeGroup(srcDesc.operandAffi) == FLOAT_GROUP)
     {
@@ -567,7 +579,6 @@ void writeToSignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc
 
 void writeToUnsignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc &destDesc)
 {
-     int regId = -1;
     OpDesc tmp = {OP::NONE};
     if(getTypeGroup(srcDesc.operandAffi) == FLOAT_GROUP)
     {

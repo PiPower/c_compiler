@@ -214,7 +214,7 @@ std::string generateOperand(const CpuState* cpu,const OpDesc& destDesc, int regB
         exit(-1);
         break;
     }
-    
+    return {};
 }
 
 std::string generateTmpVarname()

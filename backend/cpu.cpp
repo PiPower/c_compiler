@@ -149,7 +149,7 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
         }
         if(cls.gr[i] == SYSV_INTEGER)
         {
-            char freeRegId = getUnusedArgRegId(cpu);
+            signed char freeRegId = getUnusedArgRegId(cpu);
             if(freeRegId >= 0)
             {
                 cpu->reg[freeRegId].state = REG_USED;
@@ -164,7 +164,7 @@ void bindArg(CpuState *cpu, SymbolVariable *symVar, SymbolType* symType, const s
         }  
         else if(cls.gr[i] == SYSV_SSE)
         {
-            char freeRegId = getUnusedArgMMRegId(cpu);
+            signed char freeRegId = getUnusedArgMMRegId(cpu);
             if(freeRegId >= 0)
             {
                 cpu->reg[freeRegId].state = REG_USED;
@@ -240,7 +240,7 @@ void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType)
 
     symType->typeSize = 0;
     SymbolType* subType;
-    for(int i =0; i < symType->names.size(); i++)
+    for(size_t i =0; i < symType->names.size(); i++)
     {
         subType = (SymbolType*)getSymbol(localSymtab, symType->types[i]);
         symType->dataAlignment = max(subType->dataAlignment, symType->dataAlignment);
@@ -265,7 +265,6 @@ void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType)
 SysVgrDesc tryPackToRegisters(SymbolTable *localSymtab, SymbolType *symType)
 {
     int i = 1;
-    SysVgrDesc out = {SYSV_NONE, SYSV_NONE};
     uint8_t lowRegClass = SYSV_NO_CLASS;
     uint8_t hiRegClass = SYSV_NO_CLASS;
     while (true)
@@ -371,16 +370,17 @@ void bindArgToCpuStack(CpuState *cpu, SymbolType* symType, const std::string& va
     VariableCpuDesc desc = {Storage::STACK, cpu->stackArgsOffset};
     cpu->stackData[varname] = desc;
     uint64_t bytes = symType->typeSize;
-    if( symType->typeSize % 8 );
+    if(symType->typeSize % 8)
     {
         bytes += 8 - symType->typeSize;
     }
+
     cpu->stackArgsOffset += bytes;
 }
 
 char getUnusedArgRegId(CpuState* cpu)
 {
-    for(char freeRegId =0; freeRegId < 6; freeRegId++)
+    for(signed char freeRegId =0; freeRegId < 6; freeRegId++)
     {
         if(cpu->reg[intParamRegs[freeRegId]].state == REG_FREE)
         {
@@ -392,7 +392,7 @@ char getUnusedArgRegId(CpuState* cpu)
 
 char getUnusedArgMMRegId(CpuState *cpu)
 {
-    for(char freeRegId =0; freeRegId < 6; freeRegId++)
+    for(signed char freeRegId =0; freeRegId < 6; freeRegId++)
     {
         if(cpu->reg[sseParamRegs[freeRegId]].state == REG_FREE)
         {
