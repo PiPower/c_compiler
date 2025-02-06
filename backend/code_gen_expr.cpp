@@ -14,6 +14,10 @@ OpDesc translateExpr(CodeGenerator *gen, AstNode *parseTree)
         return translateCast(gen, parseTree);
     case NodeType::MULTIPLY:
         return translateMultiplication(gen, parseTree);
+    case NodeType::ADD:
+        return translateAddition(gen, parseTree);
+    case NodeType::SUBTRACT:
+        return translateSubtraction(gen, parseTree);
     default:
         printf("Unused node type \n");
         break;
@@ -57,6 +61,26 @@ OpDesc translateMultiplication(CodeGenerator *gen, AstNode *parseTree)
     OpDesc right = processChild(gen, parseTree, 1);
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
     performArithmeticOp(gen, &left, &right, symType->affiliation, "imulq", "imulq", "mulss", "mulsd");
+    freeRegister(gen, left.operand);
+    return right;
+}
+
+OpDesc translateAddition(CodeGenerator *gen, AstNode *parseTree)
+{
+    OpDesc left = processChild(gen, parseTree, 0);
+    OpDesc right = processChild(gen, parseTree, 1);
+    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
+    performArithmeticOp(gen, &left, &right, symType->affiliation, "addq", "addq", "addss", "addsd");
+    freeRegister(gen, left.operand);
+    return right;
+}
+
+OpDesc translateSubtraction(CodeGenerator *gen, AstNode *parseTree)
+{
+    OpDesc left = processChild(gen, parseTree, 0);
+    OpDesc right = processChild(gen, parseTree, 1);
+    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
+    performArithmeticOp(gen, &left, &right, symType->affiliation, "subq", "subq", "subss", "subsd");
     freeRegister(gen, left.operand);
     return right;
 }
