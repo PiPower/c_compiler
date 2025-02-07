@@ -18,6 +18,10 @@ OpDesc translateExpr(CodeGenerator *gen, AstNode *parseTree)
         return translateAddition(gen, parseTree);
     case NodeType::SUBTRACT:
         return translateSubtraction(gen, parseTree);
+    case NodeType::AND:
+    case NodeType::OR:
+    case NodeType::EXC_OR:
+        return translateBitwiseOp(gen, parseTree);
     default:
         printf("Unused node type \n");
         break;
@@ -85,6 +89,36 @@ OpDesc translateSubtraction(CodeGenerator *gen, AstNode *parseTree)
     return right;
 }
 
+OpDesc translateBitwiseOp(CodeGenerator *gen, AstNode *parseTree)
+{
+    OpDesc left = processChild(gen, parseTree, 0);
+    OpDesc right = processChild(gen, parseTree, 1);
+    uint8_t lGr = getTypeGroup(left.operandAffi), rGr = getTypeGroup(right.operandAffi);
+    if( (lGr != SIGNED_INT_GROUP && lGr != UNSIGNED_INT_GROUP)
+        ||
+        (rGr != SIGNED_INT_GROUP && rGr != UNSIGNED_INT_GROUP) )
+    {
+        printf("Internal Error: Forbidden type in bitwise and op\n");
+        exit(-1);
+    }
+
+    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
+    if(parseTree->nodeType == NodeType::AND)
+    {
+        performArithmeticOp(gen, &left, &right, symType->affiliation, "andq", "andq", "", "");
+    }
+    else if(parseTree->nodeType == NodeType::OR)
+    {
+        performArithmeticOp(gen, &left, &right, symType->affiliation, "orq ", "orq ", "", "");
+    }
+    else 
+    {
+        performArithmeticOp(gen, &left, &right, symType->affiliation, "xorq", "xorq", "", "");
+    }
+    freeRegister(gen, left.operand);
+    return right;
+}
+
 OpDesc writeConstant(CodeGenerator *gen, std::string constant, const OpDesc &destDesc)
 {
     uint8_t gr = getTypeGr(destDesc.operandAffi);
@@ -104,6 +138,7 @@ OpDesc writeConstant(CodeGenerator *gen, std::string constant, const OpDesc &des
     }
     return destDesc;
 }
+
 
 void writeConstantInt(CodeGenerator *gen, const std::string &constant, const OpDesc &destDesc)
 {
@@ -276,11 +311,17 @@ void writeToSignedIntReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc
         }
         else
         {
-            ADD_INST(gen, {INSTRUCTION, "pushq", "%rax"});
+            if(isRegisterUsed(gen->cpu, RAX))
+            {
+                ADD_INST(gen, {INSTRUCTION, "pushq", "%rax"});
+            }
             ADD_INST(gen, {INSTRUCTION, "movl", generateOperand(gen->cpu, srcDesc, IDX_R32), "%eax"});
             ADD_INST(gen, {INSTRUCTION, "cltq"});
             ADD_INST(gen, {INSTRUCTION, "movq", "%rax", generateOperand(gen->cpu, destDesc)});
-            ADD_INST(gen, {INSTRUCTION, "popq", "%rax"});
+            if(isRegisterUsed(gen->cpu, RAX))
+            {
+                ADD_INST(gen, {INSTRUCTION, "popq", "%rax"});
+            }
         }
         break;
     case INT64_S:
@@ -354,11 +395,17 @@ void writeToUnsignedIntReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDe
         }
         else
         {
-            ADD_INST(gen, {INSTRUCTION, "pushq", "%rax"});
+            if(isRegisterUsed(gen->cpu, RAX))
+            {
+                ADD_INST(gen, {INSTRUCTION, "pushq", "%rax"});
+            }
             ADD_INST(gen, {INSTRUCTION, "movl", generateOperand(gen->cpu, srcDesc, IDX_R32), "%eax"});
             ADD_INST(gen, {INSTRUCTION, "cltq"});
             ADD_INST(gen, {INSTRUCTION, "movq", "%rax", generateOperand(gen->cpu, destDesc)});
-            ADD_INST(gen, {INSTRUCTION, "popq", "%rax"});
+            if(isRegisterUsed(gen->cpu, RAX))
+            {
+                ADD_INST(gen, {INSTRUCTION, "popq", "%rax"});
+            }
         }
         break;
     case INT64_S:
@@ -698,17 +745,18 @@ OpDesc assertThatRegIsOfAffi(uint8_t affiliaton, CpuState *cpu, OpDesc varDesc)
 
 uint8_t allocateRRegister(CodeGenerator *gen, std::string symName)
 {
-    for(uint8_t i =0; i < 15; i++)
+    for(uint8_t i =0; i < R15; i++)
     {
-        if(gen->cpu->reg[i].state == REG_FREE)
+        uint8_t regIdx = (i + R9)%R15;
+        if(gen->cpu->reg[regIdx].state == REG_FREE)
         {
             gen->cpu->regData[symName] = {
                 .storageType = Storage::REG,
-                .offset = i
+                .offset = regIdx
             };
-            gen->cpu->reg[i].state = REG_USED;
-            gen->cpu->reg[i].symbol = std::move(symName);
-            return i;
+            gen->cpu->reg[regIdx].state = REG_USED;
+            gen->cpu->reg[regIdx].symbol = std::move(symName);
+            return regIdx;
         }
     }
     printf("No free Registers \n");

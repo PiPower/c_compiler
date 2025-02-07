@@ -471,5 +471,3 @@ bool registerStores(const CpuState* cpu, uint8_t regIdx, const std::string &varN
     return false;
 }
 
-
-

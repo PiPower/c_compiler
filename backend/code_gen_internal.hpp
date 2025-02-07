@@ -37,6 +37,7 @@ OpDesc translateCast(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateMultiplication(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateAddition(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateSubtraction(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateBitwiseOp(CodeGenerator* gen, AstNode* parseTree);
 // load API
 // writes constant into memory/register
 OpDesc writeConstant(CodeGenerator* gen, std::string constant, const OpDesc &destDesc);
