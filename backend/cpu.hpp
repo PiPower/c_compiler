@@ -137,7 +137,6 @@ void fillTypeHwdInfoForBlock(SymbolTable* localSymtab);
 void increaseStackSize(CpuState* cpu, int64_t size);
 std::string getCpuRegStr(uint8_t regIdx, uint8_t regSize);
 VariableCpuDesc fetchVariable(const CpuState* cpu, const std::string& varName);
-std::string generateLocalConstantLabel();
 bool isRegisterUsed(const CpuState* cpu, uint8_t regIdx);
 bool registerStores(const CpuState* cpu, uint8_t regIdx, const std::string& varName);
 #endif

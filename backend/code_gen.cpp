@@ -28,6 +28,8 @@ OpDesc dispatch(CodeGenerator *gen, AstNode *parseTree)
         return translateDeclaration(gen, parseTree);
     case NodeType::IDENTIFIER:
         return prepareVariable(gen, parseTree);
+    case NodeType::IF:
+        return translateIfStmt(gen, parseTree);
     default:
         return translateExpr(gen, parseTree);
     }

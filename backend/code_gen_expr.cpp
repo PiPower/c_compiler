@@ -22,6 +22,13 @@ OpDesc translateExpr(CodeGenerator *gen, AstNode *parseTree)
     case NodeType::OR:
     case NodeType::EXC_OR:
         return translateBitwiseOp(gen, parseTree);
+    case NodeType::GREATER:
+    case NodeType::GREATER_EQUAL:
+    case NodeType::EQUAL:
+    case NodeType::NOT_EQUAL:
+    case NodeType::LESS:
+    case NodeType::LESS_EQUAL:
+        return translateComparison(gen, parseTree);
     default:
         printf("Unused node type \n");
         break;
@@ -115,6 +122,37 @@ OpDesc translateBitwiseOp(CodeGenerator *gen, AstNode *parseTree)
     {
         performArithmeticOp(gen, &left, &right, symType->affiliation, "xorq", "xorq", "", "");
     }
+    freeRegister(gen, left.operand);
+    return right;
+}
+
+OpDesc translateComparison(CodeGenerator *gen, AstNode *parseTree)
+{
+    OpDesc left = processChild(gen, parseTree, 0);
+    OpDesc right = processChild(gen, parseTree, 1);
+    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
+
+    if(symType->affiliation == FLOAT32 || 
+       symType->affiliation == DOUBLE64)
+    {
+        OpDesc buff = generateSetFloat(parseTree->nodeType, gen, &left, &right, symType->affiliation);
+        freeRegister(gen, right.operand);
+        right = buff;
+    }
+    else if(symType->affiliation == INT64_U)
+    {
+        generateSetUInt(parseTree->nodeType, gen, &left, &right, symType->affiliation);
+    }
+    else if(symType->affiliation == INT64_S)
+    {
+        generateSetSInt(parseTree->nodeType, gen, &left, &right, symType->affiliation);
+    }
+    else
+    {
+        printf("Unsupported type \n");
+        exit(-1);
+    }
+   
     freeRegister(gen, left.operand);
     return right;
 }

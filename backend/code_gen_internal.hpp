@@ -27,7 +27,10 @@ OpDesc prepareConstant(CodeGenerator* gen, AstNode* parseTree);
 OpDesc prepareVariable(CodeGenerator* gen, AstNode* parseTree);
 OpDesc processChild(CodeGenerator* gen, AstNode* parseTree, std::size_t child_index, 
                                                 bool loadConst = true, bool loadVarToReg = true);
+//statements
+OpDesc translateIfStmt(CodeGenerator* gen, AstNode* parseTree);
 //expressions
+OpDesc translateComparison(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateLocalInit(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateExpr(CodeGenerator* gen, AstNode* parseTree);

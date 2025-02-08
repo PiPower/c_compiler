@@ -23,7 +23,8 @@ OpDesc translateFunction(CodeGenerator *gen, AstNode *parseTree)
     for (size_t i = 0; i < fnBody->children.size(); i++)
     {
         AstNode* parseTree = fnBody->children[i];
-        dispatch(gen, parseTree);
+        OpDesc desc = dispatch(gen, parseTree);
+        freeRegister(gen, desc.operand);
     }
     gen->code[fillSubInstInd].src = '$' + to_string(gen->cpu->maxStackSize);
     ADD_INST(gen, {INSTRUCTION, "leave"} );
@@ -116,6 +117,23 @@ OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_in
     return dispatch(gen, parseTree->children[child_index]);
 }
 
+OpDesc translateIfStmt(CodeGenerator *gen, AstNode *parseTree)
+{
+    OpDesc cond = processChild(gen, parseTree, 0);
+    string exitLabel = generateLocalPositionLabel();
+    if( parseTree->children[0]->nodeType >= NodeType::LESS && 
+        parseTree->children[0]->nodeType <= NodeType::NOT_EQUAL)
+    {
+        SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
+        Instruction jmp = {
+            .type = INSTRUCTION,
+            .mnemonic = getJmpMnemonic(parseTree->children[0]->nodeType, getTypeGr(symType->affiliation)),
+            .src =exitLabel
+        };
+        gen->code[gen->code.size() - 1] = jmp;
+    }
+    return OpDesc();
+}
 
 OpDesc translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
 {
@@ -133,6 +151,7 @@ OpDesc translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
     return {OP::NONE};
 }
 
+
 OpDesc translateLocalInit(CodeGenerator *gen, AstNode *parseTree)
 {
     AstNode* init = parseTree->children[0]; 
@@ -148,7 +167,7 @@ OpDesc translateLocalInit(CodeGenerator *gen, AstNode *parseTree)
         OpDesc destDesc = parseEncodedAccess(gen,  *parseTree->data);
         writeRegToMem(gen, operandDesc, destDesc);
     }
-    
+    freeRegister(gen, operandDesc.operand);
     return {OP::NONE};
 }
 

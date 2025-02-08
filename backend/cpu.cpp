@@ -451,11 +451,6 @@ VariableCpuDesc fetchVariable(const CpuState* cpu, const std::string &varName)
     return { .storageType = Storage::MEMORY};
 }
 
-std::string generateLocalConstantLabel()
-{
-    static uint64_t id = 0;
-    return ".LC" + to_string(id++);
-}
 
 bool isRegisterUsed(const CpuState* cpu, uint8_t regIdx)
 {
