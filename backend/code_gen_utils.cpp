@@ -245,35 +245,6 @@ std::string generateLocalPositionLabel()
     return ".L" + to_string(id++);
 }
 
-std::string getJmpMnemonic(NodeType opType, uint16_t affiliation)
-{
-
-    switch (opType)
-    {
-    case NodeType::GREATER :
-        /* code */
-        break;
-    case NodeType::GREATER_EQUAL:
-        /* code */
-        break;
-    case NodeType::EQUAL:
-        /* code */
-        break;
-    case NodeType::NOT_EQUAL:
-        /* code */
-        break;
-    case NodeType::LESS:
-        /* code */
-        break;
-    case NodeType::LESS_EQUAL:
-        /* code */
-        break;
-    default:
-        printf("Internal Error: Unsupported node type for jmp mnemonic\n");
-        exit(-1);
-        break;
-    }
-}
 
 std::string getJmpMnm(const std::string setOp)
 {
@@ -372,17 +343,16 @@ OpDesc generateTmpVar(uint16_t affiliation, uint8_t scopeLvl)
 OpDesc generateSetFloat(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, uint16_t affiliation)
 {
     OpDesc desc =  generateTmpVar(INT64_S, gen->localSymtab->scopeLevel);
-    uint8_t reg = allocateRRegister(gen, desc.operand);
+    allocateRRegister(gen, desc.operand);
     const char* ucommis = affiliation == FLOAT32 ? "ucomiss" : "ucomisd";
     const char* commis = affiliation == FLOAT32 ? "comiss" : "comisd";
-    ADD_INST(gen, {INSTRUCTION, "xorq", generateOperand(gen->cpu, desc), generateOperand(gen->cpu, desc)});
     switch (opType)
     {
     case NodeType::GREATER:
         ADD_INST(gen, {INSTRUCTION, commis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left),});
         ADD_INST(gen, {INSTRUCTION, "seta", generateOperand(gen->cpu, desc, IDX_R8LO)});
         ADD_INST(gen, {INSTRUCTION, "movzbq", generateOperand(gen->cpu, desc, IDX_R8LO), generateOperand(gen->cpu, desc)});
-        break;
+    break;
     case NodeType::GREATER_EQUAL:
         ADD_INST(gen, {INSTRUCTION, commis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
         ADD_INST(gen, {INSTRUCTION, "setnb", generateOperand(gen->cpu, desc, IDX_R8LO)});
@@ -391,11 +361,11 @@ OpDesc generateSetFloat(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDes
     case NodeType::EQUAL:
     {
         OpDesc local =  generateTmpVar(affiliation, gen->localSymtab->scopeLevel);
-        uint8_t localReg = allocateRRegister(gen, local.operand);
-        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+        allocateRRegister(gen, local.operand);
+        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
         ADD_INST(gen, {INSTRUCTION, "setnp", generateOperand(gen->cpu, desc, IDX_R8LO)});
         ADD_INST(gen, {INSTRUCTION, "movl", "$0", generateOperand(gen->cpu, local, IDX_R32)});
-        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
         ADD_INST(gen, {INSTRUCTION, "cmovne", generateOperand(gen->cpu, local, IDX_R32), generateOperand(gen->cpu, desc, IDX_R32)});
         ADD_INST(gen, {INSTRUCTION, "movzbq", generateOperand(gen->cpu, desc, IDX_R8LO), generateOperand(gen->cpu, desc)});
         freeRegister(gen, local.operand);
@@ -403,11 +373,11 @@ OpDesc generateSetFloat(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDes
     case NodeType::NOT_EQUAL:
     {
         OpDesc local =  generateTmpVar(affiliation, gen->localSymtab->scopeLevel);
-        uint8_t localReg = allocateRRegister(gen, local.operand);
-        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+        allocateRRegister(gen, local.operand);
+        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
         ADD_INST(gen, {INSTRUCTION, "setp", generateOperand(gen->cpu, desc, IDX_R8LO)});
         ADD_INST(gen, {INSTRUCTION, "movl", "$1", generateOperand(gen->cpu, local, IDX_R32)});
-        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
         ADD_INST(gen, {INSTRUCTION, "cmovne", generateOperand(gen->cpu, local, IDX_R32), generateOperand(gen->cpu, desc, IDX_R32)});
         ADD_INST(gen, {INSTRUCTION, "movzbq", generateOperand(gen->cpu, desc, IDX_R8LO), generateOperand(gen->cpu, desc)});
         freeRegister(gen, local.operand);
@@ -417,29 +387,51 @@ OpDesc generateSetFloat(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDes
         ADD_INST(gen, {INSTRUCTION, commis, generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
         ADD_INST(gen, {INSTRUCTION, "seta", generateOperand(gen->cpu, desc, IDX_R8LO)});
         ADD_INST(gen, {INSTRUCTION, "movzbq", generateOperand(gen->cpu, desc, IDX_R8LO), generateOperand(gen->cpu, desc)});
-        /* code */
-        break;
+    break;
     case NodeType::LESS_EQUAL:
         ADD_INST(gen, {INSTRUCTION, commis, generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
         ADD_INST(gen, {INSTRUCTION, "setnb", generateOperand(gen->cpu, desc, IDX_R8LO)});
         ADD_INST(gen, {INSTRUCTION, "movzbq", generateOperand(gen->cpu, desc, IDX_R8LO), generateOperand(gen->cpu, desc)});
-        break;
+    break;
     default:
         printf("Internal Error: Unsupported node type for jmp mnemonic\n");
         exit(-1);
-        break;
+    break;
     }
 
     return desc;
 }
 
-void generateSetSInt(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, uint16_t affiliation)
+void generateSetInt(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, uint16_t affiliation)
 {
+    uint8_t gr = getTypeGroup(affiliation);
+    if(gr == UNSIGNED_INT_GROUP &&
+      (opType == NodeType::LESS_EQUAL || opType == NodeType::GREATER))
+    {
+        ADD_INST(gen, {INSTRUCTION, "cmpq", generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+    }
+    else
+    {
+        ADD_INST(gen, {INSTRUCTION, "cmpq", generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
+    }
+    const char* mnemonic = nullptr;
+    switch (opType)
+    {
+    case NodeType::GREATER: mnemonic = gr == SIGNED_INT_GROUP ? "setg" : "setb"; break;
+    case NodeType::GREATER_EQUAL: mnemonic = gr == SIGNED_INT_GROUP ? "setge" : "setnb"; break;
+    case NodeType::EQUAL: mnemonic = "sete"; break;
+    case NodeType::NOT_EQUAL: mnemonic = "setne"; break;
+    case NodeType::LESS: mnemonic = gr == SIGNED_INT_GROUP ? "setl" : "setb"; break;
+    case NodeType::LESS_EQUAL: mnemonic = gr == SIGNED_INT_GROUP ? "setle" : "setnb"; break;
+    default:
+        printf("Internal Error: Unsupported node type for jmp mnemonic\n");
+        exit(-1);
+    break;
+    }
+    ADD_INST(gen, {INSTRUCTION, mnemonic, generateOperand(gen->cpu, *right, IDX_R8LO)});
+    ADD_INST(gen,  {INSTRUCTION, "movzbq", generateOperand(gen->cpu, *right, IDX_R8LO), generateOperand(gen->cpu, *right)});
 }
 
-void generateSetUInt(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, uint16_t affiliation)
-{
-}
 
 OpDesc parseEncodedAccess(CodeGenerator *gen, const std::string &accesSpec)
 {

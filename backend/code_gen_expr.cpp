@@ -139,13 +139,10 @@ OpDesc translateComparison(CodeGenerator *gen, AstNode *parseTree)
         freeRegister(gen, right.operand);
         right = buff;
     }
-    else if(symType->affiliation == INT64_U)
+    else if(symType->affiliation == INT64_U ||
+            symType->affiliation == INT64_S)
     {
-        generateSetUInt(parseTree->nodeType, gen, &left, &right, symType->affiliation);
-    }
-    else if(symType->affiliation == INT64_S)
-    {
-        generateSetSInt(parseTree->nodeType, gen, &left, &right, symType->affiliation);
+        generateSetInt(parseTree->nodeType, gen, &left, &right, symType->affiliation);
     }
     else
     {

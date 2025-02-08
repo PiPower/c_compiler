@@ -18,14 +18,12 @@ std::string generateTmpVarname();
 std::string generateRegisterName();
 std::string generateLocalConstantLabel();
 std::string generateLocalPositionLabel();
-std::string getJmpMnemonic(NodeType opType, uint16_t affiliation);
 void convertToProperArithemticType(CodeGenerator* gen, OpDesc* srcDesc, uint16_t expectedAffi);
 void performArithmeticOp(CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation,
                             std::string op_si, std::string op_ui, std::string op_f32, std::string op_d64);
 OpDesc generateTmpVar(uint16_t affiliation, uint8_t scopeLvl);
 OpDesc generateSetFloat(NodeType opType, CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation);
-void generateSetSInt(NodeType opType, CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation);
-void generateSetUInt(NodeType opType, CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation);
+void generateSetInt(NodeType opType, CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation);
 
 /*
 to make it possible to acces struct the format is

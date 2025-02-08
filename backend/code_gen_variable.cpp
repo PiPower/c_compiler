@@ -127,7 +127,6 @@ OpDesc translateIfStmt(CodeGenerator *gen, AstNode *parseTree)
         SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
         Instruction jmp = {
             .type = INSTRUCTION,
-            .mnemonic = getJmpMnemonic(parseTree->children[0]->nodeType, getTypeGr(symType->affiliation)),
             .src =exitLabel
         };
         gen->code[gen->code.size() - 1] = jmp;
