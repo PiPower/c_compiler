@@ -264,6 +264,19 @@ Token Scanner::parsePunctuators(const char *c)
             break;
         }
         break;
+    case '!':
+        index++;
+        switch (c[index])
+        {
+        case '=':
+            token.type = TokenType::BANG_EQUAL;
+            index++;
+            break;
+        default:
+            token.type = TokenType::BANG;
+            break;
+        }
+        break;
     case '&':
         index++;
         switch (c[index])
