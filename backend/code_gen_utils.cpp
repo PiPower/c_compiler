@@ -340,6 +340,106 @@ OpDesc generateTmpVar(uint16_t affiliation, uint8_t scopeLvl)
     return destDesc;
 }
 
+void generateConditionalComplementJmp(CodeGenerator *gen, AstNode *comp, const std::string& jmpTarget)
+{
+    OpDesc left = processChild(gen, comp, 0);
+    OpDesc right = processChild(gen, comp, 0);
+    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *comp->type);
+    uint8_t typeGr = getTypeGroup(symType->affiliation);
+    if(typeGr == FLOAT_GROUP)
+    {
+        generateConditionalComplementJmpFloat(comp->nodeType, gen, &left, &right, symType->affiliation, jmpTarget);
+    }
+    else if(typeGr == SIGNED_INT_GROUP || typeGr == UNSIGNED_INT_GROUP)
+    {
+        generateConditionalComplementJmpInt(comp->nodeType, gen, &left, &right, symType->affiliation, jmpTarget);
+    }
+    else
+    {
+        printf("Internal error unsupported type for jumps\n");
+        exit(-1);
+    }
+    freeRegister(gen, left.operand);
+    freeRegister(gen, right.operand);
+}
+
+void generateConditionalComplementJmpFloat(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, 
+                                            uint16_t affiliation, const std::string& jmpTarget)
+{
+    const char* ucommis = affiliation == FLOAT32 ? "ucomiss" : "ucomisd";
+    const char* commis = affiliation == FLOAT32 ? "comiss" : "comisd";
+    switch (opType)
+    {
+    case NodeType::GREATER:
+        ADD_INST(gen, {INSTRUCTION, commis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left),});
+        ADD_INST(gen, {INSTRUCTION, "jbe", jmpTarget});
+    break;
+    case NodeType::GREATER_EQUAL:
+        ADD_INST(gen, {INSTRUCTION, commis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
+        ADD_INST(gen, {INSTRUCTION, "jb", jmpTarget});
+    break;
+    case NodeType::EQUAL:
+    {
+        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
+        ADD_INST(gen, {INSTRUCTION, "jp", jmpTarget});
+        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
+        ADD_INST(gen, {INSTRUCTION, "jne", jmpTarget});
+    }break;
+    case NodeType::NOT_EQUAL:
+    {
+        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
+        ADD_INST(gen, {INSTRUCTION, "jp", jmpTarget});
+        ADD_INST(gen, {INSTRUCTION, ucommis, generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
+        ADD_INST(gen, {INSTRUCTION, "je", jmpTarget});
+    }break;
+        break;
+    case NodeType::LESS:
+        ADD_INST(gen, {INSTRUCTION, commis, generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+        ADD_INST(gen, {INSTRUCTION, "jbe", jmpTarget});
+    break;
+    case NodeType::LESS_EQUAL:
+        ADD_INST(gen, {INSTRUCTION, commis, generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+        ADD_INST(gen, {INSTRUCTION, "jb", jmpTarget});
+    break;
+    default:
+        printf("Internal Error: Unsupported node type for jmp mnemonic\n");
+        exit(-1);
+    break;
+    }
+
+}
+
+void generateConditionalComplementJmpInt(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right,
+                                                 uint16_t affiliation, const std::string& jmpTarget)
+{
+    uint8_t gr = getTypeGroup(affiliation);
+    if(gr == UNSIGNED_INT_GROUP &&
+      (opType == NodeType::LESS_EQUAL || opType == NodeType::GREATER))
+    {
+        ADD_INST(gen, {INSTRUCTION, "cmpq", generateOperand(gen->cpu, *left), generateOperand(gen->cpu, *right)});
+    }
+    else
+    {
+        ADD_INST(gen, {INSTRUCTION, "cmpq", generateOperand(gen->cpu, *right), generateOperand(gen->cpu, *left)});
+    }
+    const char* mnemonic = nullptr;
+    switch (opType)
+    {
+    case NodeType::GREATER: mnemonic = gr == SIGNED_INT_GROUP ? "jle" : "jnb"; break;
+    case NodeType::GREATER_EQUAL: mnemonic = gr == SIGNED_INT_GROUP ? "jl" : "jb"; break;
+    case NodeType::EQUAL: mnemonic = "jne"; break;
+    case NodeType::NOT_EQUAL: mnemonic = "je"; break;
+    case NodeType::LESS: mnemonic = gr == SIGNED_INT_GROUP ? "jge" : "jnb"; break;
+    case NodeType::LESS_EQUAL: mnemonic = gr == SIGNED_INT_GROUP ? "jg" : "jb"; break;
+    default:
+        printf("Internal Error: Unsupported node type for jmp mnemonic\n");
+        exit(-1);
+    break;
+    }
+    ADD_INST(gen, {INSTRUCTION, mnemonic, jmpTarget});
+
+}
+
 OpDesc generateSetFloat(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, uint16_t affiliation)
 {
     OpDesc desc =  generateTmpVar(INT64_S, gen->localSymtab->scopeLevel);
@@ -432,6 +532,20 @@ void generateSetInt(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *r
     ADD_INST(gen,  {INSTRUCTION, "movzbq", generateOperand(gen->cpu, *right, IDX_R8LO), generateOperand(gen->cpu, *right)});
 }
 
+void generateConditionCheck(CodeGenerator* gen, AstNode* ifExpr, const std::string& nextBlockLabel)
+{
+    
+    if( ifExpr->nodeType >= NodeType::LESS && 
+        ifExpr->nodeType <= NodeType::NOT_EQUAL)
+    {
+        generateConditionalComplementJmp(gen, ifExpr, nextBlockLabel);
+    }
+    else
+    {
+        OpDesc cond = processChild(gen, ifExpr, 0);
+    }
+
+}
 
 OpDesc parseEncodedAccess(CodeGenerator *gen, const std::string &accesSpec)
 {

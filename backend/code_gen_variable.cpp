@@ -119,19 +119,25 @@ OpDesc processChild(CodeGenerator *gen, AstNode *parseTree, std::size_t child_in
 
 OpDesc translateIfStmt(CodeGenerator *gen, AstNode *parseTree)
 {
-    OpDesc cond = processChild(gen, parseTree, 0);
     string exitLabel = generateLocalPositionLabel();
-    if( parseTree->children[0]->nodeType >= NodeType::LESS && 
-        parseTree->children[0]->nodeType <= NodeType::NOT_EQUAL)
+    string nextBlockLabel;
+    AstNode* ifBlock = parseTree;
+
+    do 
+    {   
+        nextBlockLabel = generateLocalPositionLabel();
+        generateConditionCheck(gen, ifBlock->children[0], nextBlockLabel);
+        ADD_INST(gen, {INSTRUCTION, "nop"});
+        ADD_INST(gen, {LABEL, nextBlockLabel});
+        ifBlock =  ifBlock->children[2];
+    
+    }while(ifBlock->children.size() == 3 );
+    if(ifBlock->children.size() == 1)
     {
-        SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *parseTree->type);
-        Instruction jmp = {
-            .type = INSTRUCTION,
-            .src =exitLabel
-        };
-        gen->code[gen->code.size() - 1] = jmp;
+        ADD_INST(gen, {INSTRUCTION, "nop"});
     }
-    return OpDesc();
+    ADD_INST(gen, {LABEL, exitLabel});
+    return {OP::NONE};
 }
 
 OpDesc translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)

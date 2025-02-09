@@ -29,6 +29,7 @@ OpDesc processChild(CodeGenerator* gen, AstNode* parseTree, std::size_t child_in
                                                 bool loadConst = true, bool loadVarToReg = true);
 //statements
 OpDesc translateIfStmt(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateConditionalJmp(CodeGenerator* gen, AstNode* parseTree);
 //expressions
 OpDesc translateComparison(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);
