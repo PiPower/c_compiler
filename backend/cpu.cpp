@@ -60,14 +60,14 @@ CpuState *generateCpuState(AstNode *fnDef, SymbolTable *localSymtab, SymbolFunct
     cpu->stackArgsOffset = 16;
     cpu->retSignature[0] = 0;
     cpu->retSignature[1] = 0;
-    cpu->runtimeStackSize = 0;
+    cpu->currentBlock = nullptr;
     cpu->reg[RSP].state = REG_FORBIDDEN;
     cpu->reg[RBP].state = REG_FORBIDDEN;
     bindReturnValue(cpu, localSymtab, symFn);
     bindArgs(cpu, localSymtab, symFn);
     reserveCalleSavedRegs(cpu);
     bindBlockToStack(cpu, localSymtab);
-
+    cpu->blockGlobal = cpu->currentBlock;
     return cpu;
 }
 
@@ -203,8 +203,9 @@ void reserveCalleSavedRegs(CpuState *cpu)
 
 void bindBlockToStack(CpuState* cpu, SymbolTable* localSymtab)
 {
-    uint32_t blockSize = 0;
-    vector<long int*> updates;
+    uint64_t blockSize = 0;
+    blockData* newBlock = new blockData();
+    
     for(size_t i =0; i < localSymtab->symbols.size(); i++)
     {
         Symbol* sym = localSymtab->symbols[i];
@@ -217,16 +218,17 @@ void bindBlockToStack(CpuState* cpu, SymbolTable* localSymtab)
         }
         SymbolType* type = (SymbolType*)getSymbol(localSymtab, *symVar->varType);
         blockSize += type->typeSize;
-        if(blockSize%type->dataAlignment) // make sure data is aligned
+        if((blockSize + cpu->currentStackSize)%type->dataAlignment) // make sure data is aligned
         {
-            blockSize+= type->dataAlignment - blockSize%type->dataAlignment;
+            blockSize += type->dataAlignment - (blockSize + cpu->currentStackSize)%type->dataAlignment;
         }
-        cpu->stackData[localSymtab->symbolNames[i]] = {Storage::STACK,  -(long)blockSize - cpu->currentStackSize};
-        updates.push_back(&cpu->stackData[localSymtab->symbolNames[i]].offset);
-
+        newBlock->stackData[localSymtab->symbolNames[i]] = {Storage::STACK, -(long)blockSize - cpu->currentStackSize};
     }
+    newBlock->blockOffset = cpu->currentStackSize;
     cpu->currentStackSize += blockSize;
     cpu->maxStackSize = std::max(cpu->currentStackSize, cpu->maxStackSize );
+    newBlock->parent = cpu->currentBlock;
+    cpu->currentBlock = newBlock;
 }
 
 void fillTypeHwdInfo(SymbolTable *localSymtab, SymbolType* symType)
@@ -368,11 +370,11 @@ uint8_t resolveSysVclass(uint8_t cl1, uint8_t cl2)
 void bindArgToCpuStack(CpuState *cpu, SymbolType* symType, const std::string& varname)
 {
     VariableCpuDesc desc = {Storage::STACK, cpu->stackArgsOffset};
-    cpu->stackData[varname] = desc;
+    cpu->blockGlobal->stackData[varname] = desc;
     uint64_t bytes = symType->typeSize;
     if(symType->typeSize % 8)
     {
-        bytes += 8 - symType->typeSize;
+        bytes += 8 - symType->typeSize % 8;
     }
 
     cpu->stackArgsOffset += bytes;
@@ -428,26 +430,30 @@ std::string getCpuRegStr(uint8_t regIdx, uint8_t regSize)
 
 VariableCpuDesc fetchVariable(const CpuState* cpu, const std::string &varName)
 {
-    auto regVarIter = cpu->regData.find(varName);
-    if(regVarIter != cpu->regData.end())
+    blockData* block =  cpu->currentBlock;
+    while (block)
     {
-        VariableCpuDesc out = {
-            .storageType = regVarIter->second.storageType,
-            .offset = regVarIter->second.offset
-        };
-        return out;
-    }
+        auto regVarIter = cpu->regData.find(varName);
+        if(regVarIter != cpu->regData.end())
+        {
+            VariableCpuDesc out = {
+                .storageType = regVarIter->second.storageType,
+                .offset = regVarIter->second.offset
+            };
+            return out;
+        }
 
-    auto stackVarIter = cpu->stackData.find(varName);
-    if(stackVarIter != cpu->stackData.end())
-    {
-        VariableCpuDesc out = {
-            .storageType = stackVarIter->second.storageType,
-            .offset = stackVarIter->second.offset
-        };
-        return out;
+        auto stackVarIter = block->stackData.find(varName);
+        if(stackVarIter != block->stackData.end())
+        {
+            VariableCpuDesc out = {
+                .storageType = stackVarIter->second.storageType,
+                .offset = block->blockOffset + stackVarIter->second.offset
+            };
+            return out;
+        }
+        block = block->parent;
     }
-
     return { .storageType = Storage::MEMORY};
 }
 

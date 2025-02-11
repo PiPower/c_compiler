@@ -4,7 +4,6 @@
 #include "../frontend/node_allocator.hpp"
 #include "cpu.hpp"
 
-
 #define GET_SCOPED_SYM(gen, name)  getSymbol((gen)->localSymtab, (name)) 
 #define GET_SCOPED_SYM_EX(gen, name, scope)  getSymbol((gen)->localSymtab, name, scope) 
 #define ADD_INST(gen, ...) (gen)->code.push_back(__VA_ARGS__ )
@@ -30,6 +29,7 @@ OpDesc processChild(CodeGenerator* gen, AstNode* parseTree, std::size_t child_in
 //statements
 OpDesc translateIfStmt(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateConditionalJmp(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateBlock(CodeGenerator* gen, AstNode* block);
 //expressions
 OpDesc translateComparison(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);

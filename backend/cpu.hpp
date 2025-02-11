@@ -96,10 +96,18 @@ enum class Storage
     Storage == REG -> offset represent id of register used to store variable
     offset -> if Storage == REG stores ID of assigned register else stores address of the variable 
 */
+struct blockData;
 struct VariableCpuDesc
 {
     Storage storageType;
     long int offset;
+};
+
+struct blockData
+{
+    std::unordered_map<std::string,VariableCpuDesc> stackData;
+    uint32_t blockOffset;
+    blockData* parent;
 };
 
 /*
@@ -107,14 +115,15 @@ struct VariableCpuDesc
     every variable(expect for temporary) will be stored on stack, if there is 
     assginment expression data is ALWAYS to be flushed to stack
 */
+
 struct CpuState
 {
     Reg reg[32];
-    std::unordered_map<std::string,VariableCpuDesc> stackData;
+    blockData* currentBlock;
+    blockData* blockGlobal;
     std::unordered_map<std::string,VariableCpuDesc> regData;
     uint32_t stackArgsOffset;
     uint32_t currentStackSize;
-    uint32_t runtimeStackSize;
     uint32_t maxStackSize;
     uint8_t retSignature[2];
 };

@@ -17,6 +17,10 @@ AstNode* parseSelectionStatement(ParserState* parser)
     {
         root->children.push_back(parseStatement(parser));
     }
+    if(root->children.size() == 2)
+    {
+        root->children.push_back(nullptr);
+    }
     return root;
 }
 

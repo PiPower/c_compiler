@@ -122,21 +122,39 @@ OpDesc translateIfStmt(CodeGenerator *gen, AstNode *parseTree)
     string exitLabel = generateLocalPositionLabel();
     string nextBlockLabel;
     AstNode* ifBlock = parseTree;
-
     do 
     {   
         nextBlockLabel = generateLocalPositionLabel();
         generateConditionCheck(gen, ifBlock->children[0], nextBlockLabel);
-        ADD_INST(gen, {INSTRUCTION, "nop"});
+        translateBlock(gen, parseTree->children[1]);
+        ADD_INST(gen, {INSTRUCTION, "jmp", exitLabel});
         ADD_INST(gen, {LABEL, nextBlockLabel});
-        ifBlock =  ifBlock->children[2];
+        ifBlock = ifBlock->children[2];
+
+    }while(ifBlock && ifBlock->nodeType == NodeType::IF);
     
-    }while(ifBlock->children.size() == 3 );
-    if(ifBlock->children.size() == 1)
+    if(ifBlock)
     {
-        ADD_INST(gen, {INSTRUCTION, "nop"});
+        translateBlock(gen, ifBlock);
     }
     ADD_INST(gen, {LABEL, exitLabel});
+    return {OP::NONE};
+}
+
+OpDesc translateBlock(CodeGenerator *gen, AstNode *block)
+{
+    SymbolTable* symtabBuff = gen->localSymtab;
+    gen->localSymtab = (SymbolTable*)block->data;
+    bindBlockToStack(gen->cpu, gen->localSymtab);
+    
+    for (size_t i = 0; i < block->children.size(); i++)
+    {
+        AstNode* parseTree = block->children[i];
+        OpDesc desc = dispatch(gen, parseTree);
+        freeRegister(gen, desc.operand);
+    }
+
+    gen->localSymtab = symtabBuff;
     return {OP::NONE};
 }
 

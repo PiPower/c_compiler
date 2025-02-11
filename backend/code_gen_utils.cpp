@@ -542,6 +542,8 @@ void generateConditionCheck(CodeGenerator* gen, AstNode* ifExpr, const std::stri
     }
     else
     {
+        printf("IF operation currently is not supported \n");
+        exit(-1);
         OpDesc cond = processChild(gen, ifExpr, 0);
     }
 
