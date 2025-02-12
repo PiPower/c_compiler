@@ -6,15 +6,15 @@ int main()
         float z = 2;
         x = 19;
         double i;
-        for(i =0; i < 32; i+= 1)
-        {
-            x += i;
-        }
+        //for(i =0; i < 32; i+= 1)
+        //{
+        //    x += i;
+        //}
         i = 0;
         while(i < 32)
         {
-            x += i;
-            i+= 1;
+            x = x + i;
+            i = i + 1;
         }
 
     }
@@ -24,8 +24,8 @@ int main()
         float i = 0;
         do
         {
-            x += i;
-            i+= 1;
+            x = x + i;
+            i = i + 1;
         }while(i < 32);
     }
     else

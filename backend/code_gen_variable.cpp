@@ -126,7 +126,7 @@ OpDesc translateIfStmt(CodeGenerator *gen, AstNode *parseTree)
     {   
         nextBlockLabel = generateLocalPositionLabel();
         generateConditionCheck(gen, ifBlock->children[0], nextBlockLabel);
-        translateBlock(gen, ifBlock->children[1]);
+        dispatch(gen, ifBlock->children[1]);
         ADD_INST(gen, {INSTRUCTION, "jmp", exitLabel});
         ADD_INST(gen, {LABEL, nextBlockLabel});
         ifBlock = ifBlock->children[2];
@@ -156,6 +156,20 @@ OpDesc translateBlock(CodeGenerator *gen, AstNode *block)
 
     freeCurrentCpuBlock(gen->cpu);
     gen->localSymtab = symtabBuff;
+    return {OP::NONE};
+}
+
+OpDesc translateWhileLoop(CodeGenerator *gen, AstNode *parseTree)
+{
+    string endOfLoop = generateLocalPositionLabel();
+    string startOfLoop = generateLocalPositionLabel();
+
+    ADD_INST(gen, {LABEL, startOfLoop});
+    generateConditionCheck(gen, parseTree->children[0], endOfLoop);
+    dispatch(gen, parseTree->children[1]);
+    ADD_INST(gen, {INSTRUCTION, "jmp", startOfLoop});
+    ADD_INST(gen, {LABEL, endOfLoop});
+
     return {OP::NONE};
 }
 

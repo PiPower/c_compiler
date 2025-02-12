@@ -380,22 +380,12 @@ void writeToSignedIntReg(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc
                                                 generateOperand(gen->cpu, destDesc)});
         break;
     case FLOAT32:
-        {
-            uint8_t mmReg = allocateMMRegister(gen, "float_to_sint_temp");
-            ADD_INST(gen, {INSTRUCTION, "movss", std::move(src), '%' + getCpuRegStr(mmReg, IDX_XMM)});
-            ADD_INST(gen, {INSTRUCTION, "cvttss2siq", '%' + getCpuRegStr(mmReg, IDX_XMM), 
+        ADD_INST(gen, {INSTRUCTION, "cvttss2siq", generateOperand(gen->cpu, srcDesc),
                                                             generateOperand(gen->cpu, destDesc)});
-            freeRegister(gen, mmReg);
-        }
         break;
     case DOUBLE64:
-        {
-            uint8_t mmReg = allocateMMRegister(gen, "float_to_sint_temp");
-            ADD_INST(gen, {INSTRUCTION, "movsd", std::move(src), '%' + getCpuRegStr(mmReg, IDX_XMM)});
-            ADD_INST(gen, {INSTRUCTION, "cvttsd2siq", '%' + getCpuRegStr(mmReg, IDX_XMM), 
+        ADD_INST(gen, {INSTRUCTION, "cvttsd2siq", generateOperand(gen->cpu, srcDesc), 
                                                             generateOperand(gen->cpu, destDesc)});
-            freeRegister(gen, mmReg);
-        }
         break;
     }
 }
@@ -598,7 +588,7 @@ void writeToSignedIntMem(CodeGenerator *gen, const OpDesc& srcDesc, const OpDesc
     {
         //TODO when 32 bit int is considered value is converted to 64 bit which may cause some weird errors
         tmp = generateTmpVar(INT64_S, gen->localSymtab->scopeLevel);
-        allocateRRegister(gen, generateTmpVarname());
+        allocateRRegister(gen, tmp.operand);
         writeToSignedIntReg(gen, srcDesc, tmp);
         usedDesc = tmp;
     }
