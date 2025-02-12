@@ -205,7 +205,7 @@ void bindBlockToStack(CpuState* cpu, SymbolTable* localSymtab)
 {
     uint64_t blockSize = 0;
     blockData* newBlock = new blockData();
-    
+    newBlock->blockOffset = cpu->currentStackSize;
     for(size_t i =0; i < localSymtab->symbols.size(); i++)
     {
         Symbol* sym = localSymtab->symbols[i];
@@ -224,7 +224,6 @@ void bindBlockToStack(CpuState* cpu, SymbolTable* localSymtab)
         }
         newBlock->stackData[localSymtab->symbolNames[i]] = {Storage::STACK, -(long)blockSize - cpu->currentStackSize};
     }
-    newBlock->blockOffset = cpu->currentStackSize;
     cpu->currentStackSize += blockSize;
     cpu->maxStackSize = std::max(cpu->currentStackSize, cpu->maxStackSize );
     newBlock->parent = cpu->currentBlock;
@@ -419,8 +418,13 @@ void fillTypeHwdInfoForBlock(SymbolTable* localSymtab)
     }
 }
 
-void increaseStackSize(CpuState *cpu, int64_t size)
+
+void freeCurrentCpuBlock(CpuState *cpu)
 {
+    blockData* oldBlock = cpu->currentBlock;
+    cpu->currentBlock = oldBlock->parent;
+    cpu->currentStackSize = oldBlock->blockOffset;
+    delete oldBlock;
 }
 
 std::string getCpuRegStr(uint8_t regIdx, uint8_t regSize)
@@ -448,7 +452,7 @@ VariableCpuDesc fetchVariable(const CpuState* cpu, const std::string &varName)
         {
             VariableCpuDesc out = {
                 .storageType = stackVarIter->second.storageType,
-                .offset = block->blockOffset + stackVarIter->second.offset
+                .offset = stackVarIter->second.offset
             };
             return out;
         }

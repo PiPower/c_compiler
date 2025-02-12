@@ -144,6 +144,7 @@ char getUnusedArgRegId(CpuState* cpu);
 char getUnusedArgMMRegId(CpuState* cpu);
 void fillTypeHwdInfoForBlock(SymbolTable* localSymtab);
 void increaseStackSize(CpuState* cpu, int64_t size);
+void freeCurrentCpuBlock(CpuState* cpu);
 std::string getCpuRegStr(uint8_t regIdx, uint8_t regSize);
 VariableCpuDesc fetchVariable(const CpuState* cpu, const std::string& varName);
 bool isRegisterUsed(const CpuState* cpu, uint8_t regIdx);

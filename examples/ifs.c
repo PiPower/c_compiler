@@ -4,10 +4,12 @@ double x1, y1;
 long x2, y2;
 unsigned long x3, y3;
 int main(int num) {
-
+    int x2= 3;
     if(x == y)
     {
+        int x1, x55, x66;
         x1 = 1;
+        x2 = 34;
     }
     else if(x <= y)
     {
@@ -105,6 +107,8 @@ int main(int num) {
     }
     else
     {
+        double x1;
         x1 = 1;
+        x2 = 34;
     }
 }

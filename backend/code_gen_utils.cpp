@@ -553,13 +553,13 @@ OpDesc parseEncodedAccess(CodeGenerator *gen, const std::string &accesSpec)
 {
     if(accesSpec.find(':') == string::npos)
     {
-        uint64_t scope = 0;
-        SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM_EX(gen, accesSpec, &scope);
+        
+        SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, accesSpec);
         SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
         OpDesc desc;
         desc.operandType = OP::VARIABLE;
         desc.operand = accesSpec;
-        desc.scope = scope;
+        desc.scope = gen->localSymtab->scopeLevel;
         desc.operandAffi = symType->affiliation;
         return desc;
     }
