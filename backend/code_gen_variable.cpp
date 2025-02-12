@@ -173,6 +173,17 @@ OpDesc translateWhileLoop(CodeGenerator *gen, AstNode *parseTree)
     return {OP::NONE};
 }
 
+OpDesc translateDoWhileLoop(CodeGenerator *gen, AstNode *parseTree)
+{
+    string startOfLoop = generateLocalPositionLabel();
+
+    ADD_INST(gen, {LABEL, startOfLoop});
+    dispatch(gen, parseTree->children[1]);
+    generateConditionCheck(gen, parseTree->children[0], startOfLoop, false);
+
+    return {OP::NONE};
+}
+
 OpDesc translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
 {
     SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, *parseTree->data);

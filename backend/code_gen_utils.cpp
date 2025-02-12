@@ -343,7 +343,7 @@ OpDesc generateTmpVar(uint16_t affiliation, uint8_t scopeLvl)
 void generateConditionalComplementJmp(CodeGenerator *gen, AstNode *comp, const std::string& jmpTarget)
 {
     OpDesc left = processChild(gen, comp, 0);
-    OpDesc right = processChild(gen, comp, 0);
+    OpDesc right = processChild(gen, comp, 1);
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *comp->type);
     uint8_t typeGr = getTypeGroup(symType->affiliation);
     if(typeGr == FLOAT_GROUP)
@@ -438,6 +438,29 @@ void generateConditionalComplementJmpInt(NodeType opType, CodeGenerator *gen, Op
     }
     ADD_INST(gen, {INSTRUCTION, mnemonic, jmpTarget});
 
+}
+
+void generateConditionalJmp(CodeGenerator *gen, AstNode *comp, const std::string &jmpTarget)
+{
+    OpDesc left = processChild(gen, comp, 0);
+    OpDesc right = processChild(gen, comp, 1);
+    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *comp->type);
+    uint8_t typeGr = getTypeGroup(symType->affiliation);
+    if(typeGr == FLOAT_GROUP)
+    {
+        generateConditionalJmpFloat(comp->nodeType, gen, &left, &right, symType->affiliation, jmpTarget);
+    }
+    else if(typeGr == SIGNED_INT_GROUP || typeGr == UNSIGNED_INT_GROUP)
+    {
+        generateConditionalJmpInt(comp->nodeType, gen, &left, &right, symType->affiliation, jmpTarget);
+    }
+    else
+    {
+        printf("Internal error unsupported type for jumps\n");
+        exit(-1);
+    }
+    freeRegister(gen, left.operand);
+    freeRegister(gen, right.operand);
 }
 
 void generateConditionalJmpInt(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, 
@@ -579,13 +602,20 @@ void generateSetInt(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *r
     ADD_INST(gen,  {INSTRUCTION, "movzbq", generateOperand(gen->cpu, *right, IDX_R8LO), generateOperand(gen->cpu, *right)});
 }
 
-void generateConditionCheck(CodeGenerator* gen, AstNode* ifExpr, const std::string& nextBlockLabel)
+void generateConditionCheck(CodeGenerator* gen, AstNode* ifExpr, const std::string& nextBlockLabel, bool jmpComplement)
 {
     
     if( ifExpr->nodeType >= NodeType::LESS && 
         ifExpr->nodeType <= NodeType::NOT_EQUAL)
     {
-        generateConditionalComplementJmp(gen, ifExpr, nextBlockLabel);
+        if(jmpComplement)
+        {
+            generateConditionalComplementJmp(gen, ifExpr, nextBlockLabel);
+        }
+        else
+        {
+            generateConditionalJmp(gen, ifExpr, nextBlockLabel);
+        }
     }
     else
     {

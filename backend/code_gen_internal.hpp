@@ -31,6 +31,7 @@ OpDesc translateIfStmt(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateConditionalJmp(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateBlock(CodeGenerator* gen, AstNode* block);
 OpDesc translateWhileLoop(CodeGenerator* gen, AstNode* parseTree);
+OpDesc translateDoWhileLoop(CodeGenerator* gen, AstNode* parseTree);
 //expressions
 OpDesc translateComparison(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateGlobalInit(CodeGenerator* gen, AstNode* parseTree);

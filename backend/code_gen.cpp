@@ -34,6 +34,8 @@ OpDesc dispatch(CodeGenerator *gen, AstNode *parseTree)
         return translateBlock(gen, parseTree);
     case NodeType::WHILE_LOOP:
         return translateWhileLoop(gen, parseTree);
+    case NodeType::DO_WHILE_LOOP:
+        return translateDoWhileLoop(gen, parseTree);
     default:
         return translateExpr(gen, parseTree);
     }
