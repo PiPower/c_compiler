@@ -28,6 +28,10 @@ void generateConditionalComplementJmpFloat(NodeType opType, CodeGenerator* gen, 
                                          uint16_t affiliation, const std::string& jmpTarget);
 void generateConditionalComplementJmpInt(NodeType opType, CodeGenerator* gen, OpDesc* left, OpDesc* right,
                                          uint16_t affiliation, const std::string& jmpTarget);
+void generateConditionalJmpInt(NodeType opType, CodeGenerator* gen, OpDesc* left, OpDesc* right,
+                                            uint16_t affiliation, const std::string& jmpTarget);
+void generateConditionalJmpFloat(NodeType opType, CodeGenerator* gen, OpDesc* left, OpDesc* right,
+                                                uint16_t affiliation, const std::string& jmpTarget);
 OpDesc generateSetFloat(NodeType opType, CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation);
 void generateSetInt(NodeType opType, CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation);
 void generateConditionCheck(CodeGenerator* gen, AstNode* ifExpr, const std::string& nextBlockLabel);

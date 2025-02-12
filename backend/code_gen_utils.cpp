@@ -440,6 +440,53 @@ void generateConditionalComplementJmpInt(NodeType opType, CodeGenerator *gen, Op
 
 }
 
+void generateConditionalJmpInt(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, 
+                                                    uint16_t affiliation, const std::string &jmpTarget)
+{
+    switch (opType)
+    {
+    case NodeType::GREATER: return generateConditionalComplementJmpInt(NodeType::LESS_EQUAL, gen, left, right, 
+                                                                                            affiliation, jmpTarget);
+    case NodeType::GREATER_EQUAL: return generateConditionalComplementJmpInt(NodeType::LESS, gen, left, right, 
+                                                                                                affiliation, jmpTarget);
+    case NodeType::EQUAL: return generateConditionalComplementJmpInt(NodeType::NOT_EQUAL, gen, left, right, 
+                                                                                        affiliation, jmpTarget);
+    case NodeType::NOT_EQUAL: return generateConditionalComplementJmpInt(NodeType::EQUAL, gen, left, right, 
+                                                                                        affiliation, jmpTarget);
+    case NodeType::LESS: return generateConditionalComplementJmpInt(NodeType::GREATER_EQUAL, gen, left, right, 
+                                                                                            affiliation, jmpTarget);
+    case NodeType::LESS_EQUAL: return generateConditionalComplementJmpInt(NodeType::GREATER, gen, left, right, 
+                                                                                                affiliation, jmpTarget);
+    default:
+        printf("Internal Error: Unsupported node type for jmp mnemonic\n");
+        exit(-1);
+    break;
+    }
+}
+
+void generateConditionalJmpFloat(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, uint16_t affiliation, const std::string &jmpTarget)
+{
+    switch (opType)
+    {
+    case NodeType::GREATER: return generateConditionalComplementJmpFloat(NodeType::LESS_EQUAL, gen, left, right, 
+                                                                                            affiliation, jmpTarget);
+    case NodeType::GREATER_EQUAL: return generateConditionalComplementJmpFloat(NodeType::LESS, gen, left, right, 
+                                                                                                affiliation, jmpTarget);
+    case NodeType::EQUAL: return generateConditionalComplementJmpFloat(NodeType::NOT_EQUAL, gen, left, right, 
+                                                                                        affiliation, jmpTarget);
+    case NodeType::NOT_EQUAL: return generateConditionalComplementJmpFloat(NodeType::EQUAL, gen, left, right, 
+                                                                                        affiliation, jmpTarget);
+    case NodeType::LESS: return generateConditionalComplementJmpFloat(NodeType::GREATER_EQUAL, gen, left, right, 
+                                                                                            affiliation, jmpTarget);
+    case NodeType::LESS_EQUAL: return generateConditionalComplementJmpFloat(NodeType::GREATER, gen, left, right, 
+                                                                                                affiliation, jmpTarget);
+    default:
+        printf("Internal Error: Unsupported node type for jmp mnemonic\n");
+        exit(-1);
+    break;
+    }
+}
+
 OpDesc generateSetFloat(NodeType opType, CodeGenerator *gen, OpDesc *left, OpDesc *right, uint16_t affiliation)
 {
     OpDesc desc =  generateTmpVar(INT64_S, gen->localSymtab->scopeLevel);
