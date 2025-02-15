@@ -143,16 +143,60 @@ OpDesc translateIfStmt(CodeGenerator *gen, AstNode *parseTree)
 
 OpDesc translateBlock(CodeGenerator *gen, AstNode *block)
 {
-    SymbolTable* symtabBuff = gen->localSymtab;
-    gen->localSymtab = (SymbolTable*)block->data;
-    bindBlockToStack(gen->cpu, gen->localSymtab);
-    
+    SymbolTable* symtabBuff = nullptr;
+    if(block->data)
+    {
+        symtabBuff = gen->localSymtab;
+        gen->localSymtab = (SymbolTable*)block->data;
+        bindBlockToStack(gen->cpu, gen->localSymtab);
+    }
     for (size_t i = 0; i < block->children.size(); i++)
     {
         AstNode* parseTree = block->children[i];
         OpDesc desc = dispatch(gen, parseTree);
         freeRegister(gen, desc.operand);
     }
+
+    if(symtabBuff)
+    {
+        freeCurrentCpuBlock(gen->cpu);
+        gen->localSymtab = symtabBuff;
+    }
+    return {OP::NONE};
+}
+
+OpDesc translateForLoop(CodeGenerator *gen, AstNode *parseTree)
+{
+    AstNode* init_expr = parseTree->children[0];
+    AstNode* cond_expr = parseTree->children[1]; 
+    AstNode* update_expr = parseTree->children[2];
+    AstNode* compoundStmt = parseTree->children[3];
+
+    SymbolTable* symtabBuff = gen->localSymtab;
+    gen->localSymtab = (SymbolTable*)parseTree->data;
+    bindBlockToStack(gen->cpu, gen->localSymtab);
+    string loopStart = generateLocalPositionLabel();
+    string loopEnd = generateLocalPositionLabel();
+
+    if(init_expr)
+    {
+        FREE_DISPATCH(gen, init_expr);
+    }
+    ADD_INST(gen, {LABEL, loopStart});
+    if(cond_expr)
+    {
+        generateConditionCheck(gen, cond_expr, loopEnd);
+    }
+    if(compoundStmt)
+    {
+        FREE_DISPATCH(gen, compoundStmt);
+    }
+    if(update_expr)
+    {
+        FREE_DISPATCH(gen, update_expr);
+    }
+    ADD_INST(gen, {INSTRUCTION, "jmp", loopStart});
+    ADD_INST(gen, {LABEL, loopEnd});
 
     freeCurrentCpuBlock(gen->cpu);
     gen->localSymtab = symtabBuff;
@@ -186,6 +230,7 @@ OpDesc translateDoWhileLoop(CodeGenerator *gen, AstNode *parseTree)
 
 OpDesc translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
 {
+    //TODO add support for non zero global init
     SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, *parseTree->data);
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
     Instruction inst;

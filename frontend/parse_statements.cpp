@@ -102,6 +102,10 @@ AstNode *parseForLoop(ParserState *parser)
     }
 
     AstNode* body = parseStatement(parser, true);
+    if(body->nodeType == NodeType::BLOCK)
+    {
+        body->data = nullptr;
+    }
     AstNode* out = ALLOCATE_NODE(parser);
     out->nodeType = NodeType::FOR_LOOP;
     out->children = {init_expr, cond_expr, update_expr, body};

@@ -1,15 +1,21 @@
 signed long long int x = 4, y = 454;
 int main()
 {
+    double i;
+    for(i =0; i < 32; i = i + 1)
+    {
+        x = x + i;
+    }
+
     if( x > y)
     {
         float z = 2;
         x = 19;
         double i;
-        //for(i =0; i < 32; i+= 1)
-        //{
-        //    x += i;
-        //}
+        for(i =0; i < 32; i+= 1)
+        {
+            x = x + i;
+        }
         i = 0;
         while(i < 32)
         {

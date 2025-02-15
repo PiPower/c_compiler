@@ -10,6 +10,7 @@
 #define ADD_INST_MV(gen, inst) (gen)->code.push_back(std::move(inst))
 #define FREE_NODE(gen, node) freeNode((gen)->allocator, (node))
 #define FREE_NODE_REC(gen, node) freeRecursive((gen)->allocator, (node))
+#define FREE_DISPATCH(gen, parseTree) freeRegister(gen, dispatch(gen, parseTree).operand )
 
 // register manipulation
 OpDesc assertThatRegIsOfAffi(uint8_t affiliaton, CpuState* cpu, OpDesc varDesc);
@@ -30,6 +31,7 @@ OpDesc processChild(CodeGenerator* gen, AstNode* parseTree, std::size_t child_in
 OpDesc translateIfStmt(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateConditionalJmp(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateBlock(CodeGenerator* gen, AstNode* block);
+OpDesc translateForLoop(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateWhileLoop(CodeGenerator* gen, AstNode* parseTree);
 OpDesc translateDoWhileLoop(CodeGenerator* gen, AstNode* parseTree);
 //expressions
