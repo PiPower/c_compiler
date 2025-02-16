@@ -1,8 +1,11 @@
 signed long long int x = 4, y = 454;
+double z22 = 21321.4343;
+float p22 = 32.23234;
+
 int main()
 {
     double i;
-    for(i =0; i < 32; i = i + 1)
+    for(i = 0; i < 32; i = i + 1)
     {
         x = x + i;
     }

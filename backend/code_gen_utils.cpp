@@ -34,29 +34,13 @@ Instruction generateFunctionLabel(AstNode *fnDef)
     return fn;
 }
 
-void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName)
+std::string zeroInitVariable(SymbolType* symType)
 {
-    // before label
-    inst->src += ".bss";
-    inst->src += '\0';
-    inst->src += ".globl ";
-    inst->src += symName;
-    inst->src += '\0';
-    inst->src += ".align ";
-    inst->src += to_string(getTypeAlignment(symType));
-    inst->src += '\0';
-    inst->src += ".type ";
-    inst->src += symName;
-    inst->src += ", @object";
-    inst->src += '\0';
-    inst->src += ".size ";
-    inst->src += symName  + ", ";
-    inst->src += to_string(symType->typeSize);
-    inst->src += '\0';
-    // after label
-    inst->dest += ".zero ";
-    inst->dest += to_string(symType->typeSize);
-    inst->dest += '\0';
+    string init;
+    init += ".zero ";
+    init += to_string(symType->typeSize);
+    init += '\0';
+    return init;
 }
 
 uint8_t getAffiliationIndex(uint16_t typeGroup)
@@ -245,10 +229,96 @@ std::string generateLocalPositionLabel()
     return ".L" + to_string(id++);
 }
 
-
-std::string getJmpMnm(const std::string setOp)
+std::string generateGlobalProp(SymbolType* symType, const std::string symName, bool uninitialized)
 {
-    return std::string();
+    string properties;
+    if(uninitialized)
+    {
+        properties += ".bss";
+    }
+    else
+    {
+        properties += ".data";
+
+    }
+    properties += '\0';
+    properties += ".globl ";
+    properties += symName;
+    properties += '\0';
+    properties += ".align ";
+    properties += to_string(getTypeAlignment(symType));
+    properties += '\0';
+    properties += ".type ";
+    properties += symName;
+    properties += ", @object";
+    properties += '\0';
+    properties += ".size ";
+    properties += symName  + ", ";
+    properties += to_string(symType->typeSize);
+    properties += '\0';
+    return properties;
+}
+
+std::string initVariable(CodeGenerator* gen, AstNode* parseTree)
+{ 
+    AstNode* init = parseTree->children[0];
+    string out;
+    OpDesc operandDesc = processChild(gen, init, 0, false);
+    SymbolVariable* symVar = (SymbolVariable*)GET_SCOPED_SYM(gen, *parseTree->data);
+    SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
+
+    if(operandDesc.operandType != OP::CONSTANT)
+    {
+        printf("ERROR: globals can only be initialized with cosntants\n");
+        exit(-1);
+    }
+    uint8_t gr = getTypeGr(symType->affiliation);
+    if(gr == SIGNED_INT_GROUP || gr == UNSIGNED_INT_GROUP)
+    {
+        long int value = encodeIntAsBinary(operandDesc.operand);
+        string valueStr;
+        if(symType->affiliation == INT8_S || symType->affiliation == INT8_U)
+        {
+            valueStr = encodeIntAsString(value, 1);
+            valueStr[0] = ' ';
+            out += ".byte" + valueStr + '\0';
+        }
+        else if(symType->affiliation  == INT16_S || symType->affiliation == INT16_U)
+        {
+            valueStr = encodeIntAsString(value, 2);
+            valueStr[0] = ' ';
+            out +=  ".word" + valueStr + '\0';
+        }
+        else if(symType->affiliation  == INT32_S  || symType->affiliation == INT32_U)
+        {
+            valueStr = encodeIntAsString(value, 4);
+            valueStr[0] = ' ';
+            out +=  ".long" + valueStr + '\0';
+        }
+        else
+        {
+            valueStr = encodeIntAsString(value, 8);
+            valueStr[0] = ' ';
+            out +=  ".quad" + valueStr + '\0';
+        }
+    }
+    else if (gr == FLOAT_GROUP)
+    {
+        uint64_t val;
+        int32_t *val_ptr = (int32_t *)&val;
+        if(symType->affiliation == FLOAT32)
+        {
+            val = encodeFloatAsBinary(operandDesc.operand, 4);
+            out +=  ".long " + to_string(*val_ptr) + '\0';
+        }
+        else if(symType->affiliation == DOUBLE64 )
+        {
+            val = encodeFloatAsBinary(operandDesc.operand, 8);
+            out +=  ".long " + to_string(*val_ptr) + '\0';
+            out +=  ".long " + to_string(*(val_ptr + 1)) + '\0';
+        }
+    }
+    return out;
 }
 
 void convertToProperArithemticType(CodeGenerator *gen, OpDesc *srcDesc, uint16_t expectedAffi)

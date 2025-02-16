@@ -235,11 +235,17 @@ OpDesc translateGlobalInit(CodeGenerator *gen, AstNode *parseTree)
     SymbolType* symType = (SymbolType*)GET_SCOPED_SYM(gen, *symVar->varType);
     Instruction inst;
     inst.type = LABEL;
-    inst.mnemonic = std::move(*parseTree->data);
     if(parseTree->children.size() == 0)
     {
-        zeroInitVariable(&inst, symType, inst.mnemonic);
+        inst.src = generateGlobalProp(symType, *parseTree->data);
+        inst.dest = zeroInitVariable(symType);
     }
+    else
+    {
+        inst.src = generateGlobalProp(symType, *parseTree->data, false);
+        inst.dest = initVariable(gen, parseTree);
+    }
+    inst.mnemonic = std::move(*parseTree->data);
     ADD_INST_MV(gen, inst);
     FREE_NODE_REC(gen, parseTree);
     return {OP::NONE};

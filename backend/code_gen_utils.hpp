@@ -7,7 +7,7 @@
 // alignment is first power of 2 that is <= type_size
 uint32_t getTypeAlignment(SymbolType* symType);
 Instruction generateFunctionLabel(AstNode* fnDef);
-void zeroInitVariable(Instruction* inst, SymbolType* symType, const std::string symName);
+std::string zeroInitVariable(SymbolType* symType);
 uint8_t getAffiliationIndex(uint16_t typeGroup);
 uint8_t getTypeGr(uint16_t affiliation);
 int64_t encodeIntAsBinary(const std::string& constant);
@@ -18,6 +18,8 @@ std::string generateTmpVarname();
 std::string generateRegisterName();
 std::string generateLocalConstantLabel();
 std::string generateLocalPositionLabel();
+std::string generateGlobalProp(SymbolType* symType, const std::string symName, bool uninitialized = true);
+std::string initVariable(CodeGenerator* gen, AstNode* parseTree);
 void convertToProperArithemticType(CodeGenerator* gen, OpDesc* srcDesc, uint16_t expectedAffi);
 void performArithmeticOp(CodeGenerator* gen, OpDesc* left, OpDesc* right, uint16_t affiliation,
                             std::string op_si, std::string op_ui, std::string op_f32, std::string op_d64);
