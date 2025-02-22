@@ -84,6 +84,7 @@ AstNode *parseLoop(ParserState *parser,
         parent->children.push_back(root);
         parent->children.push_back(right);
         parent->type = typeConversion(parser, root, right);
+        filterUnallowedPointerArithmetic(parser, parent->nodeType, parent->type);
         root = parent;
     }
 
@@ -111,6 +112,25 @@ AstNode *parsePtrStructAccess(ParserState *parser, AstNode *root)
     }
     validateStructAccess(parser, ptrAccess, true);
     return ptrAccess;
+}
+
+void filterUnallowedPointerArithmetic(ParserState *parser,
+                                NodeType op, 
+                                const std::string* exprType)
+{
+    if(exprType->find('*') == string::npos)
+    {
+        return;
+    }
+ 
+    if(op != NodeType::ADD && op != NodeType::ADD_ASSIGNMENT 
+       &&
+       op != NodeType::SUBTRACT && op != NodeType::SUB_ASSIGNMENT
+       &&
+       op != NodeType::ASSIGNMENT)
+    {
+        triggerParserError(parser, 0, "Forbidden pointer operation");
+    }
 }
 
 AstNode *parseExpression(ParserState *parser)
@@ -369,6 +389,7 @@ AstNode *unaryExpression(ParserState *parser)
         case TokenType::STAR:
             root->nodeType = NodeType::DREF_PTR; 
             root->type = drefPtrType(root->children[0]->type);
+            break;
         case TokenType::AMPERSAND:
             root->nodeType = NodeType::GET_ADDR;
             processGetAddr(parser, root);
@@ -651,8 +672,8 @@ void validateAssignment(ParserState *parser, std::string* left, std::string* rig
 
     uint8_t leftGroup = getTypeGroup(parser, left);
     uint8_t rightGroup = getTypeGroup(parser, right);
-    uint8_t leftAffiliation = getTypeAffiliation(parser, left);
-    uint8_t rightAffiliation = getTypeAffiliation(parser, right);
+    uint16_t leftAffiliation = getTypeAffiliation(parser, left);
+    uint16_t rightAffiliation = getTypeAffiliation(parser, right);
     if( rightGroup == leftGroup)
     {
         if(leftAffiliation< rightAffiliation)
@@ -714,6 +735,8 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
 {
     uint8_t leftGroup;
     uint8_t rightGroup;
+    uint16_t leftAffiliation;
+    uint16_t rightAffiliation;
 
     if((*left->type == "void" || *right->type == "void" ) ||
        (left->type->find("struct") != string::npos || right->type->find("struct") != string::npos) )
@@ -728,9 +751,20 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
 
     leftGroup = getTypeGroup(parser, left->type);
     rightGroup = getTypeGroup(parser, right->type);
+    leftAffiliation = getTypeAffiliation(parser, left->type);
+    rightAffiliation = getTypeAffiliation(parser, right->type);
 
     if( rightGroup == leftGroup)
     {
+        if((leftAffiliation == POINTER_GR && rightAffiliation == leftAffiliation)
+            &&
+            (*left->type != *right->type))
+        {
+            triggerParserError(parser, 0, 
+            "implicit conversion between \"%s\" and \"%s\" is forbbiden",
+            left->type->c_str(), right->type->c_str());
+        }
+
         return copyStrongerType(parser, left->type, right->type);
     }
 
@@ -738,6 +772,15 @@ std::string* typeConversion(ParserState *parser, AstNode *left, AstNode *right)
         leftGroup != VOID_GR  && leftGroup != STRUCT_GR &&
         rightGroup != VOID_GR  && rightGroup != STRUCT_GR )
     {
+        if(leftAffiliation == POINTER_GR)
+        {
+            return new string(*left->type);
+        }
+        else if(rightAffiliation == POINTER_GR)
+        {
+            return new string(*right->type);
+        }
+
         string* targetType = resolveImpConv(parser, left->type, right->type, leftGroup, rightGroup);
         triggerParserWarning(parser, 
         "Implicit conversion between \"%s\" and \"%s\" into \"%s\", possible loss of data\n",

@@ -83,7 +83,6 @@ NodeType tokenMathTypeToNodeType(const Token& token)
 
 uint8_t getTypeGroup(ParserState *parser, const std::string* name)
 {   
-
     if(name->find('*')!= string::npos )
     {
         return SPECIAL_GROUP;
@@ -124,10 +123,10 @@ std::string *copyStrongerType(ParserState* parser, const std::string* t1, const 
 }
 
 std::string* resolveImpConv(ParserState* parser, 
-                                            const std::string* t1, 
-                                            const std::string* t2, 
-                                            uint8_t g1, 
-                                            uint8_t g2)
+                            const std::string* t1, 
+                            const std::string* t2, 
+                            uint8_t g1, 
+                            uint8_t g2)
 {
     static const char* signedTypes[] = { "char", "short", "int", "long"};
     if( g1 == FLOAT_GROUP || g2 == FLOAT_GROUP)
@@ -149,8 +148,6 @@ std::string* resolveImpConv(ParserState* parser,
         }
         return new string("double");
     }
-
-
 
     const string* signedType = g1 == SIGNED_INT_GROUP ? t1 : t2;
     const string* unsignedType = g1 == UNSIGNED_INT_GROUP ? t1 : t2;

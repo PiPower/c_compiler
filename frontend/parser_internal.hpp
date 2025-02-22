@@ -112,4 +112,7 @@ AstNode* parseLoop(ParserState* parser,
                     const TokenType* types,
                     const uint64_t typesCount);
 AstNode *parsePtrStructAccess(ParserState *parser, AstNode *root);
+void filterUnallowedPointerArithmetic(ParserState *parser,
+                                NodeType op, 
+                                const std::string* exprType);
 #endif

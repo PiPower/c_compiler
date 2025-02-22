@@ -15,7 +15,7 @@ int main()
         float z = 2;
         x = 19;
         double i;
-        for(i =0; i < 32; i+= 1)
+        for(i =0; i < 32; i = i + 1)
         {
             x = x + i;
         }

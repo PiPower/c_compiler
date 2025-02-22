@@ -1,4 +1,4 @@
-
+int * p;
 int main()
 {
     double* ptr = 23432;
@@ -7,4 +7,6 @@ int main()
     x = 23;
     *x = 33243;
     *x = *xz = 2342;
+    x = x + 2;
+    //x = x * 2; <- error
 }
