@@ -1,0 +1,43 @@
+#include "CompilationOpts.hpp"
+#include <stdio.h>
+static bool isCFilePath(const char* arg, size_t* len)
+{
+    size_t j = 0;
+    while (arg[j] != '\0'){j++;}
+    j--;
+    while (arg[j] == ' ') {j--;}
+
+    if(len)
+    {
+        *len = j + 1;
+    }
+    if(j > 2 && arg[j] == 'c' && arg[j - 1] == '.' && 
+       (( 'A' <= arg[j - 2 ] && arg[j - 2 ] <= 'Z') || 
+        ( 'a' <= arg[j - 2 ] && arg[j - 2 ] <= 'z' ) ||
+        ( '1' <= arg[j - 2 ] && arg[j - 2 ] <= '9' )))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+CompilationOpts::CompilationOpts(int argc, const char** argv)
+{
+    for(int i = 1; i < argc; i++)
+    {
+        const char* arg = argv[i];
+        size_t fileLen = 0;
+        if(isCFilePath(arg, &fileLen))
+        {
+            filenames.push_back(arg);
+            filenameLens.push_back(fileLen);
+        }
+        else
+        {
+            printf("Uknown argument\nPos: %d\nValue: %s\n", i - 1, arg);
+            exit(-1);
+        }
+    }
+}
+
