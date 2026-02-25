@@ -30,8 +30,8 @@ CompilationOpts::CompilationOpts(int argc, const char** argv)
         size_t fileLen = 0;
         if(isCFilePath(arg, &fileLen))
         {
-            filenames.push_back(arg);
-            filenameLens.push_back(fileLen);
+            m_filenames.push_back(arg);
+            m_filenameLens.push_back(fileLen);
         }
         else
         {

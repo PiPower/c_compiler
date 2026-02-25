@@ -2,9 +2,10 @@
 
 Compiler::Compiler(int argc, char *argv[])
 :
-    argc(argc), argv(argv), opts(argc, (const char**)argv),
-    fileManager( opts.filenames, opts.filenameLens)
+    m_argc(argc), m_argv(argv), m_opts(argc, (const char**)argv),
+    m_fileManager( m_opts.m_filenames, m_opts.m_filenameLens)
 {
+    
 }
 
 void Compiler::compile()
