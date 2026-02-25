@@ -113,3 +113,20 @@ void FileManager::ManagerExitOnErrorMsg(const char *errorMsg, const char *fileNa
 {
     ManagerExitOnError(1, errorMsg, fileName);
 }
+
+int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE* fileState)
+{
+    for(size_t i =0; i < m_files.size(); i++)
+    {
+        if(m_files[i].pathLen == pathLen)
+        {
+            if(memcmp(path, m_files[i].path, pathLen) == 0)
+            {
+                *fileState = m_files[i];
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
