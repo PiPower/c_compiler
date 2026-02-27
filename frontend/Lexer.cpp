@@ -87,7 +87,7 @@ slash:
         case '-':  out = '~'; break;  
         default: return *m_fCurr;
         }
-        if(m_opts->trigraphs_set == 0)
+        if(m_opts->trigraphs_refrenced == 0)
         {
             printf("WARNING: Trigraph detected in source code, in order to hide warning use flag -ftrigraphs\n");
         }

@@ -24,7 +24,7 @@ static bool isCFilePath(const char* arg, size_t* len)
 
 CompilationOpts::CompilationOpts(int argc, const char** argv)
 {
-    trigraphs_set = 0;
+    trigraphs_refrenced = 0;
     trigraphs_enabled = 1;
 
     for(int i = 1; i < argc; i++)
@@ -36,11 +36,33 @@ CompilationOpts::CompilationOpts(int argc, const char** argv)
             m_filenames.push_back(arg);
             m_filenameLens.push_back(fileLen);
         }
+        else if(CheckBinaryFlag(arg, "-ftrigraphs"))
+        {
+            trigraphs_refrenced = 1;
+            trigraphs_enabled = 1;
+        }
+        else if(CheckBinaryFlag(arg, "-fno-trigraphs"))
+        {
+            trigraphs_refrenced = 1;
+            trigraphs_enabled = 0;
+        }
         else
         {
             printf("Uknown argument\nPos: %d\nValue: %s\n", i - 1, arg);
             exit(-1);
         }
+
     }
 }
 
+bool CompilationOpts::CheckBinaryFlag(const char *arg, const char *flag)
+{
+    while (*arg != '\0' && *flag != '\0')
+    {
+        if(*arg != *flag) {return false;}
+        arg++;
+        flag++;
+    }
+    
+    return *arg == *flag;
+}
