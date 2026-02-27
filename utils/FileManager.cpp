@@ -43,7 +43,7 @@ FileManager::FileManager(const std::vector<const char*>& filenames,
         off_t startFile =  lseek(fd, 0, SEEK_SET);
         if(startFile == -1){ManagerExitOnErrorCode(errno, pathBuffer);}
 
-        LoadFileIntoPage(fd, state.fileSize, pathBuffer);
+        LoadFileIntoPage(fd, state.fileSize, pathBuffer, &state.fileData);
 
         int ret = close(fd);
         if(ret == -1){ManagerExitOnErrorCode(errno, pathBuffer);}
@@ -67,7 +67,7 @@ void FileManager::AddNewPage()
     m_currentPage = m_filePages.size() - 1;
 }
 
-void FileManager::LoadFileIntoPage(int fd, int64_t fileSize, const char* filename)
+void FileManager::LoadFileIntoPage(int fd, int64_t fileSize, const char* filename, char** filePos)
 {
     if(fileSize + m_offsetIntoPage > PAGE_SIZE)
     {
@@ -75,6 +75,7 @@ void FileManager::LoadFileIntoPage(int fd, int64_t fileSize, const char* filenam
         else{AddNewPage();}
     }
     char* page = m_filePages[m_currentPage];
+    *filePos = page + m_offsetIntoPage;
     ssize_t readBytes =  read(fd, page + m_offsetIntoPage, fileSize);
     if(readBytes == -1){ManagerExitOnErrorCode(errno, filename);}
     if(readBytes != fileSize ){ManagerExitOnErrorMsg("Could not load whole file", filename);} 
@@ -123,6 +124,23 @@ int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE
             if(memcmp(path, m_files[i].path, pathLen) == 0)
             {
                 *fileState = m_files[i];
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+int32_t FileManager::GetFileId(const char *path, uint64_t pathLen, FILE_ID *fileId)
+{
+        for(size_t i =0; i < m_files.size(); i++)
+    {
+        if(m_files[i].pathLen == pathLen)
+        {
+            if(memcmp(path, m_files[i].path, pathLen) == 0)
+            {
+                fileId->id = i;
                 return 0;
             }
         }

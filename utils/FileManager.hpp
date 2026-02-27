@@ -25,11 +25,12 @@ struct FileManager
                 const std::vector<size_t>&  filenameLens);
 
     void AddNewPage();
-    void LoadFileIntoPage(int fd, int64_t fileSize, const char* filename);
+    void LoadFileIntoPage(int fd, int64_t fileSize, const char* filename, char** filePos);
     void ManagerExitOnError(int type, const void* errorData, const char* fileName);
     void ManagerExitOnErrorCode(int errorNum, const char* fileName);
     void ManagerExitOnErrorMsg(const char* errorMsg, const char* fileName);
     int32_t GetFileState(const char* path, uint64_t pathLen, FILE_STATE* fileState);
+    int32_t GetFileId(const char* path, uint64_t pathLen, FILE_ID* fileId);
 
     std::vector<FILE_STATE> m_files;
     std::vector<char*> m_filePages;
