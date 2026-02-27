@@ -4,6 +4,7 @@
 struct Preprocessor
 {
     Preprocessor(FILE_STATE m_mainFile, FileManager* manager);
+    int32_t Peek(Token* token);
 
     Lexer m_lexer;
 };

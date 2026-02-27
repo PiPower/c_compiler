@@ -1,5 +1,5 @@
 #include "Compiler.hpp"
-#include "../frontend/Parser.hpp"
+#include "frontend/Parser.hpp"
 Compiler::Compiler(int argc, char *argv[])
 :
     m_argc(argc), m_argv(argv), m_opts(argc, (const char**)argv),
@@ -16,5 +16,6 @@ void Compiler::compile()
         // skip err check, constructor checks for all main files
         m_fileManager.GetFileState( m_opts.m_filenames[i],  m_opts.m_filenameLens[i], &mainFile);
         Parser parser(mainFile, &m_fileManager);
+        parser.Parse();
     }
 }
