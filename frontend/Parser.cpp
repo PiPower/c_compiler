@@ -1,8 +1,8 @@
 #include "Parser.hpp"
 
-Parser::Parser(FILE_STATE mainFile, FileManager* manager)
+Parser::Parser(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
 :
-m_PP(mainFile, manager)
+m_PP(mainFile, manager, opts), m_opts(opts)
 {
    
 }

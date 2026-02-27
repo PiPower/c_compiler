@@ -24,6 +24,9 @@ static bool isCFilePath(const char* arg, size_t* len)
 
 CompilationOpts::CompilationOpts(int argc, const char** argv)
 {
+    trigraphs_set = 0;
+    trigraphs_enabled = 1;
+
     for(int i = 1; i < argc; i++)
     {
         const char* arg = argv[i];

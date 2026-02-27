@@ -15,7 +15,7 @@ void Compiler::compile()
         FILE_STATE mainFile;
         // skip err check, constructor checks for all main files
         m_fileManager.GetFileState( m_opts.m_filenames[i],  m_opts.m_filenameLens[i], &mainFile);
-        Parser parser(mainFile, &m_fileManager);
+        Parser parser(mainFile, &m_fileManager, &m_opts);
         parser.Parse();
     }
 }

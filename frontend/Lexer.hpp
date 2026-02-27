@@ -2,6 +2,7 @@
 #include "../utils/FileManager.hpp"
 #include "TokenTypes.hpp"
 #include <stack>
+#include "../utils/CompilationOpts.hpp"
 
 struct FilePos;
 struct SourceLocation;
@@ -10,9 +11,14 @@ struct SizedChar;
 
 struct Lexer
 {
-    Lexer(FILE_STATE mainFile, FileManager* manager);
+    Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
     bool IsHorizontalWhiteSpace(char C);
+    bool IsVerticalWhiteSpace(char C);
+    bool IsWhiteSpace(char C);
+    bool IsSimpleChar(char C);
     char GetNextChar();
+    char GetCharAndSizeSlow();
+    void SkipHorizonthalWhiteSpace();
     int32_t Lex(Token* token);
 
     FILE_STATE m_mainFile;
@@ -20,6 +26,7 @@ struct Lexer
     std::stack<FilePos> m_files;
     const char* m_fEnd;
     const char* m_fCurr;
+    const CompilationOpts* m_opts;
 };
 
 struct SizedChar 

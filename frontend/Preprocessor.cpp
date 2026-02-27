@@ -2,9 +2,9 @@
 
 
 
-Preprocessor::Preprocessor(FILE_STATE m_mainFile, FileManager *manager)
+Preprocessor::Preprocessor(FILE_STATE m_mainFile, FileManager *manager, const CompilationOpts* opts)
 :
-m_lexer(m_mainFile, manager)
+m_lexer(m_mainFile, manager, opts), m_opts(opts)
 {
 }
 
