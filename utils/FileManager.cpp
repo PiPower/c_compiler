@@ -25,8 +25,8 @@ FileManager::FileManager(const std::vector<const char*>& filenames,
         size_t nameLen = filenameLens[i]; 
         while (nameLen > 0 && filenames[i][nameLen] != '/') { nameLen--;}
         
-        m_files.push_back({});
-        FILE_STATE& state = m_files.back();
+        files.push_back({});
+        FILE_STATE& state = files.back();
         state.path = filenames[i];
         state.pathLen = filenameLens[i];
         state.filenameOffset = nameLen + 1;
@@ -61,25 +61,25 @@ void FileManager::AddNewPage()
     }
     
     char* filePage = (char*)mmapRet;
-    m_filePages.push_back(filePage);
+    filePages.push_back(filePage);
     
-    m_offsetIntoPage = 0;
-    m_currentPage = m_filePages.size() - 1;
+    offsetIntoPage = 0;
+    currentPage = filePages.size() - 1;
 }
 
 void FileManager::LoadFileIntoPage(int fd, int64_t fileSize, const char* filename, char** filePos)
 {
-    if(fileSize + m_offsetIntoPage > PAGE_SIZE)
+    if(fileSize + offsetIntoPage > PAGE_SIZE)
     {
         if(fileSize > PAGE_SIZE){exit(-1);}
         else{AddNewPage();}
     }
-    char* page = m_filePages[m_currentPage];
-    *filePos = page + m_offsetIntoPage;
-    ssize_t readBytes =  read(fd, page + m_offsetIntoPage, fileSize);
+    char* page = filePages[currentPage];
+    *filePos = page + offsetIntoPage;
+    ssize_t readBytes =  read(fd, page + offsetIntoPage, fileSize);
     if(readBytes == -1){ManagerExitOnErrorCode(errno, filename);}
     if(readBytes != fileSize ){ManagerExitOnErrorMsg("Could not load whole file", filename);} 
-    m_offsetIntoPage += fileSize;
+    offsetIntoPage += fileSize;
 }
 
 void FileManager::ManagerExitOnError(int type, const void *errorData, const char *fileName)
@@ -117,13 +117,13 @@ void FileManager::ManagerExitOnErrorMsg(const char *errorMsg, const char *fileNa
 
 int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE* fileState)
 {
-    for(size_t i =0; i < m_files.size(); i++)
+    for(size_t i =0; i < files.size(); i++)
     {
-        if(m_files[i].pathLen == pathLen)
+        if(files[i].pathLen == pathLen)
         {
-            if(memcmp(path, m_files[i].path, pathLen) == 0)
+            if(memcmp(path, files[i].path, pathLen) == 0)
             {
-                *fileState = m_files[i];
+                *fileState = files[i];
                 return 0;
             }
         }
@@ -134,11 +134,11 @@ int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE
 
 int32_t FileManager::GetFileId(const char *path, uint64_t pathLen, FILE_ID *fileId)
 {
-        for(size_t i =0; i < m_files.size(); i++)
+        for(size_t i =0; i < files.size(); i++)
     {
-        if(m_files[i].pathLen == pathLen)
+        if(files[i].pathLen == pathLen)
         {
-            if(memcmp(path, m_files[i].path, pathLen) == 0)
+            if(memcmp(path, files[i].path, pathLen) == 0)
             {
                 fileId->id = i;
                 return 0;

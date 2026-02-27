@@ -2,14 +2,14 @@
 
 
 
-Preprocessor::Preprocessor(FILE_STATE m_mainFile, FileManager *manager, const CompilationOpts* opts)
+Preprocessor::Preprocessor(FILE_STATE mainFile, FileManager *manager, const CompilationOpts* opts)
 :
-m_lexer(m_mainFile, manager, opts), m_opts(opts)
+lexer(mainFile, manager, opts), opts(opts)
 {
 }
 
 int32_t Preprocessor::Peek(Token* token)
 {
-    int32_t ret = m_lexer.Lex(token);
+    int32_t ret = lexer.Lex(token);
     return ret;
 }

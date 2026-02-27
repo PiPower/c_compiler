@@ -7,7 +7,7 @@ struct FILE_STATE
     const char* path; // pointer to file path
     size_t pathLen; // length of file path in path
     size_t filenameOffset; // offset of first character in path that represents file name
-    char* fileData; // pointer to file data loaded in m_filePages
+    char* fileData; // pointer to file data loaded in filePages
     int64_t fileSize; // size of file
 };
 
@@ -32,8 +32,8 @@ struct FileManager
     int32_t GetFileState(const char* path, uint64_t pathLen, FILE_STATE* fileState);
     int32_t GetFileId(const char* path, uint64_t pathLen, FILE_ID* fileId);
 
-    std::vector<FILE_STATE> m_files;
-    std::vector<char*> m_filePages;
-    size_t m_currentPage;
-    int64_t m_offsetIntoPage;
+    std::vector<FILE_STATE> files;
+    std::vector<char*> filePages;
+    size_t currentPage;
+    int64_t offsetIntoPage;
 };

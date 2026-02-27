@@ -8,6 +8,6 @@ struct Parser
     Parser(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
     void Parse();
 
-    Preprocessor m_PP;
-    const CompilationOpts* m_opts;
+    Preprocessor PP;
+    const CompilationOpts* opts;
 };

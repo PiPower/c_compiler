@@ -4,19 +4,19 @@
 
 Lexer::Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
 :
-m_mainFile(mainFile), m_manager(manager), m_opts(opts)
+mainFile(mainFile), manager(manager), opts(opts)
 {
-    assert(m_manager != nullptr);
+    assert(manager != nullptr);
 
     FilePos initialFile;
-    m_manager->GetFileId(m_mainFile.path, m_mainFile.pathLen, &initialFile.fileId);
-    initialFile.fileBase = m_mainFile.fileData;
-    initialFile.fileCurr = m_mainFile.fileData;
-    initialFile.fileEnd = m_mainFile.fileData + m_mainFile.fileSize;
-    m_files.push(initialFile);
+    manager->GetFileId(mainFile.path, mainFile.pathLen, &initialFile.fileId);
+    initialFile.fileBase = mainFile.fileData;
+    initialFile.fileCurr = mainFile.fileData;
+    initialFile.fileEnd = mainFile.fileData + mainFile.fileSize;
+    files.push(initialFile);
 
-    m_fCurr = initialFile.fileCurr;
-    m_fEnd = initialFile.fileEnd;
+    fCurr = initialFile.fileCurr;
+    fEnd = initialFile.fileEnd;
 }
 
 bool Lexer::IsHorizontalWhiteSpace(char C)
@@ -41,10 +41,10 @@ bool Lexer::IsSimpleChar(char C)
 
 char Lexer::GetNextChar()
 {
-    if(IsSimpleChar(*m_fCurr))
+    if(IsSimpleChar(*fCurr))
     {
-        char c = *m_fCurr;
-        m_fCurr++;
+        char c = *fCurr;
+        fCurr++;
         return c;
     }
     return GetCharAndSizeSlow();
@@ -52,29 +52,29 @@ char Lexer::GetNextChar()
 
 char Lexer::GetCharAndSizeSlow()
 {
-    uint64_t remainingChars = m_fEnd - m_fCurr;
-    if(*m_fCurr == '\\')
+    uint64_t remainingChars = fEnd - fCurr;
+    if(*fCurr == '\\')
     {
 slash:
-        if(remainingChars > 0 && !IsWhiteSpace(*(m_fCurr + 1)))
+        if(remainingChars > 0 && !IsWhiteSpace(*(fCurr + 1)))
         {
-            m_fCurr++;
+            fCurr++;
             return '\\';
         }
         //TODO add support for escaped-newline
-        m_fCurr++;
+        fCurr++;
         return '\\';
     }
     
     // process trigraph
-    if(m_opts->trigraphs_enabled && remainingChars >= 2 && m_fCurr[0] == '?' && m_fCurr[1] == '?')
+    if(opts->trigraphs_enabled && remainingChars >= 2 && fCurr[0] == '?' && fCurr[1] == '?')
     {
         char out = '\0';
-        switch (m_fCurr[2])
+        switch (fCurr[2])
         {
         case '/':
             remainingChars -= 3;
-            m_fCurr += 3;
+            fCurr += 3;
             goto slash;
             break;
         case '=':  out = '#'; break;
@@ -85,23 +85,23 @@ slash:
         case '<':  out = '{'; break;
         case '>':  out = '}'; break; 
         case '-':  out = '~'; break;  
-        default: return *m_fCurr;
+        default: return *fCurr;
         }
-        if(m_opts->trigraphs_refrenced == 0)
+        if(opts->trigraphs_refrenced == 0)
         {
             printf("WARNING: Trigraph detected in source code, in order to hide warning use flag -ftrigraphs\n");
         }
-        m_fCurr += 3;
+        fCurr += 3;
         return out;
     }
-    return *m_fCurr;
+    return *fCurr;
 }
 
 void Lexer::SkipHorizonthalWhiteSpace()
 {
-    while (m_fCurr < m_fEnd && IsHorizontalWhiteSpace(*m_fCurr))
+    while (fCurr < fEnd && IsHorizontalWhiteSpace(*fCurr))
     {
-        m_fCurr++;
+        fCurr++;
     }
 }
 
@@ -110,7 +110,7 @@ int32_t Lexer::Lex(Token* token)
 
     SkipHorizonthalWhiteSpace();
 
-    if(m_fCurr == m_fEnd)
+    if(fCurr == fEnd)
     {
         token->type = TokenTypes::eof;
         token->location = {};

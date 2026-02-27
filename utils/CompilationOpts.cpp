@@ -33,8 +33,8 @@ CompilationOpts::CompilationOpts(int argc, const char** argv)
         size_t fileLen = 0;
         if(isCFilePath(arg, &fileLen))
         {
-            m_filenames.push_back(arg);
-            m_filenameLens.push_back(fileLen);
+            filenames.push_back(arg);
+            filenameLens.push_back(fileLen);
         }
         else if(CheckBinaryFlag(arg, "-ftrigraphs"))
         {

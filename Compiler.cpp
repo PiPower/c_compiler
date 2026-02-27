@@ -2,20 +2,20 @@
 #include "frontend/Parser.hpp"
 Compiler::Compiler(int argc, char *argv[])
 :
-    m_argc(argc), m_argv(argv), m_opts(argc, (const char**)argv),
-    m_fileManager( m_opts.m_filenames, m_opts.m_filenameLens)
+    argc(argc), argv(argv), opts(argc, (const char**)argv),
+    fileManager( opts.filenames, opts.filenameLens)
 {
 
 }
 
 void Compiler::compile()
 {
-    for(size_t i =0; i < m_opts.m_filenames.size(); i++)
+    for(size_t i =0; i < opts.filenames.size(); i++)
     {
         FILE_STATE mainFile;
         // skip err check, constructor checks for all main files
-        m_fileManager.GetFileState( m_opts.m_filenames[i],  m_opts.m_filenameLens[i], &mainFile);
-        Parser parser(mainFile, &m_fileManager, &m_opts);
+        fileManager.GetFileState( opts.filenames[i],  opts.filenameLens[i], &mainFile);
+        Parser parser(mainFile, &fileManager, &opts);
         parser.Parse();
     }
 }

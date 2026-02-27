@@ -21,12 +21,12 @@ struct Lexer
     void SkipHorizonthalWhiteSpace();
     int32_t Lex(Token* token);
 
-    FILE_STATE m_mainFile;
-    FileManager* m_manager;
-    std::stack<FilePos> m_files;
-    const char* m_fEnd;
-    const char* m_fCurr;
-    const CompilationOpts* m_opts;
+    FILE_STATE mainFile;
+    FileManager* manager;
+    std::stack<FilePos> files;
+    const char* fEnd;
+    const char* fCurr;
+    const CompilationOpts* opts;
 };
 
 struct SizedChar 
