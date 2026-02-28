@@ -24,7 +24,7 @@ struct Lexer
     char GetCharSlow();
     char LookAhead(size_t n);
     void ConsumeChar();
-    void SkipHorizonthalWhiteSpace();
+    void SkipHorizontalWhiteSpace();
     int64_t ParseComment();
     int32_t Lex(Token* token);
 
@@ -33,7 +33,7 @@ struct Lexer
     std::stack<FilePos> files;
     size_t currChar;
     std::vector<char> charHistory;
-    std::queue<SourceLocation> charLocations;
+    std::queue<SourceLocation> currLocations;
     const char* fEnd;
     const char* fCurr;
     const CompilationOpts* opts;

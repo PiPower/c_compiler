@@ -63,7 +63,7 @@ void Lexer::ChangeLexedFile()
 
 SourceLocation Lexer::GetCurrLoc()
 {
-    return charLocations.front();
+    return currLocations.front();
 }
 
 char Lexer::GetCurrChar()
@@ -77,13 +77,13 @@ char Lexer::GetCurrChar()
 
 char Lexer::GetNextChar()
 {
-    SkipHorizonthalWhiteSpace();
+    SkipHorizontalWhiteSpace();
 
     if(fCurr == fEnd)
     {
         if(charHistory.empty() || charHistory.back() != '\0') 
         {
-            charLocations.emplace(files.top(), fCurr, 1);
+            currLocations.emplace(files.top(), fCurr, 1);
             charHistory.push_back('\0');
         }
         return charHistory.back();
@@ -92,14 +92,14 @@ char Lexer::GetNextChar()
     if(IsSimpleChar(*fCurr))
     {
         charHistory.push_back(*fCurr);
-        charLocations.emplace(files.top(), fCurr, 1);
+        currLocations.emplace(files.top(), fCurr, 1);
         fCurr++;
         return charHistory.back();
     }
 
     const char* fCurrBuff = fCurr;
     charHistory.push_back( GetCharSlow());
-    charLocations.emplace(files.top(), fCurrBuff, fCurr - fCurrBuff);
+    currLocations.emplace(files.top(), fCurrBuff, fCurr - fCurrBuff);
     return charHistory.back();
 }
 
@@ -141,7 +141,7 @@ slash:
         case '<':  out = '{'; break;
         case '>':  out = '}'; break;    
         case '-':  out = '~'; break;  
-        default: return *fCurr;
+        default:  fCurr++; return *(fCurr-1);
         }
         fCurr += 3;
         return out;
@@ -173,11 +173,11 @@ char Lexer::LookAhead(size_t n)
 void Lexer::ConsumeChar()
 {
     currChar++;
-    charLocations.pop();
+    currLocations.pop();
     assert(currChar<=charHistory.size());
 }
 
-void Lexer::SkipHorizonthalWhiteSpace()
+void Lexer::SkipHorizontalWhiteSpace()
 {
     while (fCurr < fEnd && IsHorizontalWhiteSpace(*fCurr))
     {
@@ -194,7 +194,7 @@ int64_t Lexer::ParseComment()
     int64_t commentLen = 0;
 
     charHistory.resize(currChar);
-    while (!charLocations.empty()) { charLocations.pop(); }
+    while (!currLocations.empty()) { currLocations.pop(); }
     
     fCurr = files.top().fileBase + loc.offset;
 skip_loop:
@@ -226,6 +226,7 @@ skip_loop:
 
 int32_t Lexer::Lex(Token* token)
 {
+    
     char C = GetCurrChar();
     token->location = GetCurrLoc();
     ConsumeChar();
