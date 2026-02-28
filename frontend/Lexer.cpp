@@ -1,7 +1,7 @@
 #include "Lexer.hpp"
 #include <cassert>
 #include <stdio.h>
-
+#include <string.h>
 Lexer::Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
 :
 mainFile(mainFile), manager(manager), opts(opts)
@@ -10,6 +10,7 @@ mainFile(mainFile), manager(manager), opts(opts)
 
     FilePos initialFile;
     manager->GetFileId(mainFile.path, mainFile.pathLen, &initialFile.fileId);
+    initialFile.lineNr = 1;
     initialFile.fileBase = mainFile.fileData;
     initialFile.fileCurr = mainFile.fileData;
     initialFile.fileEnd = mainFile.fileData + mainFile.fileSize;
@@ -89,7 +90,14 @@ slash:
         }
         if(opts->trigraphs_refrenced == 0)
         {
-            printf("WARNING: Trigraph detected in source code, in order to hide warning use flag -ftrigraphs\n");
+            FILE_STATE fileState;
+            manager->GetFileState(&files.top().fileId, &fileState);
+            char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
+            memcpy(pathBuffer, fileState.path, fileState.pathLen);
+            pathBuffer[fileState.pathLen] = '\0';
+            
+            printf("%s:%ld WARNING: Trigraph detected in source code, in order to hide warning use flag -ftrigraphs\n", 
+                    pathBuffer, files.top().lineNr);
         }
         fCurr += 3;
         return out;
@@ -107,7 +115,6 @@ void Lexer::SkipHorizonthalWhiteSpace()
 
 int32_t Lexer::Lex(Token* token)
 {
-
     SkipHorizonthalWhiteSpace();
 
     if(fCurr == fEnd)

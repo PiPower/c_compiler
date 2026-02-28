@@ -132,14 +132,25 @@ int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE
     return -1;
 }
 
+int32_t FileManager::GetFileState(const FILE_ID *fileId, FILE_STATE* fileState)
+{
+    if(fileId->id >= files.size())
+    {
+        return -1;
+    }
+    *fileState = files[fileId->id];
+    return 0;
+}
+
 int32_t FileManager::GetFileId(const char *path, uint64_t pathLen, FILE_ID *fileId)
 {
-        for(size_t i =0; i < files.size(); i++)
+    for(size_t i =0; i < files.size(); i++)
     {
         if(files[i].pathLen == pathLen)
         {
             if(memcmp(path, files[i].path, pathLen) == 0)
             {
+
                 fileId->id = i;
                 return 0;
             }

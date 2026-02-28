@@ -39,6 +39,7 @@ struct SizedChar
 struct FilePos
 {
     FILE_ID fileId;
+    int64_t lineNr;
     const char* fileBase;
     const char* fileEnd;
     const char* fileCurr;

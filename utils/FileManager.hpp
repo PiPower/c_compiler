@@ -30,6 +30,7 @@ struct FileManager
     void ManagerExitOnErrorCode(int errorNum, const char* fileName);
     void ManagerExitOnErrorMsg(const char* errorMsg, const char* fileName);
     int32_t GetFileState(const char* path, uint64_t pathLen, FILE_STATE* fileState);
+    int32_t GetFileState(const FILE_ID* fileId, FILE_STATE* fileState);
     int32_t GetFileId(const char* path, uint64_t pathLen, FILE_ID* fileId);
 
     std::vector<FILE_STATE> files;
