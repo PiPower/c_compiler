@@ -24,10 +24,11 @@ struct Lexer
     char GetCurrChar();
     char GetNextChar();
     char GetCharSlow();
+    void LexIdentifier();
     char LookAhead(size_t n);
     void ConsumeChar();
     void SkipHorizontalWhiteSpace();
-    int64_t ParseComment();
+    int64_t LexComment();
     int32_t Lex(Token* token);
 
     FILE_STATE mainFile;

@@ -20,9 +20,15 @@ int main()
         lexer.Lex(&tok);
         TokenType::Type expectedToken = tokens[i];
         SourceLocation expectedLoc = locations[i];
+
+        if(tok.type != expectedToken || expectedLoc.len != tok.location.len ||
+        expectedLoc.offset != tok.location.offset ||expectedLoc.line != tok.location.line)
+        {
+            exit(-1);
+        }
         i++;
 
-    }while (tok.type == TokenType::eof);
+    }while (tok.type != TokenType::eof);
 
     
 }
@@ -31,7 +37,7 @@ int main()
 std::vector<TokenType::Type> tokens = {
 
 // #include <stdio.h>
-TokenType::hash, TokenType::identifier, TokenType::less,
+TokenType::hash, TokenType::kw_include, TokenType::less,
 TokenType::identifier, TokenType::dot, TokenType::identifier,
 TokenType::greater,
 

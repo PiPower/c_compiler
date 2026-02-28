@@ -153,6 +153,10 @@ slash:
     return *(fCurr-1);
 }
 
+void Lexer::LexIdentifier()
+{
+}
+
 char Lexer::LookAhead(size_t n)
 {
     if(currChar + n < charHistory.size())
@@ -188,7 +192,7 @@ void Lexer::SkipHorizontalWhiteSpace()
     }
 }
 
-int64_t Lexer::ParseComment()
+int64_t Lexer::LexComment()
 {
     // in order to correctly parse comment 
     // it is needed to move fCurr to offset after second \ and skip line
@@ -229,6 +233,9 @@ skip_loop:
 
 int32_t Lexer::Lex(Token* token)
 {
+    token->type = TokenType::none;
+    token->location = {};
+
     SkipHorizontalWhiteSpace();
 
     char C = GetCurrChar();
@@ -299,7 +306,7 @@ int32_t Lexer::Lex(Token* token)
             token->type = TokenType::comment;
             token->location.len = 2; // "//"
             ConsumeChar();
-            token->location.len += ParseComment();
+            token->location.len += LexComment();
         }
         else{token->type = TokenType::slash;}
         break;
@@ -513,7 +520,11 @@ int32_t Lexer::Lex(Token* token)
         token->location.len = 1;
         files.top().lineNr++;
         break;
+    case '0': case '1': case '2': case '3': case '4':
+    case '5': case '6': case '7': case '8': case '9':
+        exit(-1);
     default:
+        LexIdentifier();
         break;
     }
 
