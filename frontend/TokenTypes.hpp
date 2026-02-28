@@ -32,6 +32,7 @@ namespace TokenType
         caret_equal, pipe_equal,
     // miscallenous
         colon, comma , semicolon, dot, arrow, ellipsis, new_line,
+        hash, d_hash,
     // for internal usage
         comment
     };

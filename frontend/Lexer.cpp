@@ -30,7 +30,12 @@ bool Lexer::IsVerticalWhiteSpace(char C)
     return C == '\n' || C == '\r';
 }
 
-void Lexer::TrigraphWarning(const Token* token)
+void Lexer::TrigraphWarning(SourceLocation loc)
+{
+    TrigraphWarning(&loc);
+}
+
+void Lexer::TrigraphWarning(const SourceLocation* loc)
 {
     if(opts->trigraphs_refrenced == 0)
     {
@@ -41,7 +46,7 @@ void Lexer::TrigraphWarning(const Token* token)
         pathBuffer[fileState.pathLen] = '\0';
         
         printf("%s:%ld:%ld WARNING: Trigraph detected in source code, in order to hide warning use flag -ftrigraphs\n", 
-                pathBuffer, token->location.line, token->location.offset);
+                pathBuffer, loc->line, loc->offset);
     }
 }
 
@@ -77,8 +82,6 @@ char Lexer::GetCurrChar()
 
 char Lexer::GetNextChar()
 {
-    SkipHorizontalWhiteSpace();
-
     if(fCurr == fEnd)
     {
         if(charHistory.empty() || charHistory.back() != '\0') 
@@ -226,6 +229,8 @@ skip_loop:
 
 int32_t Lexer::Lex(Token* token)
 {
+    SkipHorizontalWhiteSpace();
+
     char C = GetCurrChar();
     token->location = GetCurrLoc();
     ConsumeChar();
@@ -306,6 +311,28 @@ int32_t Lexer::Lex(Token* token)
             token->location.len = 2;
             ConsumeChar();
         }
+        else if (C == '>')
+        {
+            token->type = TokenType::r_brace;
+            token->location.len = 2;
+            ConsumeChar();
+        }
+        else if (C == ':')
+        {
+            token->type = TokenType::hash;
+            token->location.len = 2;
+            ConsumeChar();
+            C = GetCurrChar();
+            char C1 = LookAhead(1);
+            if(C == '%' && C1 == ':')
+            {
+                token->type = TokenType::d_hash;
+                token->location.len = 4;
+                ConsumeChar();
+                ConsumeChar();
+            }
+
+        }
         else{token->type = TokenType::percent;}break;
     case '=':
         C = GetCurrChar();
@@ -318,7 +345,7 @@ int32_t Lexer::Lex(Token* token)
         else{token->type = TokenType::equal;}
         break;
     case '^':
-        if(token->location.len != 1){TrigraphWarning(token);} 
+        if(token->location.len != 1){TrigraphWarning(&token->location);} 
         C = GetCurrChar();
         if (C == '=')
         {
@@ -329,11 +356,11 @@ int32_t Lexer::Lex(Token* token)
         else{token->type = TokenType::caret;}
         break;
     case '|':
-        if(token->location.len != 1){TrigraphWarning(token);} 
+        if(token->location.len != 1){TrigraphWarning(&token->location);} 
         C = GetCurrChar();
         if (C == '|')
         {
-            if(token->location.len != 1){TrigraphWarning(token);} 
+            if(GetCurrLoc().len != 1){TrigraphWarning(GetCurrLoc());} 
             token->type = TokenType::double_pipe;
             token->location.len += GetCurrLoc().len;
             ConsumeChar();
@@ -377,6 +404,18 @@ int32_t Lexer::Lex(Token* token)
         if (C == '=')
         {
             token->type = TokenType::less_equal;
+            token->location.len = 2;
+            ConsumeChar();
+        }
+        else if (C == ':')
+        {
+            token->type = TokenType::l_bracket;
+            token->location.len = 2;
+            ConsumeChar();
+        }
+        else if (C == '%')
+        {
+            token->type = TokenType::l_brace;
             token->location.len = 2;
             ConsumeChar();
         }
@@ -435,24 +474,54 @@ int32_t Lexer::Lex(Token* token)
         }
         else{token->type = TokenType::dot;}
         break;
-    case '{': token->type = TokenType::l_brace;        if(token->location.len != 1){TrigraphWarning(token);} break;
-    case '~': token->type = TokenType::tilde;          if(token->location.len != 1){TrigraphWarning(token);} break;
-    case '}': token->type = TokenType::r_brace;        if(token->location.len != 1){TrigraphWarning(token);} break;
+    case '#':
+        if(token->location.len != 1){TrigraphWarning(&token->location);}
+        C = GetCurrChar();
+        if(C == '#')
+        {
+            if(GetCurrLoc().len != 1){TrigraphWarning(GetCurrLoc());}
+
+            token->type = TokenType::d_hash;
+            token->location.len += GetCurrLoc().len;
+            ConsumeChar();
+        }
+        else {token->type = TokenType::d_hash;} 
+        break;
+    case ':': 
+        C = GetCurrChar();
+        if(C == '>')
+        {
+            token->type = TokenType::r_bracket;
+            token->location.len = 2;
+            ConsumeChar();
+        }
+        else {token->type = TokenType::colon;} 
+        break;
+
+    case '{': token->type = TokenType::l_brace;        if(token->location.len != 1){TrigraphWarning(&token->location);} break;
+    case '~': token->type = TokenType::tilde;          if(token->location.len != 1){TrigraphWarning(&token->location);} break;
+    case '}': token->type = TokenType::r_brace;        if(token->location.len != 1){TrigraphWarning(&token->location);} break;
+    case '[': token->type = TokenType::l_bracket;      if(token->location.len != 1){TrigraphWarning(&token->location);} break;
+    case ']': token->type = TokenType::r_bracket;      if(token->location.len != 1){TrigraphWarning(&token->location);} break;
     case '(': token->type = TokenType::l_parentheses;  break;
     case ')': token->type = TokenType::r_parentheses;  break;
     case ';': token->type = TokenType::semicolon;      break;
     case ',': token->type = TokenType::comma;          break;
     case '?': token->type = TokenType::question_mark;  break;
-    case ':': token->type = TokenType::colon;          break;
     case '\n':
         token->type = TokenType::new_line;
         token->location.len = 1;
         files.top().lineNr++;
         break;
-    // parsing punctuators
     default:
         break;
     }
 
+    // remove remaining white space chars
+    while (IsHorizontalWhiteSpace(GetCurrChar()))
+    {
+        ConsumeChar();
+    }
+    
     return 0;
 }

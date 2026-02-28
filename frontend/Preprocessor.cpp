@@ -11,5 +11,6 @@ lexer(mainFile, manager, opts), opts(opts)
 int32_t Preprocessor::Peek(Token* token)
 {
     int32_t ret = lexer.Lex(token);
+    ret = lexer.Lex(token);
     return ret;
 }
