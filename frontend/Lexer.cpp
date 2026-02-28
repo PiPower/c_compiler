@@ -4,21 +4,19 @@
 #include <string.h>
 Lexer::Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
 :
-mainFile(mainFile), manager(manager), opts(opts)
+mainFile(mainFile), manager(manager), currChar(0), opts(opts)
 {
     assert(manager != nullptr);
     assert(opts != nullptr);
     charHistory.reserve(100000);
-
     FilePos initialFile;
     manager->GetFileId(mainFile.path, mainFile.pathLen, &initialFile.fileId);
     initialFile.lineNr = 1;
     initialFile.fileBase = mainFile.fileData;
-    initialFile.fileCurr = mainFile.fileData;
     initialFile.fileEnd = mainFile.fileData + mainFile.fileSize;
     files.push(initialFile);
 
-    fCurr = initialFile.fileCurr;
+    fCurr = initialFile.fileBase;
     fEnd = initialFile.fileEnd;
 }
 
@@ -55,17 +53,25 @@ char Lexer::GetNextChar()
 {
     if(fCurr == fEnd)
     {
-        if(charHistory.back() != '\0') {charHistory.push_back('\0');}
+        if(charHistory.back() != '\0') 
+        {
+            charLocations.emplace(files.top(), fCurr, 1);
+            charHistory.push_back('\0');
+        }
         return charHistory.back();
     }
 
     if(IsSimpleChar(*fCurr))
     {
         charHistory.push_back(*fCurr);
+        charLocations.emplace(files.top(), fCurr, 1);
         fCurr++;
         return charHistory.back();
     }
+
+    const char* fCurrBuff = fCurr;
     charHistory.push_back( GetCharSlow());
+    charLocations.emplace(files.top(), fCurrBuff, fCurr - fCurrBuff);
     return charHistory.back();
 }
 
@@ -148,6 +154,7 @@ char Lexer::LookAhead(size_t n)
 void Lexer::ConsumeChar()
 {
     currChar++;
+    charLocations.pop();
     assert(currChar<=charHistory.size());
 }
 
@@ -162,7 +169,7 @@ void Lexer::SkipHorizonthalWhiteSpace()
 int32_t Lexer::Lex(Token* token)
 {
     SkipHorizonthalWhiteSpace();
-    
+
     char C = GetCurrChar();
     ConsumeChar();
     switch (C)

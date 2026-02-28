@@ -3,7 +3,7 @@
 #include "TokenTypes.hpp"
 #include <stack>
 #include "../utils/CompilationOpts.hpp"
-
+#include <queue>
 struct FilePos;
 struct SourceLocation;
 struct Token;
@@ -29,6 +29,7 @@ struct Lexer
     std::stack<FilePos> files;
     size_t currChar;
     std::vector<char> charHistory;
+    std::queue<SourceLocation> charLocations;
     const char* fEnd;
     const char* fCurr;
     const CompilationOpts* opts;
@@ -47,14 +48,19 @@ struct FilePos
     int64_t lineNr;
     const char* fileBase;
     const char* fileEnd;
-    const char* fileCurr;
 };
 
 struct SourceLocation
 {
+    SourceLocation() = default;
+    SourceLocation(const FilePos& filePos, const char* fileCurr, int64_t len) :
+     id(filePos.fileId),offset(fileCurr - filePos.fileBase),line(filePos.lineNr), len(len)
+    {}
+
     FILE_ID id;
     int64_t offset;
     int64_t line;
+    int64_t len;
 };
 
 struct Token
