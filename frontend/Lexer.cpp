@@ -226,11 +226,9 @@ skip_loop:
 
 int32_t Lexer::Lex(Token* token)
 {
-    
     char C = GetCurrChar();
     token->location = GetCurrLoc();
     ConsumeChar();
-    LookAhead(3);
 
     switch(C)
     {
