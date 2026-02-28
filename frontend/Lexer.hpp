@@ -4,6 +4,7 @@
 #include <stack>
 #include "../utils/CompilationOpts.hpp"
 #include <queue>
+
 struct FilePos;
 struct SourceLocation;
 struct Token;
@@ -59,6 +60,11 @@ struct FilePos
 struct SourceLocation
 {
     SourceLocation() = default;
+    
+    SourceLocation(size_t id,  int64_t offset, int64_t line, int64_t len) :
+    id(FILE_ID{id}), offset(offset), line(line), len(len)
+    {};
+
     SourceLocation(const FilePos& filePos, const char* fileCurr, int64_t len) :
      id(filePos.fileId),offset(fileCurr - filePos.fileBase),line(filePos.lineNr), len(len)
     {}

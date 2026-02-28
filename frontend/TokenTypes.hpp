@@ -6,6 +6,8 @@ namespace TokenType
     enum Type : uint16_t
     {
         eof,
+        identifier,
+        numeric_literal,
     // keywords
         kw_break, kw_case, kw_continue, kw_do, kw_else, kw_if, kw_for,
         kw_return, kw_while, kw_typedef, kw_extern, kw_static, 
@@ -14,9 +16,9 @@ namespace TokenType
     // type keywords
         kw__unsigned, kw_int, kw_long, kw_float, kw_double, kw_imaginary,
         kw_signed, kw_char, kw_short, kw_void, kw_bool, kw_complex, 
-         kw_struct, kw_union, 
+        kw_struct, kw_union, 
     // type qualifier keywords
-         kw_const,  kw_volatile,  kw_restrict,
+        kw_const,  kw_volatile,  kw_restrict,
     // separators
         l_bracket,  r_bracket, l_parentheses,  r_parentheses, 
         l_brace, r_brace,

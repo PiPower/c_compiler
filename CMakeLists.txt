@@ -12,6 +12,9 @@ add_library(frontend STATIC ${frontendSources})
 add_library(utils STATIC ${utils})
 add_executable(c_compiler main.cpp Compiler.cpp)
 
-
 target_link_libraries(c_compiler PUBLIC frontend)
 target_link_libraries(c_compiler PUBLIC utils)
+
+add_executable(lexer_test tests/test_lexer.cpp)
+target_link_libraries(lexer_test PUBLIC frontend)
+target_link_libraries(lexer_test PUBLIC utils)

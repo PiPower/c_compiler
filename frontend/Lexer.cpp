@@ -1,4 +1,4 @@
-#include "Lexer.hpp"
+#include "Lexer.hpp" 
 #include <cassert>
 #include <stdio.h>
 #include <string.h>
@@ -485,7 +485,7 @@ int32_t Lexer::Lex(Token* token)
             token->location.len += GetCurrLoc().len;
             ConsumeChar();
         }
-        else {token->type = TokenType::d_hash;} 
+        else {token->type = TokenType::hash;} 
         break;
     case ':': 
         C = GetCurrChar();
