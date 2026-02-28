@@ -7,6 +7,7 @@ Lexer::Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* o
 mainFile(mainFile), manager(manager), opts(opts)
 {
     assert(manager != nullptr);
+    assert(opts != nullptr);
 
     FilePos initialFile;
     manager->GetFileId(mainFile.path, mainFile.pathLen, &initialFile.fileId);
