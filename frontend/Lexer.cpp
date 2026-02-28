@@ -40,6 +40,17 @@ bool Lexer::IsSimpleChar(char C)
     return C != '?' && C != '\\';
 }
 
+void Lexer::ChangeLexedFile()
+{
+    // currently multiple files are not supported
+    exit(-1);
+}
+
+SourceLocation Lexer::GetCurrLoc()
+{
+    return charLocations.front();
+}
+
 char Lexer::GetCurrChar()
 {
     if(currChar < charHistory.size())
@@ -166,199 +177,329 @@ void Lexer::SkipHorizonthalWhiteSpace()
     }
 }
 
+int64_t Lexer::ParseComment()
+{
+    // in order to correctly parse comment 
+    // it is needed to move fCurr to offset after second \ and skip line
+    // additionally both charHistory and charLocations need to be invalidated
+    SourceLocation loc = GetCurrLoc();
+    int64_t commentLen = 0;
+    LookAhead(10);
+    charHistory.resize(currChar);
+    while (!charLocations.empty()) { charLocations.pop(); }
+    
+    fCurr = files.top().fileBase + loc.offset;
+skip_loop:
+    while (fCurr < files.top().fileEnd && *fCurr != '\n')
+    {
+        fCurr++;
+    }
+
+    if (fCurr < files.top().fileEnd && *fCurr != '\n')
+    {
+        files.top().lineNr++;
+        ConsumeChar();
+    }
+
+    if(fCurr == files.top().fileEnd && files.size() > 0)
+    {
+        ChangeLexedFile();
+        fCurr = files.top().fileCurrent;
+        fEnd = files.top().fileEnd;
+        goto skip_loop;
+    }
+
+    return commentLen;
+}
+
 int32_t Lexer::Lex(Token* token)
 {
     SkipHorizonthalWhiteSpace();
 
     char C = GetCurrChar();
+    token->location = GetCurrLoc();
     ConsumeChar();
-    switch (C)
+    switch(C)
     {
     // parsing punctuators
     case '*':
         C = GetCurrChar();
-        if(C == '=')
+        if (C == '=')
         {
             token->type = TokenType::star_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
-        else{token->type = TokenType::star;}
+        else
+        {
+            token->type = TokenType::star;
+            token->location.len = 1;
+        }
         break;
+
     case '+':
         C = GetCurrChar();
-        if(C == '=')
+        if (C == '=')
         {
             token->type = TokenType::plus_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
-        if(C == '+')
+        else if (C == '+')
         {
             token->type = TokenType::plus_plus;
+            token->location.len = 2;
             ConsumeChar();
         }
-        else {token->type = TokenType::plus;}
+        else
+        {
+            token->type = TokenType::plus;
+            token->location.len = 1;
+        }
         break;
-    case '-': 
+
+    case '-':
         C = GetCurrChar();
         if (C == '=')
         {
             token->type = TokenType::minus_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
         else if (C == '-')
         {
             token->type = TokenType::minus_minus;
+            token->location.len = 2;
             ConsumeChar();
         }
         else if (C == '>')
         {
             token->type = TokenType::arrow;
+            token->location.len = 2;
             ConsumeChar();
         }
-        else{ token->type = TokenType::minus;}
+        else
+        {
+            token->type = TokenType::minus;
+            token->location.len = 1;
+        }
         break;
+
     case '/':
         C = GetCurrChar();
         if (C == '=')
         {
             token->type = TokenType::slash_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
         else if (C == '/')
         {
             token->type = TokenType::comment;
+            token->location.len = 2; // "//"
             ConsumeChar();
-            C = GetCurrChar();
-            while (C != '\n' && C != '\0') {C = GetCurrChar(); ConsumeChar(); }
-            if (C == '\n') { files.top().lineNr++; ConsumeChar(); }
+            token->location.len += ParseComment();
         }
-        else{token->type = TokenType::slash;}
+        else
+        {
+            token->type = TokenType::slash;
+            token->location.len = 1;
+        }
         break;
+
     case '%':
         C = GetCurrChar();
         if (C == '=')
         {
             token->type = TokenType::percent_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
-        else{token->type = TokenType::percent;}
+        else
+        {
+            token->type = TokenType::percent;
+            token->location.len = 1;
+        }
         break;
+
     case '=':
         C = GetCurrChar();
         if (C == '=')
         {
             token->type = TokenType::equal_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
-        else{token->type = TokenType::equal;}
+        else
+        {
+            token->type = TokenType::equal;
+            token->location.len = 1;
+        }
         break;
+
     case '^':
         C = GetCurrChar();
         if (C == '=')
         {
             token->type = TokenType::caret_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
-        else{token->type = TokenType::caret;}
+        else
+        {
+            token->type = TokenType::caret;
+            token->location.len = 1;
+        }
         break;
+
     case '|':
         C = GetCurrChar();
         if (C == '|')
         {
             token->type = TokenType::double_pipe;
+            token->location.len = 2;
             ConsumeChar();
         }
         else if (C == '=')
         {
             token->type = TokenType::pipe_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
-        else{token->type = TokenType::pipe;}
+        else
+        {
+            token->type = TokenType::pipe;
+            token->location.len = 1;
+        }
         break;
+
     case '!':
         C = GetCurrChar();
         if (C == '=')
         {
             token->type = TokenType::bang_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
-        else{token->type = TokenType::bang;}
+        else
+        {
+            token->type = TokenType::bang;
+            token->location.len = 1;
+        }
         break;
+
     case '&':
         C = GetCurrChar();
         if (C == '&')
         {
             token->type = TokenType::double_ampersand;
+            token->location.len = 2;
             ConsumeChar();
         }
         else if (C == '=')
         {
             token->type = TokenType::ampresand_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
-        else{token->type = TokenType::ampersand;}
+        else
+        {
+            token->type = TokenType::ampersand;
+            token->location.len = 1;
+        }
         break;
+
     case '<':
         C = GetCurrChar();
         if (C == '=')
         {
             token->type = TokenType::less_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
         else if (C == '<')
         {
             ConsumeChar();
             C = GetCurrChar();
-            if(C == '=') 
+            if (C == '=')
             {
                 token->type = TokenType::l_shift_equal;
+                token->location.len = 3;
                 ConsumeChar();
             }
-            else{token->type = TokenType::l_shift;}
+            else
+            {
+                token->type = TokenType::l_shift;
+                token->location.len = 2;
+            }
         }
-        else{token->type = TokenType::less;}
+        else
+        {
+            token->type = TokenType::less;
+            token->location.len = 1;
+        }
         break;
+
     case '>':
         C = GetCurrChar();
         if (C == '=')
         {
             token->type = TokenType::greater_equal;
+            token->location.len = 2;
             ConsumeChar();
         }
         else if (C == '>')
         {
             ConsumeChar();
             C = GetCurrChar();
-            if(C == '=') 
+            if (C == '=')
             {
                 token->type = TokenType::r_shift_equal;
+                token->location.len = 3;
                 ConsumeChar();
             }
-            else{token->type = TokenType::r_shift;}
+            else
+            {
+                token->type = TokenType::r_shift;
+                token->location.len = 2;
+            }
         }
-        else{token->type = TokenType::greater;}
-        break;
-    case '.': 
-        C = GetCurrChar();
-        if(C == '.' && LookAhead(1) == '.')
+        else
         {
-            token->type = TokenType::ellipsis; 
+            token->type = TokenType::greater;
+            token->location.len = 1;
+        }
+        break;
+
+    case '.':
+        C = GetCurrChar();
+        if (C == '.' && LookAhead(1) == '.')
+        {
+            token->type = TokenType::ellipsis;
+            token->location.len = 3;
             ConsumeChar();
             ConsumeChar();
         }
-        else{token->type = TokenType::dot; }
+        else
+        {
+            token->type = TokenType::dot;
+            token->location.len = 1;
+        }
         break;
-    case '{': token->type = TokenType::l_brace; break;
-    case '~': token->type = TokenType::tilde; break;
-    case '}': token->type = TokenType::r_brace; break;
-    case '(': token->type = TokenType::l_parentheses; break;
-    case ')': token->type = TokenType::r_parentheses; break;
-    case ';': token->type = TokenType::semicolon; break;
-    case ',': token->type = TokenType::comma; break;
-    case '?': token->type = TokenType::question_mark; break;
-    case ':': token->type = TokenType::colon; break;
-    case '\n': token->type = TokenType::colon; files.top().lineNr++; break;
-
+    case '{': token->type = TokenType::l_brace;        token->location.len = 1; break;
+    case '~': token->type = TokenType::tilde;          token->location.len = 1; break;
+    case '}': token->type = TokenType::r_brace;        token->location.len = 1; break;
+    case '(': token->type = TokenType::l_parentheses;  token->location.len = 1; break;
+    case ')': token->type = TokenType::r_parentheses;  token->location.len = 1; break;
+    case ';': token->type = TokenType::semicolon;      token->location.len = 1; break;
+    case ',': token->type = TokenType::comma;          token->location.len = 1; break;
+    case '?': token->type = TokenType::question_mark;  token->location.len = 1; break;
+    case ':': token->type = TokenType::colon;          token->location.len = 1; break;
+    case '\n':
+        token->type = TokenType::new_line;
+        token->location.len = 1;
+        files.top().lineNr++;
+        break;
     // parsing punctuators
     default:
         break;

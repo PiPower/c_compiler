@@ -31,7 +31,7 @@ namespace TokenType
         minus_equal, l_shift_equal, r_shift_equal, ampresand_equal,
         caret_equal, pipe_equal,
     // miscallenous
-        colon, comma , semicolon, dot, arrow, ellipsis,
+        colon, comma , semicolon, dot, arrow, ellipsis, new_line,
     // for internal usage
         comment
     };

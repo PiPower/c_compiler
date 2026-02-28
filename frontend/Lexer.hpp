@@ -16,12 +16,15 @@ struct Lexer
     bool IsVerticalWhiteSpace(char C);
     bool IsWhiteSpace(char C);
     bool IsSimpleChar(char C);
+    void ChangeLexedFile();
+    SourceLocation GetCurrLoc();
     char GetCurrChar();
     char GetNextChar();
     char GetCharSlow();
     char LookAhead(size_t n);
     void ConsumeChar();
     void SkipHorizonthalWhiteSpace();
+    int64_t ParseComment();
     int32_t Lex(Token* token);
 
     FILE_STATE mainFile;
@@ -47,6 +50,7 @@ struct FilePos
     FILE_ID fileId;
     int64_t lineNr;
     const char* fileBase;
+    const char* fileCurrent;
     const char* fileEnd;
 };
 
