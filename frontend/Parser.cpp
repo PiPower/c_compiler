@@ -11,7 +11,7 @@ void Parser::Parse()
 {
     Token token;
     PP.Peek(&token);
-    while (token.type != TokenTypes::eof)
+    while (token.type != TokenType::eof)
     {
         /* code */
     }

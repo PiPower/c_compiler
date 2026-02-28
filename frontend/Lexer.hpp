@@ -16,14 +16,19 @@ struct Lexer
     bool IsVerticalWhiteSpace(char C);
     bool IsWhiteSpace(char C);
     bool IsSimpleChar(char C);
+    char GetCurrChar();
     char GetNextChar();
-    char GetCharAndSizeSlow();
+    char GetCharSlow();
+    char LookAhead(size_t n);
+    void ConsumeChar();
     void SkipHorizonthalWhiteSpace();
     int32_t Lex(Token* token);
 
     FILE_STATE mainFile;
     FileManager* manager;
     std::stack<FilePos> files;
+    size_t currChar;
+    std::vector<char> charHistory;
     const char* fEnd;
     const char* fCurr;
     const CompilationOpts* opts;
@@ -54,6 +59,6 @@ struct SourceLocation
 
 struct Token
 {
-    TokenTypes::Type type;
+    TokenType::Type type;
     SourceLocation location;
 };
