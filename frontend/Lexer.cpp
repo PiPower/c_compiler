@@ -30,6 +30,21 @@ bool Lexer::IsVerticalWhiteSpace(char C)
     return C == '\n' || C == '\r';
 }
 
+void Lexer::TrigraphWarning(const Token* token)
+{
+    if(opts->trigraphs_refrenced == 0)
+    {
+        FILE_STATE fileState;
+        manager->GetFileState(&files.top().fileId, &fileState);
+        char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
+        memcpy(pathBuffer, fileState.path, fileState.pathLen);
+        pathBuffer[fileState.pathLen] = '\0';
+        
+        printf("%s:%ld:%ld WARNING: Trigraph detected in source code, in order to hide warning use flag -ftrigraphs\n", 
+                pathBuffer, token->location.line, token->location.offset);
+    }
+}
+
 bool Lexer::IsWhiteSpace(char C)
 {
     return IsVerticalWhiteSpace(C) || IsHorizontalWhiteSpace(C);
@@ -62,9 +77,11 @@ char Lexer::GetCurrChar()
 
 char Lexer::GetNextChar()
 {
+    SkipHorizonthalWhiteSpace();
+
     if(fCurr == fEnd)
     {
-        if(charHistory.back() != '\0') 
+        if(charHistory.empty() || charHistory.back() != '\0') 
         {
             charLocations.emplace(files.top(), fCurr, 1);
             charHistory.push_back('\0');
@@ -94,7 +111,7 @@ char Lexer::GetCharSlow()
 slash:
         printf("Lexer internal: Possibly incorrect execution path \n");
         fflush(stdout);
-        if(remainingChars > 0 && !IsWhiteSpace(*(fCurr + 1)))
+        if(remainingChars > 1 && !IsWhiteSpace(*(fCurr + 1)))
         {
             remainingChars--;
             fCurr++;
@@ -106,7 +123,7 @@ slash:
     }
     
     // process trigraph
-    if(opts->trigraphs_enabled && remainingChars >= 2 && fCurr[0] == '?' && fCurr[1] == '?')
+    if(opts->trigraphs_enabled && remainingChars > 2 && fCurr[0] == '?' && fCurr[1] == '?')
     {
         char out = '\0';
         switch (fCurr[2])
@@ -126,21 +143,11 @@ slash:
         case '-':  out = '~'; break;  
         default: return *fCurr;
         }
-        if(opts->trigraphs_refrenced == 0)
-        {
-            FILE_STATE fileState;
-            manager->GetFileState(&files.top().fileId, &fileState);
-            char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
-            memcpy(pathBuffer, fileState.path, fileState.pathLen);
-            pathBuffer[fileState.pathLen] = '\0';
-            
-            printf("%s:%ld WARNING: Trigraph detected in source code, in order to hide warning use flag -ftrigraphs\n", 
-                    pathBuffer, files.top().lineNr);
-        }
         fCurr += 3;
         return out;
     }
-    return *fCurr;
+    fCurr++;
+    return *(fCurr-1);
 }
 
 char Lexer::LookAhead(size_t n)
@@ -150,7 +157,8 @@ char Lexer::LookAhead(size_t n)
         return charHistory[currChar + n];
     }
     size_t currCharBuffer = currChar;
-    char C;
+
+    char C = '\0';
     while (n > 0)
     {
         C = GetNextChar();
@@ -184,7 +192,7 @@ int64_t Lexer::ParseComment()
     // additionally both charHistory and charLocations need to be invalidated
     SourceLocation loc = GetCurrLoc();
     int64_t commentLen = 0;
-    LookAhead(10);
+
     charHistory.resize(currChar);
     while (!charLocations.empty()) { charLocations.pop(); }
     
@@ -192,13 +200,14 @@ int64_t Lexer::ParseComment()
 skip_loop:
     while (fCurr < files.top().fileEnd && *fCurr != '\n')
     {
+        commentLen++;
         fCurr++;
     }
 
-    if (fCurr < files.top().fileEnd && *fCurr != '\n')
+    if (fCurr < files.top().fileEnd && *fCurr == '\n')
     {
         files.top().lineNr++;
-        ConsumeChar();
+        fCurr++;
     }
 
     if(fCurr == files.top().fileEnd && files.size() > 0)
@@ -209,16 +218,19 @@ skip_loop:
         goto skip_loop;
     }
 
+    // currChar points past the second / so fill charHist and charLoc
+    // with next char to keep everything consistent
+    GetNextChar();
     return commentLen;
 }
 
 int32_t Lexer::Lex(Token* token)
 {
-    SkipHorizonthalWhiteSpace();
-
     char C = GetCurrChar();
     token->location = GetCurrLoc();
     ConsumeChar();
+    LookAhead(3);
+
     switch(C)
     {
     // parsing punctuators
@@ -230,13 +242,8 @@ int32_t Lexer::Lex(Token* token)
             token->location.len = 2;
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::star;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::star;}
         break;
-
     case '+':
         C = GetCurrChar();
         if (C == '=')
@@ -251,13 +258,8 @@ int32_t Lexer::Lex(Token* token)
             token->location.len = 2;
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::plus;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::plus;}
         break;
-
     case '-':
         C = GetCurrChar();
         if (C == '=')
@@ -278,13 +280,8 @@ int32_t Lexer::Lex(Token* token)
             token->location.len = 2;
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::minus;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::minus;}
         break;
-
     case '/':
         C = GetCurrChar();
         if (C == '=')
@@ -292,7 +289,7 @@ int32_t Lexer::Lex(Token* token)
             token->type = TokenType::slash_equal;
             token->location.len = 2;
             ConsumeChar();
-        }
+        } 
         else if (C == '/')
         {
             token->type = TokenType::comment;
@@ -300,13 +297,8 @@ int32_t Lexer::Lex(Token* token)
             ConsumeChar();
             token->location.len += ParseComment();
         }
-        else
-        {
-            token->type = TokenType::slash;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::slash;}
         break;
-
     case '%':
         C = GetCurrChar();
         if (C == '=')
@@ -315,13 +307,7 @@ int32_t Lexer::Lex(Token* token)
             token->location.len = 2;
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::percent;
-            token->location.len = 1;
-        }
-        break;
-
+        else{token->type = TokenType::percent;}break;
     case '=':
         C = GetCurrChar();
         if (C == '=')
@@ -330,49 +316,37 @@ int32_t Lexer::Lex(Token* token)
             token->location.len = 2;
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::equal;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::equal;}
         break;
-
     case '^':
+        if(token->location.len != 1){TrigraphWarning(token);} 
         C = GetCurrChar();
         if (C == '=')
         {
             token->type = TokenType::caret_equal;
-            token->location.len = 2;
+            token->location.len += 1;
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::caret;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::caret;}
         break;
-
     case '|':
+        if(token->location.len != 1){TrigraphWarning(token);} 
         C = GetCurrChar();
         if (C == '|')
         {
+            if(token->location.len != 1){TrigraphWarning(token);} 
             token->type = TokenType::double_pipe;
-            token->location.len = 2;
+            token->location.len += GetCurrLoc().len;
             ConsumeChar();
         }
         else if (C == '=')
         {
             token->type = TokenType::pipe_equal;
-            token->location.len = 2;
+            token->location.len += 1;
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::pipe;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::pipe;}
         break;
-
     case '!':
         C = GetCurrChar();
         if (C == '=')
@@ -381,13 +355,8 @@ int32_t Lexer::Lex(Token* token)
             token->location.len = 2;
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::bang;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::bang;}
         break;
-
     case '&':
         C = GetCurrChar();
         if (C == '&')
@@ -402,13 +371,8 @@ int32_t Lexer::Lex(Token* token)
             token->location.len = 2;
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::ampersand;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::ampersand;}
         break;
-
     case '<':
         C = GetCurrChar();
         if (C == '=')
@@ -433,13 +397,8 @@ int32_t Lexer::Lex(Token* token)
                 token->location.len = 2;
             }
         }
-        else
-        {
-            token->type = TokenType::less;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::less;}
         break;
-
     case '>':
         C = GetCurrChar();
         if (C == '=')
@@ -464,13 +423,8 @@ int32_t Lexer::Lex(Token* token)
                 token->location.len = 2;
             }
         }
-        else
-        {
-            token->type = TokenType::greater;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::greater;}
         break;
-
     case '.':
         C = GetCurrChar();
         if (C == '.' && LookAhead(1) == '.')
@@ -480,21 +434,17 @@ int32_t Lexer::Lex(Token* token)
             ConsumeChar();
             ConsumeChar();
         }
-        else
-        {
-            token->type = TokenType::dot;
-            token->location.len = 1;
-        }
+        else{token->type = TokenType::dot;}
         break;
-    case '{': token->type = TokenType::l_brace;        token->location.len = 1; break;
-    case '~': token->type = TokenType::tilde;          token->location.len = 1; break;
-    case '}': token->type = TokenType::r_brace;        token->location.len = 1; break;
-    case '(': token->type = TokenType::l_parentheses;  token->location.len = 1; break;
-    case ')': token->type = TokenType::r_parentheses;  token->location.len = 1; break;
-    case ';': token->type = TokenType::semicolon;      token->location.len = 1; break;
-    case ',': token->type = TokenType::comma;          token->location.len = 1; break;
-    case '?': token->type = TokenType::question_mark;  token->location.len = 1; break;
-    case ':': token->type = TokenType::colon;          token->location.len = 1; break;
+    case '{': token->type = TokenType::l_brace;        if(token->location.len != 1){TrigraphWarning(token);} break;
+    case '~': token->type = TokenType::tilde;          if(token->location.len != 1){TrigraphWarning(token);} break;
+    case '}': token->type = TokenType::r_brace;        if(token->location.len != 1){TrigraphWarning(token);} break;
+    case '(': token->type = TokenType::l_parentheses;  break;
+    case ')': token->type = TokenType::r_parentheses;  break;
+    case ';': token->type = TokenType::semicolon;      break;
+    case ',': token->type = TokenType::comma;          break;
+    case '?': token->type = TokenType::question_mark;  break;
+    case ':': token->type = TokenType::colon;          break;
     case '\n':
         token->type = TokenType::new_line;
         token->location.len = 1;

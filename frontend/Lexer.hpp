@@ -14,6 +14,7 @@ struct Lexer
     Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
     bool IsHorizontalWhiteSpace(char C);
     bool IsVerticalWhiteSpace(char C);
+    void TrigraphWarning(const Token* token);
     bool IsWhiteSpace(char C);
     bool IsSimpleChar(char C);
     void ChangeLexedFile();
