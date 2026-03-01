@@ -1,5 +1,6 @@
 #include <vector>
 #include <cstddef>
+#include <iostream>
 #include "../frontend/Lexer.hpp"
 extern std::vector<TokenType::Type> tokens;
 extern std::vector<SourceLocation> locations;
@@ -25,6 +26,7 @@ int main()
 
         if(tok.type != expectedToken)
         {
+            std::cout << i << std::endl;
             exit(-1);
         }
         i++;
@@ -65,6 +67,20 @@ TokenType::r_parentheses,
 TokenType::l_brace,
 TokenType::new_line,
 
+// int \u9323 = 939, \U85483922 = 395995l;
+TokenType::kw_int, TokenType::identifier,
+TokenType::equal, TokenType::kw_const,
+TokenType::comma, TokenType::identifier,
+TokenType::equal, TokenType::kw_const,
+TokenType::semicolon,
+TokenType::new_line,
+
+// char \u93F3\UAAFFf293sdsa3 = '3';
+TokenType::kw_char, TokenType::identifier,
+TokenType::equal, TokenType::character_literal,
+TokenType::semicolon,
+TokenType::new_line,
+
 // int a = 5, b = 10;
 TokenType::kw_int, TokenType::identifier,
 TokenType::equal, TokenType::numeric_literal,
@@ -95,7 +111,7 @@ TokenType::new_line,
 
 // char c = 'Z';
 TokenType::kw_char, TokenType::identifier,
-TokenType::equal, TokenType::numeric_literal,
+TokenType::equal, TokenType::character_literal,
 TokenType::semicolon,
 TokenType::new_line,
 

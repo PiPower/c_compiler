@@ -4,6 +4,8 @@
 typedef struct Point { int x, y; } Point_t;
 
 int main(void) {
+    int \u9323 = 939, \U85483922 = 395995l;
+    char \u93F3\UAAFFf293sdsa3 = '3';
     int a = 5, b = 10;
     float f = 3.14, g = 2.71;
     double d = 1e3;

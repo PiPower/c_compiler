@@ -178,28 +178,50 @@ void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
     RestoreLexerPointer();
     // set fCurr to first char in buffer
     fCurr = files.top().fileBase + firstChar->offset;
-
-    if(!isAlpha(*fCurr))
+    size_t maxLen = files.top().fileEnd - fCurr;
+    if(!IsNonDigit(fCurr, maxLen))
     {
         printf("Lexer internal error, unexpected character in LexIdentifier\n");
         exit(-1);
     }
-    const char* identifierStart = fCurr--;
-    int64_t len = 1; 
-    fCurr++;
-    while (fCurr < files.top().fileEnd && isAlphaDigitFloor(*fCurr))
-    {
-        fCurr++;
-        len++;
-    }
-    len--;
 
+    const char* identifierStart = fCurr;
+    int64_t len = 0; 
+    int64_t UCN  = IsUniversalChar(fCurr, maxLen);
+    int64_t offset = UCN > 0 ? UCN : 1;
+    fCurr += offset;
+    len += offset;
+    maxLen -= offset;
+
+    while (fCurr < files.top().fileEnd)
+    {
+        bool simpleChar = IsAlphaDigitFloor(*fCurr);
+        int64_t UCN = IsUniversalChar(fCurr, maxLen);
+        if(simpleChar)
+        {
+            fCurr++;
+            len++;
+            maxLen--;
+        }
+        else if(UCN > 0)
+        {
+            fCurr += UCN;
+            len += UCN;
+            maxLen -= UCN;
+        }
+        else
+        {
+            break;
+        }
+    }
+ 
     if(fCurr == files.top().fileEnd && files.size() > 1)
     {
         ChangeLexedFile(); // for now terminates case as it is not supported
     }
     
-    auto hMapEntry = keywordsMap.find(std::string_view(identifierStart, len));
+    std::string_view key(identifierStart, len);
+    auto hMapEntry = keywordsMap.find(key);
     if(hMapEntry != keywordsMap.end())
     {
         token->type = hMapEntry->second;
@@ -220,6 +242,11 @@ void Lexer::RestoreLexerPointer()
     charsQueue.clear();
     while (!currLocations.empty()) { currLocations.pop(); }
     fCurr = files.top().fileBase + loc.offset;
+}
+
+void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
+{
+  
 }
 
 char Lexer::LookAhead(size_t n)
@@ -285,6 +312,44 @@ skip_loop:
     return commentLen;
 }
 
+int64_t Lexer::IsUniversalChar(const char *c, size_t maxPossibleLen)
+{
+    if(maxPossibleLen >= 2 && c[0] == '\\')
+    {
+        // needed chars are \, u, x1, x2, x3, x4
+        if(c[1] == 'u') 
+        {
+            if(maxPossibleLen < 6 || !IsHexDigit(c[2]) || !IsHexDigit(c[3]) || 
+                             !IsHexDigit(c[4]) || !IsHexDigit(c[5])) 
+            {
+                printf("Incorrectly formed universal character name\n");
+                exit(-1);
+            }
+            return 6; // size of UCN
+        }
+        // needed chars are \, U, x1, x2, x3, x4, x6, x7, x8, x9
+        else if(c[1] == 'U' || !IsHexDigit(c[2]) || !IsHexDigit(c[3]) || 
+                !IsHexDigit(c[4]) || !IsHexDigit(c[5]) || !IsHexDigit(c[6]) ||
+                !IsHexDigit(c[7])|| !IsHexDigit(c[8])|| !IsHexDigit(c[9]))
+        {
+           if(maxPossibleLen < 10)
+            {
+            printf("Incorrectly formed universal character name\n"); 
+            exit(-1);
+            }
+
+            return 10; // size of UCN
+        }
+    }
+
+    return 0;
+}
+
+bool Lexer::IsNonDigit(const char *c, size_t maxPossibleLen)
+{
+    return IsAlpha(*c) || *c == '_' || (c[0] == '\\' && IsUniversalChar(c, maxPossibleLen) > 0);
+}
+
 int32_t Lexer::Lex(Token* token)
 {
     token->type = TokenType::none;
@@ -300,6 +365,9 @@ int32_t Lexer::Lex(Token* token)
 
     switch(C)
     {
+    case '\0':
+        token->type = TokenType::eof;
+        break;
     // parsing punctuators
     case '*':
         C = GetCurrChar();
@@ -561,11 +629,16 @@ int32_t Lexer::Lex(Token* token)
         else {token->type = TokenType::colon;} 
         break;
 
-    case '{': token->type = TokenType::l_brace;        if(token->location.len != 1){TrigraphWarning(&token->location);} break;
-    case '~': token->type = TokenType::tilde;          if(token->location.len != 1){TrigraphWarning(&token->location);} break;
-    case '}': token->type = TokenType::r_brace;        if(token->location.len != 1){TrigraphWarning(&token->location);} break;
-    case '[': token->type = TokenType::l_bracket;      if(token->location.len != 1){TrigraphWarning(&token->location);} break;
-    case ']': token->type = TokenType::r_bracket;      if(token->location.len != 1){TrigraphWarning(&token->location);} break;
+    case '{': token->type = TokenType::l_brace;        
+              if(token->location.len != 1){TrigraphWarning(&token->location);} break;
+    case '~': token->type = TokenType::tilde;          
+              if(token->location.len != 1){TrigraphWarning(&token->location);} break;
+    case '}': token->type = TokenType::r_brace;        
+              if(token->location.len != 1){TrigraphWarning(&token->location);} break;
+    case '[': token->type = TokenType::l_bracket;      
+              if(token->location.len != 1){TrigraphWarning(&token->location);} break;
+    case ']': token->type = TokenType::r_bracket;      
+              if(token->location.len != 1){TrigraphWarning(&token->location);} break;
     case '(': token->type = TokenType::l_parentheses;  break;
     case ')': token->type = TokenType::r_parentheses;  break;
     case ';': token->type = TokenType::semicolon;      break;
@@ -578,7 +651,8 @@ int32_t Lexer::Lex(Token* token)
         break;
     case '0': case '1': case '2': case '3': case '4':
     case '5': case '6': case '7': case '8': case '9':
-        exit(-1);
+        LexConstant(token, &loc);
+        break;
     default:
         LexIdentifier(token, &loc);
         break;
@@ -649,17 +723,22 @@ void Lexer::PrepareKeywordMap()
     keywordsMap[std::string_view(kewordStrings[47])] = TokenType::pp_pragma;
 }
 
-bool Lexer::isDigit(const char &c)
+bool Lexer::IsDigit(const char &c)
 {
-     return '0' <= c  && c <= '9';
+    return '0' <= c  && c <= '9';
 }
 
-bool Lexer::isAlpha(const char &c)
+bool Lexer::IsAlpha(const char &c)
 {
     return ('A' <= c  && c <= 'Z') || ('a' <= c  && c <= 'z' );
 }
 
-bool Lexer::isAlphaDigitFloor(const char &c)
+bool Lexer::IsHexDigit(const char &c)
 {
-    return isDigit(c) || isAlpha(c) || c == '_';
+    return ('0' <= c && c <= '9') || ('a' <= c && c <= 'f')  ||('A' <= c && c <= 'F') ;
+}
+
+bool Lexer::IsAlphaDigitFloor(const char &c)
+{
+    return IsDigit(c) || IsAlpha(c) || c == '_';
 }

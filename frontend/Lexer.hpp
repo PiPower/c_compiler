@@ -31,12 +31,16 @@ struct Lexer
     char LookAhead(size_t n);
     void ConsumeChar();
     void SkipHorizontalWhiteSpace();
-    void LexIdentifier(Token* token,  const SourceLocation* firstChar);
     void RestoreLexerPointer();
+    void LexConstant(Token* token, const SourceLocation* firstNum);
+    void LexIdentifier(Token* token, const SourceLocation* firstChar);
     int64_t LexComment();
-    bool isDigit(const char& c);
-    bool isAlpha(const char& c);
-    bool isAlphaDigitFloor(const char& c);
+    bool IsDigit(const char& c);
+    bool IsAlpha(const char& c);
+    bool IsHexDigit(const char& c);
+    int64_t IsUniversalChar(const char* c, size_t maxPossibleLen);
+    bool IsNonDigit(const char* c, size_t maxPossibleLen);
+    bool IsAlphaDigitFloor(const char& c);
 
 
     FILE_STATE mainFile;
