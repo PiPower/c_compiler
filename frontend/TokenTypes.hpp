@@ -20,9 +20,6 @@ namespace TokenType
         kw_struct, kw_union, 
     // type qualifier keywords
         kw_const,  kw_volatile,  kw_restrict,
-    // preprocessor keywords,
-        kw_include, kw_define, kw_if, kw_ifdef, kw_ifndef, kw_elif,
-        kw_p_else, kw_endif, kw_line, kw_error, kw_pragma, 
     // separators
         l_bracket,  r_bracket, l_parentheses,  r_parentheses, 
         l_brace, r_brace,
@@ -38,8 +35,9 @@ namespace TokenType
         caret_equal, pipe_equal,
     // miscallenous
         colon, comma , semicolon, dot, arrow, ellipsis, new_line,
-        hash, d_hash,
-    // for internal usage
-        comment
+        hash, d_hash, comment,
+    // preprocessor keywords,
+        pp_include, pp_define, pp_if, pp_ifdef, pp_ifndef, pp_elif,
+        pp_else, pp_endif, pp_line, pp_error, pp_pragma, 
     };
 }

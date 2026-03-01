@@ -37,12 +37,12 @@ int main()
 std::vector<TokenType::Type> tokens = {
 
 // #include <stdio.h>
-TokenType::hash, TokenType::kw_include, TokenType::less,
+TokenType::hash, TokenType::pp_include, TokenType::less,
 TokenType::identifier, TokenType::dot, TokenType::identifier,
 TokenType::greater,
 
 // #define MAX 100
-TokenType::hash, TokenType::identifier, TokenType::identifier,
+TokenType::hash, TokenType::pp_define, TokenType::identifier,
 TokenType::numeric_literal,
 
 // typedef struct Point { int x, y; } Point_t;

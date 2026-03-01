@@ -3,8 +3,8 @@
 #include "TokenTypes.hpp"
 #include <stack>
 #include "../utils/CompilationOpts.hpp"
+#include <deque>
 #include <queue>
-
 struct FilePos;
 struct SourceLocation;
 struct Token;
@@ -34,8 +34,7 @@ struct Lexer
     FILE_STATE mainFile;
     FileManager* manager;
     std::stack<FilePos> files;
-    size_t currChar;
-    std::vector<char> charHistory;
+    std::deque<char> charsQueue;
     std::queue<SourceLocation> currLocations;
     const char* fEnd;
     const char* fCurr;
