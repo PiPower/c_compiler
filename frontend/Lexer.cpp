@@ -2,12 +2,33 @@
 #include <cassert>
 #include <stdio.h>
 #include <string.h>
+
+static const char* kewordStrings[] = {
+    "auto",      "break",     "case",       "char",
+    "const",     "continue",  "default",    "do",
+    "double",    "else",      "enum",       "extern",
+    "float",     "for",       "goto",       "if",
+    "inline",    "int",       "long",       "register",
+    "restrict",  "return",    "short",      "signed",
+    "sizeof",    "static",    "struct",     "switch",
+    "typedef",   "union",     "unsigned",   "void",
+    "volatile",  "while",     "_Bool",      "_Complex",
+    "_Imaginary"
+
+    // preprocessor keywords
+    "include",   "define",    "if",         "ifdef",
+    "ifndef",    "elif",      "else",       "endif",
+    "line",      "error",     "pragma"
+};
+
+
 Lexer::Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
 :
 mainFile(mainFile), manager(manager), opts(opts)
 {
     assert(manager != nullptr);
     assert(opts != nullptr);
+    PrepareKeywordMap();
 
     FilePos initialFile;
     manager->GetFileId(mainFile.path, mainFile.pathLen, &initialFile.fileId);
@@ -153,8 +174,44 @@ slash:
     return *(fCurr-1);
 }
 
-void Lexer::LexIdentifier()
+void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
 {
+    RestoreLexerPointer();
+    // set fCurr to first char in buffer
+    fCurr = files.top().fileBase + firstChar->offset;
+
+    if(!isAlpha(*fCurr))
+    {
+        printf("Lexer internal error, unexpected character in LexIdentifier\n");
+        exit(-1);
+    }
+    const char* identifierStart = fCurr--;
+    int64_t len = 1; 
+    fCurr++;
+    while (fCurr < files.top().fileEnd && isAlphaDigitFloor(*fCurr))
+    {
+        fCurr++;
+        len++;
+    }
+    
+    if(fCurr == files.top().fileEnd && files.size() > 1)
+    {
+        ChangeLexedFile(); // for now terminates case as it is not supported
+    }
+
+    token->type = TokenType::identifier;
+    token->location.id = files.top().fileId;
+    token->location.len = len;
+    token->location.line = files.top().lineNr;
+    token->location.offset = identifierStart - files.top().fileBase;
+}
+
+void Lexer::RestoreLexerPointer()
+{
+    SourceLocation loc = GetCurrLoc();
+    charsQueue.clear();
+    while (!currLocations.empty()) { currLocations.pop(); }
+    fCurr = files.top().fileBase + loc.offset;
 }
 
 char Lexer::LookAhead(size_t n)
@@ -193,13 +250,9 @@ int64_t Lexer::LexComment()
     // in order to correctly parse comment 
     // it is needed to move fCurr to offset after second \ and skip line
     // additionally both charHistory and charLocations need to be invalidated
-    SourceLocation loc = GetCurrLoc();
-    int64_t commentLen = 0;
+    RestoreLexerPointer();
 
-    charsQueue.clear();
-    while (!currLocations.empty()) { currLocations.pop(); }
-    
-    fCurr = files.top().fileBase + loc.offset;
+    int64_t commentLen = 0;
 skip_loop:
     while (fCurr < files.top().fileEnd && *fCurr != '\n')
     {
@@ -232,7 +285,8 @@ int32_t Lexer::Lex(Token* token)
     SkipHorizontalWhiteSpace();
 
     char C = GetCurrChar();
-    token->location = GetCurrLoc();
+    SourceLocation loc = GetCurrLoc();
+    token->location = loc;
     LookAhead(7);
     ConsumeChar();
 
@@ -518,7 +572,7 @@ int32_t Lexer::Lex(Token* token)
     case '5': case '6': case '7': case '8': case '9':
         exit(-1);
     default:
-        LexIdentifier();
+        LexIdentifier(token, &loc);
         break;
     }
 
@@ -529,4 +583,81 @@ int32_t Lexer::Lex(Token* token)
     }
     
     return 0;
+}
+
+void Lexer::PrepareKeywordMap()
+{
+    keywords[std::string_view(kewordStrings[0])]  = TokenType::kw_auto;
+    keywords[std::string_view(kewordStrings[1])]  = TokenType::kw_break;
+    keywords[std::string_view(kewordStrings[2])]  = TokenType::kw_case;
+    keywords[std::string_view(kewordStrings[3])]  = TokenType::kw_char;
+
+    keywords[std::string_view(kewordStrings[4])]  = TokenType::kw_const;
+    keywords[std::string_view(kewordStrings[5])]  = TokenType::kw_continue;
+    keywords[std::string_view(kewordStrings[6])]  = TokenType::kw_default;
+    keywords[std::string_view(kewordStrings[7])]  = TokenType::kw_do;
+
+    keywords[std::string_view(kewordStrings[8])]  = TokenType::kw_double;
+    keywords[std::string_view(kewordStrings[9])]  = TokenType::kw_else;
+    keywords[std::string_view(kewordStrings[10])] = TokenType::kw_enum;
+    keywords[std::string_view(kewordStrings[11])] = TokenType::kw_extern;
+
+    keywords[std::string_view(kewordStrings[12])] = TokenType::kw_float;
+    keywords[std::string_view(kewordStrings[13])] = TokenType::kw_for;
+    keywords[std::string_view(kewordStrings[14])] = TokenType::kw_goto;     
+    keywords[std::string_view(kewordStrings[15])] = TokenType::kw_if;
+
+    keywords[std::string_view(kewordStrings[16])] = TokenType::kw_inline;
+    keywords[std::string_view(kewordStrings[17])] = TokenType::kw_int;
+    keywords[std::string_view(kewordStrings[18])] = TokenType::kw_long;
+    keywords[std::string_view(kewordStrings[19])] = TokenType::kw_register;
+
+    keywords[std::string_view(kewordStrings[20])] = TokenType::kw_restrict;
+    keywords[std::string_view(kewordStrings[21])] = TokenType::kw_return;
+    keywords[std::string_view(kewordStrings[22])] = TokenType::kw_short;
+    keywords[std::string_view(kewordStrings[23])] = TokenType::kw_signed;
+
+    keywords[std::string_view(kewordStrings[24])] = TokenType::kw_sizeof;
+    keywords[std::string_view(kewordStrings[25])] = TokenType::kw_static;
+    keywords[std::string_view(kewordStrings[26])] = TokenType::kw_struct;
+    keywords[std::string_view(kewordStrings[27])] = TokenType::kw_switch;
+
+    keywords[std::string_view(kewordStrings[28])] = TokenType::kw_typedef;
+    keywords[std::string_view(kewordStrings[29])] = TokenType::kw_union;
+    keywords[std::string_view(kewordStrings[30])] = TokenType::kw__unsigned;
+    keywords[std::string_view(kewordStrings[31])] = TokenType::kw_void;
+
+    keywords[std::string_view(kewordStrings[32])] = TokenType::kw_volatile;
+    keywords[std::string_view(kewordStrings[33])] = TokenType::kw_while;
+    keywords[std::string_view(kewordStrings[34])] = TokenType::kw_bool;
+    keywords[std::string_view(kewordStrings[35])] = TokenType::kw_complex;
+    keywords[std::string_view(kewordStrings[36])] = TokenType::kw_imaginary;
+
+    // preprocessor keywords
+    keywords[std::string_view(kewordStrings[37])] = TokenType::pp_include;
+    keywords[std::string_view(kewordStrings[38])] = TokenType::pp_define;
+    keywords[std::string_view(kewordStrings[39])] = TokenType::pp_if;
+    keywords[std::string_view(kewordStrings[40])] = TokenType::pp_ifdef;
+    keywords[std::string_view(kewordStrings[41])] = TokenType::pp_ifndef;
+    keywords[std::string_view(kewordStrings[42])] = TokenType::pp_elif;
+    keywords[std::string_view(kewordStrings[43])] = TokenType::pp_else;
+    keywords[std::string_view(kewordStrings[44])] = TokenType::pp_endif;
+    keywords[std::string_view(kewordStrings[45])] = TokenType::pp_line;
+    keywords[std::string_view(kewordStrings[46])] = TokenType::pp_error;
+    keywords[std::string_view(kewordStrings[47])] = TokenType::pp_pragma;
+}
+
+bool Lexer::isDigit(const char &c)
+{
+     return '0' <= c  && c <= '9';
+}
+
+bool Lexer::isAlpha(const char &c)
+{
+    return ('A' <= c  && c <= 'Z') || ('a' <= c  && c <= 'z' );
+}
+
+bool Lexer::isAlphaDigitFloor(const char &c)
+{
+    return isDigit(c) || isAlpha(c) || c == '_';
 }

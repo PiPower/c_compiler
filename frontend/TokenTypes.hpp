@@ -13,7 +13,7 @@ namespace TokenType
         kw_break, kw_case, kw_continue, kw_do, kw_else, kw_if, kw_for,
         kw_return, kw_while, kw_typedef, kw_extern, kw_static, 
         kw_auto, kw_register, kw_enum, kw_sizeof, kw_default,
-        kw_switch, kw_inline,
+        kw_switch, kw_inline, kw_goto,
     // type keywords
         kw__unsigned, kw_int, kw_long, kw_float, kw_double, kw_imaginary,
         kw_signed, kw_char, kw_short, kw_void, kw_bool, kw_complex, 

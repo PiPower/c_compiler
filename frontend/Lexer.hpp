@@ -4,6 +4,8 @@
 #include <stack>
 #include "../utils/CompilationOpts.hpp"
 #include <deque>
+#include <unordered_map>
+#include <string_view>
 #include <queue>
 struct FilePos;
 struct SourceLocation;
@@ -13,6 +15,8 @@ struct SizedChar;
 struct Lexer
 {
     Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
+    int32_t Lex(Token* token);
+    void PrepareKeywordMap();
     bool IsHorizontalWhiteSpace(char C);
     bool IsVerticalWhiteSpace(char C);
     void TrigraphWarning(SourceLocation loc);
@@ -24,12 +28,16 @@ struct Lexer
     char GetCurrChar();
     char GetNextChar();
     char GetCharSlow();
-    void LexIdentifier();
     char LookAhead(size_t n);
     void ConsumeChar();
     void SkipHorizontalWhiteSpace();
+    void LexIdentifier(Token* token,  const SourceLocation* firstChar);
+    void RestoreLexerPointer();
     int64_t LexComment();
-    int32_t Lex(Token* token);
+    bool isDigit(const char& c);
+    bool isAlpha(const char& c);
+    bool isAlphaDigitFloor(const char& c);
+
 
     FILE_STATE mainFile;
     FileManager* manager;
@@ -38,6 +46,7 @@ struct Lexer
     std::queue<SourceLocation> currLocations;
     const char* fEnd;
     const char* fCurr;
+    std::unordered_map<std::string_view, TokenType::Type> keywords;
     const CompilationOpts* opts;
 };
 
