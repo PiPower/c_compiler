@@ -46,7 +46,7 @@ struct Lexer
     std::queue<SourceLocation> currLocations;
     const char* fEnd;
     const char* fCurr;
-    std::unordered_map<std::string_view, TokenType::Type> keywords;
+    std::unordered_map<std::string_view, TokenType::Type> keywordsMap;
     const CompilationOpts* opts;
 };
 

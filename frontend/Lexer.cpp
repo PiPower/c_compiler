@@ -13,8 +13,7 @@ static const char* kewordStrings[] = {
     "sizeof",    "static",    "struct",     "switch",
     "typedef",   "union",     "unsigned",   "void",
     "volatile",  "while",     "_Bool",      "_Complex",
-    "_Imaginary"
-
+    "_Imaginary",
     // preprocessor keywords
     "include",   "define",    "if",         "ifdef",
     "ifndef",    "elif",      "else",       "endif",
@@ -193,13 +192,22 @@ void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
         fCurr++;
         len++;
     }
-    
+    len--;
+
     if(fCurr == files.top().fileEnd && files.size() > 1)
     {
         ChangeLexedFile(); // for now terminates case as it is not supported
     }
-
-    token->type = TokenType::identifier;
+    
+    auto hMapEntry = keywordsMap.find(std::string_view(identifierStart, len));
+    if(hMapEntry != keywordsMap.end())
+    {
+        token->type = hMapEntry->second;
+    }
+    else
+    {
+        token->type = TokenType::identifier;
+    }
     token->location.id = files.top().fileId;
     token->location.len = len;
     token->location.line = files.top().lineNr;
@@ -576,75 +584,69 @@ int32_t Lexer::Lex(Token* token)
         break;
     }
 
-    // remove remaining white space chars
-    while (IsHorizontalWhiteSpace(GetCurrChar()))
-    {
-        ConsumeChar();
-    }
-    
     return 0;
 }
 
 void Lexer::PrepareKeywordMap()
 {
-    keywords[std::string_view(kewordStrings[0])]  = TokenType::kw_auto;
-    keywords[std::string_view(kewordStrings[1])]  = TokenType::kw_break;
-    keywords[std::string_view(kewordStrings[2])]  = TokenType::kw_case;
-    keywords[std::string_view(kewordStrings[3])]  = TokenType::kw_char;
+    keywordsMap[std::string_view(kewordStrings[0])]  = TokenType::kw_auto;
+    keywordsMap[std::string_view(kewordStrings[1])]  = TokenType::kw_break;
+    keywordsMap[std::string_view(kewordStrings[2])]  = TokenType::kw_case;
+    keywordsMap[std::string_view(kewordStrings[3])]  = TokenType::kw_char;
 
-    keywords[std::string_view(kewordStrings[4])]  = TokenType::kw_const;
-    keywords[std::string_view(kewordStrings[5])]  = TokenType::kw_continue;
-    keywords[std::string_view(kewordStrings[6])]  = TokenType::kw_default;
-    keywords[std::string_view(kewordStrings[7])]  = TokenType::kw_do;
+    keywordsMap[std::string_view(kewordStrings[4])]  = TokenType::kw_const;
+    keywordsMap[std::string_view(kewordStrings[5])]  = TokenType::kw_continue;
+    keywordsMap[std::string_view(kewordStrings[6])]  = TokenType::kw_default;
+    keywordsMap[std::string_view(kewordStrings[7])]  = TokenType::kw_do;
 
-    keywords[std::string_view(kewordStrings[8])]  = TokenType::kw_double;
-    keywords[std::string_view(kewordStrings[9])]  = TokenType::kw_else;
-    keywords[std::string_view(kewordStrings[10])] = TokenType::kw_enum;
-    keywords[std::string_view(kewordStrings[11])] = TokenType::kw_extern;
+    keywordsMap[std::string_view(kewordStrings[8])]  = TokenType::kw_double;
+    keywordsMap[std::string_view(kewordStrings[9])]  = TokenType::kw_else;
+    keywordsMap[std::string_view(kewordStrings[10])] = TokenType::kw_enum;
+    keywordsMap[std::string_view(kewordStrings[11])] = TokenType::kw_extern;
 
-    keywords[std::string_view(kewordStrings[12])] = TokenType::kw_float;
-    keywords[std::string_view(kewordStrings[13])] = TokenType::kw_for;
-    keywords[std::string_view(kewordStrings[14])] = TokenType::kw_goto;     
-    keywords[std::string_view(kewordStrings[15])] = TokenType::kw_if;
+    keywordsMap[std::string_view(kewordStrings[12])] = TokenType::kw_float;
+    keywordsMap[std::string_view(kewordStrings[13])] = TokenType::kw_for;
+    keywordsMap[std::string_view(kewordStrings[14])] = TokenType::kw_goto;     
+    keywordsMap[std::string_view(kewordStrings[15])] = TokenType::kw_if;
 
-    keywords[std::string_view(kewordStrings[16])] = TokenType::kw_inline;
-    keywords[std::string_view(kewordStrings[17])] = TokenType::kw_int;
-    keywords[std::string_view(kewordStrings[18])] = TokenType::kw_long;
-    keywords[std::string_view(kewordStrings[19])] = TokenType::kw_register;
+    keywordsMap[std::string_view(kewordStrings[16])] = TokenType::kw_inline;
+    keywordsMap[std::string_view(kewordStrings[17])] = TokenType::kw_int;
+    keywordsMap[std::string_view(kewordStrings[18])] = TokenType::kw_long;
+    keywordsMap[std::string_view(kewordStrings[19])] = TokenType::kw_register;
 
-    keywords[std::string_view(kewordStrings[20])] = TokenType::kw_restrict;
-    keywords[std::string_view(kewordStrings[21])] = TokenType::kw_return;
-    keywords[std::string_view(kewordStrings[22])] = TokenType::kw_short;
-    keywords[std::string_view(kewordStrings[23])] = TokenType::kw_signed;
+    keywordsMap[std::string_view(kewordStrings[20])] = TokenType::kw_restrict;
+    keywordsMap[std::string_view(kewordStrings[21])] = TokenType::kw_return;
+    keywordsMap[std::string_view(kewordStrings[22])] = TokenType::kw_short;
+    keywordsMap[std::string_view(kewordStrings[23])] = TokenType::kw_signed;
 
-    keywords[std::string_view(kewordStrings[24])] = TokenType::kw_sizeof;
-    keywords[std::string_view(kewordStrings[25])] = TokenType::kw_static;
-    keywords[std::string_view(kewordStrings[26])] = TokenType::kw_struct;
-    keywords[std::string_view(kewordStrings[27])] = TokenType::kw_switch;
+    keywordsMap[std::string_view(kewordStrings[24])] = TokenType::kw_sizeof;
+    keywordsMap[std::string_view(kewordStrings[25])] = TokenType::kw_static;
+    keywordsMap[std::string_view(kewordStrings[26])] = TokenType::kw_struct;
+    keywordsMap[std::string_view(kewordStrings[27])] = TokenType::kw_switch;
 
-    keywords[std::string_view(kewordStrings[28])] = TokenType::kw_typedef;
-    keywords[std::string_view(kewordStrings[29])] = TokenType::kw_union;
-    keywords[std::string_view(kewordStrings[30])] = TokenType::kw__unsigned;
-    keywords[std::string_view(kewordStrings[31])] = TokenType::kw_void;
+    keywordsMap[std::string_view(kewordStrings[28])] = TokenType::kw_typedef;
+    keywordsMap[std::string_view(kewordStrings[29])] = TokenType::kw_union;
+    keywordsMap[std::string_view(kewordStrings[30])] = TokenType::kw__unsigned;
+    keywordsMap[std::string_view(kewordStrings[31])] = TokenType::kw_void;
 
-    keywords[std::string_view(kewordStrings[32])] = TokenType::kw_volatile;
-    keywords[std::string_view(kewordStrings[33])] = TokenType::kw_while;
-    keywords[std::string_view(kewordStrings[34])] = TokenType::kw_bool;
-    keywords[std::string_view(kewordStrings[35])] = TokenType::kw_complex;
-    keywords[std::string_view(kewordStrings[36])] = TokenType::kw_imaginary;
+    keywordsMap[std::string_view(kewordStrings[32])] = TokenType::kw_volatile;
+    keywordsMap[std::string_view(kewordStrings[33])] = TokenType::kw_while;
+    keywordsMap[std::string_view(kewordStrings[34])] = TokenType::kw_bool;
+    keywordsMap[std::string_view(kewordStrings[35])] = TokenType::kw_complex;
+    keywordsMap[std::string_view(kewordStrings[36])] = TokenType::kw_imaginary;
 
     // preprocessor keywords
-    keywords[std::string_view(kewordStrings[37])] = TokenType::pp_include;
-    keywords[std::string_view(kewordStrings[38])] = TokenType::pp_define;
-    keywords[std::string_view(kewordStrings[39])] = TokenType::pp_if;
-    keywords[std::string_view(kewordStrings[40])] = TokenType::pp_ifdef;
-    keywords[std::string_view(kewordStrings[41])] = TokenType::pp_ifndef;
-    keywords[std::string_view(kewordStrings[42])] = TokenType::pp_elif;
-    keywords[std::string_view(kewordStrings[43])] = TokenType::pp_else;
-    keywords[std::string_view(kewordStrings[44])] = TokenType::pp_endif;
-    keywords[std::string_view(kewordStrings[45])] = TokenType::pp_line;
-    keywords[std::string_view(kewordStrings[46])] = TokenType::pp_error;
-    keywords[std::string_view(kewordStrings[47])] = TokenType::pp_pragma;
+    keywordsMap[std::string_view(kewordStrings[37])] = TokenType::pp_include;
+    keywordsMap[std::string_view(kewordStrings[38])] = TokenType::pp_define;
+    keywordsMap[std::string_view(kewordStrings[39])] = TokenType::pp_if;
+    keywordsMap[std::string_view(kewordStrings[40])] = TokenType::pp_ifdef;
+    keywordsMap[std::string_view(kewordStrings[41])] = TokenType::pp_ifndef;
+    keywordsMap[std::string_view(kewordStrings[42])] = TokenType::pp_elif;
+    keywordsMap[std::string_view(kewordStrings[43])] = TokenType::pp_else;
+    keywordsMap[std::string_view(kewordStrings[44])] = TokenType::pp_endif;
+    keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_line;
+    keywordsMap[std::string_view(kewordStrings[46])] = TokenType::pp_error;
+    keywordsMap[std::string_view(kewordStrings[47])] = TokenType::pp_pragma;
 }
 
 bool Lexer::isDigit(const char &c)
