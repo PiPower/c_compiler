@@ -7,10 +7,11 @@
 #include <unordered_map>
 #include <string_view>
 #include <queue>
+
 struct FilePos;
 struct SourceLocation;
 struct Token;
-struct SizedChar;
+struct DecimalType;
 
 struct Lexer
 {
@@ -35,7 +36,11 @@ struct Lexer
     void LexConstant(Token* token, const SourceLocation* firstNum);
     void LexIdentifier(Token* token, const SourceLocation* firstChar);
     int64_t LexComment();
+    DecimalType CheckDecimalType();
     bool IsDigit(const char& c);
+    bool IsOctalDigit(const char& c);
+    bool IsBinDigit(const char& c);
+    bool LexIntegerSuffix();
     bool IsAlpha(const char& c);
     bool IsHexDigit(const char& c);
     int64_t IsUniversalChar(const char* c, size_t maxPossibleLen);
@@ -53,13 +58,6 @@ struct Lexer
     std::unordered_map<std::string_view, TokenType::Type> keywordsMap;
     const CompilationOpts* opts;
 };
-
-struct SizedChar 
-{
-    const char* ptr;
-    uint64_t len;
-};
-
 
 struct FilePos
 {
@@ -92,4 +90,10 @@ struct Token
 {
     TokenType::Type type;
     SourceLocation location;
+};
+
+struct DecimalType
+{
+    int8_t len;
+    int8_t type;
 };

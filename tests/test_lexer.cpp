@@ -18,7 +18,10 @@ int main()
     Token tok;
     size_t i = 0;
     do{
-
+        if (i == 37)
+        {
+             int x = 2;
+        }
         lexer.Lex(&tok);
 
         TokenType::Type expectedToken = tokens[i];
@@ -46,7 +49,7 @@ TokenType::greater, TokenType::new_line,
 
 // #define MAX 100
 TokenType::hash, TokenType::pp_define, TokenType::identifier,
-TokenType::numeric_literal, TokenType::new_line,
+TokenType::numeric_constant, TokenType::new_line,
 
 TokenType::new_line,
 
@@ -69,9 +72,9 @@ TokenType::new_line,
 
 // int \u9323 = 939, \U85483922 = 395995l;
 TokenType::kw_int, TokenType::identifier,
-TokenType::equal, TokenType::kw_const,
+TokenType::equal, TokenType::numeric_constant,
 TokenType::comma, TokenType::identifier,
-TokenType::equal, TokenType::kw_const,
+TokenType::equal, TokenType::numeric_constant,
 TokenType::semicolon,
 TokenType::new_line,
 
@@ -83,29 +86,29 @@ TokenType::new_line,
 
 // int a = 5, b = 10;
 TokenType::kw_int, TokenType::identifier,
-TokenType::equal, TokenType::numeric_literal,
+TokenType::equal, TokenType::numeric_constant,
 TokenType::comma, TokenType::identifier,
-TokenType::equal, TokenType::numeric_literal,
+TokenType::equal, TokenType::numeric_constant,
 TokenType::semicolon,
 TokenType::new_line,
 
 // float f = 3.14, g = 2.71;
 TokenType::kw_float, TokenType::identifier,
-TokenType::equal, TokenType::numeric_literal,
+TokenType::equal, TokenType::numeric_constant,
 TokenType::comma, TokenType::identifier,
-TokenType::equal, TokenType::numeric_literal,
+TokenType::equal, TokenType::numeric_constant,
 TokenType::semicolon,
 TokenType::new_line,
 
 // double d = 1e3;
 TokenType::kw_double, TokenType::identifier,
-TokenType::equal, TokenType::numeric_literal,
+TokenType::equal, TokenType::numeric_constant,
 TokenType::semicolon,
 TokenType::new_line,
 
 // long l = 1234567890L;
 TokenType::kw_long, TokenType::identifier,
-TokenType::equal, TokenType::numeric_literal,
+TokenType::equal, TokenType::numeric_constant,
 TokenType::semicolon,
 TokenType::new_line,
 
@@ -117,20 +120,20 @@ TokenType::new_line,
 
 // _Bool flag = 1;
 TokenType::kw_bool, TokenType::identifier,
-TokenType::equal, TokenType::numeric_literal,
+TokenType::equal, TokenType::numeric_constant,
 TokenType::semicolon,
 TokenType::new_line,
 
 // const int ci = 42;
-TokenType::kw_const, TokenType::kw_int,
+TokenType::numeric_constant, TokenType::kw_int,
 TokenType::identifier, TokenType::equal,
-TokenType::numeric_literal, TokenType::semicolon,
+TokenType::numeric_constant, TokenType::semicolon,
 TokenType::new_line,
 
 // volatile int vi = 0;
 TokenType::kw_volatile, TokenType::kw_int,
 TokenType::identifier, TokenType::equal,
-TokenType::numeric_literal, TokenType::semicolon,
+TokenType::numeric_constant, TokenType::semicolon,
 TokenType::new_line,
 
 // if (a < b && b > 0 || !flag) {
@@ -138,7 +141,7 @@ TokenType::kw_if, TokenType::l_parentheses,
 TokenType::identifier, TokenType::less,
 TokenType::identifier, TokenType::double_ampersand,
 TokenType::identifier, TokenType::greater,
-TokenType::numeric_literal, TokenType::double_pipe,
+TokenType::numeric_constant, TokenType::double_pipe,
 TokenType::bang, TokenType::identifier,
 TokenType::r_parentheses,
 TokenType::l_brace,
@@ -146,9 +149,9 @@ TokenType::new_line,
 
 // a += 1; b -= 1; c++; d--;
 TokenType::identifier, TokenType::plus_equal,
-TokenType::numeric_literal, TokenType::semicolon,
+TokenType::numeric_constant, TokenType::semicolon,
 TokenType::identifier, TokenType::minus_equal,
-TokenType::numeric_literal, TokenType::semicolon,
+TokenType::numeric_constant, TokenType::semicolon,
 TokenType::identifier, TokenType::plus_plus,
 TokenType::semicolon,
 TokenType::identifier, TokenType::minus_minus,
@@ -164,9 +167,9 @@ TokenType::new_line,
 
 // a *= 2; b /= 2; f *= g; g /= f;
 TokenType::identifier, TokenType::star_equal,
-TokenType::numeric_literal, TokenType::semicolon,
+TokenType::numeric_constant, TokenType::semicolon,
 TokenType::identifier, TokenType::slash_equal,
-TokenType::numeric_literal, TokenType::semicolon,
+TokenType::numeric_constant, TokenType::semicolon,
 TokenType::identifier, TokenType::star_equal,
 TokenType::identifier, TokenType::semicolon,
 TokenType::identifier, TokenType::slash_equal,
@@ -183,7 +186,7 @@ TokenType::l_brace,
 TokenType::new_line,
 
 // case 1: break;
-TokenType::kw_case, TokenType::numeric_literal,
+TokenType::kw_case, TokenType::numeric_constant,
 TokenType::colon,
 TokenType::kw_break, TokenType::semicolon,
 TokenType::new_line,
@@ -206,12 +209,12 @@ TokenType::new_line,
 
 // a <<= 1;
 TokenType::identifier, TokenType::l_shift_equal,
-TokenType::numeric_literal, TokenType::semicolon,
+TokenType::numeric_constant, TokenType::semicolon,
 TokenType::new_line,
 
 // b >>= 1;
 TokenType::identifier, TokenType::r_shift_equal,
-TokenType::numeric_literal, TokenType::semicolon,
+TokenType::numeric_constant, TokenType::semicolon,
 TokenType::new_line,
 
 TokenType::r_brace,
@@ -240,7 +243,7 @@ TokenType::new_line,
 // ptr->x = 0;
 TokenType::identifier, TokenType::arrow,
 TokenType::identifier, TokenType::equal,
-TokenType::numeric_literal,
+TokenType::numeric_constant,
 TokenType::semicolon,
 TokenType::new_line,
 
@@ -250,7 +253,7 @@ TokenType::new_line,
 
 // return 0;
 TokenType::kw_return,
-TokenType::numeric_literal,
+TokenType::numeric_constant,
 TokenType::semicolon,
 TokenType::new_line,
 

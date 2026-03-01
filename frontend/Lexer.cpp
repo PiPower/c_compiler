@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
+static constexpr int8_t dec_type_dec = 0;
+static constexpr int8_t dec_type_oct = 1;
+static constexpr int8_t dec_type_hex = 2;
+static constexpr int8_t dec_type_bin = 3;
+
 static const char* kewordStrings[] = {
     "auto",      "break",     "case",       "char",
     "const",     "continue",  "default",    "do",
@@ -178,7 +183,7 @@ void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
     RestoreLexerPointer();
     // set fCurr to first char in buffer
     fCurr = files.top().fileBase + firstChar->offset;
-    size_t maxLen = files.top().fileEnd - fCurr;
+    size_t maxLen = fEnd - fCurr;
     if(!IsNonDigit(fCurr, maxLen))
     {
         printf("Lexer internal error, unexpected character in LexIdentifier\n");
@@ -193,7 +198,7 @@ void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
     len += offset;
     maxLen -= offset;
 
-    while (fCurr < files.top().fileEnd)
+    while (fCurr < fEnd)
     {
         bool simpleChar = IsAlphaDigitFloor(*fCurr);
         int64_t UCN = IsUniversalChar(fCurr, maxLen);
@@ -215,7 +220,7 @@ void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
         }
     }
  
-    if(fCurr == files.top().fileEnd && files.size() > 1)
+    if(fCurr == fEnd && files.size() > 1)
     {
         ChangeLexedFile(); // for now terminates case as it is not supported
     }
@@ -246,7 +251,43 @@ void Lexer::RestoreLexerPointer()
 
 void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
 {
-  
+    RestoreLexerPointer();
+    fCurr = files.top().fileBase + firstNum->offset;
+    // set token 
+    token->type = TokenType::numeric_constant;
+    token->location.id = files.top().fileId;
+    token->location.line = files.top().lineNr;
+    token->location.offset = fCurr - files.top().fileBase;
+
+    const char* startOfConstant = fCurr;
+    // set fCurr to first char in buffer
+    DecimalType numType = CheckDecimalType();
+    fCurr += numType.len;
+ 
+    if(numType.type == dec_type_dec)
+    {
+        while (IsDigit(*fCurr)){fCurr++;}
+    }
+    else if(numType.type == dec_type_oct)
+    {
+        while (IsOctalDigit(*fCurr)){fCurr++;}
+    }
+    else if(numType.type == dec_type_hex)
+    {
+        while (IsHexDigit(*fCurr)){fCurr++;}
+    }
+    else
+    {
+        while (IsBinDigit(*fCurr)){fCurr++;}
+    }
+
+    if(LexIntegerSuffix())
+    {
+        goto end_of_constant_lex;
+    }
+
+end_of_constant_lex: 
+    token->location.len = fCurr - startOfConstant;
 }
 
 char Lexer::LookAhead(size_t n)
@@ -274,9 +315,23 @@ void Lexer::ConsumeChar()
 
 void Lexer::SkipHorizontalWhiteSpace()
 {
-    while (fCurr < fEnd && IsHorizontalWhiteSpace(*fCurr))
+    if(!charsQueue.empty())
     {
-        fCurr++;
+        while (IsHorizontalWhiteSpace(charsQueue.front()))
+        {
+            charsQueue.pop_front();
+            currLocations.pop();
+        }
+        
+    }
+
+    // no remaining characters in queue, work on raw buffer
+    if(charsQueue.empty())
+    {
+        while (fCurr < fEnd && IsHorizontalWhiteSpace(*fCurr))
+        {
+            fCurr++;
+        }
     }
 }
 
@@ -289,27 +344,50 @@ int64_t Lexer::LexComment()
 
     int64_t commentLen = 0;
 skip_loop:
-    while (fCurr < files.top().fileEnd && *fCurr != '\n')
+    while (fCurr < fEnd && *fCurr != '\n')
     {
         commentLen++;
         fCurr++;
     }
 
-    if (fCurr < files.top().fileEnd && *fCurr == '\n')
+    if (fCurr < fEnd && *fCurr == '\n')
     {
         files.top().lineNr++;
         fCurr++;
     }
 
-    if(fCurr == files.top().fileEnd && files.size() > 0)
+    if(fCurr == fEnd && files.size() > 0)
     {
         ChangeLexedFile();
         fCurr = files.top().fileCurrent;
-        fEnd = files.top().fileEnd;
+        fEnd = fEnd;
         goto skip_loop;
     }
 
     return commentLen;
+}
+
+// returns packet int64_t b
+// 0 - decimal notation, 1 - octal notation, 
+// 2 - hex notation, 3 - binary notation
+DecimalType Lexer::CheckDecimalType()
+{
+    uint64_t maxLen = fEnd - fCurr;
+    if(maxLen >= 2  && fCurr[0] == '0' && 
+      (fCurr[1] == 'x' || fCurr[1] == 'X') )
+    {
+        return {2, dec_type_hex};
+    }
+    if(maxLen >= 2  && fCurr[0] == '0' && 
+      (fCurr[1] == 'b' || fCurr[1] == 'B') )
+    {
+        return {2, dec_type_bin};
+    }
+    else if(fCurr[0] == '0')
+    {
+        return {1, dec_type_oct};
+    }
+    return {1, dec_type_dec};
 }
 
 int64_t Lexer::IsUniversalChar(const char *c, size_t maxPossibleLen)
@@ -360,7 +438,6 @@ int32_t Lexer::Lex(Token* token)
     char C = GetCurrChar();
     SourceLocation loc = GetCurrLoc();
     token->location = loc;
-    LookAhead(7);
     ConsumeChar();
 
     switch(C)
@@ -726,6 +803,44 @@ void Lexer::PrepareKeywordMap()
 bool Lexer::IsDigit(const char &c)
 {
     return '0' <= c  && c <= '9';
+}
+
+bool Lexer::IsOctalDigit(const char &c)
+{
+    return '0' <= c  && c <= '7';
+}
+
+bool Lexer::IsBinDigit(const char &c)
+{
+    return '0' <= c  && c <= '1';
+}
+
+bool Lexer::LexIntegerSuffix()
+{
+    if(fCurr == fEnd)
+    {
+        return false;
+    }
+
+    if( *fCurr == 'U' || *fCurr == 'u')
+    {
+        fCurr++;
+        if(fCurr < fEnd &&( *fCurr == 'l' || *fCurr == 'L')){fCurr++;} // ul suffix 
+        if(fCurr < fEnd &&( *fCurr == 'l' || *fCurr == 'L')){fCurr++;} // ull suffix
+        return true;
+    }
+    else if(*fCurr == 'L' || *fCurr == 'l')
+    {
+        if(fCurr < fEnd &&( *fCurr == 'u' || *fCurr == 'U'))
+        {
+            fCurr++; 
+            return true; // lu suffix
+        } 
+        if(fCurr < fEnd &&( *fCurr == 'l' || *fCurr == 'L')){fCurr++;} // ll suffix 
+        if(fCurr < fEnd &&( *fCurr == 'u' || *fCurr == 'U')){fCurr++;} // llu suffix 
+        return true;
+    }
+    return false;
 }
 
 bool Lexer::IsAlpha(const char &c)

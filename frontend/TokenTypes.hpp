@@ -8,7 +8,7 @@ namespace TokenType
         eof,
         none,
         identifier,
-        numeric_literal,
+        numeric_constant,
         character_literal,
     // keywords
         kw_break, kw_case, kw_continue, kw_do, kw_else, kw_if, kw_for,
