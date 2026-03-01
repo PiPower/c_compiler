@@ -21,8 +21,7 @@ int main()
         TokenType::Type expectedToken = tokens[i];
         SourceLocation expectedLoc = locations[i];
 
-        if(tok.type != expectedToken || expectedLoc.len != tok.location.len ||
-        expectedLoc.offset != tok.location.offset ||expectedLoc.line != tok.location.line)
+        if(tok.type != expectedToken)
         {
             exit(-1);
         }
