@@ -35,6 +35,8 @@ struct Lexer
     void RestoreLexerPointer();
     void LexConstant(Token* token, const SourceLocation* firstNum);
     void LexIdentifier(Token* token, const SourceLocation* firstChar);
+    void LexCharSequence(Token* token, const char separator);
+    bool LexEscapeSequence();
     int64_t LexComment();
     DecimalType CheckDecimalType();
     bool IsDigit(const char& c);

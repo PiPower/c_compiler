@@ -241,6 +241,82 @@ void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
     token->location.offset = identifierStart - files.top().fileBase;
 }
 
+void Lexer::LexCharSequence(Token *token, const char separator)
+{
+    bool error = false;
+    const char* CharSeqStart = fCurr - 1;
+    while (fCurr < fEnd && *fCurr != '\'' )
+    {
+        if(IsAlpha(*fCurr))
+        {
+            fCurr++;
+        }
+        else if(*fCurr == '\\')
+        {
+            error = !LexEscapeSequence();
+            if(error){break;}
+        }
+        else
+        {
+            error = true;
+            break;
+        }
+
+    }
+    fCurr++;
+    if(error || fCurr == fEnd)
+    {
+        FILE_STATE fileState;
+        manager->GetFileState(&files.top().fileId, &fileState);
+        char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
+        memcpy(pathBuffer, fileState.path, fileState.pathLen);
+        pathBuffer[fileState.pathLen] = '\0';
+        int64_t offset = fCurr - files.top().fileBase;
+
+        printf("%s:%ld:%ld ERROR: Incorrect char sequence\n", 
+        pathBuffer, files.top().lineNr, offset);
+    }
+        
+    token->type = TokenType::character_literal;
+    token->location = SourceLocation(files.top(), fCurr, fCurr - CharSeqStart);
+    return;
+}
+
+bool Lexer::LexEscapeSequence()
+{
+    if(fCurr + 1 >= fEnd)
+    {
+        return false;
+    }
+
+    fCurr++;
+    if(*fCurr == '\'' || *fCurr == '\"'  || *fCurr == '?' ||
+        *fCurr == '\\' || *fCurr == 'a'  || *fCurr == 'b' ||
+        *fCurr == 'f' || *fCurr == 'n'  || *fCurr == 'r' ||
+        *fCurr == 't' || *fCurr == 'v')
+    {
+        fCurr++;
+        return true;
+    }
+    else if(*fCurr == 'x' && fCurr + 1 < fEnd && IsHexDigit(*(fCurr + 1)))
+    {
+        fCurr+=2;
+        while (fCurr < fEnd && IsHexDigit(*fCurr))
+        {
+            fCurr++;
+        }
+        return true;
+    }
+    else if(IsOctalDigit(*fCurr))
+    {
+        fCurr++;
+        if(fCurr < fEnd && IsOctalDigit(*fCurr)) {fCurr++;}
+        if(fCurr < fEnd && IsOctalDigit(*fCurr)) {fCurr++;}
+        return true;
+    }
+    return false;
+}
+
 void Lexer::RestoreLexerPointer()
 {
     SourceLocation loc = GetCurrLoc();
@@ -705,7 +781,6 @@ int32_t Lexer::Lex(Token* token)
         }
         else {token->type = TokenType::colon;} 
         break;
-
     case '{': token->type = TokenType::l_brace;        
               if(token->location.len != 1){TrigraphWarning(&token->location);} break;
     case '~': token->type = TokenType::tilde;          
@@ -721,6 +796,7 @@ int32_t Lexer::Lex(Token* token)
     case ';': token->type = TokenType::semicolon;      break;
     case ',': token->type = TokenType::comma;          break;
     case '?': token->type = TokenType::question_mark;  break;
+    case '\'': LexCharSequence(token, '\''); break;
     case '\n':
         token->type = TokenType::new_line;
         token->location.len = 1;

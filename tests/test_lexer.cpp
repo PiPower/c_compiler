@@ -18,10 +18,6 @@ int main()
     Token tok;
     size_t i = 0;
     do{
-        if (i == 37)
-        {
-             int x = 2;
-        }
         lexer.Lex(&tok);
 
         TokenType::Type expectedToken = tokens[i];

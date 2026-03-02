@@ -9,7 +9,7 @@ namespace TokenType
         none,
         identifier,
         numeric_constant,
-        character_literal,
+        character_literal, l_character_literal,
     // keywords
         kw_break, kw_case, kw_continue, kw_do, kw_else, kw_if, kw_for,
         kw_return, kw_while, kw_typedef, kw_extern, kw_static, 
