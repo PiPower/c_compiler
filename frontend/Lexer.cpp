@@ -20,7 +20,7 @@ static const char* kewordStrings[] = {
     "volatile",  "while",     "_Bool",      "_Complex",
     "_Imaginary",
     // preprocessor keywords
-    "include",   "define",    "if",         "ifdef",
+    "include",   "define",      "if",       "ifdef",
     "ifndef",    "elif",      "else",       "endif",
     "line",      "error",     "pragma"
 };
@@ -319,10 +319,38 @@ bool Lexer::LexEscapeSequence()
 
 void Lexer::RestoreLexerPointer()
 {
-    SourceLocation loc = GetCurrLoc();
-    charsQueue.clear();
-    while (!currLocations.empty()) { currLocations.pop(); }
-    fCurr = files.top().fileBase + loc.offset;
+    assert(charsQueue.empty() && currLocations.empty());
+    if(!charsQueue.empty())
+    {
+        SourceLocation loc = GetCurrLoc();
+        charsQueue.clear();
+        while (!currLocations.empty()) { currLocations.pop(); }
+        fCurr = files.top().fileBase + loc.offset;
+    }
+}
+
+void Lexer::IssueWarning(const char *msg, const SourceLocation* loc)
+{
+    int64_t lineNr ;
+    int64_t fileOffset;
+    if(loc)
+    {
+        lineNr = loc->line;
+        fileOffset =  loc->offset;
+    }
+    else
+    {
+        lineNr = files.top().lineNr;
+        fileOffset =  fCurr - files.top().fileBase;
+    }
+    FILE_STATE fileState;
+    manager->GetFileState(&files.top().fileId, &fileState);
+    char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
+    memcpy(pathBuffer, fileState.path, fileState.pathLen);
+    pathBuffer[fileState.pathLen] = '\0';
+    
+    printf("%s:%ld:%ld %s\n", 
+            pathBuffer, lineNr, fileOffset, msg);
 }
 
 void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
@@ -342,26 +370,99 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
  
     if(numType.type == dec_type_dec)
     {
-        while (IsDigit(*fCurr)){fCurr++;}
+        while (fCurr < fEnd && IsDigit(*fCurr)){fCurr++;}
     }
     else if(numType.type == dec_type_oct)
     {
-        while (IsOctalDigit(*fCurr)){fCurr++;}
+        while (fCurr < fEnd && IsOctalDigit(*fCurr)){fCurr++;}
     }
     else if(numType.type == dec_type_hex)
     {
-        while (IsHexDigit(*fCurr)){fCurr++;}
+        while (fCurr < fEnd && IsHexDigit(*fCurr)){fCurr++;}
     }
     else
     {
-        while (IsBinDigit(*fCurr)){fCurr++;}
+        while (fCurr < fEnd && IsBinDigit(*fCurr)){fCurr++;}
     }
-
-    if(LexIntegerSuffix())
+    
+    if(LexIntegerSuffix() || fCurr == fEnd)
     {
         goto end_of_constant_lex;
     }
 
+    if(numType.type == dec_type_dec)
+    {
+        bool isFloat = false;
+        if(*fCurr == '.')
+        {
+            isFloat = true;
+            fCurr++;
+            while (fCurr < fEnd && IsDigit(*fCurr)){fCurr++;}
+        }
+
+        if(fCurr < fEnd && (*fCurr == 'e' || *fCurr == 'E') )
+        {
+            isFloat = true;
+            fCurr++;
+            if(fCurr < fEnd && ((*fCurr == '+' || *fCurr == '-')))
+            {
+                fCurr++;
+            }
+
+            if(!(fCurr < fEnd && IsDigit(*fCurr)))
+            {
+                IssueWarning("Incorrectly typed hex float value", nullptr);
+                exit(-1);
+            }
+            while (fCurr < fEnd && IsDigit(*fCurr)){fCurr++;}
+        }
+        
+        if(isFloat)
+        {
+            LexFloatSuffix();
+        }
+    }
+    else if(numType.type == dec_type_hex)
+    {
+        bool isFloat = false;
+        if(*fCurr == '.')
+        {
+            isFloat = true;
+            fCurr++;
+            while (fCurr < fEnd && IsHexDigit(*fCurr)){fCurr++;}
+        }
+
+
+        if( (isFloat && fCurr >= fEnd) || (isFloat &&  fCurr < fEnd && *fCurr != 'p' ))
+        {
+            IssueWarning("Incorrectly typed hex float value", nullptr);
+            exit(-1);
+        }
+
+        if(*fCurr == 'p')
+        {
+            isFloat = true;
+            fCurr++;
+
+            if(fCurr < fEnd && ((*fCurr == '+' || *fCurr == '-')))
+            {
+                fCurr++;
+            }
+
+            if(!(fCurr < fEnd && IsDigit(*fCurr)))
+            {
+                IssueWarning("Incorrectly typed hex float value", nullptr);
+                exit(-1);
+            }
+
+            while (fCurr < fEnd && IsDigit(*fCurr)){fCurr++;}
+        }
+
+        if(isFloat)
+        {
+            LexFloatSuffix();
+        }
+    }
 end_of_constant_lex: 
     token->location.len = fCurr - startOfConstant;
 }
@@ -423,12 +524,6 @@ skip_loop:
     while (fCurr < fEnd && *fCurr != '\n')
     {
         commentLen++;
-        fCurr++;
-    }
-
-    if (fCurr < fEnd && *fCurr == '\n')
-    {
-        files.top().lineNr++;
         fCurr++;
     }
 
@@ -748,6 +843,7 @@ int32_t Lexer::Lex(Token* token)
         else{token->type = TokenType::greater;}
         break;
     case '.':
+        //add parsing numbers
         C = GetCurrChar();
         if (C == '.' && LookAhead(1) == '.')
         {
@@ -865,11 +961,13 @@ void Lexer::PrepareKeywordMap()
     // preprocessor keywords
     keywordsMap[std::string_view(kewordStrings[37])] = TokenType::pp_include;
     keywordsMap[std::string_view(kewordStrings[38])] = TokenType::pp_define;
-    keywordsMap[std::string_view(kewordStrings[39])] = TokenType::pp_if;
+    // preprocessor will infer wheter kw_if is part of preprocessing
+    //keywordsMap[std::string_view(kewordStrings[39])] = TokenType::pp_if;
     keywordsMap[std::string_view(kewordStrings[40])] = TokenType::pp_ifdef;
     keywordsMap[std::string_view(kewordStrings[41])] = TokenType::pp_ifndef;
     keywordsMap[std::string_view(kewordStrings[42])] = TokenType::pp_elif;
-    keywordsMap[std::string_view(kewordStrings[43])] = TokenType::pp_else;
+    // preprocessor will infer wheter kw_els is part of preprocessing
+    //keywordsMap[std::string_view(kewordStrings[43])] = TokenType::pp_else;
     keywordsMap[std::string_view(kewordStrings[44])] = TokenType::pp_endif;
     keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_line;
     keywordsMap[std::string_view(kewordStrings[46])] = TokenType::pp_error;
@@ -916,6 +1014,23 @@ bool Lexer::LexIntegerSuffix()
         if(fCurr < fEnd &&( *fCurr == 'u' || *fCurr == 'U')){fCurr++;} // llu suffix 
         return true;
     }
+    return false;
+}
+
+bool Lexer::LexFloatSuffix()
+{
+    if(fCurr >= fEnd)
+    {
+        return false;
+    }
+
+    if(*fCurr == 'f' || *fCurr == 'F' || 
+       *fCurr == 'l' || *fCurr == 'L' )
+    {
+        fCurr++;
+        return true;
+    }
+
     return false;
 }
 

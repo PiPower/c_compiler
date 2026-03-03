@@ -33,6 +33,7 @@ struct Lexer
     void ConsumeChar();
     void SkipHorizontalWhiteSpace();
     void RestoreLexerPointer();
+    void IssueWarning(const char* msg, const SourceLocation* loc);
     void LexConstant(Token* token, const SourceLocation* firstNum);
     void LexIdentifier(Token* token, const SourceLocation* firstChar);
     void LexCharSequence(Token* token, const char separator);
@@ -43,6 +44,7 @@ struct Lexer
     bool IsOctalDigit(const char& c);
     bool IsBinDigit(const char& c);
     bool LexIntegerSuffix();
+    bool LexFloatSuffix();
     bool IsAlpha(const char& c);
     bool IsHexDigit(const char& c);
     int64_t IsUniversalChar(const char* c, size_t maxPossibleLen);

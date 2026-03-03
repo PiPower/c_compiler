@@ -7,7 +7,7 @@ int main(void) {
     int \u9323 = 939, \U85483922 = 395995l;
     char \u93F3\UAAFFf293sdsa3 = '\x34';
     int a = 5, b = 10;
-    float f = 3.14, g = 2.71;
+    float f = 3.14, g = 0xFF.AFp12f;
     double d = 1e3;
     long l = 1234567890L;
     char c = 'Z';
@@ -16,7 +16,8 @@ int main(void) {
     volatile int vi = 0;
     if (a < b && b > 0 || !flag) {
         a += 1; b -= 1; c++; d--;
-    } else {
+    }
+    else {
         a *= 2; b /= 2; f *= g; g /= f;
     }
     switch(a) {

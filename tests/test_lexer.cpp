@@ -7,11 +7,11 @@ extern std::vector<SourceLocation> locations;
 
 int main()
 {
-    const char* path = "examples/tesfile.c";
+    const char* path = "examples/testfile.c";
     const char* arr[] = {path};
     FileManager fileManager({path}, {23});
     FILE_STATE main;
-    fileManager.GetFileState("examples/tesfile.c", 23,&main);
+    fileManager.GetFileState("examples/testfile.c", 23,&main);
     CompilationOpts opts(1, (const char**)arr);
     Lexer lexer(main, &fileManager, &opts);
 
@@ -121,7 +121,7 @@ TokenType::semicolon,
 TokenType::new_line,
 
 // const int ci = 42;
-TokenType::numeric_constant, TokenType::kw_int,
+TokenType::kw_const, TokenType::kw_int,
 TokenType::identifier, TokenType::equal,
 TokenType::numeric_constant, TokenType::semicolon,
 TokenType::new_line,
@@ -254,7 +254,6 @@ TokenType::semicolon,
 TokenType::new_line,
 
 TokenType::r_brace,
-TokenType::new_line,
 
 TokenType::eof
 };
