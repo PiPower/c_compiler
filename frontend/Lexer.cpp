@@ -966,7 +966,7 @@ void Lexer::PrepareKeywordMap()
     keywordsMap[std::string_view(kewordStrings[40])] = TokenType::pp_ifdef;
     keywordsMap[std::string_view(kewordStrings[41])] = TokenType::pp_ifndef;
     keywordsMap[std::string_view(kewordStrings[42])] = TokenType::pp_elif;
-    // preprocessor will infer wheter kw_els is part of preprocessing
+    // preprocessor will infer wheter kw_else is part of preprocessing
     //keywordsMap[std::string_view(kewordStrings[43])] = TokenType::pp_else;
     keywordsMap[std::string_view(kewordStrings[44])] = TokenType::pp_endif;
     keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_line;
