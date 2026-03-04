@@ -243,9 +243,11 @@ void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
 
 void Lexer::LexCharSequence(Token *token, const char separator)
 {
+    RestoreLexerPointer();
     bool error = false;
     const char* CharSeqStart = fCurr - 1;
-    while (fCurr < fEnd && *fCurr != '\'' )
+ 
+    while (fCurr < fEnd && *fCurr != separator )
     {
         if(IsAlpha(*fCurr))
         {
@@ -277,13 +279,13 @@ void Lexer::LexCharSequence(Token *token, const char separator)
         pathBuffer, files.top().lineNr, offset);
     }
         
-    token->type = TokenType::character_literal;
     token->location = SourceLocation(files.top(), fCurr, fCurr - CharSeqStart);
     return;
 }
 
 bool Lexer::LexEscapeSequence()
 {
+    RestoreLexerPointer();
     if(fCurr + 1 >= fEnd)
     {
         return false;
@@ -538,6 +540,28 @@ skip_loop:
     return commentLen;
 }
 
+int64_t Lexer::LexMultilineComment()
+{
+    RestoreLexerPointer();
+    int64_t commentLen = 0;
+skip_loop:
+    while (fCurr + 1 < fEnd && *fCurr != '*' && *(fCurr + 1)!= '/')
+    {
+        commentLen++;
+        fCurr++;
+    }
+
+    if(fCurr == fEnd && files.size() > 0)
+    {
+        ChangeLexedFile();
+        fCurr = files.top().fileCurrent;
+        fEnd = fEnd;
+        goto skip_loop;
+    }
+
+    return commentLen;
+}
+
 // returns packet int64_t b
 // 0 - decimal notation, 1 - octal notation, 
 // 2 - hex notation, 3 - binary notation
@@ -610,12 +634,23 @@ int32_t Lexer::Lex(Token* token)
     SourceLocation loc = GetCurrLoc();
     token->location = loc;
     ConsumeChar();
-
+    
     switch(C)
     {
     case '\0':
         token->type = TokenType::eof;
         break;
+    case '\\':
+        ConsumeChar();
+        C = GetNextChar();
+        if(C != '\n')
+        {
+            IssueWarning("Unexpected followup to \\", &loc);
+            exit(-1);
+        }
+        ConsumeChar();
+        files.top().lineNr++;
+        token->type = TokenType::line_splice;
     // parsing punctuators
     case '*':
         C = GetCurrChar();
@@ -679,6 +714,14 @@ int32_t Lexer::Lex(Token* token)
             token->location.len = 2; // "//"
             ConsumeChar();
             token->location.len += LexComment();
+        }
+        else if(C == '*')
+        {
+            token->type = TokenType::comment;
+            token->location.len = 2; // "//"
+            ConsumeChar();
+            token->location.len += LexMultilineComment();
+            
         }
         else{token->type = TokenType::slash;}
         break;
@@ -892,7 +935,10 @@ int32_t Lexer::Lex(Token* token)
     case ';': token->type = TokenType::semicolon;      break;
     case ',': token->type = TokenType::comma;          break;
     case '?': token->type = TokenType::question_mark;  break;
-    case '\'': LexCharSequence(token, '\''); break;
+    case '\'': 
+        token->type = TokenType::character_literal; LexCharSequence(token, '\''); break;
+    case '\"':     
+        token->type = TokenType::string_literal; LexCharSequence(token, '\"'); break;
     case '\n':
         token->type = TokenType::new_line;
         token->location.len = 1;
@@ -991,6 +1037,7 @@ bool Lexer::IsBinDigit(const char &c)
 
 bool Lexer::LexIntegerSuffix()
 {
+    RestoreLexerPointer();
     if(fCurr == fEnd)
     {
         return false;
@@ -1019,6 +1066,7 @@ bool Lexer::LexIntegerSuffix()
 
 bool Lexer::LexFloatSuffix()
 {
+    RestoreLexerPointer();
     if(fCurr >= fEnd)
     {
         return false;

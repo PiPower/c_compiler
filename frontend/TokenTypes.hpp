@@ -8,8 +8,9 @@ namespace TokenType
         eof,
         none,
         identifier,
-        numeric_constant,
+        numeric_constant, 
         character_literal, l_character_literal,
+        string_literal, l_string_literal,
     // keywords
         kw_break, kw_case, kw_continue, kw_do, kw_else, kw_if, kw_for,
         kw_return, kw_while, kw_typedef, kw_extern, kw_static, 
@@ -36,7 +37,7 @@ namespace TokenType
         caret_equal, pipe_equal,
     // miscallenous
         colon, comma , semicolon, dot, arrow, ellipsis, new_line,
-        hash, d_hash, comment,
+        hash, d_hash, comment, line_splice,
     // preprocessor keywords,
         pp_include, pp_define, pp_if, pp_ifdef, pp_ifndef, pp_elif,
         pp_else, pp_endif, pp_line, pp_error, pp_pragma, 

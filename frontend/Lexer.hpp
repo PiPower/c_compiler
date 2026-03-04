@@ -39,6 +39,7 @@ struct Lexer
     void LexCharSequence(Token* token, const char separator);
     bool LexEscapeSequence();
     int64_t LexComment();
+    int64_t LexMultilineComment();
     DecimalType CheckDecimalType();
     bool IsDigit(const char& c);
     bool IsOctalDigit(const char& c);
