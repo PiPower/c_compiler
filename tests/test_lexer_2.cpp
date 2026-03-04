@@ -17,11 +17,6 @@ int main()
     Token tok;
     size_t i = 0;
     do{
-        if(i == 529)
-        {
-            int x = 2;
-        }
-
         lexer.Lex(&tok);
 
         TokenType::Type expectedToken = tokens[i];
