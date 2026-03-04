@@ -15,6 +15,6 @@ add_executable(c_compiler main.cpp Compiler.cpp)
 target_link_libraries(c_compiler PUBLIC frontend)
 target_link_libraries(c_compiler PUBLIC utils)
 
-add_executable(lexer_test tests/test_lexer.cpp)
+add_executable(lexer_test tests/test_lexer_2.cpp)
 target_link_libraries(lexer_test PUBLIC frontend)
 target_link_libraries(lexer_test PUBLIC utils)
