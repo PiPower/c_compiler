@@ -2,7 +2,6 @@
  * lexer_test.c
  * C99 Lexer Torture Test File
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -17,39 +16,31 @@
 // Single-line comment
 /* Multi-line
    comment test */
-
 typedef unsigned long ulong_t;
-
 enum Color {
     RED = 1,
     GREEN,
     BLUE = 10,
 };
-
 struct Point {
     int x;
     int y;
 };
-
 union Data {
     int i;
     float f;
     char str[20];
 };
-
 static inline int add(int a, int b) {
     return a + b;
 }
-
 int global_var = 42;
 const volatile int cv_var = 100;
-
 void function_pointer_test(void) {
     int (*func_ptr)(int, int) = add;
     int result = func_ptr(3, 4);
     printf("Result: %d\n", result);
 }
-
 int main(void) {
     // Integer literals
     int dec = 123;

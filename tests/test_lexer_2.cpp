@@ -17,6 +17,11 @@ int main()
     Token tok;
     size_t i = 0;
     do{
+        if(i == 529)
+        {
+            int x = 2;
+        }
+
         lexer.Lex(&tok);
 
         TokenType::Type expectedToken = tokens[i];
@@ -69,6 +74,8 @@ std::vector<TokenType::Type> tokens= {
     TokenType::greater,
     TokenType::new_line,
 
+    TokenType::new_line,
+
     // #define PI 3.141592653589793
     TokenType::hash,
     TokenType::pp_define,
@@ -119,7 +126,7 @@ std::vector<TokenType::Type> tokens= {
     TokenType::identifier,
     TokenType::new_line,
 
-    // #define MULTILINE_MACRO(a, b) \
+    // #define MULTILINE_MACRO(a, b) 
     TokenType::hash,
     TokenType::pp_define,
     TokenType::identifier,
@@ -129,7 +136,6 @@ std::vector<TokenType::Type> tokens= {
     TokenType::identifier,
     TokenType::r_parentheses,
     TokenType::line_splice,
-    TokenType::new_line,
 
     // ((a) > (b) ? (a) : (b))
     TokenType::l_parentheses,
@@ -151,6 +157,7 @@ std::vector<TokenType::Type> tokens= {
     TokenType::r_parentheses,
     TokenType::new_line,
 
+    TokenType::new_line,
     // // Single-line comment
     TokenType::comment,
     TokenType::new_line,
@@ -412,7 +419,8 @@ std::vector<TokenType::Type> tokens= {
     TokenType::numeric_constant,
     TokenType::semicolon,
     TokenType::new_line,
-
+    
+    TokenType::new_line,
     // comment
     TokenType::comment,
     TokenType::new_line,
@@ -447,12 +455,13 @@ std::vector<TokenType::Type> tokens= {
     TokenType::equal,
     TokenType::numeric_constant,
     TokenType::semicolon,
-    TokenType::new_line,
-
     // comment
     TokenType::comment,
     TokenType::new_line,
 
+    TokenType::new_line,
+    TokenType::comment,
+    TokenType::new_line,
     // char c1 = 'a';
     TokenType::kw_char,
     TokenType::identifier,
@@ -477,6 +486,7 @@ std::vector<TokenType::Type> tokens= {
     TokenType::semicolon,
     TokenType::new_line,
 
+    TokenType::new_line,
     // comment
     TokenType::comment,
     TokenType::new_line,
@@ -508,10 +518,12 @@ std::vector<TokenType::Type> tokens= {
     TokenType::r_bracket,
     TokenType::equal,
     TokenType::string_literal,
+    TokenType::new_line,
     TokenType::string_literal,
     TokenType::semicolon,
     TokenType::new_line,
 
+    TokenType::new_line,
     // struct Point p = { .x = 10, .y = 20 };
     TokenType::kw_struct,
     TokenType::identifier,
@@ -547,6 +559,7 @@ std::vector<TokenType::Type> tokens= {
     TokenType::semicolon,
     TokenType::new_line,
 
+    TokenType::new_line,
     // int arr[5] = { [0] = 1, [3] = 4 };
     TokenType::kw_int,
     TokenType::identifier,
@@ -596,7 +609,7 @@ std::vector<TokenType::Type> tokens= {
     TokenType::semicolon,
     TokenType::new_line,
 
-
+    TokenType::new_line,
     // comment
     TokenType::comment,
     TokenType::new_line,
@@ -694,6 +707,10 @@ std::vector<TokenType::Type> tokens= {
     TokenType::semicolon,
     TokenType::new_line,
 
+    TokenType::new_line,
+
+    TokenType::comment,
+    TokenType::new_line,
     // if (a > 0) {
     TokenType::kw_if,
     TokenType::l_parentheses,
@@ -774,6 +791,7 @@ std::vector<TokenType::Type> tokens= {
     TokenType::r_brace,
     TokenType::new_line,
 
+    TokenType::new_line,
     // switch (a) {
     TokenType::kw_switch,
     TokenType::l_parentheses,
@@ -819,6 +837,7 @@ std::vector<TokenType::Type> tokens= {
     TokenType::r_brace,
     TokenType::new_line,
 
+    TokenType::new_line,
     // label_test:
     TokenType::identifier,
     TokenType::colon,
@@ -840,6 +859,7 @@ std::vector<TokenType::Type> tokens= {
 
     // }
     TokenType::r_brace,
+    TokenType::new_line,
     TokenType::new_line,
 
     // do {
@@ -864,6 +884,10 @@ std::vector<TokenType::Type> tokens= {
     TokenType::semicolon,
     TokenType::new_line,
 
+    TokenType::new_line,
+
+    TokenType::comment,
+    TokenType::new_line,
     // sizeof and type casting
     TokenType::identifier,
     TokenType::identifier,
@@ -886,6 +910,10 @@ std::vector<TokenType::Type> tokens= {
     TokenType::semicolon,
     TokenType::new_line,
 
+    TokenType::new_line,
+
+    TokenType::comment,
+    TokenType::new_line,
     // restrict pointers
     TokenType::kw_int,
     TokenType::identifier,
@@ -927,6 +955,9 @@ std::vector<TokenType::Type> tokens= {
     TokenType::semicolon,
     TokenType::new_line,
 
+        
+    TokenType::new_line,
+
     // printf("Done.\n");
     TokenType::identifier,
     TokenType::l_parentheses,
@@ -943,8 +974,6 @@ std::vector<TokenType::Type> tokens= {
 
     // }
     TokenType::r_brace,
-    TokenType::new_line,
-
     // EOF
     TokenType::eof
 };

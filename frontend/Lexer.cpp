@@ -137,7 +137,7 @@ char Lexer::GetCharSlow()
     if(*fCurr == '\\')
     {
 slash:
-        printf("Lexer internal: Possibly incorrect execution path \n");
+        printf("Lexer internal warning: Possibly incorrect execution path \n");
         fflush(stdout);
         if(remainingChars > 1 && !IsWhiteSpace(*(fCurr + 1)))
         {
@@ -249,21 +249,13 @@ void Lexer::LexCharSequence(Token *token, const char separator)
  
     while (fCurr < fEnd && *fCurr != separator )
     {
-        if(IsAlpha(*fCurr))
-        {
-            fCurr++;
-        }
-        else if(*fCurr == '\\')
-        {
-            error = !LexEscapeSequence();
-            if(error){break;}
-        }
-        else
+        if( *fCurr != '\\') {fCurr++;}
+        if((*fCurr == '\\' && !LexEscapeSequence() )|| *fCurr == '\n')
         {
             error = true;
             break;
         }
-
+        
     }
     fCurr++;
     if(error || fCurr == fEnd)
@@ -387,7 +379,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
         while (fCurr < fEnd && IsBinDigit(*fCurr)){fCurr++;}
     }
     
-    if(LexIntegerSuffix() || fCurr == fEnd)
+    if(fCurr == fEnd || LexIntegerSuffix() )
     {
         goto end_of_constant_lex;
     }
@@ -488,6 +480,7 @@ char Lexer::LookAhead(size_t n)
 
 void Lexer::ConsumeChar()
 {
+    assert(!charsQueue.empty()  && !currLocations.empty());
     charsQueue.pop_front();
     currLocations.pop();
 }
@@ -545,11 +538,17 @@ int64_t Lexer::LexMultilineComment()
     RestoreLexerPointer();
     int64_t commentLen = 0;
 skip_loop:
-    while (fCurr + 1 < fEnd && *fCurr != '*' && *(fCurr + 1)!= '/')
+    while (fCurr + 1 < fEnd)
     {
         commentLen++;
         fCurr++;
+
+        if(*fCurr == '*' && *(fCurr + 1) == '/')
+        {
+            break;
+        }
     }
+    fCurr += 2;
 
     if(fCurr == fEnd && files.size() > 0)
     {
@@ -641,7 +640,6 @@ int32_t Lexer::Lex(Token* token)
         token->type = TokenType::eof;
         break;
     case '\\':
-        ConsumeChar();
         C = GetNextChar();
         if(C != '\n')
         {
@@ -651,6 +649,7 @@ int32_t Lexer::Lex(Token* token)
         ConsumeChar();
         files.top().lineNr++;
         token->type = TokenType::line_splice;
+        break;
     // parsing punctuators
     case '*':
         C = GetCurrChar();
@@ -1052,6 +1051,7 @@ bool Lexer::LexIntegerSuffix()
     }
     else if(*fCurr == 'L' || *fCurr == 'l')
     {
+        fCurr++;
         if(fCurr < fEnd &&( *fCurr == 'u' || *fCurr == 'U'))
         {
             fCurr++; 
