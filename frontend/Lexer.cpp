@@ -19,9 +19,9 @@ static const char* kewordStrings[] = {
     "typedef",   "union",     "unsigned",   "void",
     "volatile",  "while",     "_Bool",      "_Complex",
     "_Imaginary",
-    // preprocessor keywords
-    "include",   "define",      "if",       "ifdef",
-    "ifndef",    "elif",      "else",       "endif",
+    // preprocessor  specific keywords,
+    "include",   "define",    "ifdef",
+    "ifndef",    "elif",      "endif",
     "line",      "error",     "pragma"
 };
 
@@ -1006,17 +1006,13 @@ void Lexer::PrepareKeywordMap()
     // preprocessor keywords
     keywordsMap[std::string_view(kewordStrings[37])] = TokenType::pp_include;
     keywordsMap[std::string_view(kewordStrings[38])] = TokenType::pp_define;
-    // preprocessor will infer wheter kw_if is part of preprocessing
-    //keywordsMap[std::string_view(kewordStrings[39])] = TokenType::pp_if;
-    keywordsMap[std::string_view(kewordStrings[40])] = TokenType::pp_ifdef;
-    keywordsMap[std::string_view(kewordStrings[41])] = TokenType::pp_ifndef;
-    keywordsMap[std::string_view(kewordStrings[42])] = TokenType::pp_elif;
-    // preprocessor will infer wheter kw_else is part of preprocessing
-    //keywordsMap[std::string_view(kewordStrings[43])] = TokenType::pp_else;
-    keywordsMap[std::string_view(kewordStrings[44])] = TokenType::pp_endif;
-    keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_line;
-    keywordsMap[std::string_view(kewordStrings[46])] = TokenType::pp_error;
-    keywordsMap[std::string_view(kewordStrings[47])] = TokenType::pp_pragma;
+    keywordsMap[std::string_view(kewordStrings[39])] = TokenType::pp_ifdef;
+    keywordsMap[std::string_view(kewordStrings[40])] = TokenType::pp_ifndef;
+    keywordsMap[std::string_view(kewordStrings[41])] = TokenType::pp_elif;
+    keywordsMap[std::string_view(kewordStrings[42])] = TokenType::pp_endif;
+    keywordsMap[std::string_view(kewordStrings[43])] = TokenType::pp_line;
+    keywordsMap[std::string_view(kewordStrings[44])] = TokenType::pp_error;
+    keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_pragma;
 }
 
 bool Lexer::IsDigit(const char &c)

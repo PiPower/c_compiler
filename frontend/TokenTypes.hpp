@@ -38,8 +38,8 @@ namespace TokenType
     // miscallenous
         colon, comma , semicolon, dot, arrow, ellipsis, new_line,
         hash, d_hash, comment, line_splice,
-    // preprocessor keywords,
-        pp_include, pp_define, pp_if, pp_ifdef, pp_ifndef, pp_elif,
-        pp_else, pp_endif, pp_line, pp_error, pp_pragma, 
+    // preprocessor  specific keywords,
+        pp_include, pp_define, pp_ifdef, pp_ifndef, pp_elif,
+        pp_endif, pp_line, pp_error, pp_pragma, 
     };
 }
