@@ -257,6 +257,8 @@ void Lexer::LexCharSequence(Token *token, const char separator)
         }
         
     }
+    token->location = SourceLocation(files.top(), CharSeqStart, fCurr - CharSeqStart);
+
     fCurr++;
     if(error || fCurr == fEnd)
     {
@@ -270,8 +272,6 @@ void Lexer::LexCharSequence(Token *token, const char separator)
         printf("%s:%ld:%ld ERROR: Incorrect char sequence\n", 
         pathBuffer, files.top().lineNr, offset);
     }
-        
-    token->location = SourceLocation(files.top(), CharSeqStart, fCurr - CharSeqStart);
     return;
 }
 

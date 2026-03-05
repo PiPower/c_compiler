@@ -3,6 +3,12 @@
 #include <string.h>
 #include <stdarg.h>
 
+struct Headername
+{
+    std::string_view name;
+    uint8_t isLocal : 1;
+};
+
 template<typename... Args>
 bool IsTokenOneOf(const Token* token, Args&&... args)
 {
@@ -174,12 +180,13 @@ int32_t Preprocessor::HandleElse()
 */
 int32_t Preprocessor::HandleInclude()
 {
-    std::string_view headerName;
+    Headername header;
     Token headerToken = GetCurrToken();
     ConsumeToken();
     if(headerToken.type == TokenType::less)
     {
-        headerName = FormHeadername();
+        header.name = FormHeadername();
+        header.isLocal = 0;
     }
     else if(headerToken.type == TokenType::string_literal)
     {
@@ -188,7 +195,8 @@ int32_t Preprocessor::HandleInclude()
 
         const char* stringStart = state.fileData + headerToken.location.offset + 1;
         size_t stringLen = headerToken.location.len - 1;
-        headerName = std::string_view(stringStart, stringLen); 
+        header.name = std::string_view(stringStart, stringLen); 
+        header.isLocal = 1;
     }
     else
     {
