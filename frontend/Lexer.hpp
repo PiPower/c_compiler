@@ -17,6 +17,8 @@ struct Lexer
 {
     Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
     int32_t Lex(Token* token);
+    
+private:
     void PrepareKeywordMap();
     bool IsHorizontalWhiteSpace(char C);
     bool IsVerticalWhiteSpace(char C);
@@ -52,7 +54,7 @@ struct Lexer
     bool IsNonDigit(const char* c, size_t maxPossibleLen);
     bool IsAlphaDigitFloor(const char& c);
 
-
+public:
     FILE_STATE mainFile;
     FileManager* manager;
     std::stack<FilePos> files;

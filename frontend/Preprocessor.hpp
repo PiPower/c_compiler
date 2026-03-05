@@ -6,7 +6,9 @@ struct Preprocessor
     Preprocessor(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
     int32_t Peek(Token* token);
     int32_t ExecuteDirective(Token* token);
-    
+private:
+    Token GetNextToken();
+    void ConsumeToken(TokenType::Type  type);
     int32_t HandleIf();
     int32_t HandleElse();
     int32_t HandleInclude();
@@ -18,8 +20,7 @@ struct Preprocessor
     int32_t HandleLine();
     int32_t HandleError();
     int32_t HandlePragma();
+public:
     Lexer lexer;
     const CompilationOpts* opts;
-
-
 };
