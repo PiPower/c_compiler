@@ -1,9 +1,10 @@
 #pragma once
 #include <vector>
 #include <inttypes.h>
-
+#include <string>
 struct FILE_STATE
 {
+
     const char* path; // pointer to file path
     size_t pathLen; // length of file path in path
     size_t filenameOffset; // offset of first character in path that represents file name
@@ -29,12 +30,16 @@ struct FileManager
     void ManagerExitOnError(int type, const void* errorData, const char* fileName);
     void ManagerExitOnErrorCode(int errorNum, const char* fileName);
     void ManagerExitOnErrorMsg(const char* errorMsg, const char* fileName);
+    int32_t TryLoadFile(const char* filename, size_t filenameLen);
     int32_t GetFileState(const char* path, uint64_t pathLen, FILE_STATE* fileState);
     int32_t GetFileState(const FILE_ID* fileId, FILE_STATE* fileState);
     int32_t GetFileId(const char* path, uint64_t pathLen, FILE_ID* fileId);
-
+    int32_t GetFullFilePath(const FILE_ID* fileId, std::string* path);
+    int32_t GetFullFilePath(const FILE_STATE* fileState, std::string* path);
+    
     std::vector<FILE_STATE> files;
     std::vector<char*> filePages;
+    char* fullFilePathHeap;
     size_t currentPage;
     int64_t offsetIntoPage;
 };

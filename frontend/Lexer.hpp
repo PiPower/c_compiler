@@ -33,7 +33,7 @@ private:
     char GetCharSlow();
     char LookAhead(size_t n);
     void ConsumeChar();
-    void SkipHorizontalWhiteSpace();
+    bool SkipHorizontalWhiteSpace();
     void RestoreLexerPointer();
     void IssueWarning(const char* msg, const SourceLocation* loc);
     void LexConstant(Token* token, const SourceLocation* firstNum);
@@ -97,6 +97,7 @@ struct Token
 {
     TokenType::Type type;
     SourceLocation location;
+    uint8_t skippedHorizWhitespace : 1;
 };
 
 struct DecimalType

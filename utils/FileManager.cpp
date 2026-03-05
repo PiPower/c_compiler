@@ -159,3 +159,18 @@ int32_t FileManager::GetFileId(const char *path, uint64_t pathLen, FILE_ID *file
 
     return -1;
 }
+
+int32_t FileManager::GetFullFilePath(const FILE_ID *fileId, std::string *path)
+{
+    FILE_STATE fileState;
+    int32_t err = GetFileState(fileId, &fileState);
+    if(err != 0) {return err;}
+
+    return GetFullFilePath(&fileState, path);
+}
+
+int32_t FileManager::GetFullFilePath(const FILE_STATE *fileState, std::string *path)
+{
+    printf("GetFullFilePath function is not implemented \n");
+    exit(-1);
+}

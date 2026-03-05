@@ -271,7 +271,7 @@ void Lexer::LexCharSequence(Token *token, const char separator)
         pathBuffer, files.top().lineNr, offset);
     }
         
-    token->location = SourceLocation(files.top(), fCurr, fCurr - CharSeqStart);
+    token->location = SourceLocation(files.top(), CharSeqStart, fCurr - CharSeqStart);
     return;
 }
 
@@ -485,14 +485,16 @@ void Lexer::ConsumeChar()
     currLocations.pop();
 }
 
-void Lexer::SkipHorizontalWhiteSpace()
+bool Lexer::SkipHorizontalWhiteSpace()
 {
+    bool skippedWhitespace = false;
     if(!charsQueue.empty())
     {
         while (IsHorizontalWhiteSpace(charsQueue.front()))
         {
             charsQueue.pop_front();
             currLocations.pop();
+            skippedWhitespace = true;
         }
         
     }
@@ -503,8 +505,11 @@ void Lexer::SkipHorizontalWhiteSpace()
         while (fCurr < fEnd && IsHorizontalWhiteSpace(*fCurr))
         {
             fCurr++;
+            skippedWhitespace = true;
         }
     }
+
+    return skippedWhitespace;
 }
 
 int64_t Lexer::LexComment()
@@ -540,9 +545,12 @@ int64_t Lexer::LexMultilineComment()
 skip_loop:
     while (fCurr + 1 < fEnd)
     {
+        if(*fCurr == '\n')
+        {
+            files.top().lineNr++;
+        }
         commentLen++;
         fCurr++;
-
         if(*fCurr == '*' && *(fCurr + 1) == '/')
         {
             break;
@@ -626,8 +634,7 @@ int32_t Lexer::Lex(Token* token)
 {
     token->type = TokenType::none;
     token->location = {};
-
-    SkipHorizontalWhiteSpace();
+    token->skippedHorizWhitespace = SkipHorizontalWhiteSpace() ? 1 : 0;
 
     char C = GetCurrChar();
     SourceLocation loc = GetCurrLoc();

@@ -7,8 +7,11 @@ struct Preprocessor
     int32_t Peek(Token* token);
     int32_t ExecuteDirective(Token* token);
 private:
-    Token GetNextToken();
-    void ConsumeToken(TokenType::Type  type);
+    void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
+    Token GetCurrToken();
+    void ConsumeToken();
+    void ExpectedToken(TokenType::Type  type);
+    std::string_view FormHeadername();
     int32_t HandleIf();
     int32_t HandleElse();
     int32_t HandleInclude();
@@ -22,5 +25,7 @@ private:
     int32_t HandlePragma();
 public:
     Lexer lexer;
+    FileManager* manager;
     const CompilationOpts* opts;
+    std::deque<Token> tokenQueue;
 };

@@ -2,6 +2,7 @@
  * lexer_test.c
  * C99 Lexer Torture Test File
  */
+#include "yolo.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

@@ -134,7 +134,7 @@ namespace TokenType
     };
 
 
-    inline const char* str(TokenType::Type type)
+    inline const char* tokenStr(TokenType::Type type)
     {
         switch (type)
         {
@@ -153,5 +153,6 @@ namespace TokenType
         default:
             break;
         }
+        return nullptr;
     }
 }
