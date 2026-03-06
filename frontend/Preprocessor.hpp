@@ -10,7 +10,7 @@ private:
     void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
     Token GetCurrToken();
     void ConsumeToken();
-    void ExpectedToken(TokenType::Type  type);
+    void ConsumeExpectedToken(TokenType::Type  type);
     std::string_view FormHeadername();
     int32_t HandleIf();
     int32_t HandleElse();

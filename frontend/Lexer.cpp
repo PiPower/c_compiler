@@ -962,6 +962,30 @@ int32_t Lexer::Lex(Token* token)
     return 0;
 }
 
+int32_t Lexer::PushFile(FILE_ID id)
+{
+    FILE_STATE state =  {};
+    if(manager->GetFileState(&id, &state) < 0)
+    {
+        return -2;
+    }
+
+    FilePos newFile = {};
+    newFile.fileId;
+    newFile.lineNr = 1;
+    newFile.fileBase = state.fileData;
+    newFile.fileCurrent = state.fileData;
+    newFile.fileEnd = state.fileData + state.fileSize;
+
+    // save current context
+    files.top().fileCurrent = fCurr;
+    // reload all the pointers
+    files.push(newFile);
+    fCurr = files.top().fileBase;
+    fEnd = files.top().fileEnd;
+    return 0;
+}
+
 void Lexer::PrepareKeywordMap()
 {
     keywordsMap[std::string_view(kewordStrings[0])]  = TokenType::kw_auto;

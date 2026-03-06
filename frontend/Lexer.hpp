@@ -17,6 +17,7 @@ struct Lexer
 {
     Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
     int32_t Lex(Token* token);
+    int32_t PushFile(FILE_ID id);
 private:
     void PrepareKeywordMap();
     bool IsHorizontalWhiteSpace(char C);

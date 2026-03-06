@@ -10,7 +10,7 @@ struct Headername
 };
 
 template<typename... Args>
-bool IsTokenOneOf(const Token* token, Args&&... args)
+static bool IsTokenOneOf(const Token* token, Args&&... args)
 {
     return ((token->type == args) || ...);
 }
@@ -25,7 +25,7 @@ lexer(mainFile, manager, opts), manager(manager), opts(opts)
 
 int32_t Preprocessor::Peek(Token* token)
 {
-
+fetch_token:
     do
     {
         *token = GetCurrToken();
@@ -39,6 +39,7 @@ int32_t Preprocessor::Peek(Token* token)
         {
             return ret;
         }
+        goto fetch_token;
     }
 
     return 0;
@@ -120,7 +121,7 @@ void Preprocessor::ConsumeToken()
     }
 }
 
-void Preprocessor::ExpectedToken(TokenType::Type type)
+void Preprocessor::ConsumeExpectedToken(TokenType::Type type)
 {
     Token token = GetCurrToken();
     ConsumeToken();
@@ -156,7 +157,8 @@ std::string_view Preprocessor::FormHeadername()
 
 
     } while (buffToken.type != TokenType::greater);
-    
+    ConsumeToken();
+
     const char* basePointer = state.fileData + firstToken.location.offset;
     int64_t len = lastToken.location.len +  (lastToken.location.offset - firstToken.location.offset);
     std::string_view headerView(basePointer, len);
@@ -203,8 +205,10 @@ int32_t Preprocessor::HandleInclude()
         IssueWarning(&headerToken.location.id, &headerToken.location, "Incorrect file include format");
         exit(-1);
     }
+    ConsumeExpectedToken(TokenType::new_line);
 
     char* pathBuffer = (char*)alloca(opts->longestPath + header.name.length() + 2);
+    FILE_ID headerFileId;
     for(size_t i = 0; i < opts->searchPaths.size(); i++)
     {
         uint64_t offset = 0;
@@ -220,13 +224,14 @@ int32_t Preprocessor::HandleInclude()
         memcpy(pathBuffer + offset, header.name.data(), header.name.length() );
         offset +=  header.name.length();
         pathBuffer[offset] = '\0';
-        int32_t ret = manager->TryLoadFile(pathBuffer,  opts->searchPaths[i].length() +  header.name.length() + 1);
+        int32_t ret = manager->TryLoadFile(pathBuffer, 
+            opts->searchPaths[i].length() +  header.name.length() + 1, &headerFileId);
         if(ret == 0)
         {
             break;
         }
     }
-
+    lexer.PushFile(headerFileId);
     return 0;
 }
 

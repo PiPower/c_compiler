@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/mman.h> 
+#include <limits>
 
 #define CPU_PAGE_SIZE 4096
 #define FILEDATA_PAGE_SIZE (50 * CPU_PAGE_SIZE)
@@ -29,7 +30,7 @@ FileManager::FileManager(const std::vector<const char*>& filenames,
         memcpy(pathBuffer, filenames[i], filenameLens[i]);
         pathBuffer[filenameLens[i]] = '\0';
 
-        if(TryLoadFile(pathBuffer, filenameLens[i]) == -1)
+        if(TryLoadFile(pathBuffer, filenameLens[i], nullptr) < 0 )
         {
             printf("File %s does not exist", pathBuffer);
             exit(-1);
@@ -138,8 +139,15 @@ void FileManager::ManagerExitOnErrorMsg(const char *errorMsg, const char *fileNa
     ManagerExitOnError(1, errorMsg, fileName);
 }
 
-int32_t FileManager::TryLoadFile(const char *filename, uint64_t nameLen)
+int32_t FileManager::TryLoadFile(const char *filename, uint64_t nameLen, FILE_ID* loadedFile)
 {
+    FILE_ID  doesExist = {};
+    if( GetFileId(filename, nameLen, &doesExist) == 0 )
+    {
+        if(loadedFile){*loadedFile = doesExist;}
+        return 1;
+    }
+
     // first load a file 
     int fd = open(filename, O_RDONLY);
     if(fd == -1 && errno == ENOENT){ return -1;}
@@ -166,7 +174,10 @@ int32_t FileManager::TryLoadFile(const char *filename, uint64_t nameLen)
     while (filenameOffset > 1 && filename[filenameOffset] != '/') { filenameOffset--;}
 
     fileStates.emplace_back(path, filenameLen, filenameLen - filenameOffset, filePos, fileSize);
-
+    if(loadedFile)
+    {
+        loadedFile->id = fileStates.size() - 1;
+    }
     return 0;
 }
 

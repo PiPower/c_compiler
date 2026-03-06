@@ -26,14 +26,14 @@ struct PagedBuffer
 
 
 /*
-    Files are stored in filePages
+    Files are stored in filePages and filenames in filenamePages
 */
 struct FileManager
 {
     FileManager(const std::vector<const char*>& filenames,
                 const std::vector<size_t>&  filenameLens);
 
-    int32_t TryLoadFile(const char *filename, uint64_t nameLen);
+    int32_t TryLoadFile(const char *filename, uint64_t nameLen, FILE_ID* loadedFile);
     int32_t GetFileState(const char* path, uint64_t pathLen, FILE_STATE* fileState);
     int32_t GetFileState(const FILE_ID* fileId, FILE_STATE* fileState);
     int32_t GetFileId(const char* path, uint64_t pathLen, FILE_ID* fileId);
