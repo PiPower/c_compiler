@@ -148,14 +148,14 @@ std::string_view Preprocessor::FormHeadername()
         ConsumeToken();
         buffToken = GetCurrToken();
     
-        if(!IsTokenOneOf(&buffToken,TokenType::identifier, TokenType::slash, TokenType::dot, TokenType::less))
+        if(!IsTokenOneOf(&buffToken,TokenType::identifier, TokenType::slash, TokenType::dot, TokenType::greater))
         {
             IssueWarning(&buffToken.location.id, &buffToken.location, "Incorrect header name");
             exit(-1);
         }
 
 
-    } while (buffToken.type != TokenType::less);
+    } while (buffToken.type != TokenType::greater);
     
     const char* basePointer = state.fileData + firstToken.location.offset;
     int64_t len = lastToken.location.len +  (lastToken.location.offset - firstToken.location.offset);
@@ -200,9 +200,19 @@ int32_t Preprocessor::HandleInclude()
     }
     else
     {
-        IssueWarning(&headerToken.location.id, &headerToken.location, "Incorrect file include");
+        IssueWarning(&headerToken.location.id, &headerToken.location, "Incorrect file include format");
         exit(-1);
     }
+
+    char* pathBuffer = (char*)alloca(opts->longestPath + header.name.length() + 1);
+    for(size_t i = 0; i < opts->searchPaths.size(); i++)
+    {
+        memcpy(pathBuffer, opts->searchPaths[i].data(), opts->searchPaths[i].length() );
+        memcpy(pathBuffer + opts->searchPaths[i].length(), header.name.data(), header.name.length() );
+        pathBuffer[ opts->searchPaths[i].length() +  header.name.length()] = '\0';
+        manager->TryLoadFile(pathBuffer,  opts->searchPaths[i].length() +  header.name.length() + 1);
+    }
+
     return 0;
 }
 

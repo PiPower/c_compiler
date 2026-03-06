@@ -7,72 +7,95 @@
 #include <sys/mman.h> 
 
 #define CPU_PAGE_SIZE 4096
-#define PAGE_COUNT 50
-#define PAGE_SIZE (PAGE_COUNT * CPU_PAGE_SIZE)
+#define FILEDATA_PAGE_SIZE (50 * CPU_PAGE_SIZE)
+#define FILENAME_PAGE_SIZE (6 * CPU_PAGE_SIZE)
 
 FileManager::FileManager(const std::vector<const char*>& filenames,
                          const std::vector<size_t>&  filenameLens)
+    :
+    fileBuffer({}, 0, 0), filenameBuffer({}, 0, 0)
 {
-    AddNewPage();
+    AddNewFilePage();
+    AddNewFilenamePage();
+
     assert(filenameLens.size() == filenames.size());
-    size_t maxLen = *std::max_element(filenameLens.begin(), filenameLens.end());
+    size_t maxLen = *std::max_element(filenameLens.begin(), filenameLens.end()) + 1;
     char* pathBuffer;
     if(maxLen < 1000'000) { pathBuffer = (char*)alloca(maxLen);}
-    else { pathBuffer = new char[maxLen];}
+    else { printf("Filename too long\n"); exit(-1);}
     
     for(size_t i =0; i < filenames.size(); i++)
     {
-        size_t nameLen = filenameLens[i]; 
-        while (nameLen > 0 && filenames[i][nameLen] != '/') { nameLen--;}
-        
-        files.push_back({});
-        FILE_STATE& state = files.back();
-        state.path = filenames[i];
-        state.pathLen = filenameLens[i];
-        state.filenameOffset = nameLen + 1;
-        memcpy(pathBuffer, state.path, state.pathLen);
-        pathBuffer[state.pathLen] = '\0';
+        memcpy(pathBuffer, filenames[i], filenameLens[i]);
+        pathBuffer[filenameLens[i]] = '\0';
 
-        int fd = open(pathBuffer, O_RDONLY);
-        if(fd == -1){ManagerExitOnErrorCode(errno, pathBuffer);}
-
-        off_t fileSize =  lseek(fd, 0, SEEK_END);
-        if(fileSize == -1){ManagerExitOnErrorCode(errno, pathBuffer);}
-        state.fileSize = static_cast<int64_t>(fileSize);
-
-        off_t startFile =  lseek(fd, 0, SEEK_SET);
-        if(startFile == -1){ManagerExitOnErrorCode(errno, pathBuffer);}
-
-        LoadFileIntoPage(fd, state.fileSize, pathBuffer, &state.fileData);
-
-        int ret = close(fd);
-        if(ret == -1){ManagerExitOnErrorCode(errno, pathBuffer);}
+        if(TryLoadFile(pathBuffer, filenameLens[i]) == -1)
+        {
+            printf("File %s does not exist", pathBuffer);
+            exit(-1);
+        }
     }
-
-    if(maxLen >= 1000'000) {delete[] pathBuffer;}
 }
 
-void FileManager::AddNewPage()
+void FileManager::AddNewFilePage()
 {
-    void* mmapRet = mmap(nullptr, PAGE_SIZE, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void* mmapRet = mmap(nullptr, FILEDATA_PAGE_SIZE, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if(mmapRet == MAP_FAILED )
     {
         ManagerExitOnErrorCode(errno, nullptr);
     }
     
     char* filePage = (char*)mmapRet;
-    filePages.push_back(filePage);
+    fileBuffer.pages.push_back(filePage);
     
-    offsetIntoPage = 0;
-    currentPage = filePages.size() - 1;
+    fileBuffer.offsetIntoPage = 0;
+    fileBuffer.currentPage = fileBuffer.pages.size() - 1;
+}
+
+void FileManager::AddNewFilenamePage()
+{
+    void* mmapRet = mmap(nullptr, FILENAME_PAGE_SIZE, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if(mmapRet == MAP_FAILED )
+    {
+        ManagerExitOnErrorCode(errno, nullptr);
+    }
+    
+    char* filePage = (char*)mmapRet;
+    filenameBuffer.pages.push_back(filePage);
+    
+    filenameBuffer.offsetIntoPage = 0;
+    filenameBuffer.currentPage = filenameBuffer.pages.size() - 1;
+}
+
+void FileManager::LoadFilenameIntoPage(const char *filename, char **pagedFilename)
+{
+    std::vector<char*>& filenamePages = filenameBuffer.pages;
+    size_t& currentPage = filenameBuffer.currentPage;
+    int64_t& offsetIntoPage =  filenameBuffer.offsetIntoPage;
+    size_t filenameLen = strlen(filename);
+
+    if(filenameLen + offsetIntoPage > FILENAME_PAGE_SIZE)
+    {
+        if(filenameLen > FILENAME_PAGE_SIZE ){printf("Filename too long\n"); exit(-1);}
+        else{AddNewFilenamePage();}
+    }
+
+    char* page = filenamePages[currentPage];
+    *pagedFilename = page + offsetIntoPage;
+    memcpy(page + offsetIntoPage, filename, filenameLen);
+    offsetIntoPage += filenameLen;
 }
 
 void FileManager::LoadFileIntoPage(int fd, int64_t fileSize, const char* filename, char** filePos)
 {
-    if(fileSize + offsetIntoPage > PAGE_SIZE)
+    std::vector<char*>& filePages = fileBuffer.pages;
+    size_t& currentPage = fileBuffer.currentPage;
+    int64_t& offsetIntoPage =  fileBuffer.offsetIntoPage;
+
+    if(fileSize + offsetIntoPage > FILEDATA_PAGE_SIZE)
     {
-        if(fileSize > PAGE_SIZE){exit(-1);}
-        else{AddNewPage();}
+        if(fileSize > FILEDATA_PAGE_SIZE){printf("File too large\n"); exit(-1);}
+        else{AddNewFilePage();}
     }
     char* page = filePages[currentPage];
     *filePos = page + offsetIntoPage;
@@ -115,15 +138,45 @@ void FileManager::ManagerExitOnErrorMsg(const char *errorMsg, const char *fileNa
     ManagerExitOnError(1, errorMsg, fileName);
 }
 
-int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE* fileState)
+int32_t FileManager::TryLoadFile(const char *filename, uint64_t nameLen)
 {
-    for(size_t i =0; i < files.size(); i++)
+    // first load a file 
+    int fd = open(filename, O_RDONLY);
+    if(fd == -1 && errno == ENOENT){ return -1;}
+    else if(fd == -1) {ManagerExitOnErrorCode(errno,filename);}
+
+    off_t fileSize =  lseek(fd, 0, SEEK_END);
+    if(fileSize == -1){ManagerExitOnErrorCode(errno, filename);}
+
+    off_t startFile =  lseek(fd, 0, SEEK_SET);
+    if(startFile == -1){ManagerExitOnErrorCode(errno, filename);}
+
+    char* filePos = nullptr;
+    LoadFileIntoPage(fd, fileSize, filename, &filePos);
+
+    int ret = close(fd);
+    if(ret == -1){ManagerExitOnErrorCode(errno, filename);}
+
+
+    // then add descriptor of that file to file system
+    char* path;
+    LoadFilenameIntoPage(filename, &path);
+    int64_t filenameLen = strlen(filename);
+    int64_t filenameOffset = filenameLen;
+    while (filenameOffset > 1 && filename[filenameOffset] != '/') { filenameOffset--;}
+
+    fileStates.emplace_back(path, filenameLen, filenameLen - filenameOffset, filePos, fileSize);
+}
+
+int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE *fileState)
+{
+    for(size_t i =0; i < fileStates.size(); i++)
     {
-        if(files[i].pathLen == pathLen)
+        if(fileStates[i].pathLen == pathLen)
         {
-            if(memcmp(path, files[i].path, pathLen) == 0)
+            if(memcmp(path, fileStates[i].path, pathLen) == 0)
             {
-                *fileState = files[i];
+                *fileState = fileStates[i];
                 return 0;
             }
         }
@@ -134,21 +187,21 @@ int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE
 
 int32_t FileManager::GetFileState(const FILE_ID *fileId, FILE_STATE* fileState)
 {
-    if(fileId->id >= files.size())
+    if(fileId->id >= fileStates.size())
     {
         return -1;
     }
-    *fileState = files[fileId->id];
+    *fileState = fileStates[fileId->id];
     return 0;
 }
 
 int32_t FileManager::GetFileId(const char *path, uint64_t pathLen, FILE_ID *fileId)
 {
-    for(size_t i =0; i < files.size(); i++)
+    for(size_t i =0; i < fileStates.size(); i++)
     {
-        if(files[i].pathLen == pathLen)
+        if(fileStates[i].pathLen == pathLen)
         {
-            if(memcmp(path, files[i].path, pathLen) == 0)
+            if(memcmp(path, fileStates[i].path, pathLen) == 0)
             {
 
                 fileId->id = i;

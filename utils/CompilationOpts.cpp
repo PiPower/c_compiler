@@ -23,6 +23,8 @@ static bool isCFilePath(const char* arg, size_t* len)
 }
 
 CompilationOpts::CompilationOpts(int argc, const char** argv)
+:
+longestPath(0)
 {
     trigraphs_refrenced = 0;
     trigraphs_enabled = 1;
@@ -46,6 +48,18 @@ CompilationOpts::CompilationOpts(int argc, const char** argv)
             trigraphs_refrenced = 1;
             trigraphs_enabled = 0;
         }
+        else if(arg[0] != '\0' && arg[0] == '-' && 
+                arg[1] != '\0' && arg[1] == 'I')
+        {
+            size_t len = 0;
+            size_t i = 2;
+            while (arg[i] != ' ' && arg[i] != '\0')
+            {
+                len++; 
+                i++;
+            }
+            AddSearchPath(arg + 2, len);
+        }
         else
         {
             printf("Uknown argument\nPos: %d\nValue: %s\n", i - 1, arg);
@@ -65,4 +79,10 @@ bool CompilationOpts::CheckBinaryFlag(const char *arg, const char *flag)
     }
     
     return *arg == *flag;
+}
+
+void CompilationOpts::AddSearchPath(const char *path, size_t len)
+{
+    searchPaths.emplace_back(path, len);
+    longestPath = std::max(len, longestPath);
 }
