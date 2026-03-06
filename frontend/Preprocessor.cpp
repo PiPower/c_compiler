@@ -204,13 +204,27 @@ int32_t Preprocessor::HandleInclude()
         exit(-1);
     }
 
-    char* pathBuffer = (char*)alloca(opts->longestPath + header.name.length() + 1);
+    char* pathBuffer = (char*)alloca(opts->longestPath + header.name.length() + 2);
     for(size_t i = 0; i < opts->searchPaths.size(); i++)
     {
-        memcpy(pathBuffer, opts->searchPaths[i].data(), opts->searchPaths[i].length() );
-        memcpy(pathBuffer + opts->searchPaths[i].length(), header.name.data(), header.name.length() );
-        pathBuffer[ opts->searchPaths[i].length() +  header.name.length()] = '\0';
-        manager->TryLoadFile(pathBuffer,  opts->searchPaths[i].length() +  header.name.length() + 1);
+        uint64_t offset = 0;
+        memcpy(pathBuffer + offset, opts->searchPaths[i].data(), opts->searchPaths[i].length() );
+        offset += opts->searchPaths[i].length();
+        // if path does not contain / add it 
+        if(pathBuffer[offset - 1] != '/')
+        {
+            pathBuffer[offset] = '/';
+            offset++;
+        }
+
+        memcpy(pathBuffer + offset, header.name.data(), header.name.length() );
+        offset +=  header.name.length();
+        pathBuffer[offset] = '\0';
+        int32_t ret = manager->TryLoadFile(pathBuffer,  opts->searchPaths[i].length() +  header.name.length() + 1);
+        if(ret == 0)
+        {
+            break;
+        }
     }
 
     return 0;

@@ -166,6 +166,8 @@ int32_t FileManager::TryLoadFile(const char *filename, uint64_t nameLen)
     while (filenameOffset > 1 && filename[filenameOffset] != '/') { filenameOffset--;}
 
     fileStates.emplace_back(path, filenameLen, filenameLen - filenameOffset, filePos, fileSize);
+
+    return 0;
 }
 
 int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE *fileState)
