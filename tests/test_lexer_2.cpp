@@ -164,7 +164,7 @@ std::vector<TokenType::Type> tokens= {
 
     // typedef unsigned long ulong_t;
     TokenType::kw_typedef,
-    TokenType::kw__unsigned,
+    TokenType::kw_unsigned,
     TokenType::kw_long,
     TokenType::identifier,
     TokenType::semicolon,
@@ -390,7 +390,7 @@ std::vector<TokenType::Type> tokens= {
     TokenType::new_line,
 
     // unsigned int u = 123u;
-    TokenType::kw__unsigned,
+    TokenType::kw_unsigned,
     TokenType::kw_int,
     TokenType::identifier,
     TokenType::equal,

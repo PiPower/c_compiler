@@ -1,6 +1,19 @@
 #pragma once
 #include "Lexer.hpp"
 
+struct PreprocessorStages
+{
+    uint16_t If : 1;
+    uint16_t Ifdef : 1;
+    uint16_t Ifndef : 1;
+
+};
+
+struct Macro
+{
+    std::vector<Token> tokenList;
+};
+
 struct Preprocessor
 {
     Preprocessor(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
@@ -8,6 +21,7 @@ struct Preprocessor
     int32_t ExecuteDirective(Token* token);
 private:
     void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
+    std::string_view GetViewForToken(const Token& token);
     Token GetCurrToken();
     void ConsumeToken();
     void ConsumeExpectedToken(TokenType::Type  type);
@@ -23,9 +37,14 @@ private:
     int32_t HandleLine();
     int32_t HandleError();
     int32_t HandlePragma();
+    int32_t HandleUndef();
+    int32_t SkipTokensInBlock();
 public:
     Lexer lexer;
     FileManager* manager;
     const CompilationOpts* opts;
     std::deque<Token> tokenQueue;
+    PreprocessorStages stages;
+
+    std::unordered_map<std::string_view, Macro> macros;
 };

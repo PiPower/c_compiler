@@ -20,9 +20,9 @@ static const char* kewordStrings[] = {
     "volatile",  "while",     "_Bool",      "_Complex",
     "_Imaginary",
     // preprocessor  specific keywords,
-    "include",   "define",    "ifdef",
-    "ifndef",    "elif",      "endif",
-    "line",      "error",     "pragma"
+    "include",   "define",    "ifdef",  "ifndef",  
+    "elif",      "endif",     "line",   "error", 
+    "pragma",    "undef",     "defined"
 };
 
 
@@ -1035,7 +1035,7 @@ void Lexer::PrepareKeywordMap()
 
     keywordsMap[std::string_view(kewordStrings[28])] = TokenType::kw_typedef;
     keywordsMap[std::string_view(kewordStrings[29])] = TokenType::kw_union;
-    keywordsMap[std::string_view(kewordStrings[30])] = TokenType::kw__unsigned;
+    keywordsMap[std::string_view(kewordStrings[30])] = TokenType::kw_unsigned;
     keywordsMap[std::string_view(kewordStrings[31])] = TokenType::kw_void;
 
     keywordsMap[std::string_view(kewordStrings[32])] = TokenType::kw_volatile;
@@ -1054,6 +1054,8 @@ void Lexer::PrepareKeywordMap()
     keywordsMap[std::string_view(kewordStrings[43])] = TokenType::pp_line;
     keywordsMap[std::string_view(kewordStrings[44])] = TokenType::pp_error;
     keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_pragma;
+    keywordsMap[std::string_view(kewordStrings[46])] = TokenType::pp_undef;
+    keywordsMap[std::string_view(kewordStrings[47])] = TokenType::pp_defined;
 }
 
 bool Lexer::IsDigit(const char &c)

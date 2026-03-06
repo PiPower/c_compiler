@@ -6,7 +6,7 @@
 struct Headername
 {
     std::string_view name;
-    uint8_t isLocal : 1;
+    uint8_t isLocal : 1; // include from file directory
 };
 
 template<typename... Args>
@@ -18,7 +18,7 @@ static bool IsTokenOneOf(const Token* token, Args&&... args)
 
 Preprocessor::Preprocessor(FILE_STATE mainFile, FileManager *manager, const CompilationOpts* opts)
 :
-lexer(mainFile, manager, opts), manager(manager), opts(opts)
+lexer(mainFile, manager, opts), manager(manager), opts(opts), stages({})
 {
     assert(opts != nullptr);
 }
@@ -50,12 +50,6 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
 {
     Token ppToken = GetCurrToken();
     ConsumeToken();
-    if(ppToken.skippedHorizWhitespace > 0)
-    {
-        IssueWarning(&ppToken.location.id, &ppToken.location,
-            "Directive separated by white space is not allowed \n");
-        exit(-1);
-    }
 
     switch (ppToken.type)
     {
@@ -70,6 +64,7 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
     case TokenType::pp_line:    HandleLine(); break;
     case TokenType::pp_error:   HandleError(); break;
     case TokenType::pp_pragma:  HandlePragma(); break;
+    case TokenType::pp_undef:   HandleUndef(); break;
     default:
         printf("Not expected preprocessing token \n");
         exit(-1);
@@ -100,6 +95,22 @@ void Preprocessor::IssueWarning(const FILE_ID* fileId, const SourceLocation* loc
     }
     printf("\n");
     
+}
+
+std::string_view Preprocessor::GetViewForToken(const Token &token)
+{
+    FILE_STATE state;
+    if(manager->GetFileState(&token.location.id, &state) != 0)
+    {
+        printf("Preprocessor critical error: Requested file does not exit\n");
+        exit(-1);
+    }
+
+    // removes \" from both start and end 
+    uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
+    std::string_view tokenView(state.fileData + token.location.offset + offset,
+                                token.location.len - 2 * offset);
+    return tokenView;
 }
 
 Token Preprocessor::GetCurrToken()
@@ -148,13 +159,13 @@ std::string_view Preprocessor::FormHeadername()
         lastToken = buffToken;
         ConsumeToken();
         buffToken = GetCurrToken();
-    
+        /* TODO verify later
         if(!IsTokenOneOf(&buffToken,TokenType::identifier, TokenType::slash, TokenType::dot, TokenType::greater))
         {
             IssueWarning(&buffToken.location.id, &buffToken.location, "Incorrect header name");
             exit(-1);
         }
-
+        */
 
     } while (buffToken.type != TokenType::greater);
     ConsumeToken();
@@ -167,6 +178,7 @@ std::string_view Preprocessor::FormHeadername()
 
 int32_t Preprocessor::HandleIf()
 {
+    stages.If = 1;
     return 0;
 }
 
@@ -199,6 +211,8 @@ int32_t Preprocessor::HandleInclude()
         size_t stringLen = headerToken.location.len - 1;
         header.name = std::string_view(stringStart, stringLen); 
         header.isLocal = 1;
+        printf("local include are not supported \n");
+        exit(-1);
     }
     else
     {
@@ -237,16 +251,56 @@ int32_t Preprocessor::HandleInclude()
 
 int32_t Preprocessor::HandleDefine()
 {
+    Token defineIdentifier = GetCurrToken();
+    ConsumeToken();
+
+    Token macroExpansion = GetCurrToken();
+
+    Macro macro = {};
+    std::string_view macroName = GetViewForToken(defineIdentifier);
+    // check if macro is callable
+    if(macroExpansion.type == TokenType::l_parentheses && 
+        macroExpansion.skippedHorizWhitespace > 0)
+    {
+        exit(-1);
+    }
+    else if(macroExpansion.type != TokenType::new_line)
+    {
+        do
+        {
+            if(macroExpansion.type != TokenType::line_splice)
+            {
+                macro.tokenList.push_back(macroExpansion);
+            }
+            ConsumeToken();
+            macroExpansion = GetCurrToken();
+        }while (macroExpansion.type != TokenType::new_line);
+
+    }
+
+    macros[macroName] = std::move(macro);
     return 0;
 }
 
 int32_t Preprocessor::HandleIfdef()
 {
+    stages.Ifdef = 1;
     return 0;
 }
 
 int32_t Preprocessor::HandleIfndef()
 {
+    Token identifier = GetCurrToken();
+    ConsumeExpectedToken(TokenType::identifier);
+    ConsumeExpectedToken(TokenType::new_line);
+    std::string_view macroView = GetViewForToken(identifier);
+
+    auto macroIter = macros.find(macroView);
+    if(macroIter != macros.end())
+    {
+        SkipTokensInBlock();
+    }
+
     return 0;
 }
 
@@ -272,5 +326,51 @@ int32_t Preprocessor::HandleError()
 
 int32_t Preprocessor::HandlePragma()
 {
+    return 0;
+}
+
+int32_t Preprocessor::HandleUndef()
+{
+    Token defineIdentifier = GetCurrToken();
+    ConsumeExpectedToken(TokenType::identifier);
+    ConsumeExpectedToken(TokenType::new_line);
+
+    std::string_view macroName = GetViewForToken(defineIdentifier);
+    macros.erase(macroName);
+
+    return 0;
+}
+
+int32_t Preprocessor::SkipTokensInBlock()
+{
+    Token token = GetCurrToken();
+    uint64_t nestedIfs = 0;
+    while (token.type != TokenType::eof)
+    {
+        token = GetCurrToken();
+        if(token.type == TokenType::hash)
+        {
+            ConsumeToken();
+            token = GetCurrToken();
+            if(token.type == TokenType::pp_endif && nestedIfs == 0)
+            {
+                ConsumeToken();
+                break;
+            }
+            else if(token.type == TokenType::pp_endif)
+            {
+                nestedIfs--;
+            }
+            else if(IsTokenOneOf(&token, TokenType::kw_if, TokenType::pp_ifdef, TokenType::pp_ifndef))
+            {
+                nestedIfs++;
+            }
+
+        }
+        ConsumeToken();
+
+    }
+    
+    
     return 0;
 }

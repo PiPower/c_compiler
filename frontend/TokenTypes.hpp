@@ -33,7 +33,7 @@
     KW(inline) \
     KW(goto) \
     /* type keywords */ \
-    KW(_unsigned) \
+    KW(unsigned) \
     KW(int) \
     KW(long) \
     KW(float) \
@@ -115,8 +115,14 @@
     PP(endif) \
     PP(line) \
     PP(error) \
-    PP(pragma)
-
+    PP(pragma) \
+    PP(undef) \
+    PP(defined)
+    
+    enum YOLO
+    {
+        x, y,
+    };
 
 namespace TokenType
 {
