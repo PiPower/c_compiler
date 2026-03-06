@@ -19,6 +19,7 @@ struct Lexer
     int32_t Lex(Token* token);
     int32_t PushFile(FILE_ID id);
 private:
+    SourceLocation ConstructLocation(const FilePos& filePos, const char* fileCurr, int64_t len);
     void PrepareKeywordMap();
     bool IsHorizontalWhiteSpace(char C);
     bool IsVerticalWhiteSpace(char C);
@@ -75,30 +76,6 @@ struct FilePos
     const char* fileEnd;
 };
 
-struct SourceLocation
-{
-    SourceLocation() = default;
-    
-    SourceLocation(size_t id,  int64_t offset, int64_t line, int64_t len) :
-    id(FILE_ID{id}), offset(offset), line(line), len(len)
-    {};
-
-    SourceLocation(const FilePos& filePos, const char* fileCurr, int64_t len) :
-     id(filePos.fileId),offset(fileCurr - filePos.fileBase),line(filePos.lineNr), len(len)
-    {}
-
-    FILE_ID id;
-    int64_t offset;
-    int64_t line;
-    int64_t len;
-};
-
-struct Token
-{
-    TokenType::Type type;
-    SourceLocation location;
-    uint8_t skippedHorizWhitespace : 1;
-};
 
 struct DecimalType
 {

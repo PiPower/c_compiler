@@ -1,5 +1,6 @@
 #pragma once
 #include <inttypes.h>
+#include "../utils/FileManager.hpp"
 
 #define TOKEN_LIST \
     X(eof) \
@@ -156,3 +157,24 @@ namespace TokenType
         return nullptr;
     }
 }
+
+struct SourceLocation
+{
+    SourceLocation() = default;
+    
+    SourceLocation(size_t id,  int64_t offset, int64_t line, int64_t len) :
+    id(FILE_ID{id}), offset(offset), line(line), len(len)
+    {}
+
+    FILE_ID id;
+    int64_t offset;
+    int64_t line;
+    int64_t len;
+};
+
+struct Token
+{
+    TokenType::Type type;
+    SourceLocation location;
+    uint8_t skippedHorizWhitespace : 1;
+};

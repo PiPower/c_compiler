@@ -8,9 +8,9 @@ int main()
 {
     const char* path = "examples/lexer_stress_test.c";
     const char* arr[] = {path};
-    FileManager fileManager({path}, {29});
+    FileManager fileManager({path}, {28});
     FILE_STATE main;
-    fileManager.GetFileState("examples/lexer_stress_test.c", 29, &main);
+    fileManager.GetFileState("examples/lexer_stress_test.c", 28, &main);
     CompilationOpts opts(1, (const char**)arr);
     Lexer lexer(main, &fileManager, &opts);
 

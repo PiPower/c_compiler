@@ -111,7 +111,7 @@ char Lexer::GetNextChar()
     {
         if(charsQueue.empty() || charsQueue.front() != '\0') 
         {
-            currLocations.emplace(files.top(), fCurr, 1);
+            currLocations.push(ConstructLocation(files.top(), fCurr, 1));
             charsQueue.emplace_back('\0');
         }
         return charsQueue.front();
@@ -120,14 +120,14 @@ char Lexer::GetNextChar()
     if(IsSimpleChar(*fCurr))
     {
         charsQueue.emplace_back(*fCurr);
-        currLocations.emplace(files.top(), fCurr, 1);
+        currLocations.push(ConstructLocation(files.top(), fCurr, 1));
         fCurr++;
         return charsQueue.front();
     }
 
     const char* fCurrBuff = fCurr;
     charsQueue.emplace_back( GetCharSlow());
-    currLocations.emplace(files.top(), fCurrBuff, fCurr - fCurrBuff);
+    currLocations.push(ConstructLocation(files.top(), fCurrBuff, fCurr - fCurrBuff));
     return charsQueue.front();
 }
 
@@ -257,7 +257,7 @@ void Lexer::LexCharSequence(Token *token, const char separator)
         }
         
     }
-    token->location = SourceLocation(files.top(), CharSeqStart, fCurr - CharSeqStart);
+    token->location = ConstructLocation(files.top(), CharSeqStart, fCurr - CharSeqStart);
 
     fCurr++;
     if(error || fCurr == fEnd)
@@ -971,7 +971,7 @@ int32_t Lexer::PushFile(FILE_ID id)
     }
 
     FilePos newFile = {};
-    newFile.fileId;
+    newFile.fileId = id;
     newFile.lineNr = 1;
     newFile.fileBase = state.fileData;
     newFile.fileCurrent = state.fileData;
@@ -984,6 +984,16 @@ int32_t Lexer::PushFile(FILE_ID id)
     fCurr = files.top().fileBase;
     fEnd = files.top().fileEnd;
     return 0;
+}
+
+SourceLocation Lexer::ConstructLocation(const FilePos &filePos, const char *fileCurr, int64_t len)
+{
+    SourceLocation loc;
+    loc.id = filePos.fileId;
+    loc.offset = fileCurr - filePos.fileBase;
+    loc.line = filePos.lineNr;
+    loc.len = len;
+    return loc;
 }
 
 void Lexer::PrepareKeywordMap()
