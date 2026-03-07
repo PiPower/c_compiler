@@ -1,41 +1,68 @@
-/* preprocessor_if_tests.c
-   C99 #if test suite using pragma warnings
+/* c99_preprocessor_if_suite.c
+   Comprehensive C99 preprocessor conditional compilation test suite
 */
 
-#pragma GCC warning "===== C99 PREPROCESSOR #IF TEST SUITE START ====="
+#pragma GCC warning "===== C99 PREPROCESSOR CONDITIONAL TEST SUITE START ====="
 
-/* -------------------------------------------------- */
-/* Test 1 */
+/* ====================================================== */
+/* Section 1 — Basic #ifdef / #ifndef */
+/* ====================================================== */
+
+#define FEATURE_A
+
+#ifdef FEATURE_A
+#pragma GCC warning "[PASS] #ifdef FEATURE_A -> true"
+#else
+#pragma GCC warning "[FAIL] #ifdef FEATURE_A"
+#endif
+
+#ifndef FEATURE_B
+#pragma GCC warning "[PASS] #ifndef FEATURE_B -> true"
+#elif FEATURE_B == 1
+#pragma GCC warning "[FAIL] FEATURE_B == 1"
+#else
+#pragma GCC warning "[FAIL] FEATURE_B unexpected branch"
+#endif
+
+
+/* ====================================================== */
+/* Section 2 — Basic #if constants */
+/* ====================================================== */
+
 #if 1
 #pragma GCC warning "[PASS] Test 1: #if 1"
 #else
 #pragma GCC warning "[FAIL] Test 1"
 #endif
 
-/* Test 2 */
 #if 0
 #pragma GCC warning "[FAIL] Test 2"
 #else
 #pragma GCC warning "[PASS] Test 2: #if 0"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 3 */
+
+/* ====================================================== */
+/* Section 3 — Arithmetic and precedence */
+/* ====================================================== */
+
 #if 1 + 2 * 3 == 7
 #pragma GCC warning "[PASS] Test 3: precedence 1 + 2 * 3"
 #else
 #pragma GCC warning "[FAIL] Test 3"
 #endif
 
-/* Test 4 */
 #if (10 - 4) / 2 == 3
 #pragma GCC warning "[PASS] Test 4: parentheses"
 #else
 #pragma GCC warning "[FAIL] Test 4"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 5 */
+
+/* ====================================================== */
+/* Section 4 — Macro expansion */
+/* ====================================================== */
+
 #define A 10
 #define B 20
 
@@ -45,16 +72,22 @@
 #pragma GCC warning "[FAIL] Test 5"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 6 */
+
+/* ====================================================== */
+/* Section 5 — Undefined macro behavior */
+/* ====================================================== */
+
 #if UNDEFINED_MACRO
 #pragma GCC warning "[FAIL] Test 6"
 #else
 #pragma GCC warning "[PASS] Test 6: undefined macro -> 0"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 7 */
+
+/* ====================================================== */
+/* Section 6 — defined() operator */
+/* ====================================================== */
+
 #define X 1
 
 #if defined(X)
@@ -75,8 +108,11 @@
 #pragma GCC warning "[FAIL] Test 9"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 10 */
+
+/* ====================================================== */
+/* Section 7 — Logical operators */
+/* ====================================================== */
+
 #define L1 1
 #define L0 0
 
@@ -92,8 +128,11 @@
 #pragma GCC warning "[FAIL] Test 11"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 12 */
+
+/* ====================================================== */
+/* Section 8 — Bitwise operators */
+/* ====================================================== */
+
 #if (4 & 1) == 0
 #pragma GCC warning "[PASS] Test 12: bitwise AND"
 #else
@@ -106,37 +145,46 @@
 #pragma GCC warning "[FAIL] Test 13"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 14 */
+
+/* ====================================================== */
+/* Section 9 — Nested conditionals */
+/* ====================================================== */
+
 #define N1 1
 #define N2 2
 
 #if N1
-    #if N2 == 2
-        #pragma GCC warning "[PASS] Test 14: nested #if"
-    #else
-        #pragma GCC warning "[FAIL] Test 14"
-    #endif
+  #if N2 == 2
+    #pragma GCC warning "[PASS] Test 14: nested #if"
+  #else
+    #pragma GCC warning "[FAIL] Test 14"
+  #endif
 #else
 #pragma GCC warning "[FAIL] Test 14"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 15 */
-#define VALUE 3
 
-#if VALUE == 1
+/* ====================================================== */
+/* Section 10 — #elif chain */
+/* ====================================================== */
+
+#define VALUE_TEST 3
+
+#if VALUE_TEST == 1
 #pragma GCC warning "[FAIL] Test 15"
-#elif VALUE == 2
+#elif VALUE_TEST == 2
 #pragma GCC warning "[FAIL] Test 15"
-#elif VALUE == 3
+#elif VALUE_TEST == 3
 #pragma GCC warning "[PASS] Test 15: elif chain"
 #else
 #pragma GCC warning "[FAIL] Test 15"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 16 */
+
+/* ====================================================== */
+/* Section 11 — Macro expressions */
+/* ====================================================== */
+
 #define EXPR 2 + 3
 
 #if EXPR * 2 == 10
@@ -145,8 +193,11 @@
 #pragma GCC warning "[FAIL] Test 16"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 17 */
+
+/* ====================================================== */
+/* Section 12 — Complex expression */
+/* ====================================================== */
+
 #define CA 5
 #define CB 3
 
@@ -156,24 +207,33 @@
 #pragma GCC warning "[FAIL] Test 17"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 18 */
+
+/* ====================================================== */
+/* Section 13 — Character constants */
+/* ====================================================== */
+
 #if 'A' == 65
 #pragma GCC warning "[PASS] Test 18: character constant"
 #else
 #pragma GCC warning "[FAIL] Test 18"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 19 */
+
+/* ====================================================== */
+/* Section 14 — Large integers */
+/* ====================================================== */
+
 #if 2147483647 > 0
 #pragma GCC warning "[PASS] Test 19: large integer"
 #else
 #pragma GCC warning "[FAIL] Test 19"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 20 */
+
+/* ====================================================== */
+/* Section 15 — Skipped code */
+/* ====================================================== */
+
 #if 0
 
 THIS_TEXT_SHOULD_BE_IGNORED
@@ -185,8 +245,11 @@ THIS_TEXT_SHOULD_BE_IGNORED
 
 #pragma GCC warning "[PASS] Test 20: dead code skipped"
 
-/* -------------------------------------------------- */
-/* Test 21 */
+
+/* ====================================================== */
+/* Section 16 — Deep nesting */
+/* ====================================================== */
+
 #define DN 1
 
 #if DN
@@ -197,16 +260,22 @@ THIS_TEXT_SHOULD_BE_IGNORED
 #endif
 #endif
 
-/* -------------------------------------------------- */
-/* Test 22 */
+
+/* ====================================================== */
+/* Section 17 — Shift precedence */
+/* ====================================================== */
+
 #if 1 + 2 << 3 == 24
 #pragma GCC warning "[PASS] Test 22: shift precedence"
 #else
 #pragma GCC warning "[FAIL] Test 22"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 23 */
+
+/* ====================================================== */
+/* Section 18 — Unary operators */
+/* ====================================================== */
+
 #if -5 < 0
 #pragma GCC warning "[PASS] Test 23: unary minus"
 #else
@@ -219,16 +288,22 @@ THIS_TEXT_SHOULD_BE_IGNORED
 #pragma GCC warning "[FAIL] Test 24"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 24 */
+
+/* ====================================================== */
+/* Section 19 — Ternary operator */
+/* ====================================================== */
+
 #if (1 ? 2 : 3) == 2
 #pragma GCC warning "[PASS] Test 25: ternary"
 #else
 #pragma GCC warning "[FAIL] Test 25"
 #endif
 
-/* -------------------------------------------------- */
-/* Test 25 */
+
+/* ====================================================== */
+/* Section 20 — defined() without expansion */
+/* ====================================================== */
+
 #define FOO BAR
 
 #if defined(FOO)
@@ -237,4 +312,5 @@ THIS_TEXT_SHOULD_BE_IGNORED
 #pragma GCC warning "[FAIL] Test 26"
 #endif
 
-#pragma GCC warning "===== C99 PREPROCESSOR #IF TEST SUITE END ====="
+
+#pragma GCC warning "===== C99 PREPROCESSOR CONDITIONAL TEST SUITE END ====="
