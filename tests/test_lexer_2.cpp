@@ -30,7 +30,8 @@ int main()
 
     }while (tok.type != TokenType::eof);
 
-    
+    std::cout << "Test passed \n" << std::endl;
+
 }
 
 std::vector<TokenType::Type> tokens= {
