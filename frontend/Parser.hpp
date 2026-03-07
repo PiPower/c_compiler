@@ -42,10 +42,10 @@ private:
     Ast::Node* AdditiveExpression();
     Ast::Node* MultiplicativeExpression();
     Ast::Node* CastExpression();
-    Ast::Node* ParseCastingType();
     Ast::Node* UnaryExpression();
     Ast::Node* PostfixExpression();
     Ast::Node* PrimaryExpression();
+    Ast::Node* ParseIdentifier();
 public:
     FileManager* manager;
     Preprocessor PP;

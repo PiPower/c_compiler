@@ -8,7 +8,7 @@
 
 Parser::Parser(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
 :
-manager(manager), PP(mainFile, manager, opts), opts(opts), pState({})
+manager(manager), PP(mainFile, manager, opts), opts(opts), unaryHandle(nullptr), pState({})
 {
     assert(opts != nullptr);
     AddNodePage();
@@ -17,9 +17,8 @@ manager(manager), PP(mainFile, manager, opts), opts(opts), pState({})
 void Parser::Parse()
 {
 start_parsing:
-    Token token;
-    PP.Peek(&token);
-
+    Token token = GetCurrToken();
+    
     if(PP.stages.If > 0)
     {
         Ast::Node* expr = ParseConstantExpr();
@@ -76,7 +75,8 @@ void Parser::IssueWarning(const Token * token, const char *errMsg, ...)
 {
     va_list args;
     va_start(args, errMsg);
-    IssueWarning(&token->location.id, &token->location, errMsg, args);
+    if(token) {IssueWarning(&token->location.id, &token->location, errMsg, args);}
+    else{IssueWarning(nullptr, nullptr, errMsg, args);}
     va_end(args);
 
     return;
@@ -175,14 +175,10 @@ Ast::Node* Parser::PrimaryExpression()
     node->token = token;
     switch (token.type)
     {
-    case TokenType::identifier:
-        node->type = Ast::identifier;
-        break;
-    case TokenType::numeric_constant:
-        node->type = Ast::constant;
-        break;
+    case TokenType::identifier:       node->type = Ast::identifier; break;
+    case TokenType::numeric_constant: node->type = Ast::constant; break;
     case TokenType::string_literal:
-    case TokenType::l_string_literal:
+    case TokenType::l_string_literal: 
         node->type = Ast::string_literal;
         break;
     case TokenType::l_parentheses:
@@ -199,9 +195,73 @@ Ast::Node* Parser::PrimaryExpression()
     return node;
 }
 
+Ast::Node *Parser::ParseIdentifier()
+{
+    Token token = GetCurrToken();
+    ConsumeExpectedToken(TokenType::identifier);
+    Ast::Node* node = AllocateAstNodes();
+    node->token = token;
+    node->type = Ast::NodeType::identifier;
+    return node;
+}
+
 Ast::Node* Parser::PostfixExpression()
 {
-    return PrimaryExpression();
+    Token token = GetCurrToken();
+    if(token.type == TokenType::l_parentheses)
+    {
+        ConsumeToken();
+        IssueWarning(nullptr, "Currently parsing type-name/initializer-list is not supported \n");
+    }
+
+    Ast::Node* postfixExpr = PrimaryExpression();
+    while (IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses, 
+            TokenType::dot, TokenType::arrow, TokenType::plus_plus, TokenType::minus_minus))
+    {
+        Ast::Node* node = AllocateAstNodes();
+        node->token = token;
+        
+        if(token.type == TokenType::l_bracket)
+        {
+            node->type = Ast::NodeType::array_access;
+            node->lChild = postfixExpr;
+            node->rChild = ParseExpression();
+        }
+        else if(token.type == TokenType::l_parentheses)
+        {
+            node->type = Ast::NodeType::function_call;
+            node->lChild = postfixExpr;
+            IssueWarning(&node->token, "Function calls are currenlty not supported \n");
+            exit(-1);
+        }
+        else if(token.type == TokenType::dot)
+        {
+            node->type = Ast::NodeType::struct_access;
+            node->lChild = postfixExpr;
+            node->rChild = ParseIdentifier();
+        }
+        else if(token.type == TokenType::arrow)
+        {
+            node->type = Ast::NodeType::ptr_access;
+            node->lChild = postfixExpr;
+            node->rChild = ParseIdentifier();
+        }
+        else if(token.type == TokenType::plus_plus)
+        {
+            node->type = Ast::NodeType::op_post_inc;
+            node->lChild = postfixExpr;
+        }
+        else
+        {
+            node->type = Ast::NodeType::op_post_dec;
+            node->lChild = postfixExpr;
+        }
+
+        postfixExpr = node;
+
+    }
+    
+    return postfixExpr;
 }
 
 Ast::Node* Parser::UnaryExpression()

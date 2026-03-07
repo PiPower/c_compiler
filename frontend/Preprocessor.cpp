@@ -316,11 +316,10 @@ int32_t Preprocessor::HandleIfdef()
     std::string_view macroView = GetViewForToken(identifier);
 
     auto macroIter = macros.find(macroView);
-    int64_t ret = 0;
     ConditionalBlock block = CreateBlock(); 
     if(macroIter == macros.end())
     {
-        ret = SkipTokensInBlock();
+        SkipTokensInBlock();
         block.doneIncluding = false;
     }
     else {block.doneIncluding = true;}
@@ -337,11 +336,10 @@ int32_t Preprocessor::HandleIfndef()
     std::string_view macroView = GetViewForToken(identifier);
 
     auto macroIter = macros.find(macroView);
-    int64_t ret = 0;
     ConditionalBlock block = CreateBlock(); 
     if(macroIter != macros.end())
     {
-        ret = SkipTokensInBlock();
+        SkipTokensInBlock();
         block.doneIncluding = false;
     }
     else {block.doneIncluding = true;}
@@ -362,7 +360,9 @@ int32_t Preprocessor::HandleElif()
     if(conditionalBlocks.top().doneIncluding)
     {
         Token info;
-        int32_t ret = SkipTokensInBlock(&info);
+        SkipTokensInBlock(&info);
+
+        return 0;
     }
     // TODO add argument evaluatio
     return 0;

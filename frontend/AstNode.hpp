@@ -74,7 +74,8 @@
     X(initalizer) \
     X(pointer) \
     X(dref_ptr) \
-    X(access) \
+    X(array_access) \
+    X(struct_access) \
     X(cast) \
     X(get_addr) \
     X(ptr_access) \
