@@ -89,7 +89,7 @@ void Preprocessor::IssueWarning(const FILE_ID* fileId, const SourceLocation* loc
     {
         printf("%ld:%ld", loc->line, loc->offset);
     }
-    printf("Preprocessor warning \n");
+    printf(" Preprocessor warning \n");
 
     if(errMsg)
     {
@@ -210,8 +210,6 @@ int32_t Preprocessor::HandleElse()
             IssueWarning(&info.location.id,&info.location, "#else block may only end with #endif\n" );
             exit(-1);
         }
-        // we still need to handle leaving conditional scope
-        HandleEndif();
     }
     return 0;
 }
@@ -377,10 +375,6 @@ int32_t Preprocessor::HandleElif()
     {
         Token info;
         int32_t ret = SkipTokensInBlock(&info);
-        if(ret == HIT_ENDIF)
-        {
-            HandleEndif();
-        }
     }
     return 0;
 }
@@ -486,10 +480,10 @@ int32_t Preprocessor::SkipTokensInBlock(Token* infoToken)
                 PutBackAtFront(token);
                 return HIT_ELSEIF;
             }
-            if(ppToken.type == TokenType::pp_endif && nestedIfs == 0)
+            if(nestedIfs == 0 && ppToken.type == TokenType::pp_endif)
             {
                 if(infoToken){*infoToken = ppToken;}
-                ConsumeToken();
+                PutBackAtFront(token);
                 return HIT_ENDIF;
             }
             else if(ppToken.type == TokenType::pp_endif)
@@ -506,6 +500,8 @@ int32_t Preprocessor::SkipTokensInBlock(Token* infoToken)
 
     }
     if(infoToken){*infoToken = token;} 
+    IssueWarning(&token.location.id, &token.location, "Block is not enclosed with #endif\n");
+    exit(-1);
     return 0;
 }
 
