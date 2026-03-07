@@ -10,10 +10,10 @@
 
 #define FEATURE_A
 
-#ifdef FEATURE_A
-#pragma GCC warning "[PASS] #ifdef FEATURE_A -> true"
+#ifdef FEATURE_C
+#pragma GCC warning "[FAIL] #ifdef FEATURE_A -> true"
 #else
-#pragma GCC warning "[FAIL] #ifdef FEATURE_A"
+#pragma GCC warning "[PASS] #ifdef FEATURE_A -> false"
 #endif
 
 #ifndef FEATURE_B

@@ -184,3 +184,9 @@ struct Token
     SourceLocation location;
     uint8_t skippedHorizWhitespace : 1;
 };
+
+template<typename... Args>
+static bool IsTokenOneOf(const Token* token, Args&&... args)
+{
+    return ((token->type == args) || ...);
+}

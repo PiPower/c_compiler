@@ -1,5 +1,6 @@
 #pragma once
 #include "Lexer.hpp"
+#include "AstNode.hpp"
 
 struct PreprocessorStages
 {
@@ -14,17 +15,25 @@ struct Macro
     std::vector<Token> tokenList;
 };
 
+struct ConditionalBlock
+{
+    int64_t nestLevel;
+    bool doneIncluding;
+};
+
 struct Preprocessor
 {
     Preprocessor(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
     int32_t Peek(Token* token);
-    int32_t ExecuteDirective(Token* token);
+    void ExecuteConstantExpr(Ast::Node* expr);
 private:
+    int32_t ExecuteDirective(Token* token);
     void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
     std::string_view GetViewForToken(const Token& token);
     Token GetCurrToken();
+    void PutBackAtFront(Token token);
     void ConsumeToken();
-    void ConsumeExpectedToken(TokenType::Type  type);
+    void ConsumeExpectedToken(TokenType::Type type);
     std::string_view FormHeadername();
     int32_t HandleIf();
     int32_t HandleElse();
@@ -38,13 +47,14 @@ private:
     int32_t HandleError();
     int32_t HandlePragma();
     int32_t HandleUndef();
-    int32_t SkipTokensInBlock();
+    int32_t SkipTokensInBlock(Token* infoToken = nullptr);
+    ConditionalBlock CreateBlock();
 public:
     Lexer lexer;
     FileManager* manager;
     const CompilationOpts* opts;
     std::deque<Token> tokenQueue;
     PreprocessorStages stages;
-
+    std::stack<ConditionalBlock> conditionalBlocks;
     std::unordered_map<std::string_view, Macro> macros;
 };

@@ -3,18 +3,15 @@
 #include <string.h>
 #include <stdarg.h>
 
+constexpr int32_t HIT_ENDIF = 1;
+constexpr int32_t HIT_ELSE = 2;
+constexpr int32_t HIT_ELSEIF = 3;
+
 struct Headername
 {
     std::string_view name;
     uint8_t isLocal : 1; // include from file directory
 };
-
-template<typename... Args>
-static bool IsTokenOneOf(const Token* token, Args&&... args)
-{
-    return ((token->type == args) || ...);
-}
-
 
 Preprocessor::Preprocessor(FILE_STATE mainFile, FileManager *manager, const CompilationOpts* opts)
 :
@@ -45,6 +42,9 @@ fetch_token:
     return 0;
 }
 
+void Preprocessor::ExecuteConstantExpr(Ast::Node *expr)
+{
+}
 
 int32_t Preprocessor::ExecuteDirective(Token *token)
 {
@@ -85,7 +85,12 @@ void Preprocessor::IssueWarning(const FILE_ID* fileId, const SourceLocation* loc
         pathBuffer[fileState.pathLen] = '\0';
         printf("%s:", pathBuffer);
     }
-    printf("%ld:%ld Preprocessor error: ", loc->line, loc->offset);
+    if(loc)
+    {
+        printf("%ld:%ld", loc->line, loc->offset);
+    }
+    printf("Preprocessor warning \n");
+
     if(errMsg)
     {
         va_list args;
@@ -109,12 +114,13 @@ std::string_view Preprocessor::GetViewForToken(const Token &token)
     // removes \" from both start and end 
     uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
     std::string_view tokenView(state.fileData + token.location.offset + offset,
-                                token.location.len - 2 * offset);
+                                token.location.len - offset);
     return tokenView;
 }
 
 Token Preprocessor::GetCurrToken()
 {
+    
     if(tokenQueue.empty())
     {
         Token token;
@@ -122,6 +128,11 @@ Token Preprocessor::GetCurrToken()
         tokenQueue.push_back(token);
     }
     return tokenQueue.front();
+}
+
+void Preprocessor::PutBackAtFront(Token token)
+{
+    tokenQueue.push_front(token);
 }
 
 void Preprocessor::ConsumeToken()
@@ -184,6 +195,24 @@ int32_t Preprocessor::HandleIf()
 
 int32_t Preprocessor::HandleElse()
 {
+    if(conditionalBlocks.empty())
+    {
+        IssueWarning(nullptr, nullptr, "#endif used outsite of #if block\n");
+        exit(-1);
+    }
+
+    if(conditionalBlocks.top().doneIncluding)
+    {
+        Token info;
+        int32_t ret = SkipTokensInBlock(&info);
+        if(ret != HIT_ENDIF)
+        {
+            IssueWarning(&info.location.id,&info.location, "#else block may only end with #endif\n" );
+            exit(-1);
+        }
+        // we still need to handle leaving conditional scope
+        HandleEndif();
+    }
     return 0;
 }
 
@@ -284,7 +313,28 @@ int32_t Preprocessor::HandleDefine()
 
 int32_t Preprocessor::HandleIfdef()
 {
-    stages.Ifdef = 1;
+    Token identifier = GetCurrToken();
+    ConsumeExpectedToken(TokenType::identifier);
+    ConsumeExpectedToken(TokenType::new_line);
+    std::string_view macroView = GetViewForToken(identifier);
+
+    auto macroIter = macros.find(macroView);
+    int64_t ret = 0;
+    ConditionalBlock block = CreateBlock(); 
+    if(macroIter == macros.end())
+    {
+        ret = SkipTokensInBlock();
+        block.doneIncluding = false;
+    }
+    else {block.doneIncluding = true;}
+
+    // if didnt hit endif in block skip that means 
+    // we are still in the if block so keep track of it 
+    if(ret != HIT_ENDIF)
+    {
+        conditionalBlocks.push(block);
+    }
+
     return 0;
 }
 
@@ -296,9 +346,20 @@ int32_t Preprocessor::HandleIfndef()
     std::string_view macroView = GetViewForToken(identifier);
 
     auto macroIter = macros.find(macroView);
+    int64_t ret = 0;
+    ConditionalBlock block = CreateBlock(); 
     if(macroIter != macros.end())
     {
-        SkipTokensInBlock();
+        ret = SkipTokensInBlock();
+        block.doneIncluding = false;
+    }
+    else {block.doneIncluding = true;}
+
+    // if didnt hit endif in block skip that means 
+    // we are still in the if block so keep track of it 
+    if(ret != HIT_ENDIF)
+    {
+        conditionalBlocks.push(block);
     }
 
     return 0;
@@ -306,11 +367,34 @@ int32_t Preprocessor::HandleIfndef()
 
 int32_t Preprocessor::HandleElif()
 {
+    if(conditionalBlocks.empty())
+    {
+        IssueWarning(nullptr, nullptr, "#elif used outsite of #if block\n");
+        exit(-1);
+    }
+
+    if(conditionalBlocks.top().doneIncluding)
+    {
+        Token info;
+        int32_t ret = SkipTokensInBlock(&info);
+        if(ret == HIT_ENDIF)
+        {
+            HandleEndif();
+        }
+    }
     return 0;
 }
 
 int32_t Preprocessor::HandleEndif()
 {
+    Token token =  GetCurrToken(); // token used in logging only
+    ConsumeExpectedToken(TokenType::new_line);
+    if(conditionalBlocks.empty())
+    {
+        IssueWarning(&token.location.id, &token.location, "#endif used without #if");
+        exit(-1);
+    }
+    conditionalBlocks.pop();
     return 0;
 }
 
@@ -326,6 +410,41 @@ int32_t Preprocessor::HandleError()
 
 int32_t Preprocessor::HandlePragma()
 {
+    Token pragmaType = GetCurrToken();
+    ConsumeToken();
+    if(pragmaType.type == TokenType::new_line)
+    {
+        printf("Empty pragma\n");
+    }
+
+    std::string_view command = GetViewForToken(pragmaType);
+    if(command == "GCC")
+    {
+        Token pragmaSubType = GetCurrToken();
+        ConsumeToken();
+
+        std::string_view subCommand = GetViewForToken(pragmaSubType);
+        if(subCommand == "warning")
+        {
+            Token tokenWarning = GetCurrToken();
+            ConsumeToken();
+            std::string_view subCommand = GetViewForToken(tokenWarning);
+            char* msg = (char*) alloca(subCommand.length() + 1);
+            memcpy(msg, subCommand.data(), subCommand.length());
+            msg[subCommand.length()] = '\0';
+            IssueWarning(&tokenWarning.location.id, &tokenWarning.location, msg);
+        }
+        else
+        {
+            printf("Unsupported pragma subtype\n");
+            exit(-1);
+        }
+    }
+    else
+    {
+        printf("Unsupported pragma type\n");
+        exit(-1);
+    }
     return 0;
 }
 
@@ -341,7 +460,7 @@ int32_t Preprocessor::HandleUndef()
     return 0;
 }
 
-int32_t Preprocessor::SkipTokensInBlock()
+int32_t Preprocessor::SkipTokensInBlock(Token* infoToken)
 {
     Token token = GetCurrToken();
     uint64_t nestedIfs = 0;
@@ -350,18 +469,34 @@ int32_t Preprocessor::SkipTokensInBlock()
         token = GetCurrToken();
         if(token.type == TokenType::hash)
         {
+            // consume '#' 
             ConsumeToken();
-            token = GetCurrToken();
-            if(token.type == TokenType::pp_endif && nestedIfs == 0)
+            Token ppToken = GetCurrToken();
+            if(nestedIfs == 0 && ppToken.type == TokenType::kw_else)
             {
-                ConsumeToken();
-                break;
+                // if we hit else/elif we want to keep # in queue
+                if(infoToken){*infoToken = ppToken;}
+                PutBackAtFront(token);
+                return HIT_ELSE;
             }
-            else if(token.type == TokenType::pp_endif)
+            else if(nestedIfs == 0 && ppToken.type == TokenType::pp_elif)
+            {
+                // if we hit else/elif we want to keep # in queue
+                if(infoToken){*infoToken = ppToken;}
+                PutBackAtFront(token);
+                return HIT_ELSEIF;
+            }
+            if(ppToken.type == TokenType::pp_endif && nestedIfs == 0)
+            {
+                if(infoToken){*infoToken = ppToken;}
+                ConsumeToken();
+                return HIT_ENDIF;
+            }
+            else if(ppToken.type == TokenType::pp_endif)
             {
                 nestedIfs--;
             }
-            else if(IsTokenOneOf(&token, TokenType::kw_if, TokenType::pp_ifdef, TokenType::pp_ifndef))
+            else if(IsTokenOneOf(&ppToken, TokenType::kw_if, TokenType::pp_ifdef, TokenType::pp_ifndef))
             {
                 nestedIfs++;
             }
@@ -370,7 +505,21 @@ int32_t Preprocessor::SkipTokensInBlock()
         ConsumeToken();
 
     }
-    
-    
+    if(infoToken){*infoToken = token;} 
     return 0;
+}
+
+ConditionalBlock Preprocessor::CreateBlock()
+{
+    ConditionalBlock block;
+    if(conditionalBlocks.size() == 0)
+    {
+        block.nestLevel = 0;
+    }
+    else
+    {
+        block.nestLevel = conditionalBlocks.top().nestLevel + 1;
+    }
+    block.doneIncluding = false;
+    return block;
 }

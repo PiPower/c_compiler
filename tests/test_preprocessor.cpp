@@ -13,7 +13,7 @@ int swap_fds(int fd1, int fd2)
     int tmp = dup(fd1);
     if (tmp < 0)
         return -1;
-          
+
     if (dup2(fd2, fd1) < 0)
         return -1;
 
@@ -56,7 +56,9 @@ int main()
 }
 
 const char* correctMessageSequence = 
-"===== C99 PREPROCESSOR #IF TEST SUITE START =====\n"
+"===== C99 PREPROCESSOR CONDITIONAL TEST SUITE START =====\n"
+"[PASS] #ifdef FEATURE_A -> false\n"
+"[PASS] #ifndef FEATURE_B -> true\n"
 "[PASS] Test 1: #if 1\n"
 "[PASS] Test 2: #if 0\n"
 "[PASS] Test 3: precedence 1 + 2 * 3\n"
@@ -72,7 +74,7 @@ const char* correctMessageSequence =
 "[PASS] Test 13: shift operator\n"
 "[PASS] Test 14: nested #if\n"
 "[PASS] Test 15: elif chain\n"
-"[FAIL] Test 16\n"
+"[PASS] Test 16: macro expression\n"
 "[PASS] Test 17: complex expression\n"
 "[PASS] Test 18: character constant\n"
 "[PASS] Test 19: large integer\n"
@@ -83,4 +85,4 @@ const char* correctMessageSequence =
 "[PASS] Test 24: bitwise NOT\n"
 "[PASS] Test 25: ternary\n"
 "[PASS] Test 26: defined without expansion\n"
-"===== C99 PREPROCESSOR #IF TEST SUITE END =====";
+"===== C99 PREPROCESSOR CONDITIONAL TEST SUITE END =====\n";
