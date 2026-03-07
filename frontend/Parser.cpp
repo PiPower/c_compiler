@@ -8,7 +8,7 @@
 
 Parser::Parser(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
 :
-manager(manager), PP(mainFile, manager, opts), opts(opts)
+manager(manager), PP(mainFile, manager, opts), opts(opts), pState({})
 {
     assert(opts != nullptr);
     AddNodePage();
@@ -139,6 +139,11 @@ void Parser::AddNodePage()
     nodeBuffer.currentPage = nodeBuffer.pages.size() - 1;
 }
 
+bool Parser::IsAssignment(Token *token)
+{
+    return IsAssignment(token->type);
+}
+
 bool Parser::IsAssignment(TokenType::Type type)
 {
     return  TokenType::equal <= type && type <= TokenType::pipe_equal;
@@ -146,7 +151,10 @@ bool Parser::IsAssignment(TokenType::Type type)
 
 Ast::Node *Parser::ParseConstantExpr()
 {
-    return ConditionalExpression();
+    pState.parsingConstantExpr = 1;
+    Ast::Node* node = ConditionalExpression();
+    pState.parsingConstantExpr = 0;
+    return node;
 }
 
 Ast::Node* Parser::ParseExpression()

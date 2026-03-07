@@ -141,7 +141,7 @@ namespace TokenType
     };
 
 
-    constexpr char* tokenStr(TokenType::Type type)
+    constexpr const char* tokenStr(TokenType::Type type)
     {
         switch (type)
         {

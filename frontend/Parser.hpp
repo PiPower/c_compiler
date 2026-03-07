@@ -3,6 +3,11 @@
 #include "../utils/FileManager.hpp"
 #include "Preprocessor.hpp"
 
+struct ParsingState
+{
+    uint16_t parsingConstantExpr : 1;
+};
+
 struct Parser
 {
     Parser(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
@@ -48,4 +53,6 @@ public:
     std::deque<Token> tokenQueue;
     Ast::Node* unaryHandle;
     PagedBuffer nodeBuffer;
+
+    ParsingState pState;
 };
