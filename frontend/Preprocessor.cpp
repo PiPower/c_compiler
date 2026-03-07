@@ -326,13 +326,7 @@ int32_t Preprocessor::HandleIfdef()
     }
     else {block.doneIncluding = true;}
 
-    // if didnt hit endif in block skip that means 
-    // we are still in the if block so keep track of it 
-    if(ret != HIT_ENDIF)
-    {
-        conditionalBlocks.push(block);
-    }
-
+    conditionalBlocks.push(block);
     return 0;
 }
 
@@ -353,13 +347,8 @@ int32_t Preprocessor::HandleIfndef()
     }
     else {block.doneIncluding = true;}
 
-    // if didnt hit endif in block skip that means 
-    // we are still in the if block so keep track of it 
-    if(ret != HIT_ENDIF)
-    {
-        conditionalBlocks.push(block);
-    }
 
+    conditionalBlocks.push(block);
     return 0;
 }
 
