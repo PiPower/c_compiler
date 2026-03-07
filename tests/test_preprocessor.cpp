@@ -1,7 +1,7 @@
 #include <vector>
 #include <cstddef>
 #include <iostream>
-#include "../frontend/Preprocessor.hpp"
+#include "../frontend/Parser.hpp"
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -32,7 +32,7 @@ int main()
     FILE_STATE main;
     fileManager.GetFileState("examples/preprocessor_test.c", 28, &main);
     CompilationOpts opts(1, (const char**)arr);
-    Preprocessor pp(main, &fileManager, &opts);
+    Parser pp(main, &fileManager, &opts); // parser is needed for complex #if/#elif directives
     Token tok;
     size_t i = 0;
     /*
@@ -43,7 +43,7 @@ int main()
     int fd = open("./", O_RDWR | O_TMPFILE);
     //swap_fds(stdout_fd, fd);
     do{
-        pp.Peek(&tok);
+        pp.Parse();
 
         fflush(stdout);
         i++;

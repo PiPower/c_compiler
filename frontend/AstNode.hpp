@@ -6,7 +6,8 @@
     X(identifier) \
     X(constant) \
     X(declaration) \
-    X(conditional_expression) \
+    X(string_literal) \
+    X(expression) \
     /* Basic math ops */ \
     OP(multiply) \
     OP(divide) \
@@ -98,5 +99,7 @@ namespace Ast
     {
         Ast::NodeType type;
         Token token;
+        Ast::Node* lChild;
+        Ast::Node* rChild;
     };
 }

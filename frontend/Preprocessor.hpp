@@ -45,7 +45,7 @@ private:
     int32_t HandleEndif();
     int32_t HandleLine();
     int32_t HandleError();
-    int32_t HandlePragma();
+    int32_t HandlePragma(); 
     int32_t HandleUndef();
     int32_t SkipTokensInBlock(Token* infoToken = nullptr);
     ConditionalBlock CreateBlock();

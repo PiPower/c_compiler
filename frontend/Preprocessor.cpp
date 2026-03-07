@@ -120,7 +120,6 @@ std::string_view Preprocessor::GetViewForToken(const Token &token)
 
 Token Preprocessor::GetCurrToken()
 {
-    
     if(tokenQueue.empty())
     {
         Token token;
@@ -365,6 +364,7 @@ int32_t Preprocessor::HandleElif()
         Token info;
         int32_t ret = SkipTokensInBlock(&info);
     }
+    // TODO add argument evaluatio
     return 0;
 }
 
