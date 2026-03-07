@@ -182,7 +182,9 @@ struct Token
 {
     TokenType::Type type;
     SourceLocation location;
+    // hints
     uint8_t skippedHorizWhitespace : 1;
+    uint8_t isFloat : 1;
 };
 
 template<typename... Args>

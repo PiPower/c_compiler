@@ -356,7 +356,8 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
     token->location.id = files.top().fileId;
     token->location.line = files.top().lineNr;
     token->location.offset = fCurr - files.top().fileBase;
-
+    token->isFloat = 0;
+    
     const char* startOfConstant = fCurr;
     // set fCurr to first char in buffer
     DecimalType numType = CheckDecimalType();
@@ -454,6 +455,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
 
         if(isFloat)
         {
+            token->isFloat = 1;
             LexFloatSuffix();
         }
     }
