@@ -183,8 +183,14 @@ struct Token
     TokenType::Type type;
     SourceLocation location;
     // hints
-    uint8_t skippedHorizWhitespace : 1;
-    uint8_t isFloat : 1;
+    uint16_t skippedHorizWhitespace : 1; // prepended by whitespace
+    uint16_t isFloat : 1; // is numeric constant float
+    uint16_t isHex : 1; // is numeric written in hexadecimal notation
+    uint16_t isDec : 1; // is numeric written in decimal notation
+    uint16_t isBin : 1; // is numeric written in binary notation
+    uint16_t isOct : 1; // is numeric written in octal notation
+    uint16_t hasE : 1; // does numeric contain E
+    uint16_t hasP : 1; // does numeric contain P
 };
 
 template<typename... Args>
@@ -192,3 +198,5 @@ static bool IsTokenOneOf(const Token* token, Args&&... args)
 {
     return ((token->type == args) || ...);
 }
+
+#undef TOKEN_LIST

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 
+
 constexpr int32_t HIT_ENDIF = 1;
 constexpr int32_t HIT_ELSE = 2;
 constexpr int32_t HIT_ELSEIF = 3;
@@ -18,6 +19,8 @@ Preprocessor::Preprocessor(FILE_STATE mainFile, FileManager *manager, const Comp
 lexer(mainFile, manager, opts), manager(manager), opts(opts), stages({})
 {
     assert(opts != nullptr);
+    constexpr size_t initiialBufferSize = 500;
+    constantNodes.reserve(initiialBufferSize);
 }
 
 int32_t Preprocessor::Peek(Token* token)
@@ -44,6 +47,50 @@ fetch_token:
 
 void Preprocessor::ExecuteConstantExpr(Ast::Node *expr)
 {
+    constantNodes.push_back(expr);
+
+}
+
+Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
+{
+    switch (expr->type)
+    {
+    case Ast::NodeType::constant:
+        
+    // forbiden elements
+    case Ast::NodeType::string_literal:
+    case Ast::NodeType::op_pre_inc:
+    case Ast::NodeType::op_post_inc:
+    case Ast::NodeType::op_pre_dec:
+    case Ast::NodeType::op_post_dec:
+    case Ast::NodeType::assignment:
+    case Ast::NodeType::mul_assignment:
+    case Ast::NodeType::div_assignment:
+    case Ast::NodeType::mod_assignment:
+    case Ast::NodeType::add_assignment:
+    case Ast::NodeType::sub_assignment:
+    case Ast::NodeType::l_shift_assignment:
+    case Ast::NodeType::r_shift_assignment:
+    case Ast::NodeType::and_assignment:
+    case Ast::NodeType::exc_or_assignment:
+    case Ast::NodeType::or_assignment:
+    case Ast::NodeType::function_call:
+    case Ast::NodeType::args_expr_list:
+    case Ast::NodeType::cast:
+    case Ast::NodeType::get_addr:
+    case Ast::NodeType::dref_ptr:
+    case Ast::NodeType::array_access:
+    case Ast::NodeType::struct_access:
+    case Ast::NodeType::ptr_access:
+        IssueWarning(&expr->token.location.id, &expr->token.location,
+        "Operation [%s] is not allowed in preprocessing directive \n",
+        Ast::nodeStr(expr->type));
+        break;
+    
+    default:
+        break;
+    }
+    return Typed::Number();
 }
 
 int32_t Preprocessor::ExecuteDirective(Token *token)

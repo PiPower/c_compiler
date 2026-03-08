@@ -18,7 +18,6 @@ void Parser::Parse()
 {
 start_parsing:
     Token token = GetCurrToken();
-    
     if(PP.stages.If > 0)
     {
         Ast::Node* expr = ParseConstantExpr();
@@ -175,8 +174,10 @@ Ast::Node* Parser::PrimaryExpression()
     node->token = token;
     switch (token.type)
     {
-    case TokenType::identifier:       node->type = Ast::identifier; break;
-    case TokenType::numeric_constant: node->type = Ast::constant; break;
+    case TokenType::identifier:       
+        node->type = Ast::identifier; break;
+    case TokenType::numeric_constant: 
+        node->type = Ast::constant; break;
     case TokenType::string_literal:
     case TokenType::l_string_literal: 
         node->type = Ast::string_literal;

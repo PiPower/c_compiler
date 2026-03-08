@@ -1,7 +1,7 @@
 #pragma once
 #include "Lexer.hpp"
 #include "AstNode.hpp"
-
+#include "TypedNumber.hpp"
 struct PreprocessorStages
 {
     uint16_t If : 1;
@@ -27,6 +27,7 @@ struct Preprocessor
     int32_t Peek(Token* token);
     void ExecuteConstantExpr(Ast::Node* expr);
 private:
+    Typed::Number ExecuteNode(Ast::Node* expr);
     int32_t ExecuteDirective(Token* token);
     void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
     std::string_view GetViewForToken(const Token& token);
@@ -57,4 +58,5 @@ public:
     PreprocessorStages stages;
     std::stack<ConditionalBlock> conditionalBlocks;
     std::unordered_map<std::string_view, Macro> macros;
+    std::vector<Ast::Node*> constantNodes;
 };

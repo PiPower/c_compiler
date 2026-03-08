@@ -352,11 +352,11 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
     RestoreLexerPointer();
     fCurr = files.top().fileBase + firstNum->offset;
     // set token 
+    *token = {};
     token->type = TokenType::numeric_constant;
     token->location.id = files.top().fileId;
     token->location.line = files.top().lineNr;
     token->location.offset = fCurr - files.top().fileBase;
-    token->isFloat = 0;
     
     const char* startOfConstant = fCurr;
     // set fCurr to first char in buffer
@@ -365,18 +365,22 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
  
     if(numType.type == dec_type_dec)
     {
+        token->isDec = 1;
         while (fCurr < fEnd && IsDigit(*fCurr)){fCurr++;}
     }
     else if(numType.type == dec_type_oct)
     {
+        token->isOct = 1;
         while (fCurr < fEnd && IsOctalDigit(*fCurr)){fCurr++;}
     }
     else if(numType.type == dec_type_hex)
     {
+        token->isHex = 1;
         while (fCurr < fEnd && IsHexDigit(*fCurr)){fCurr++;}
     }
     else
     {
+        token->isBin = 1;
         while (fCurr < fEnd && IsBinDigit(*fCurr)){fCurr++;}
     }
     
@@ -397,6 +401,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
 
         if(fCurr < fEnd && (*fCurr == 'e' || *fCurr == 'E') )
         {
+            token->hasE = 1;
             isFloat = true;
             fCurr++;
             if(fCurr < fEnd && ((*fCurr == '+' || *fCurr == '-')))
@@ -436,6 +441,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
 
         if(*fCurr == 'p')
         {
+            token->hasP = 1;
             isFloat = true;
             fCurr++;
 

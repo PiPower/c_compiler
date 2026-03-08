@@ -96,6 +96,28 @@ namespace Ast
         #undef X
     };
 
+        constexpr const char* nodeStr(Ast::NodeType type)
+    {
+        switch (type)
+        {
+            #define CASE(name) case NodeType::name: return #name;
+            #define X(name) CASE(name)
+            #define OP(name) CASE(op_##name)
+            #define ST(name) CASE(st_##name)
+            
+            NODE_TYPES
+
+            #undef ST
+            #undef OP
+            #undef X
+            #undef CASE
+
+        default:
+            break;
+        }
+        return nullptr;
+    }
+
     struct Node
     {
         Ast::NodeType type;
@@ -104,3 +126,5 @@ namespace Ast
         Ast::Node* rChild;
     };
 }
+
+#undef TOKEN_TYPES
