@@ -416,9 +416,9 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
             }
             while (fCurr < fEnd && IsDigit(*fCurr)){fCurr++;}
         }
-        
         if(isFloat)
         {
+            token->isFloat = 1;
             LexFloatSuffix();
         }
     }
