@@ -16,8 +16,7 @@ namespace Typed
         d_uint64_t,
 
         d_float,      
-        d_double  ,   
-        d_long_double
+        d_double,   
     };
 
     struct Number
@@ -38,7 +37,6 @@ namespace Typed
         // floats
         float       float32;
         double      float64;
-        long double float128;
         };
 
         Typed::DType type;
