@@ -2,11 +2,15 @@
 #include <cassert>
 #include <string.h>
 #include <stdarg.h>
-
+#include "../utils/DataEncoder.hpp"
 
 constexpr int32_t HIT_ENDIF = 1;
 constexpr int32_t HIT_ELSE = 2;
 constexpr int32_t HIT_ELSEIF = 3;
+
+constexpr int32_t EXPR_RESULT_NONE = 2;
+constexpr int32_t EXPR_RESULT_FALSE = 0;
+constexpr int32_t EXPR_RESULT_TRUE = 1;
 
 struct Headername
 {
@@ -16,7 +20,7 @@ struct Headername
 
 Preprocessor::Preprocessor(FILE_STATE mainFile, FileManager *manager, const CompilationOpts* opts)
 :
-lexer(mainFile, manager, opts), manager(manager), opts(opts), stages({})
+lexer(mainFile, manager, opts), manager(manager), opts(opts), stages({}), blockResult(EXPR_RESULT_NONE)
 {
     assert(opts != nullptr);
     constexpr size_t initiialBufferSize = 500;
@@ -25,6 +29,26 @@ lexer(mainFile, manager, opts), manager(manager), opts(opts), stages({})
 
 int32_t Preprocessor::Peek(Token* token)
 {
+    if(blockResult != EXPR_RESULT_NONE)
+    {
+        //if we are here this means we are after #if, #elif 
+        //we need to consum new line
+        // block is skipped if either expr is evaluated to 0 or block in given if-elif-else 
+        // sequnce has already been included 
+        ConsumeExpectedToken(TokenType::new_line);
+        if( conditionalBlocks.top().doneIncluding || blockResult == EXPR_RESULT_FALSE)
+        {
+            Token info;
+            SkipTokensInBlock(&info);
+        }
+        else
+        {
+            conditionalBlocks.top().doneIncluding = true;
+        }
+
+        blockResult = EXPR_RESULT_NONE;
+    }
+
 fetch_token:
     do
     {
@@ -42,23 +66,47 @@ fetch_token:
         goto fetch_token;
     }
 
+    // check for macros and special tokens
+    if(token->type == TokenType::pp_defined)
+    {
+        exit(-1);
+    }
     return 0;
 }
 
 void Preprocessor::ExecuteConstantExpr(Ast::Node *expr)
 {
-    constantNodes.push_back(expr);
+    Typed::Number constExpr = ExecuteNode(expr);
+
+    if(constExpr.type == Typed::d_int64_t)
+    {
+        blockResult = constExpr.int64 == 0 ? EXPR_RESULT_FALSE : EXPR_RESULT_TRUE;
+    }
 
 }
 
 Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
 {
+    Typed::Number numOut;
     switch (expr->type)
     {
     case Ast::NodeType::constant:
+        if(expr->token.isFloat) 
+        {
+           IssueWarning(&expr->token, "Expression must have integral type");
+           exit(-1);
+        }
+
+        numOut.int64 = stringToInt64(GetDataPtr(&expr->token), 
+                expr->token.location.len, GetTokenMode(expr->token));
+        numOut.type = Typed::d_int64_t;
         
+        return numOut;
     // forbiden elements
     case Ast::NodeType::string_literal:
+        IssueWarning(&expr->token, "Expression must have integral type");
+        exit(-1);
+        break;
     case Ast::NodeType::op_pre_inc:
     case Ast::NodeType::op_post_inc:
     case Ast::NodeType::op_pre_dec:
@@ -82,15 +130,29 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
     case Ast::NodeType::array_access:
     case Ast::NodeType::struct_access:
     case Ast::NodeType::ptr_access:
+    default:
         IssueWarning(&expr->token.location.id, &expr->token.location,
         "Operation [%s] is not allowed in preprocessing directive \n",
         Ast::nodeStr(expr->type));
         break;
-    
-    default:
-        break;
     }
-    return Typed::Number();
+    return numOut;
+}
+
+uint8_t Preprocessor::GetTokenMode(const Token& token)
+{
+    if(token.isDec){ return MODE_DEC;}
+    else if(token.isHex){ return MODE_HEX;}
+    else if(token.isOct){ return MODE_OCT;}
+    return MODE_BIN;
+}
+
+const char *Preprocessor::GetDataPtr(const Token *token)
+{
+    FILE_STATE state;
+    manager->GetFileState(&token->location.id, &state);
+    
+    return state.fileData + token->location.offset;
 }
 
 int32_t Preprocessor::ExecuteDirective(Token *token)
@@ -112,6 +174,7 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
     case TokenType::pp_error:   HandleError(); break;
     case TokenType::pp_pragma:  HandlePragma(); break;
     case TokenType::pp_undef:   HandleUndef(); break;
+
     default:
         printf("Not expected preprocessing token \n");
         exit(-1);
@@ -119,6 +182,17 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
 
     }
     return 0;
+}
+
+void Preprocessor::IssueWarning(const Token *token, const char *errMsg, ...)
+{
+    va_list args;
+    va_start(args, errMsg);
+    if(token) {IssueWarning(&token->location.id, &token->location, errMsg, args);}
+    else{IssueWarning(nullptr, nullptr, errMsg, args);}
+    va_end(args);
+
+    return;
 }
 
 void Preprocessor::IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char *errMsg, ...)
@@ -236,6 +310,8 @@ std::string_view Preprocessor::FormHeadername()
 int32_t Preprocessor::HandleIf()
 {
     stages.If = 1;
+    ConditionalBlock block = CreateBlock();
+    conditionalBlocks.push(block);
     return 0;
 }
 
@@ -411,7 +487,11 @@ int32_t Preprocessor::HandleElif()
 
         return 0;
     }
-    // TODO add argument evaluatio
+    else
+    {
+        stages.If = 1;
+    }
+
     return 0;
 }
 
@@ -434,6 +514,11 @@ int32_t Preprocessor::HandleLine()
 }
 
 int32_t Preprocessor::HandleError()
+{
+    return 0;
+}
+
+int32_t Preprocessor::HandleDefined()
 {
     return 0;
 }

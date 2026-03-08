@@ -4,7 +4,7 @@
 #include "TypedNumber.hpp"
 struct PreprocessorStages
 {
-    uint16_t If : 1;
+    uint16_t If : 1; // hint to parser that preprocessor needs constant expression ast
     uint16_t Ifdef : 1;
     uint16_t Ifndef : 1;
 
@@ -28,7 +28,10 @@ struct Preprocessor
     void ExecuteConstantExpr(Ast::Node* expr);
 private:
     Typed::Number ExecuteNode(Ast::Node* expr);
+    uint8_t GetTokenMode(const Token& token);
+    const char* GetDataPtr(const Token* token);
     int32_t ExecuteDirective(Token* token);
+    void IssueWarning(const Token* token, const char* errMsg, ...);
     void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
     std::string_view GetViewForToken(const Token& token);
     Token GetCurrToken();
@@ -46,6 +49,7 @@ private:
     int32_t HandleEndif();
     int32_t HandleLine();
     int32_t HandleError();
+    int32_t HandleDefined();
     int32_t HandlePragma(); 
     int32_t HandleUndef();
     int32_t SkipTokensInBlock(Token* infoToken = nullptr);
@@ -59,4 +63,5 @@ public:
     std::stack<ConditionalBlock> conditionalBlocks;
     std::unordered_map<std::string_view, Macro> macros;
     std::vector<Ast::Node*> constantNodes;
+    uint8_t blockResult;
 };
