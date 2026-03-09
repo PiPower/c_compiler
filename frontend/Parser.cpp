@@ -16,19 +16,28 @@ manager(manager), PP(mainFile, manager, opts), opts(opts), unaryHandle(nullptr),
 
 void Parser::Parse()
 {
-start_parsing:
-    Token token = GetCurrToken();
-    if(PP.stages.If > 0)
+    // temporary loop
+    while (true)
     {
-        Ast::Node* expr = ParseConstantExpr();
-        PP.ExecuteConstantExpr(expr);
-        goto start_parsing;
+        /* code */
+start_parsing:
+        Token token = GetCurrToken();
+        while (token.type == TokenType::new_line)
+        {
+            ConsumeToken();
+            token = GetCurrToken();
+        }
+
+        
+        if(PP.stages.If > 0)
+        {
+            Ast::Node* expr = ParseConstantExpr();
+            PP.ExecuteConstantExpr(expr);
+            goto start_parsing;
+        }
+
     }
 
-    while (token.type != TokenType::eof)
-    {
-        PP.Peek(&token);
-    }
 
 }
 
@@ -288,12 +297,47 @@ Ast::Node* Parser::CastExpression()
 
 Ast::Node* Parser::MultiplicativeExpression()
 {
-    return CastExpression();
+    Ast::Node* mulExpr = CastExpression();
+    Token token = GetCurrToken();
+    while (IsTokenOneOf(&token, TokenType::star, TokenType::slash, TokenType::percent))
+    {
+        ConsumeToken();
+
+        Ast::Node* node = AllocateAstNodes();
+        node->type = token.type == TokenType::star ? Ast::op_multiply : Ast::op_divide;
+        node->type = token.type == TokenType::percent ? Ast::op_divide_modulo : node->type ;
+        node->lChild = mulExpr;
+        node->rChild = CastExpression();
+        node->token = token;
+
+        mulExpr = node;
+
+        token = GetCurrToken();
+    }
+    
+    return mulExpr;
 }
 
 Ast::Node* Parser::AdditiveExpression()
 {
-    return MultiplicativeExpression();
+    Ast::Node* additiveExpr = MultiplicativeExpression();
+    Token token = GetCurrToken();
+    while (IsTokenOneOf(&token, TokenType::plus, TokenType::minus))
+    {
+        ConsumeToken();
+
+        Ast::Node* node = AllocateAstNodes();
+        node->type = token.type == TokenType::plus ? Ast::op_add : Ast::op_subtract;
+        node->lChild = additiveExpr;
+        node->rChild = MultiplicativeExpression();
+        node->token = token;
+
+        additiveExpr = node;
+
+        token = GetCurrToken();
+    }
+    
+    return additiveExpr;
 }
 
 Ast::Node* Parser::ShiftExpression()
@@ -308,7 +352,24 @@ Ast::Node* Parser::RelationalExpression()
 
 Ast::Node* Parser::EqualityExpression()
 {
-    return RelationalExpression();
+    Ast::Node* eqExpr = RelationalExpression();
+    Token token = GetCurrToken();
+    while (IsTokenOneOf(&token, TokenType::equal_equal, TokenType::bang_equal))
+    {
+        ConsumeToken();
+
+        Ast::Node* node = AllocateAstNodes();
+        node->type = token.type == TokenType::equal_equal ?
+             Ast::op_equal : Ast::op_not_equal;
+        node->lChild = eqExpr;
+        node->rChild = RelationalExpression();
+        node->token = token;
+        eqExpr = node;
+
+        token = GetCurrToken();
+    }
+    
+    return eqExpr;
 }
 
 Ast::Node* Parser::AndExpression()

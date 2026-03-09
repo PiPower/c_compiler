@@ -35,7 +35,6 @@ int32_t Preprocessor::Peek(Token* token)
         //we need to consum new line
         // block is skipped if either expr is evaluated to 0 or block in given if-elif-else 
         // sequnce has already been included 
-        ConsumeExpectedToken(TokenType::new_line);
         if( conditionalBlocks.top().doneIncluding || blockResult == EXPR_RESULT_FALSE)
         {
             Token info;
@@ -54,7 +53,7 @@ fetch_token:
     {
         *token = GetCurrToken();
         ConsumeToken();
-    } while (token->type == TokenType::comment || token->type == TokenType::new_line);
+    } while (token->type == TokenType::comment);
     
     if(token->type == TokenType::hash)
     {
@@ -69,7 +68,10 @@ fetch_token:
     // check for macros and special tokens
     if(token->type == TokenType::pp_defined)
     {
-        exit(-1);
+        ConsumeExpectedToken(TokenType::pp_defined);
+        Token token = GetCurrToken();
+        ConsumeExpectedToken(TokenType::identifier);
+
     }
     return 0;
 }
@@ -77,7 +79,7 @@ fetch_token:
 void Preprocessor::ExecuteConstantExpr(Ast::Node *expr)
 {
     Typed::Number constExpr = ExecuteNode(expr);
-
+    stages.If = 0;
     if(constExpr.type == Typed::d_int64_t)
     {
         blockResult = constExpr.int64 == 0 ? EXPR_RESULT_FALSE : EXPR_RESULT_TRUE;
@@ -88,6 +90,7 @@ void Preprocessor::ExecuteConstantExpr(Ast::Node *expr)
 Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
 {
     Typed::Number numOut;
+    numOut.type = Typed::d_int64_t;
     switch (expr->type)
     {
     case Ast::NodeType::constant:
@@ -96,12 +99,31 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
            IssueWarning(&expr->token, "Expression must have integral type");
            exit(-1);
         }
-
         numOut.int64 = stringToInt64(GetDataPtr(&expr->token), 
                 expr->token.location.len, GetTokenMode(expr->token));
-        numOut.type = Typed::d_int64_t;
-        
-        return numOut;
+        return numOut; break;
+        // forbiden elements
+    case Ast::NodeType::op_add:
+    {
+        Typed::Number lNum = ExecuteNode(expr->lChild);
+        Typed::Number rNum = ExecuteNode(expr->rChild);
+        lNum.int64 += rNum.int64;
+        return lNum; 
+    }
+    case Ast::NodeType::op_multiply:
+    {
+        Typed::Number lNum = ExecuteNode(expr->lChild);
+        Typed::Number rNum = ExecuteNode(expr->rChild);
+        lNum.int64 *= rNum.int64;
+        return lNum;
+    }
+    case Ast::NodeType::op_equal:
+    {
+        Typed::Number lNum = ExecuteNode(expr->lChild);
+        Typed::Number rNum = ExecuteNode(expr->rChild);
+        lNum.int64 = lNum.int64 == rNum.int64;
+        return lNum;
+    }
     // forbiden elements
     case Ast::NodeType::string_literal:
         IssueWarning(&expr->token, "Expression must have integral type");
