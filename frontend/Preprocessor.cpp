@@ -80,9 +80,20 @@ fetch_token:
         }
         goto fetch_token;
     }
-
     // check for macros and special tokens
-    if(token->type == TokenType::pp_defined)
+    else if(token->type == TokenType::identifier)
+    {
+        auto hashEntry = macros.find(GetViewForToken(*token));
+        if(hashEntry == macros.end())
+        {
+            return 0;
+        }
+        FillQueueWithMacro(&hashEntry->second);
+        *token = GetCurrToken();
+        ConsumeToken();
+        return 0;
+    }
+    else if(token->type == TokenType::pp_defined)
     {
         ConsumeExpectedToken(TokenType::pp_defined);
         Token token = GetCurrToken();
@@ -164,7 +175,19 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
     return numOut;
 }
 
-uint8_t Preprocessor::GetTokenMode(const Token& token)
+void Preprocessor::FillQueueWithMacro(Macro *macro)
+{
+    size_t n = tokenQueue.size();
+    for(const Token& token : macro->tokenList)
+    {
+        tokenQueue.push_front(token);
+    }
+    
+    std::deque<Token>::reverse_iterator lastElem = std::prev(tokenQueue.rend(), n);
+    std::reverse(tokenQueue.rbegin(), lastElem);
+}   
+
+uint8_t Preprocessor::GetTokenMode(const Token &token)
 {
     if(token.isDec){ return MODE_DEC;}
     else if(token.isHex){ return MODE_HEX;}

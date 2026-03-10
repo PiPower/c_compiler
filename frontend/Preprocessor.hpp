@@ -28,6 +28,7 @@ struct Preprocessor
     void ExecuteConstantExpr(Ast::Node* expr);
     Typed::Number ExecuteNode(Ast::Node* expr);
 private:
+    void FillQueueWithMacro(Macro* macro);
     uint8_t GetTokenMode(const Token& token);
     const char* GetDataPtr(const Token* token);
     int32_t ExecuteDirective(Token* token);
