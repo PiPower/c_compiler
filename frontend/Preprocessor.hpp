@@ -26,8 +26,8 @@ struct Preprocessor
     Preprocessor(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
     int32_t Peek(Token* token);
     void ExecuteConstantExpr(Ast::Node* expr);
-private:
     Typed::Number ExecuteNode(Ast::Node* expr);
+private:
     uint8_t GetTokenMode(const Token& token);
     const char* GetDataPtr(const Token* token);
     int32_t ExecuteDirective(Token* token);

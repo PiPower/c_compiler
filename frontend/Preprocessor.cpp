@@ -3,6 +3,21 @@
 #include <string.h>
 #include <stdarg.h>
 #include "../utils/DataEncoder.hpp"
+#include <functional>
+
+template<typename Op>
+Typed::Number BinaryOp(Preprocessor* pp,  Ast::Node* node)
+{
+    Typed::Number l = pp->ExecuteNode(node->lChild);
+    Typed::Number r = pp->ExecuteNode(node->rChild);
+
+    Typed::Number out{};
+    out.int64 = Op{}(l.int64, r.int64);
+    out.type = Typed::d_int64_t;
+
+    return out;
+}
+
 
 constexpr int32_t HIT_ENDIF = 1;
 constexpr int32_t HIT_ELSE = 2;
@@ -11,6 +26,7 @@ constexpr int32_t HIT_ELSEIF = 3;
 constexpr int32_t EXPR_RESULT_NONE = 2;
 constexpr int32_t EXPR_RESULT_FALSE = 0;
 constexpr int32_t EXPR_RESULT_TRUE = 1;
+
 
 struct Headername
 {
@@ -102,33 +118,19 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
         numOut.int64 = stringToInt64(GetDataPtr(&expr->token), 
                 expr->token.location.len, GetTokenMode(expr->token));
         return numOut; break;
-        // forbiden elements
-    case Ast::NodeType::op_add:
-    {
-        Typed::Number lNum = ExecuteNode(expr->lChild);
-        Typed::Number rNum = ExecuteNode(expr->rChild);
-        lNum.int64 += rNum.int64;
-        return lNum; 
-    }
-    case Ast::NodeType::op_multiply:
-    {
-        Typed::Number lNum = ExecuteNode(expr->lChild);
-        Typed::Number rNum = ExecuteNode(expr->rChild);
-        lNum.int64 *= rNum.int64;
-        return lNum;
-    }
-    case Ast::NodeType::op_equal:
-    {
-        Typed::Number lNum = ExecuteNode(expr->lChild);
-        Typed::Number rNum = ExecuteNode(expr->rChild);
-        lNum.int64 = lNum.int64 == rNum.int64;
-        return lNum;
-    }
-    // forbiden elements
     case Ast::NodeType::string_literal:
         IssueWarning(&expr->token, "Expression must have integral type");
         exit(-1);
         break;
+    // binary ops
+    case Ast::NodeType::op_divide: return BinaryOp<std::divides<int64_t>>(this, expr);
+    case Ast::NodeType::op_divide_modulo: return BinaryOp<std::modulus<int64_t>>(this, expr);
+    case Ast::NodeType::op_subtract: return BinaryOp<std::minus<int64_t>>(this, expr);
+    case Ast::NodeType::op_add: return BinaryOp<std::plus<int64_t>>(this, expr);
+    case Ast::NodeType::op_multiply: return BinaryOp<std::multiplies<int64_t>>(this, expr);
+    case Ast::NodeType::op_equal: return BinaryOp<std::equal_to<int64_t>>(this, expr);
+    case Ast::NodeType::expression: return ExecuteNode(expr->lChild);
+    // forbiden element
     case Ast::NodeType::op_pre_inc:
     case Ast::NodeType::op_post_inc:
     case Ast::NodeType::op_pre_dec:
@@ -156,6 +158,7 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
         IssueWarning(&expr->token.location.id, &expr->token.location,
         "Operation [%s] is not allowed in preprocessing directive \n",
         Ast::nodeStr(expr->type));
+        exit(-1);
         break;
     }
     return numOut;

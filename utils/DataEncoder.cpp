@@ -14,7 +14,7 @@ static int64_t decStringToInt64(const char *data, int32_t len)
     {   
         // '0' - '9' < 128 so it makes no diffrence whether char == int8 or char == uint8
         int64_t v = data[i] - '0'; 
-        v *= std::pow<int64_t, int64_t>(10, i);
+        x *= std::pow<int64_t, int64_t>(10, i);
         i++;
         x+= v;
     }

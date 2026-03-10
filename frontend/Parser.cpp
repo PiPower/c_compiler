@@ -217,6 +217,7 @@ Ast::Node *Parser::ParseIdentifier()
 
 Ast::Node* Parser::PostfixExpression()
 {
+    Ast::Node* postfixExpr = PrimaryExpression();
     Token token = GetCurrToken();
     if(token.type == TokenType::l_parentheses)
     {
@@ -224,7 +225,6 @@ Ast::Node* Parser::PostfixExpression()
         IssueWarning(nullptr, "Currently parsing type-name/initializer-list is not supported \n");
     }
 
-    Ast::Node* postfixExpr = PrimaryExpression();
     while (IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses, 
             TokenType::dot, TokenType::arrow, TokenType::plus_plus, TokenType::minus_minus))
     {
