@@ -186,7 +186,7 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
     case Ast::NodeType::struct_access:
     case Ast::NodeType::ptr_access:
     default:
-        IssueWarning(&expr->token.location.id, &expr->token.location,
+        IssueWarning(&expr->token,
         "Operation [%s] is not allowed in preprocessing directive \n",
         Ast::nodeStr(expr->type));
         exit(-1);
@@ -276,7 +276,7 @@ void Preprocessor::IssueWarning(const Token *token, const char *errMsg, ...)
     return;
 }
 
-void Preprocessor::IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char *errMsg, ...)
+void Preprocessor::IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char *errMsg, va_list args)
 {
     if(fileId)
     {
@@ -295,10 +295,7 @@ void Preprocessor::IssueWarning(const FILE_ID* fileId, const SourceLocation* loc
 
     if(errMsg)
     {
-        va_list args;
-        va_start(args, errMsg);
         vprintf(errMsg, args);
-        va_end(args);
     }
     printf("\n");
     
@@ -350,7 +347,7 @@ void Preprocessor::ConsumeExpectedToken(TokenType::Type type)
     ConsumeToken();
     if(token.type != type)
     {
-        IssueWarning(&token.location.id, &token.location, 
+        IssueWarning(&token, 
         "Given token is [%s] but expected is [%s]", 
         TokenType::tokenStr(token.type), TokenType::tokenStr(type));
         exit(-1);
@@ -410,7 +407,7 @@ int32_t Preprocessor::HandleElse()
         int32_t ret = SkipTokensInBlock(&info);
         if(ret != HIT_ENDIF)
         {
-            IssueWarning(&info.location.id,&info.location, "#else block may only end with #endif\n" );
+            IssueWarning(&info, "#else block may only end with #endif\n" );
             exit(-1);
         }
     }
@@ -446,7 +443,7 @@ int32_t Preprocessor::HandleInclude()
     }
     else
     {
-        IssueWarning(&headerToken.location.id, &headerToken.location, "Incorrect file include format");
+        IssueWarning(&headerToken, "Incorrect file include format");
         exit(-1);
     }
     ConsumeExpectedToken(TokenType::new_line);
@@ -582,7 +579,7 @@ int32_t Preprocessor::HandleEndif()
     ConsumeExpectedToken(TokenType::new_line);
     if(conditionalBlocks.empty())
     {
-        IssueWarning(&token.location.id, &token.location, "#endif used without #if");
+        IssueWarning(&token, "#endif used without #if");
         exit(-1);
     }
     conditionalBlocks.pop();
@@ -628,7 +625,7 @@ int32_t Preprocessor::HandlePragma()
             char* msg = (char*) alloca(subCommand.length() + 1);
             memcpy(msg, subCommand.data(), subCommand.length());
             msg[subCommand.length()] = '\0';
-            IssueWarning(&tokenWarning.location.id, &tokenWarning.location, msg);
+            IssueWarning(&tokenWarning, msg);
         }
         else
         {
@@ -702,7 +699,7 @@ int32_t Preprocessor::SkipTokensInBlock(Token* infoToken)
 
     }
     if(infoToken){*infoToken = token;} 
-    IssueWarning(&token.location.id, &token.location, "Block is not enclosed with #endif\n");
+    IssueWarning(&token, "Block is not enclosed with #endif\n");
     exit(-1);
     return 0;
 }

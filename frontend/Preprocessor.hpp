@@ -34,7 +34,7 @@ private:
     const char* GetDataPtr(const Token* token);
     int32_t ExecuteDirective(Token* token);
     void IssueWarning(const Token* token, const char* errMsg, ...);
-    void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
+    void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, va_list args);
     std::string_view GetViewForToken(const Token& token);
     Token GetCurrToken();
     void PutBackAtFront(Token token);

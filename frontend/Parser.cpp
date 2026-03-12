@@ -120,7 +120,7 @@ void Parser::ConsumeExpectedToken(TokenType::Type type)
     ConsumeToken();
     if(token.type != type)
     {
-        IssueWarning(&token.location.id, &token.location, 
+        IssueWarning(&token, 
         "Given token is [%s] but expected is [%s]", 
         TokenType::tokenStr(token.type), TokenType::tokenStr(type));
         exit(-1);
@@ -139,7 +139,7 @@ void Parser::IssueWarning(const Token * token, const char *errMsg, ...)
     return;
 }
 
-void Parser::IssueWarning(const FILE_ID *fileId, const SourceLocation *loc, const char *errMsg, ...)
+void Parser::IssueWarning(const FILE_ID *fileId, const SourceLocation *loc, const char *errMsg, va_list args)
 {
     if(fileId)
     {
@@ -158,10 +158,7 @@ void Parser::IssueWarning(const FILE_ID *fileId, const SourceLocation *loc, cons
 
     if(errMsg)
     {
-        va_list args;
-        va_start(args, errMsg);
         vprintf(errMsg, args);
-        va_end(args);
     }
     printf("\n");
 }

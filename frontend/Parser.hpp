@@ -18,7 +18,7 @@ struct Parser
     void ConsumeToken();
     void ConsumeExpectedToken(TokenType::Type type);
     void IssueWarning(const Token* token, const char* errMsg, ...);
-    void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
+    void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, va_list args);
     // node management
     Ast::Node* AllocateAstNodes(uint16_t count = 1);
     void AddNodePage();
