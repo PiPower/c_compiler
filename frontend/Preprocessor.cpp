@@ -79,6 +79,12 @@ fetch_token:
     
     if(token->type == TokenType::hash)
     {
+        if(stages.If > 0)
+        {
+            IssueWarning(token, "preprocessor directive is not allowed inside constant expression");
+            exit(-1);
+        }
+
         int32_t ret = ExecuteDirective(token);
         if(ret != 0)
         {
