@@ -640,6 +640,7 @@ bool Lexer::IsNonDigit(const char *c, size_t maxPossibleLen)
 
 int32_t Lexer::Lex(Token* token)
 {
+    *token = {};
     token->type = TokenType::none;
     token->location = {};
     token->skippedHorizWhitespace = SkipHorizontalWhiteSpace() ? 1 : 0;

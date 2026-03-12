@@ -102,7 +102,9 @@ fetch_token:
     }
     else if(token->type == TokenType::pp_defined)
     {
+        *token = {};
         token->type = TokenType::numeric_constant;
+        token->isDec = 1;
         if(ProcessDefined())
         {
             token->location = GetOneLocation();
@@ -716,7 +718,7 @@ ConditionalBlock Preprocessor::CreateBlock()
 
 SourceLocation Preprocessor::GetZeroLocation()
 {
-    SourceLocation loc;
+    SourceLocation loc = {};
     loc.id = preprocessorFile;
     loc.offset = 0;
     loc.len = 1;
@@ -726,7 +728,7 @@ SourceLocation Preprocessor::GetZeroLocation()
 
 SourceLocation Preprocessor::GetOneLocation()
 {
-    SourceLocation loc;
+    SourceLocation loc = {};
     loc.id = preprocessorFile;
     loc.offset = 1;
     loc.len = 1;
@@ -747,7 +749,7 @@ bool Preprocessor::ProcessDefined()
     }
 
     ConsumeExpectedToken(TokenType::identifier);
-    
+
     auto hashEntry = macros.find(GetViewForToken(token));
     if(hashEntry == macros.end()){isDefined = false;}
     else {isDefined = true;}
