@@ -11,32 +11,51 @@ template <std::size_t Count, std::size_t... Indices>
 static bool IsTokenOneFromArray(
     const Token* token,
     const std::array<TokenType::Type, Count>& types,
-    std::index_sequence<Indices...>) 
+    const std::index_sequence<Indices...>&) 
 {
     return IsTokenOneOf(token, types[Indices]...); 
 }
+
+template <std::size_t Count>
+static bool IsTokenOneFromArray(
+    const Token* token,
+    const std::array<TokenType::Type, Count>& types) 
+{
+    return IsTokenOneFromArray(token, types,  std::make_index_sequence<Count>{}); 
+}
+
+template<size_t Count>
+Ast::NodeType ResolveNodeType(
+    const TokenType::Type& type,
+    const std::array<TokenType::Type, Count>& operators,
+    const std::array<Ast::NodeType, Count>& nodeOps )
+{
+    for(size_t i = 0; i < 7; i++)
+    {
+        if(type == operators[i])
+        {
+            return nodeOps[i];
+        }
+    }
+    return Ast::none;
+}
+
 template<size_t Count>
 static Ast::Node* ParseLoop(
     Parser* p, 
     ParseFn pFn, 
-    std::array<TokenType::Type, Count> operators,
-    std::array<Ast::NodeType, Count> nodeOps)
+    const std::array<TokenType::Type, Count>& operators,
+    const std::array<Ast::NodeType, Count>& nodeOps)
 {
     Ast::Node* expr = (*p.*pFn)();
     Token token = p->GetCurrToken();
 
-    while (IsTokenOneFromArray(&token, operators, std::make_index_sequence<Count>{}))
+    while (IsTokenOneFromArray(&token, operators))
     {
         p->ConsumeToken();
 
         Ast::Node* node =  p->AllocateAstNodes();
-        for(size_t i = 0; i < Count; i++)
-        {
-            if(token.type == operators[i])
-            {
-                node->type = nodeOps[i];
-            }
-        }
+        node->type = ResolveNodeType(token.type, operators, nodeOps);
         node->lChild = expr;
         node->rChild = (*p.*pFn)();
         node->token = token;
@@ -175,6 +194,7 @@ Ast::Node *Parser::AllocateAstNodes(uint16_t count)
     nodeBuffer.offsetIntoPage+= memorySize;
     // start lifetime of Ast::Node objects
     Ast::Node* nodes = new ((void*)dataBase)Ast::Node[count];
+    memset(nodes, 0, memorySize);
     return nodes;
 }
 
@@ -322,6 +342,29 @@ Ast::Node* Parser::PostfixExpression()
 
 Ast::Node* Parser::UnaryExpression()
 {
+    constexpr std::array<TokenType::Type, 7> tokTypes = 
+        {TokenType::ampersand, TokenType::star, TokenType::plus, 
+         TokenType::minus, TokenType::tilde, TokenType::bang};
+    constexpr std::array<Ast::NodeType, 7> opTypes = 
+        {Ast::get_addr, Ast::ptr_access, Ast::op_plus, 
+         Ast::op_minus, Ast::op_complement, Ast::op_negate};
+
+    Token token = GetCurrToken();
+
+    while (IsTokenOneFromArray(&token, tokTypes))
+    {
+        if(IsTokenOneFromArray(&token, tokTypes))
+        {
+            ConsumeToken();
+            Ast::Node* node =  AllocateAstNodes();
+            node->type = ResolveNodeType(token.type, tokTypes, opTypes);
+            node->lChild = CastExpression();
+            node->rChild = nullptr;
+            node->token = token;
+            return node;
+        }
+    }
+    
     return PostfixExpression();
 }
 

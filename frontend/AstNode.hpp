@@ -19,7 +19,7 @@
     OP(and) \
     OP(exc_or) \
     OP(inc_or) \
-    OP(compliment) \
+    OP(complement) \
     /* Prefix ops */ \
     OP(pre_inc) \
     OP(post_inc) \
@@ -38,6 +38,7 @@
     OP(greater_equal) \
     OP(equal) \
     OP(not_equal) \
+    OP(negate) \
     /* Assignment nodes */ \
     X(assignment) \
     X(mul_assignment) \
