@@ -18,7 +18,7 @@
     OP(r_shift) \
     OP(and) \
     OP(exc_or) \
-    OP(or) \
+    OP(inc_or) \
     OP(compliment) \
     /* Prefix ops */ \
     OP(pre_inc) \
@@ -49,7 +49,7 @@
     X(r_shift_assignment) \
     X(and_assignment) \
     X(exc_or_assignment) \
-    X(or_assignment) \
+    X(inc_or_assignment) \
     /* Function */ \
     X(function_decl) \
     X(function_def) \

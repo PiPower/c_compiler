@@ -5,6 +5,48 @@
 #include <stdarg.h>
 #define CPU_PAGE 4096
 #define PAGE_COUNT 50
+typedef Ast::Node* (Parser::*ParseFn)();
+
+template <std::size_t Count, std::size_t... Indices>
+static bool IsTokenOneFromArray(
+    const Token* token,
+    const std::array<TokenType::Type, Count>& types,
+    std::index_sequence<Indices...>) 
+{
+    return IsTokenOneOf(token, types[Indices]...); 
+}
+template<size_t Count>
+static Ast::Node* ParseLoop(
+    Parser* p, 
+    ParseFn pFn, 
+    std::array<TokenType::Type, Count> operators,
+    std::array<Ast::NodeType, Count> nodeOps)
+{
+    Ast::Node* expr = (*p.*pFn)();
+    Token token = p->GetCurrToken();
+
+    while (IsTokenOneFromArray(&token, operators, std::make_index_sequence<Count>{}))
+    {
+        p->ConsumeToken();
+
+        Ast::Node* node =  p->AllocateAstNodes();
+        for(size_t i = 0; i < Count; i++)
+        {
+            if(token.type == operators[i])
+            {
+                node->type = nodeOps[i];
+            }
+        }
+        node->lChild = expr;
+        node->rChild = (*p.*pFn)();
+        node->token = token;
+        expr = node;
+
+        token =  p->GetCurrToken();
+    }
+    
+    return expr;
+}
 
 Parser::Parser(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
 :
@@ -43,11 +85,18 @@ start_parsing:
 
 Token Parser::GetCurrToken()
 {
+get_token:
     if(tokenQueue.empty())
     {
         Token token;
         PP.Peek(&token);
         tokenQueue.push_back(token);
+    }
+    // if not parsing constant expression new-line does not serve as end of expression token
+    if(pState.parsingConstantExpr == 0 && tokenQueue.front().type == TokenType::new_line )
+    {
+        tokenQueue.pop_front();
+        goto get_token;
     }
     return tokenQueue.front();
 }
@@ -297,104 +346,74 @@ Ast::Node* Parser::CastExpression()
 
 Ast::Node* Parser::MultiplicativeExpression()
 {
-    Ast::Node* mulExpr = CastExpression();
-    Token token = GetCurrToken();
-    while (IsTokenOneOf(&token, TokenType::star, TokenType::slash, TokenType::percent))
-    {
-        ConsumeToken();
-
-        Ast::Node* node = AllocateAstNodes();
-        node->type = token.type == TokenType::star ? Ast::op_multiply : Ast::op_divide;
-        node->type = token.type == TokenType::percent ? Ast::op_divide_modulo : node->type ;
-        node->lChild = mulExpr;
-        node->rChild = CastExpression();
-        node->token = token;
-
-        mulExpr = node;
-
-        token = GetCurrToken();
-    }
-    
-    return mulExpr;
+    constexpr std::array<TokenType::Type, 3> tokTypes = {TokenType::star, TokenType::slash, TokenType::percent};
+    constexpr std::array<Ast::NodeType, 3> opTypes = {Ast::op_multiply, Ast::op_divide, Ast::op_divide_modulo};
+    return ParseLoop(this, &Parser::CastExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::AdditiveExpression()
 {
-    Ast::Node* additiveExpr = MultiplicativeExpression();
-    Token token = GetCurrToken();
-    while (IsTokenOneOf(&token, TokenType::plus, TokenType::minus))
-    {
-        ConsumeToken();
-
-        Ast::Node* node = AllocateAstNodes();
-        node->type = token.type == TokenType::plus ? Ast::op_add : Ast::op_subtract;
-        node->lChild = additiveExpr;
-        node->rChild = MultiplicativeExpression();
-        node->token = token;
-
-        additiveExpr = node;
-
-        token = GetCurrToken();
-    }
-    
-    return additiveExpr;
+    constexpr std::array<TokenType::Type, 2> tokTypes = {TokenType::plus, TokenType::minus};
+    constexpr std::array<Ast::NodeType, 2> opTypes = {Ast::op_add, Ast::op_subtract};
+    return ParseLoop(this, &Parser::MultiplicativeExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::ShiftExpression()
 {
-    return AdditiveExpression();
+    constexpr std::array<TokenType::Type, 2> tokTypes = {TokenType::l_shift, TokenType::r_shift};
+    constexpr std::array<Ast::NodeType, 2> opTypes = {Ast::op_l_shift, Ast::op_r_shift};
+    return ParseLoop(this, &Parser::AdditiveExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::RelationalExpression()
 {
-    return ShiftExpression();
+    constexpr std::array<TokenType::Type, 4> tokTypes = {
+        TokenType::less, TokenType::greater, TokenType::less_equal, TokenType::greater_equal};
+    constexpr std::array<Ast::NodeType, 4> opTypes = {
+        Ast::op_less, Ast::op_greater, Ast::op_less_equal, Ast::op_greater_equal};
+    return ParseLoop(this, &Parser::ShiftExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::EqualityExpression()
 {
-    Ast::Node* eqExpr = RelationalExpression();
-    Token token = GetCurrToken();
-    while (IsTokenOneOf(&token, TokenType::equal_equal, TokenType::bang_equal))
-    {
-        ConsumeToken();
-
-        Ast::Node* node = AllocateAstNodes();
-        node->type = token.type == TokenType::equal_equal ?
-             Ast::op_equal : Ast::op_not_equal;
-        node->lChild = eqExpr;
-        node->rChild = RelationalExpression();
-        node->token = token;
-        eqExpr = node;
-
-        token = GetCurrToken();
-    }
-    
-    return eqExpr;
+    constexpr std::array<TokenType::Type, 2> tokTypes = {TokenType::equal_equal, TokenType::bang_equal};
+    constexpr std::array<Ast::NodeType, 2> opTypes = {Ast::op_equal, Ast::op_not_equal};
+    return ParseLoop(this, &Parser::RelationalExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::AndExpression()
 {
-    return EqualityExpression();
+    constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::ampersand};
+    constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_and};
+    return ParseLoop(this, &Parser::EqualityExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::ExclusiveOrExpression()
 {
-    return AndExpression();
+    constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::caret};
+    constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_exc_or};
+    return ParseLoop(this, &Parser::AndExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::InclusiveOrExpression()
 {
-    return ExclusiveOrExpression();
+    constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::pipe};
+    constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_inc_or};
+    return ParseLoop(this, &Parser::ExclusiveOrExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::LogicalAndExpression()
 {
-    return InclusiveOrExpression();
+    constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::double_ampersand};
+    constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_log_and};
+    return ParseLoop(this, &Parser::InclusiveOrExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::LogicalOrExpression()
 {
-    return LogicalAndExpression();
+    constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::double_pipe};
+    constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_log_or};
+    return ParseLoop(this, &Parser::LogicalAndExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::ConditionalExpression()

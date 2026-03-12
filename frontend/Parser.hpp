@@ -12,7 +12,6 @@ struct Parser
 {
     Parser(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
     void Parse();
-private:
     // misc ops
     Token GetCurrToken();
     void PutBackAtFront(Token token);
@@ -46,7 +45,7 @@ private:
     Ast::Node* PostfixExpression();
     Ast::Node* PrimaryExpression();
     Ast::Node* ParseIdentifier();
-public:
+
     FileManager* manager;
     Preprocessor PP;
     const CompilationOpts* opts;

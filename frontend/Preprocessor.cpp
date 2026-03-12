@@ -176,7 +176,7 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
     case Ast::NodeType::r_shift_assignment:
     case Ast::NodeType::and_assignment:
     case Ast::NodeType::exc_or_assignment:
-    case Ast::NodeType::or_assignment:
+    case Ast::NodeType::inc_or_assignment:
     case Ast::NodeType::function_call:
     case Ast::NodeType::args_expr_list:
     case Ast::NodeType::cast:
