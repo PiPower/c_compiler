@@ -4,7 +4,7 @@
 #include "TypedNumber.hpp"
 struct PreprocessorStages
 {
-    uint16_t If : 1; // hint to parser that preprocessor needs constant expression ast
+    uint16_t If : 1; // informs that currently we are inside a macro
     uint16_t Ifdef : 1;
     uint16_t Ifndef : 1;
 
@@ -21,6 +21,7 @@ struct ConditionalBlock
     bool doneIncluding;
 };
 
+using MacroMapIter = std::unordered_map<std::string_view, Macro>::iterator;
 struct Preprocessor
 {
     Preprocessor(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
@@ -28,7 +29,7 @@ struct Preprocessor
     void ExecuteConstantExpr(Ast::Node* expr);
     Typed::Number ExecuteNode(Ast::Node* expr);
 private:
-    void FillQueueWithMacro(Macro* macro);
+    void FillQueueWithMacro(MacroMapIter& macroIter);
     uint8_t GetTokenMode(const Token& token);
     const char* GetDataPtr(const Token* token);
     int32_t ExecuteDirective(Token* token);
@@ -65,4 +66,5 @@ public:
     std::unordered_map<std::string_view, Macro> macros;
     std::vector<Ast::Node*> constantNodes;
     uint8_t blockResult;
+    FILE_ID preprocessorFile;
 };

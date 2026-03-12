@@ -106,6 +106,23 @@ void FileManager::LoadFileIntoPage(int fd, int64_t fileSize, const char* filenam
     offsetIntoPage += fileSize;
 }
 
+void FileManager::LoadBufferIntoPage(const char *data, int64_t fileSize, const char *filename, char **filePos)
+{
+    std::vector<char*>& filePages = fileBuffer.pages;
+    size_t& currentPage = fileBuffer.currentPage;
+    int64_t& offsetIntoPage =  fileBuffer.offsetIntoPage;
+
+    if(fileSize + offsetIntoPage > FILEDATA_PAGE_SIZE)
+    {
+        if(fileSize > FILEDATA_PAGE_SIZE){printf("File too large\n"); exit(-1);}
+        else{AddNewFilePage();}
+    }
+    char* page = filePages[currentPage];
+    *filePos = page + offsetIntoPage;
+    memcpy(page + offsetIntoPage, data, fileSize);
+    offsetIntoPage += fileSize;
+}
+
 void FileManager::ManagerExitOnError(int type, const void *errorData, const char *fileName)
 {
     if(fileName)
@@ -239,4 +256,34 @@ int32_t FileManager::GetFullFilePath(const FILE_STATE *fileState, std::string *p
 {
     printf("GetFullFilePath function is not implemented \n");
     exit(-1);
+}
+
+int32_t FileManager::CreateInternalFile(
+    const char *filename, 
+    uint64_t nameLen, 
+    const char *dataBuffer, 
+    uint64_t dataLen,
+    FILE_ID *loadedFile)
+{
+
+    char* filePos = nullptr;
+    LoadBufferIntoPage(dataBuffer, dataLen, filename, &filePos);
+
+    char* nullTerminatedFilename = (char*)alloca(nameLen + 1);
+    memcpy(nullTerminatedFilename, filename, nameLen);
+    nullTerminatedFilename[nameLen] = '\0';
+    // then add descriptor of that file to file system
+    char* path;
+    LoadFilenameIntoPage(nullTerminatedFilename, &path);
+    int64_t filenameLen = strlen(nullTerminatedFilename);
+    int64_t filenameOffset = filenameLen;
+    while (filenameOffset > 0 && filename[filenameOffset] != '/') { filenameOffset--;}
+
+    fileStates.emplace_back(path, filenameLen, filenameLen - filenameOffset, filePos, dataLen);
+    if(loadedFile)
+    {
+        loadedFile->id = fileStates.size() - 1;
+    }
+
+    return 0;
 }

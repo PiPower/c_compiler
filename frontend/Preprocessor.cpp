@@ -5,6 +5,9 @@
 #include "../utils/DataEncoder.hpp"
 #include <functional>
 
+static const char* PreprocessorFlename = "preprocessor_file.comp";
+static const char* InsertableValues = "01";
+
 template<typename Op>
 Typed::Number BinaryOp(Preprocessor* pp,  Ast::Node* node)
 {
@@ -41,6 +44,9 @@ lexer(mainFile, manager, opts), manager(manager), opts(opts), stages({}), blockR
     assert(opts != nullptr);
     constexpr size_t initiialBufferSize = 500;
     constantNodes.reserve(initiialBufferSize);
+    manager->CreateInternalFile(PreprocessorFlename, 
+        strlen(PreprocessorFlename), InsertableValues, 2, &preprocessorFile);
+
 }
 
 int32_t Preprocessor::Peek(Token* token)
@@ -84,11 +90,12 @@ fetch_token:
     else if(token->type == TokenType::identifier)
     {
         auto hashEntry = macros.find(GetViewForToken(*token));
-        if(hashEntry == macros.end())
+        if(hashEntry == macros.end() && stages.If == 0)
         {
+            // if we are not inside directive of any sort just return
             return 0;
         }
-        FillQueueWithMacro(&hashEntry->second);
+        FillQueueWithMacro(hashEntry);
         *token = GetCurrToken();
         ConsumeToken();
         return 0;
@@ -175,12 +182,28 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
     return numOut;
 }
 
-void Preprocessor::FillQueueWithMacro(Macro *macro)
+void Preprocessor::FillQueueWithMacro(MacroMapIter& macroIter)
 {
     size_t n = tokenQueue.size();
-    for(const Token& token : macro->tokenList)
+
+    if(macroIter == macros.end() || macroIter->second.tokenList.size() == 0)
     {
-        tokenQueue.push_front(token);
+        Token tokenConst = {};
+        tokenConst.type = TokenType::numeric_constant;
+        tokenConst.isHex = 1;
+        tokenConst.location.id = preprocessorFile;
+        tokenConst.location.offset = macroIter == macros.end() ? 0 : 1;
+        tokenConst.location.len = 1;
+        tokenConst.location.line = 0;
+        tokenQueue.push_front(tokenConst);
+    }
+    else
+    {
+        Macro* macro = &macroIter->second;
+        for(const Token& token : macro->tokenList)
+        {
+            tokenQueue.push_front(token);
+        }
     }
     
     std::deque<Token>::reverse_iterator lastElem = std::prev(tokenQueue.rend(), n);

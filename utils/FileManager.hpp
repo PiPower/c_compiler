@@ -14,7 +14,7 @@ struct FILE_STATE
 
 struct FILE_ID
 {
-    size_t id; // index into files array
+    size_t id; // index into files array, SIZE_MAX means erronous ID
 };
 
 struct PagedBuffer
@@ -39,12 +39,18 @@ struct FileManager
     int32_t GetFileId(const char* path, uint64_t pathLen, FILE_ID* fileId);
     int32_t GetFullFilePath(const FILE_ID* fileId, std::string* path);
     int32_t GetFullFilePath(const FILE_STATE* fileState, std::string* path);
-
+    int32_t CreateInternalFile(
+        const char *filename,
+        uint64_t nameLen, 
+        const char *dataBuffer,
+        uint64_t dataLen,
+        FILE_ID* loadedFile);
 private:
     void AddNewFilePage();
     void AddNewFilenamePage();
     void LoadFilenameIntoPage(const char* filename, char** pagedFilename);
     void LoadFileIntoPage(int fd, int64_t fileSize, const char* filename, char** filePos);
+    void LoadBufferIntoPage(const char* data, int64_t fileSize, const char* filename, char** filePos);
     void ManagerExitOnError(int type, const void* errorData, const char* fileName);
     void ManagerExitOnErrorCode(int errorNum, const char* fileName);
     void ManagerExitOnErrorMsg(const char* errorMsg, const char* fileName);
