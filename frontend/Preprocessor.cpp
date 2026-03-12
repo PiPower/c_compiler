@@ -102,10 +102,15 @@ fetch_token:
     }
     else if(token->type == TokenType::pp_defined)
     {
-        ConsumeExpectedToken(TokenType::pp_defined);
-        Token token = GetCurrToken();
-        ConsumeExpectedToken(TokenType::identifier);
-
+        token->type = TokenType::numeric_constant;
+        if(ProcessDefined())
+        {
+            token->location = GetOneLocation();
+        }
+        else
+        {
+            token->location = GetZeroLocation();
+        }
     }
     return 0;
 }
@@ -191,10 +196,7 @@ void Preprocessor::FillQueueWithMacro(MacroMapIter& macroIter)
         Token tokenConst = {};
         tokenConst.type = TokenType::numeric_constant;
         tokenConst.isHex = 1;
-        tokenConst.location.id = preprocessorFile;
-        tokenConst.location.offset = macroIter == macros.end() ? 0 : 1;
-        tokenConst.location.len = 1;
-        tokenConst.location.line = 0;
+        tokenConst.location = macroIter == macros.end() ? GetZeroLocation() : GetOneLocation();
         tokenQueue.push_front(tokenConst);
     }
     else
@@ -710,4 +712,49 @@ ConditionalBlock Preprocessor::CreateBlock()
     }
     block.doneIncluding = false;
     return block;
+}
+
+SourceLocation Preprocessor::GetZeroLocation()
+{
+    SourceLocation loc;
+    loc.id = preprocessorFile;
+    loc.offset = 0;
+    loc.len = 1;
+    loc.line = 0;
+    return loc;
+}
+
+SourceLocation Preprocessor::GetOneLocation()
+{
+    SourceLocation loc;
+    loc.id = preprocessorFile;
+    loc.offset = 1;
+    loc.len = 1;
+    loc.line = 0;
+    return loc;
+}
+
+bool Preprocessor::ProcessDefined()
+{
+    Token token = GetCurrToken();
+    bool r_paren = false;
+    bool isDefined = false;
+    if(token.type == TokenType::l_parentheses)
+    {
+        ConsumeExpectedToken(TokenType::l_parentheses);
+        token = GetCurrToken();
+        r_paren = true;
+    }
+
+    ConsumeExpectedToken(TokenType::identifier);
+    
+    auto hashEntry = macros.find(GetViewForToken(token));
+    if(hashEntry == macros.end()){isDefined = false;}
+    else {isDefined = true;}
+
+    if(r_paren)
+    {
+        ConsumeExpectedToken(TokenType::r_parentheses);
+    }
+    return isDefined;
 }

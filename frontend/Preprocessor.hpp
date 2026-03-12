@@ -56,6 +56,9 @@ private:
     int32_t HandleUndef();
     int32_t SkipTokensInBlock(Token* infoToken = nullptr);
     ConditionalBlock CreateBlock();
+    SourceLocation GetZeroLocation();
+    SourceLocation GetOneLocation();
+    bool ProcessDefined();
 public:
     Lexer lexer;
     FileManager* manager;
