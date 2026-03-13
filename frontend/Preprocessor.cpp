@@ -39,6 +39,18 @@ Typed::Number BinaryOp(Preprocessor* pp,  Ast::Node* node)
     return out;
 }
 
+template<typename Op>
+Typed::Number UnaryOp(Preprocessor* pp,  Ast::Node* node)
+{
+    Typed::Number l = pp->ExecuteNode(node->lChild);
+
+    Typed::Number out{};
+    out.int64 = Op{}(l.int64);
+    out.type = Typed::d_int64_t;
+
+    return out;
+}
+
 
 constexpr int32_t HIT_ENDIF = 1;
 constexpr int32_t HIT_ELSE = 2;
@@ -113,6 +125,12 @@ fetch_token:
     // check for macros and special tokens
     else if(token->type == TokenType::identifier)
     {
+        if(token->PossiblyErronous)
+        {
+            IssueWarning(token, "Errounsous identifier [%s]",
+                     GetViewForToken(*token));
+        }
+
         auto hashEntry = macros.find(GetViewForToken(*token));
         if(hashEntry == macros.end() && stages.If == 0)
         {
@@ -179,10 +197,10 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
         }
         numOut.int64 = stringToChar(GetDataPtr(&expr->token), expr->token.location.len);
         return numOut;
-    case Ast::NodeType::op_log_negate:
-        numOut = ExecuteNode(expr->lChild);
-        numOut.int64 = numOut.int64 == 0;
-        return numOut;
+    // unary ops
+    case Ast::NodeType::op_log_negate: return UnaryOp<std::logical_not<int64_t>>(this, expr);
+    case Ast::NodeType::op_minus: return UnaryOp<std::negate<int64_t>>(this, expr);
+    case Ast::NodeType::op_complement: return UnaryOp<std::bit_not<int64_t>>(this, expr);
     // binary ops
     case Ast::NodeType::op_less_equal: return BinaryOp<std::less_equal<int64_t>>(this, expr);
     case Ast::NodeType::op_less: return BinaryOp<std::less<int64_t>>(this, expr);

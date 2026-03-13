@@ -191,6 +191,7 @@ struct Token
     uint16_t isOct : 1; // is numeric written in octal notation
     uint16_t hasE : 1; // does numeric contain E
     uint16_t hasP : 1; // does numeric contain P
+    uint16_t PossiblyErronous : 1; // set when identifier contains forbbiden char. 
 };
 
 template<typename... Args>

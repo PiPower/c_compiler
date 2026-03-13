@@ -186,10 +186,9 @@ void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
     size_t maxLen = fEnd - fCurr;
     if(!IsNonDigit(fCurr, maxLen))
     {
-        printf("Lexer internal error, unexpected character in LexIdentifier\n");
-        exit(-1);
+        token->PossiblyErronous = 1;
     }
-
+    
     const char* identifierStart = fCurr;
     int64_t len = 0; 
     int64_t UCN  = IsUniversalChar(fCurr, maxLen);
