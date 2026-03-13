@@ -259,7 +259,7 @@ void Lexer::LexCharSequence(Token *token, const char separator)
     token->location = ConstructLocation(files.top(), CharSeqStart, fCurr - CharSeqStart);
 
     fCurr++;
-    if(error || fCurr == fEnd)
+    if(error)
     {
         FILE_STATE fileState;
         manager->GetFileState(&files.top().fileId, &fileState);

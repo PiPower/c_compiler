@@ -197,6 +197,17 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
         }
         numOut.int64 = stringToChar(GetDataPtr(&expr->token), expr->token.location.len);
         return numOut;
+    case Ast::NodeType::cond_expression:
+    {
+        Ast::Node* condition = expr->lChild;
+        Ast::Node* exprTrue = expr->lChild + 1;
+        Ast::Node* exprFalse = expr->rChild;
+
+        Typed::Number condValue = ExecuteNode(condition);
+        if(condValue.int64 != 0) {numOut = ExecuteNode(exprTrue);}
+        else{numOut = ExecuteNode(exprFalse);}
+        return numOut;
+    }
     // unary ops
     case Ast::NodeType::op_log_negate: return UnaryOp<std::logical_not<int64_t>>(this, expr);
     case Ast::NodeType::op_minus: return UnaryOp<std::negate<int64_t>>(this, expr);
@@ -360,7 +371,7 @@ void Preprocessor::IssueWarning(const FILE_ID* fileId, const SourceLocation* loc
     {
         printf("%ld:%ld", loc->line, loc->offset);
     }
-    printf(" Preprocessor warning \n");
+    printf(" Preprocessor warning\n");
 
     if(errMsg)
     {

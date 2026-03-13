@@ -89,6 +89,10 @@ start_parsing:
             token = GetCurrToken();
         }
 
+        if(token.type == TokenType::eof)
+        {
+            return;
+        }
         
         if(PP.stages.If > 0)
         {
@@ -475,7 +479,7 @@ Ast::Node* Parser::ConditionalExpression()
         ConsumeToken();
         Ast::Node* logicalExpr = AllocateAstNodes(2);
         Ast::Node* expr = logicalExpr + 1;
-        expr = ParseExpression();
+        *expr = *ParseExpression();
         ConsumeExpectedToken(TokenType::colon);
         // swap pointer so that logicalExpr takes over condExpr
         // then condExpr becomes ConditionalExpression node
