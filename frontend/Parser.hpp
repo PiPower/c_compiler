@@ -10,7 +10,7 @@ struct ParsingState
 
 struct Parser
 {
-    Parser(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
+    Parser(FILE_ID mainFileId, FileManager* manager, const CompilationOpts* opts);
     void Parse();
     // misc ops
     Token GetCurrToken();

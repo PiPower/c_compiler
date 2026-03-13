@@ -26,23 +26,13 @@ static const char* kewordStrings[] = {
 };
 
 
-Lexer::Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
+Lexer::Lexer(FileManager* manager, const CompilationOpts* opts)
 :
-mainFile(mainFile), manager(manager), opts(opts)
+manager(manager), fEnd(nullptr), fCurr(nullptr), opts(opts)
 {
     assert(manager != nullptr);
     assert(opts != nullptr);
     PrepareKeywordMap();
-
-    FilePos initialFile;
-    manager->GetFileId(mainFile.path, mainFile.pathLen, &initialFile.fileId);
-    initialFile.lineNr = 1;
-    initialFile.fileBase = mainFile.fileData;
-    initialFile.fileEnd = mainFile.fileData + mainFile.fileSize;
-    files.push(initialFile);
-
-    fCurr = initialFile.fileBase;
-    fEnd = initialFile.fileEnd;
 }
 
 bool Lexer::IsHorizontalWhiteSpace(char C)
@@ -985,8 +975,12 @@ int32_t Lexer::PushFile(FILE_ID id)
     newFile.fileCurrent = state.fileData;
     newFile.fileEnd = state.fileData + state.fileSize;
 
+
     // save current context
-    files.top().fileCurrent = fCurr;
+    if(fCurr)
+    {
+        files.top().fileCurrent = fCurr;
+    }
     // reload all the pointers
     files.push(newFile);
     fCurr = files.top().fileBase;

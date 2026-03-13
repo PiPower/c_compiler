@@ -67,12 +67,12 @@ static Ast::Node* ParseLoop(
     return expr;
 }
 
-Parser::Parser(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts)
+Parser::Parser(FILE_ID mainFileId, FileManager* manager, const CompilationOpts* opts)
 :
-manager(manager), PP(mainFile, manager, opts), opts(opts), unaryHandle(nullptr), pState({})
+manager(manager), PP(mainFileId, manager, opts), opts(opts), unaryHandle(nullptr), pState({})
 {
     assert(opts != nullptr);
-    AddNodePage();
+    AddNodePage(); 
 }
 
 void Parser::Parse()

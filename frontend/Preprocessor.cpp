@@ -67,16 +67,17 @@ struct Headername
     uint8_t isLocal : 1; // include from file directory
 };
 
-Preprocessor::Preprocessor(FILE_STATE mainFile, FileManager *manager, const CompilationOpts* opts)
+Preprocessor::Preprocessor(FILE_ID mainFileId, FileManager *manager, const CompilationOpts* opts)
 :
-lexer(mainFile, manager, opts), manager(manager), opts(opts), stages({}), blockResult(EXPR_RESULT_NONE)
+lexer(manager, opts), manager(manager), opts(opts), stages({}), blockResult(EXPR_RESULT_NONE)
 {
     assert(opts != nullptr);
     constexpr size_t initiialBufferSize = 500;
     constantNodes.reserve(initiialBufferSize);
     manager->CreateInternalFile(PreprocessorFlename, 
         strlen(PreprocessorFlename), InsertableValues, 2, &preprocessorFile);
-
+    PushInitFile();
+    lexer.PushFile(mainFileId);
 }
 
 int32_t Preprocessor::Peek(Token* token)
@@ -275,7 +276,18 @@ void Preprocessor::StopConstantExpr()
     stages.ConstantExpr = 0;
 }
 
-void Preprocessor::FillQueueWithMacro(MacroMapIter& macroIter)
+void Preprocessor::PushInitFile()
+{
+    static const char* InitFile = 
+    "#define __GNUC__ 11\n"
+    "#define __GNUC_MINOR__ 4";
+
+    FILE_ID id;
+    manager->CreateInternalFile("built-in", 8, InitFile, strlen(InitFile), &id);
+    lexer.PushFile(id);
+}
+
+void Preprocessor::FillQueueWithMacro(MacroMapIter &macroIter)
 {
     size_t n = tokenQueue.size();
 

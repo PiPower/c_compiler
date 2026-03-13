@@ -15,7 +15,7 @@ struct DecimalType;
 
 struct Lexer
 {
-    Lexer(FILE_STATE mainFile, FileManager* manager, const CompilationOpts* opts);
+    Lexer(FileManager* manager, const CompilationOpts* opts);
     int32_t Lex(Token* token);
     int32_t PushFile(FILE_ID id);
 private:
@@ -56,7 +56,6 @@ private:
     bool IsAlphaDigitFloor(const char& c);
 
 public:
-    FILE_STATE mainFile;
     FileManager* manager;
     std::stack<FilePos> files;
     std::deque<char> charsQueue;

@@ -18,9 +18,9 @@ void Compiler::compile()
 {
     for(size_t i =0; i < opts.filenames.size(); i++)
     {
-        FILE_STATE mainFile;
+        FILE_ID mainFile;
         // skip err check, constructor checks for all main files
-        fileManager.GetFileState( opts.filenames[i],  opts.filenameLens[i], &mainFile);
+        fileManager.GetFileId( opts.filenames[i],  opts.filenameLens[i], &mainFile);
         Parser parser(mainFile, &fileManager, &opts);
         
         parser.Parse();

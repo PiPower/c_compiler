@@ -30,8 +30,8 @@ int main()
     const char* path = "examples/preprocessor_test.c";
     const char* arr[] = {path};
     FileManager fileManager({path}, {28});
-    FILE_STATE main;
-    fileManager.GetFileState("examples/preprocessor_test.c", 28, &main);
+    FILE_ID main;
+    fileManager.GetFileId("examples/preprocessor_test.c", 28, &main);
     CompilationOpts opts(1, (const char**)arr);
     Parser pp(main, &fileManager, &opts); // parser is needed for complex #if/#elif directives
     /*
