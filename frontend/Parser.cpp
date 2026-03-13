@@ -30,7 +30,7 @@ static Ast::NodeType ResolveNodeType(
     const std::array<TokenType::Type, Count>& operators,
     const std::array<Ast::NodeType, Count>& nodeOps )
 {
-    for(size_t i = 0; i < 7; i++)
+    for(size_t i = 0; i < Count; i++)
     {
         if(type == operators[i])
         {
