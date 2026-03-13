@@ -25,7 +25,7 @@ static bool IsTokenOneFromArray(
 }
 
 template<size_t Count>
-Ast::NodeType ResolveNodeType(
+static Ast::NodeType ResolveNodeType(
     const TokenType::Type& type,
     const std::array<TokenType::Type, Count>& operators,
     const std::array<Ast::NodeType, Count>& nodeOps )
@@ -226,7 +226,9 @@ bool Parser::IsAssignment(TokenType::Type type)
 Ast::Node *Parser::ParseConstantExpr()
 {
     pState.parsingConstantExpr = 1;
+    PP.StartConstantExpr();
     Ast::Node* node = ConditionalExpression();
+    PP.StopConstantExpr();
     pState.parsingConstantExpr = 0;
     return node;
 }
@@ -347,7 +349,7 @@ Ast::Node* Parser::UnaryExpression()
          TokenType::minus, TokenType::tilde, TokenType::bang};
     constexpr std::array<Ast::NodeType, 7> opTypes = 
         {Ast::get_addr, Ast::ptr_access, Ast::op_plus, 
-         Ast::op_minus, Ast::op_complement, Ast::op_negate};
+         Ast::op_minus, Ast::op_complement, Ast::op_log_negate};
 
     Token token = GetCurrToken();
 

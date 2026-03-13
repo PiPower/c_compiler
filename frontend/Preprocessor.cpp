@@ -79,7 +79,7 @@ fetch_token:
     
     if(token->type == TokenType::hash)
     {
-        if(stages.If > 0)
+        if(stages.ConstantExpr > 0)
         {
             IssueWarning(token, "preprocessor directive is not allowed inside constant expression");
             exit(-1);
@@ -148,12 +148,21 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
         }
         numOut.int64 = stringToInt64(GetDataPtr(&expr->token), 
                 expr->token.location.len, GetTokenMode(expr->token));
-        return numOut; break;
+        return numOut;
     case Ast::NodeType::string_literal:
         IssueWarning(&expr->token, "Expression must have integral type");
         exit(-1);
         break;
+    case Ast::NodeType::op_log_negate:
+        numOut = ExecuteNode(expr->lChild);
+        numOut.int64 = numOut.int64 == 0;
+        return numOut;
     // binary ops
+    case Ast::NodeType::op_inc_or: return BinaryOp<std::bit_or<int64_t>>(this, expr);
+    case Ast::NodeType::op_exc_or: return BinaryOp<std::bit_xor<int64_t>>(this, expr);
+    case Ast::NodeType::op_and: return BinaryOp<std::bit_and<int64_t>>(this, expr);
+    case Ast::NodeType::op_log_and: return BinaryOp<std::logical_and<int64_t>>(this, expr);
+    case Ast::NodeType::op_log_or: return BinaryOp<std::logical_or<int64_t>>(this, expr);
     case Ast::NodeType::op_divide: return BinaryOp<std::divides<int64_t>>(this, expr);
     case Ast::NodeType::op_divide_modulo: return BinaryOp<std::modulus<int64_t>>(this, expr);
     case Ast::NodeType::op_subtract: return BinaryOp<std::minus<int64_t>>(this, expr);
@@ -193,6 +202,16 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
         break;
     }
     return numOut;
+}
+
+void Preprocessor::StartConstantExpr()
+{
+    stages.ConstantExpr = 1;
+}
+
+void Preprocessor::StopConstantExpr()
+{
+    stages.ConstantExpr = 0;
 }
 
 void Preprocessor::FillQueueWithMacro(MacroMapIter& macroIter)

@@ -5,8 +5,7 @@
 struct PreprocessorStages
 {
     uint16_t If : 1; // informs that currently we are inside a macro
-    uint16_t Ifdef : 1;
-    uint16_t Ifndef : 1;
+    uint16_t ConstantExpr : 1;
 
 };
 
@@ -28,6 +27,8 @@ struct Preprocessor
     int32_t Peek(Token* token);
     void ExecuteConstantExpr(Ast::Node* expr);
     Typed::Number ExecuteNode(Ast::Node* expr);
+    void StartConstantExpr();
+    void StopConstantExpr();
 private:
     void FillQueueWithMacro(MacroMapIter& macroIter);
     uint8_t GetTokenMode(const Token& token);

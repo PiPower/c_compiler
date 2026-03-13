@@ -38,7 +38,7 @@
     OP(greater_equal) \
     OP(equal) \
     OP(not_equal) \
-    OP(negate) \
+    OP(log_negate) \
     /* Assignment nodes */ \
     X(assignment) \
     X(mul_assignment) \
