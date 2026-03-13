@@ -468,7 +468,25 @@ Ast::Node* Parser::LogicalOrExpression()
 
 Ast::Node* Parser::ConditionalExpression()
 {
-    return LogicalOrExpression();
+    Ast::Node* condExpr = LogicalOrExpression();
+    Token token = GetCurrToken();
+    if(token.type == TokenType::question_mark)
+    {
+        ConsumeToken();
+        Ast::Node* logicalExpr = AllocateAstNodes(2);
+        Ast::Node* expr = logicalExpr + 1;
+        expr = ParseExpression();
+        ConsumeExpectedToken(TokenType::colon);
+        // swap pointer so that logicalExpr takes over condExpr
+        // then condExpr becomes ConditionalExpression node
+        *logicalExpr = *condExpr;
+        *condExpr = {};
+        condExpr->type = Ast::cond_expression;
+        condExpr->token = token;
+        condExpr->lChild = logicalExpr; // left child is array of  [logicalExpr, expr]
+        condExpr->rChild = ConditionalExpression(); 
+    }
+    return condExpr;
 }
 
 Ast::Node* Parser::AssignmentExpression()
