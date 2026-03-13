@@ -230,9 +230,7 @@ bool Parser::IsAssignment(TokenType::Type type)
 Ast::Node *Parser::ParseConstantExpr()
 {
     pState.parsingConstantExpr = 1;
-    PP.StartConstantExpr();
     Ast::Node* node = ConditionalExpression();
-    PP.StopConstantExpr();
     pState.parsingConstantExpr = 0;
     return node;
 }

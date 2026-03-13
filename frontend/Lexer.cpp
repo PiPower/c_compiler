@@ -988,6 +988,18 @@ int32_t Lexer::PushFile(FILE_ID id)
     return 0;
 }
 
+int32_t Lexer::PopFile()
+{
+    if(files.size() == 0)
+    {
+        return -1;
+    }
+    files.pop();
+    fCurr = files.top().fileBase;
+    fEnd = files.top().fileEnd;
+    return 0;
+}
+
 SourceLocation Lexer::ConstructLocation(const FilePos &filePos, const char *fileCurr, int64_t len)
 {
     SourceLocation loc;

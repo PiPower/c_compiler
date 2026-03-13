@@ -67,6 +67,13 @@ struct Headername
     uint8_t isLocal : 1; // include from file directory
 };
 
+struct MacroTokenQueue
+{
+    size_t currentElement;
+    const Macro* macro;
+};
+
+
 Preprocessor::Preprocessor(FILE_ID mainFileId, FileManager *manager, const CompilationOpts* opts)
 :
 lexer(manager, opts), manager(manager), opts(opts), stages({}), blockResult(EXPR_RESULT_NONE)
@@ -76,8 +83,8 @@ lexer(manager, opts), manager(manager), opts(opts), stages({}), blockResult(EXPR
     constantNodes.reserve(initiialBufferSize);
     manager->CreateInternalFile(PreprocessorFlename, 
         strlen(PreprocessorFlename), InsertableValues, 2, &preprocessorFile);
-    PushInitFile();
     lexer.PushFile(mainFileId);
+    PushInitFile();
 }
 
 int32_t Preprocessor::Peek(Token* token)
@@ -131,14 +138,15 @@ fetch_token:
             IssueWarning(token, "Errounsous identifier [%s]",
                      GetViewForToken(*token));
         }
-
-        auto hashEntry = macros.find(GetViewForToken(*token));
-        if(hashEntry == macros.end() && stages.If == 0)
+        Macro *macro;
+        std::string_view macroView = GetViewForToken(*token);
+        bool hasEntry = FetchMacro(&macroView, &macro);
+        if(!hasEntry && stages.ConstantExpr == 0)
         {
             // if we are not inside directive of any sort just return
             return 0;
         }
-        FillQueueWithMacro(hashEntry);
+        FillQueueWithMacro(macro);
         *token = GetCurrToken();
         ConsumeToken();
         return 0;
@@ -163,7 +171,7 @@ fetch_token:
 void Preprocessor::ExecuteConstantExpr(Ast::Node *expr)
 {
     Typed::Number constExpr = ExecuteNode(expr);
-    stages.If = 0;
+    stages.ConstantExpr = 0;
     if(constExpr.type == Typed::d_int64_t)
     {
         blockResult = constExpr.int64 == 0 ? EXPR_RESULT_FALSE : EXPR_RESULT_TRUE;
@@ -266,14 +274,22 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
     return numOut;
 }
 
-void Preprocessor::StartConstantExpr()
+bool Preprocessor::FetchMacro(const std::string_view macroName, Macro **macro)
 {
-    stages.ConstantExpr = 1;
+    return FetchMacro(&macroName, macro);
 }
 
-void Preprocessor::StopConstantExpr()
+bool Preprocessor::FetchMacro(const std::string_view *macroName, Macro **macro)
 {
-    stages.ConstantExpr = 0;
+    auto hashEntry = macros.find(*macroName);
+    if(hashEntry == macros.end())
+    {
+        *macro = nullptr;
+        return false;
+    }
+
+    *macro = &hashEntry->second;
+    return true;
 }
 
 void Preprocessor::PushInitFile()
@@ -287,26 +303,55 @@ void Preprocessor::PushInitFile()
     lexer.PushFile(id);
 }
 
-void Preprocessor::FillQueueWithMacro(MacroMapIter &macroIter)
+#define YOLO X
+#define X YOLO
+
+void Preprocessor::FillQueueWithMacro(const Macro* macro)
 {
     size_t n = tokenQueue.size();
 
-    if(macroIter == macros.end() || macroIter->second.tokenList.size() == 0)
+    if(stages.ConstantExpr == 1 && (macro == nullptr || macro->tokenList.size() == 0))
     {
         Token tokenConst = {};
         tokenConst.type = TokenType::numeric_constant;
         tokenConst.isHex = 1;
-        tokenConst.location = macroIter == macros.end() ? GetZeroLocation() : GetOneLocation();
+        tokenConst.location = macro == nullptr ? GetZeroLocation() : GetOneLocation();
         tokenQueue.push_front(tokenConst);
+        return;
     }
-    else
+  
+    if(macro == nullptr)
     {
-        Macro* macro = &macroIter->second;
-        for(const Token& token : macro->tokenList)
+        return;
+    }
+
+    std::stack<MacroTokenQueue> macrosStack;
+    macrosStack.emplace(0, macro);
+    while (!macrosStack.empty())
+    {
+        MacroTokenQueue* entry = &macrosStack.top();
+        const Token* currentToken = &entry->macro->tokenList[entry->currentElement];
+        Macro* childMacro;
+        
+        if(currentToken->type == TokenType::identifier && 
+            FetchMacro(GetViewForToken(*currentToken), &childMacro))
         {
-            tokenQueue.push_front(token);
+            exit(-1);
+        }
+        else
+        {
+            tokenQueue.push_front(*currentToken);
+        }
+
+
+        macrosStack.top().currentElement++;
+        if(entry->currentElement == entry->macro->tokenList.size())
+        {
+            macrosStack.pop();
         }
     }
+        
+    
     
     std::deque<Token>::reverse_iterator lastElem = std::prev(tokenQueue.rend(), n);
     std::reverse(tokenQueue.rbegin(), lastElem);
@@ -411,11 +456,24 @@ std::string_view Preprocessor::GetViewForToken(const Token &token)
 
 Token Preprocessor::GetCurrToken()
 {
+get_token:
     if(tokenQueue.empty())
     {
         Token token;
         lexer.Lex(&token);
         tokenQueue.push_back(token);
+    }
+
+    if(tokenQueue.front().type == TokenType::eof && stages.eofTriggered == 1)
+    {
+        stages.eofTriggered = 0;
+        tokenQueue.clear();
+        lexer.PopFile();
+        goto get_token;
+    }
+    else if(tokenQueue.front().type == TokenType::eof )
+    {
+        stages.eofTriggered = 1;
     }
     return tokenQueue.front();
 }
@@ -480,6 +538,7 @@ std::string_view Preprocessor::FormHeadername()
 int32_t Preprocessor::HandleIf()
 {
     stages.If = 1;
+    stages.ConstantExpr = 1;
     ConditionalBlock block = CreateBlock();
     conditionalBlocks.push(block);
     return 0;
@@ -573,29 +632,30 @@ int32_t Preprocessor::HandleDefine()
     Token defineIdentifier = GetCurrToken();
     ConsumeToken();
 
-    Token macroExpansion = GetCurrToken();
 
     Macro macro = {};
     std::string_view macroName = GetViewForToken(defineIdentifier);
+    Token macroExpansion = GetCurrToken();
     // check if macro is callable
-    if(macroExpansion.type == TokenType::l_parentheses && 
-        macroExpansion.skippedHorizWhitespace > 0)
+    std::vector<std::string_view> views;
+
+    if(macroExpansion.type == TokenType::l_parentheses)
     {
+        macro.flags.callable = 1;
         exit(-1);
     }
-    else if(macroExpansion.type != TokenType::new_line)
-    {
-        do
-        {
-            if(macroExpansion.type != TokenType::line_splice)
-            {
-                macro.tokenList.push_back(macroExpansion);
-            }
-            ConsumeToken();
-            macroExpansion = GetCurrToken();
-        }while (macroExpansion.type != TokenType::new_line);
 
+    while (!IsTokenOneOf(&macroExpansion, TokenType::new_line, TokenType::eof))
+    {
+        if(macroExpansion.type != TokenType::line_splice)
+        {
+            macro.tokenList.push_back(macroExpansion);
+        }
+        ConsumeToken();
+        macroExpansion = GetCurrToken();
     }
+
+    
 
     macros[macroName] = std::move(macro);
     return 0;
@@ -659,7 +719,7 @@ int32_t Preprocessor::HandleElif()
     }
     else
     {
-        stages.If = 1;
+        stages.ConstantExpr = 1;
     }
 
     return 0;

@@ -6,12 +6,17 @@ struct PreprocessorStages
 {
     uint16_t If : 1; // informs that currently we are inside a macro
     uint16_t ConstantExpr : 1;
-
+    uint16_t eofTriggered : 1;
 };
 
+struct MacroFlags
+{
+    uint8_t callable : 1;
+};
 struct Macro
 {
     std::vector<Token> tokenList;
+    MacroFlags flags;
 };
 
 struct ConditionalBlock
@@ -27,12 +32,11 @@ struct Preprocessor
     int32_t Peek(Token* token);
     void ExecuteConstantExpr(Ast::Node* expr);
     Typed::Number ExecuteNode(Ast::Node* expr);
-    void StartConstantExpr();
-    void StopConstantExpr();
-    
 private:
+    bool FetchMacro(const std::string_view macroName, Macro** macro);
+    bool FetchMacro(const std::string_view* macroName, Macro** macro);
     void PushInitFile();
-    void FillQueueWithMacro(MacroMapIter& macroIter);
+    void FillQueueWithMacro(const Macro* macro);
     uint8_t GetTokenMode(const Token& token);
     const char* GetDataPtr(const Token* token);
     int32_t ExecuteDirective(Token* token);

@@ -18,6 +18,7 @@ struct Lexer
     Lexer(FileManager* manager, const CompilationOpts* opts);
     int32_t Lex(Token* token);
     int32_t PushFile(FILE_ID id);
+    int32_t PopFile();
 private:
     SourceLocation ConstructLocation(const FilePos& filePos, const char* fileCurr, int64_t len);
     void PrepareKeywordMap();
