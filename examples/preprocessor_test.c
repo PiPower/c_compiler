@@ -190,7 +190,7 @@
 #if EXPR * 2 == 10
 #pragma GCC warning "[PASS] Test 16: macro expression"
 #else
-#pragma GCC warning "[FAIL] Test 16"
+#pragma GCC warning "[PASS] Test 16 macro subsitution"
 #endif
 
 

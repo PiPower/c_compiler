@@ -243,7 +243,7 @@ Ast::Node* Parser::PrimaryExpression()
     static constexpr const char* expectedStrs[] = {
         tokenStr(TokenType::identifier), tokenStr(TokenType::numeric_constant),
         tokenStr(TokenType::string_literal), tokenStr(TokenType::l_string_literal),
-        tokenStr(TokenType::l_parentheses)};
+        tokenStr(TokenType::character_literal), tokenStr(TokenType::l_parentheses)};
 
     Token token = GetCurrToken();
     ConsumeToken();
@@ -255,8 +255,16 @@ Ast::Node* Parser::PrimaryExpression()
         node->type = Ast::identifier; break;
     case TokenType::numeric_constant: 
         node->type = Ast::constant; break;
+    case TokenType::character_literal: 
+        node->type = Ast::character; break;
     case TokenType::string_literal:
     case TokenType::l_string_literal: 
+        if(pState.parsingConstantExpr == 1)
+        {
+            IssueWarning(&token, 
+                "String literal is not allowed in constant expression");
+            exit(-1);
+        }
         node->type = Ast::string_literal;
         break;
     case TokenType::l_parentheses:
@@ -265,8 +273,8 @@ Ast::Node* Parser::PrimaryExpression()
         ConsumeExpectedToken(TokenType::r_parentheses);
         break;
     default:
-        IssueWarning(&token, " Given token is [%s] but only [%s], [%s], [%s], [%s] or [%s] can be used in primary expression",
-            tokenStr(token.type), expectedStrs[0], expectedStrs[1], expectedStrs[2], expectedStrs[3], expectedStrs[4]);
+        IssueWarning(&token, " Given token is [%s] but only [%s], [%s], [%s], [%s], [%s] or [%s] can be used in primary expression",
+            tokenStr(token.type), expectedStrs[0], expectedStrs[1], expectedStrs[2], expectedStrs[3], expectedStrs[4], expectedStrs[5]);
         exit(-1);
         break;
     }

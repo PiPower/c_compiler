@@ -171,11 +171,23 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
         IssueWarning(&expr->token, "Expression must have integral type");
         exit(-1);
         break;
+    case Ast::NodeType::character:
+        if(expr->token.location.len > 3)
+        {
+            IssueWarning(&expr->token, "Multi byte character constants  are not supported\n");
+            exit(-1);
+        }
+        numOut.int64 = stringToChar(GetDataPtr(&expr->token), expr->token.location.len);
+        return numOut;
     case Ast::NodeType::op_log_negate:
         numOut = ExecuteNode(expr->lChild);
         numOut.int64 = numOut.int64 == 0;
         return numOut;
     // binary ops
+    case Ast::NodeType::op_less_equal: return BinaryOp<std::less_equal<int64_t>>(this, expr);
+    case Ast::NodeType::op_less: return BinaryOp<std::less<int64_t>>(this, expr);
+    case Ast::NodeType::op_greater_equal: return BinaryOp<std::greater_equal<int64_t>>(this, expr);
+    case Ast::NodeType::op_greater: return BinaryOp<std::greater<int64_t>>(this, expr);
     case Ast::NodeType::op_l_shift: return BinaryOp<left_shift<int64_t>>(this, expr);
     case Ast::NodeType::op_r_shift: return BinaryOp<right_shift<int64_t>>(this, expr);
     case Ast::NodeType::op_inc_or: return BinaryOp<std::bit_or<int64_t>>(this, expr);

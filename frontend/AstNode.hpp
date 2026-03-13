@@ -7,6 +7,7 @@
     X(constant) \
     X(declaration) \
     X(string_literal) \
+    X(character) \
     X(expression) \
     /* Basic math ops */ \
     OP(multiply) \

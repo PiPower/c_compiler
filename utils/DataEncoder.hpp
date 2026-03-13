@@ -8,3 +8,4 @@ constexpr uint8_t MODE_BIN = 3;
 
 double stringToDouble(const char* data, int32_t len, uint8_t mode);
 int64_t stringToInt64(const char* data, int32_t len, uint8_t mode);
+int64_t stringToChar(const char* data, int32_t len);
