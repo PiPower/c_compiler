@@ -8,6 +8,24 @@
 static const char* PreprocessorFlename = "preprocessor_file.comp";
 static const char* InsertableValues = "01";
 
+template<typename _Tp>
+struct right_shift 
+{
+    _GLIBCXX14_CONSTEXPR
+    _Tp
+    operator()(const _Tp& __x, const _Tp& __y) const
+    { return __x >> __y; }
+};
+
+template<typename _Tp>
+struct left_shift
+{
+    _GLIBCXX14_CONSTEXPR
+    _Tp
+    operator()(const _Tp& __x, const _Tp& __y) const
+    { return __x << __y; }
+};
+
 template<typename Op>
 Typed::Number BinaryOp(Preprocessor* pp,  Ast::Node* node)
 {
@@ -158,6 +176,8 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
         numOut.int64 = numOut.int64 == 0;
         return numOut;
     // binary ops
+    case Ast::NodeType::op_l_shift: return BinaryOp<left_shift<int64_t>>(this, expr);
+    case Ast::NodeType::op_r_shift: return BinaryOp<right_shift<int64_t>>(this, expr);
     case Ast::NodeType::op_inc_or: return BinaryOp<std::bit_or<int64_t>>(this, expr);
     case Ast::NodeType::op_exc_or: return BinaryOp<std::bit_xor<int64_t>>(this, expr);
     case Ast::NodeType::op_and: return BinaryOp<std::bit_and<int64_t>>(this, expr);
