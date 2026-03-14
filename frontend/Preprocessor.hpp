@@ -9,6 +9,12 @@ struct PreprocessorStages
     uint16_t eofTriggered : 1;
 };
 
+struct MacroArgPlacement
+{
+    uint16_t argId;
+    size_t argPos;
+};
+
 struct MacroFlags
 {
     uint8_t callable : 1;
@@ -16,6 +22,7 @@ struct MacroFlags
 struct Macro
 {
     std::vector<Token> tokenList;
+    std::vector<MacroArgPlacement> argPlacement;
     MacroFlags flags;
 };
 

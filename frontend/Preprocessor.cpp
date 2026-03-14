@@ -630,23 +630,63 @@ int32_t Preprocessor::HandleInclude()
 int32_t Preprocessor::HandleDefine()
 {
     Token defineIdentifier = GetCurrToken();
-    ConsumeToken();
-
+    ConsumeExpectedToken(TokenType::identifier);
 
     Macro macro = {};
     std::string_view macroName = GetViewForToken(defineIdentifier);
     Token macroExpansion = GetCurrToken();
-    // check if macro is callable
-    std::vector<std::string_view> views;
+    // key - argname ; value - argument number
+    std::unordered_map<std::string_view, uint16_t> argNames;
 
-    if(macroExpansion.type == TokenType::l_parentheses)
+    // check if macro is callable
+    if(macroExpansion.type == TokenType::l_parentheses &&
+                 macroExpansion.skippedHorizWhitespace == 0)
     {
         macro.flags.callable = 1;
-        exit(-1);
+        ConsumeExpectedToken(TokenType::l_parentheses);
+        Token token = GetCurrToken();
+        size_t argIt = 0;
+        while (token.type == TokenType::identifier)
+        {
+            ConsumeToken();
+            std::string_view argName(GetViewForToken(token));
+            // insert arg into map
+            auto nameIter = argNames.find(argName);
+            if(nameIter != argNames.end()) 
+            {
+                // terminate on macro error
+                IssueWarning(&token, "Argument name repeated in macro\n");
+                exit(-1);
+            }
+
+            argNames[argName] = argIt;
+            token = GetCurrToken();
+            if(token.type == TokenType::r_parentheses)
+            {
+                ConsumeToken();
+                macroExpansion = GetCurrToken();
+                break;
+            }
+            ConsumeExpectedToken(TokenType::comma);
+            token = GetCurrToken();
+            argIt++;
+        }
+        
     }
 
     while (!IsTokenOneOf(&macroExpansion, TokenType::new_line, TokenType::eof))
     {
+        if(macroExpansion.type == TokenType::identifier)
+        {
+            std::string_view argName(GetViewForToken(macroExpansion));
+            // insert arg into map
+            auto nameIter = argNames.find(argName);
+            if(nameIter != argNames.end()) 
+            {
+                macro.argPlacement.emplace_back(nameIter->second, macro.tokenList.size());
+            }
+        }
+
         if(macroExpansion.type != TokenType::line_splice)
         {
             macro.tokenList.push_back(macroExpansion);
@@ -654,8 +694,6 @@ int32_t Preprocessor::HandleDefine()
         ConsumeToken();
         macroExpansion = GetCurrToken();
     }
-
-    
 
     macros[macroName] = std::move(macro);
     return 0;
