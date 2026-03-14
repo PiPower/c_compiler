@@ -485,16 +485,14 @@ void Lexer::ConsumeChar()
 bool Lexer::SkipHorizontalWhiteSpace()
 {
     bool skippedWhitespace = false;
-    if(!charsQueue.empty())
+
+    while (!charsQueue.empty() && IsHorizontalWhiteSpace(charsQueue.front()))
     {
-        while (IsHorizontalWhiteSpace(charsQueue.front()))
-        {
-            charsQueue.pop_front();
-            currLocations.pop();
-            skippedWhitespace = true;
-        }
-        
+        charsQueue.pop_front();
+        currLocations.pop();
+        skippedWhitespace = true;
     }
+    
 
     // no remaining characters in queue, work on raw buffer
     if(charsQueue.empty())
