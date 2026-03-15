@@ -121,6 +121,11 @@ get_token:
         tokenQueue.pop_front();
         goto get_token;
     }
+    if(pState.parsingConstantExpr == 1 && tokenQueue.front().type == TokenType::line_splice )
+    {
+        tokenQueue.pop_front();
+        goto get_token;
+    }
     return tokenQueue.front();
 }
 

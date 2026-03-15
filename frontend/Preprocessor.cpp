@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include "../utils/DataEncoder.hpp"
 #include <functional>
-
+#include <iostream>
 static const char* PreprocessorFlename = "preprocessor_file.comp";
 static const char* InsertableValues = "01";
 
@@ -128,6 +128,11 @@ fetch_token:
         {
             return ret;
         }
+        goto fetch_token;
+    }
+    else if(token->type == TokenType::eof && lexer.files.size() > 1)
+    {
+        lexer.PopFile();
         goto fetch_token;
     }
     // check for macros and special tokens
@@ -284,30 +289,34 @@ bool Preprocessor::FetchMacro(const std::string_view *macroName, Macro **macro)
     auto hashEntry = macros.find(*macroName);
     if(hashEntry == macros.end())
     {
-        *macro = nullptr;
+        if(macro) { *macro = nullptr;}
         return false;
     }
 
-    *macro = &hashEntry->second;
+    if(macro) { *macro = &hashEntry->second;}
     return true;
 }
 
 void Preprocessor::PushInitFile()
 {
-    static const char* InitFile = 
-    "#define __GNUC__ 11\n"
-    "#define __GNUC_MINOR__ 4";
-
     FILE_ID id;
-    manager->CreateInternalFile("built-in", 8, InitFile, strlen(InitFile), &id);
+    if(manager->TryLoadFile(".builtin_defines.hpp", 15, &id) == -1)
+    {
+        system("echo | gcc -std=c99 -dM -E - > .builtin_defines.hpp");
+        if(manager->TryLoadFile(".builtin_defines.hpp", 15, &id) == -1)
+        {
+            IssueWarning(nullptr, "Could not create .builtin_defines.hpp");
+            exit(-1);
+        }
+    }
+
     lexer.PushFile(id);
 }
 
-#define YOLO X
-#define X YOLO
-
 void Preprocessor::FillQueueWithMacro(const Macro* macro)
 {
+    using TokenSequence = std::vector<Token>;
+
     size_t n = tokenQueue.size();
 
     if(stages.ConstantExpr == 1 && (macro == nullptr || macro->tokenList.size() == 0))
@@ -325,34 +334,59 @@ void Preprocessor::FillQueueWithMacro(const Macro* macro)
         return;
     }
 
-    std::stack<MacroTokenQueue> macrosStack;
-    macrosStack.emplace(0, macro);
-    while (!macrosStack.empty())
+    std::vector<TokenSequence> args;
+    TokenSequence seq;
+    if(macro->flags.callable)
     {
-        MacroTokenQueue* entry = &macrosStack.top();
-        const Token* currentToken = &entry->macro->tokenList[entry->currentElement];
-        Macro* childMacro;
-        
-        if(currentToken->type == TokenType::identifier && 
-            FetchMacro(GetViewForToken(*currentToken), &childMacro))
+        ConsumeExpectedToken(TokenType::l_parentheses);
+scan_arg:
+        seq.clear();
+        Token token = GetCurrToken();
+        token = GetCurrToken();
+        while (!IsTokenOneOf(&token, TokenType::comma, TokenType::r_parentheses))
         {
+            seq.push_back(token);
+            ConsumeToken();
+            token = GetCurrToken();
+        }
+
+        if(seq.size() == 0)
+        {
+            IssueWarning(&token, "Macro call has unfilled argument");
             exit(-1);
+        }
+
+        args.push_back(seq);
+        if(token.type ==  TokenType::comma)
+        {
+            ConsumeToken();
+            goto scan_arg;
+        }
+        ConsumeExpectedToken(TokenType::r_parentheses);
+    }
+    const std::vector<Token>& macroTokens = macro->tokenList;
+    size_t argOffsets = 0;
+    for(size_t i =0; i < macroTokens.size(); i++)
+    {
+        if(macro->argPlacement.size() > 0 &&
+           macro->argPlacement[argOffsets].argPos == i )
+        {
+            TokenSequence& argTokens =  args[macro->argPlacement[argOffsets].argId];
+            for(size_t j =0; j <argTokens.size(); j++)
+            {
+                tokenQueue.push_front(argTokens[j]);
+            }
+            argOffsets++;
         }
         else
         {
-            tokenQueue.push_front(*currentToken);
+            // regular token 
+            tokenQueue.push_front(macroTokens[i]);
         }
-
-
-        macrosStack.top().currentElement++;
-        if(entry->currentElement == entry->macro->tokenList.size())
-        {
-            macrosStack.pop();
-        }
-    }
         
-    
-    
+        // as per C 99 6.10.3.3  ## is run before #
+    }
+
     std::deque<Token>::reverse_iterator lastElem = std::prev(tokenQueue.rend(), n);
     std::reverse(tokenQueue.rbegin(), lastElem);
 }   
@@ -475,6 +509,7 @@ get_token:
     {
         stages.eofTriggered = 1;
     }
+
     return tokenQueue.front();
 }
 
@@ -671,16 +706,20 @@ int32_t Preprocessor::HandleDefine()
             token = GetCurrToken();
             argIt++;
         }
-        
+        if(token.type == TokenType::ellipsis)
+        {
+            printf("ellipsis  is not supproted \n");
+            exit(-1);
+        }
     }
 
     while (!IsTokenOneOf(&macroExpansion, TokenType::new_line, TokenType::eof))
     {
         if(macroExpansion.type == TokenType::identifier)
         {
-            std::string_view argName(GetViewForToken(macroExpansion));
+            std::string_view tokenName(GetViewForToken(macroExpansion));
             // insert arg into map
-            auto nameIter = argNames.find(argName);
+            auto nameIter = argNames.find(tokenName);
             if(nameIter != argNames.end()) 
             {
                 macro.argPlacement.emplace_back(nameIter->second, macro.tokenList.size());

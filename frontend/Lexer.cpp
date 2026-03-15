@@ -127,7 +127,7 @@ char Lexer::GetCharSlow()
     if(*fCurr == '\\')
     {
 slash:
-        printf("Lexer internal warning: Possibly incorrect execution path \n");
+        //printf("Lexer internal warning: Possibly incorrect execution path \n");
         fflush(stdout);
         if(remainingChars > 1 && !IsWhiteSpace(*(fCurr + 1)))
         {
@@ -993,9 +993,14 @@ int32_t Lexer::PopFile()
         return -1;
     }
     files.pop();
-    fCurr = files.top().fileBase;
+    fCurr = files.top().fileCurrent;
     fEnd = files.top().fileEnd;
     return 0;
+}
+
+SourceLocation Lexer::CurrentSourceLocation()
+{ 
+    return ConstructLocation(files.top(), fCurr, 1);
 }
 
 SourceLocation Lexer::ConstructLocation(const FilePos &filePos, const char *fileCurr, int64_t len)

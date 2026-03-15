@@ -11,7 +11,9 @@ struct PreprocessorStages
 
 struct MacroArgPlacement
 {
+    // number of argument
     uint16_t argId;
+    // position in token stream
     size_t argPos;
 };
 
