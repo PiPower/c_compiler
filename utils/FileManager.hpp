@@ -39,11 +39,11 @@ struct FileManager
     int32_t GetFileId(const char* path, uint64_t pathLen, FILE_ID* fileId);
     int32_t GetFullFilePath(const FILE_ID* fileId, std::string* path);
     int32_t GetFullFilePath(const FILE_STATE* fileState, std::string* path);
+    int32_t WriteToFile(const char* dataBuff, int64_t offset, int64_t dataLen, const FILE_ID* fileId);
     int32_t CreateInternalFile(
         const char *filename,
         uint64_t nameLen, 
-        const char *dataBuffer,
-        uint64_t dataLen,
+        uint64_t fileLen,
         FILE_ID* loadedFile);
 private:
     void AddNewFilePage();

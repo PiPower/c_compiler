@@ -17,7 +17,7 @@ struct Lexer
 {
     Lexer(FileManager* manager, const CompilationOpts* opts);
     int32_t Lex(Token* token);
-    int32_t PushFile(FILE_ID id);
+    int32_t PushFile(FILE_ID id, int64_t offset, int64_t len);
     int32_t PopFile();
     SourceLocation CurrentSourceLocation();
 public:
@@ -75,6 +75,7 @@ struct FilePos
     const char* fileBase;
     const char* fileCurrent;
     const char* fileEnd;
+    int32_t fileOffset;
 };
 
 

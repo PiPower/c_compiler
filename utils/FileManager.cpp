@@ -119,7 +119,10 @@ void FileManager::LoadBufferIntoPage(const char *data, int64_t fileSize, const c
     }
     char* page = filePages[currentPage];
     *filePos = page + offsetIntoPage;
-    memcpy(page + offsetIntoPage, data, fileSize);
+    if(data)
+    {
+        memcpy(page + offsetIntoPage, data, fileSize);
+    }
     offsetIntoPage += fileSize;
 }
 
@@ -258,16 +261,29 @@ int32_t FileManager::GetFullFilePath(const FILE_STATE *fileState, std::string *p
     exit(-1);
 }
 
+int32_t FileManager::WriteToFile(const char *dataBuff, int64_t offset, int64_t dataLen, const FILE_ID *fileId)
+{
+    FILE_STATE state;
+    GetFileState(fileId, &state);
+
+    if(state.fileSize - offset < dataLen)
+    {
+        return -1;
+    }
+
+    memcpy((char*)state.fileData + offset, dataBuff, dataLen);
+    return 0;
+}
+
 int32_t FileManager::CreateInternalFile(
     const char *filename, 
     uint64_t nameLen, 
-    const char *dataBuffer, 
-    uint64_t dataLen,
+    uint64_t fileLen,
     FILE_ID *loadedFile)
 {
 
     char* filePos = nullptr;
-    LoadBufferIntoPage(dataBuffer, dataLen, filename, &filePos);
+    LoadBufferIntoPage(nullptr, fileLen, filename, &filePos);
 
     char* nullTerminatedFilename = (char*)alloca(nameLen + 1);
     memcpy(nullTerminatedFilename, filename, nameLen);
@@ -279,7 +295,7 @@ int32_t FileManager::CreateInternalFile(
     int64_t filenameOffset = filenameLen;
     while (filenameOffset > 0 && filename[filenameOffset] != '/') { filenameOffset--;}
 
-    fileStates.emplace_back(path, filenameLen, filenameLen - filenameOffset, filePos, dataLen);
+    fileStates.emplace_back(path, filenameLen, filenameLen - filenameOffset, filePos, fileLen);
     if(loadedFile)
     {
         loadedFile->id = fileStates.size() - 1;

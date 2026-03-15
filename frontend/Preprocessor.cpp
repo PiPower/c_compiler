@@ -76,14 +76,16 @@ struct MacroTokenQueue
 
 Preprocessor::Preprocessor(FILE_ID mainFileId, FileManager *manager, const CompilationOpts* opts)
 :
-lexer(manager, opts), manager(manager), opts(opts), stages({}), blockResult(EXPR_RESULT_NONE)
+lexer(manager, opts), manager(manager), opts(opts), stages({}), blockResult(EXPR_RESULT_NONE), fileOffset(0)
 {
     assert(opts != nullptr);
     constexpr size_t initiialBufferSize = 500;
     constantNodes.reserve(initiialBufferSize);
     manager->CreateInternalFile(PreprocessorFlename, 
-        strlen(PreprocessorFlename), InsertableValues, 2, &preprocessorFile);
-    lexer.PushFile(mainFileId);
+        strlen(PreprocessorFlename), 4096 * 4, &preprocessorFile);
+    WriteToPreprocessorFile(InsertableValues, 2);
+
+    lexer.PushFile(mainFileId, -1, -1);
     PushInitFile();
 }
 
@@ -310,15 +312,12 @@ void Preprocessor::PushInitFile()
         }
     }
 
-    lexer.PushFile(id);
+    lexer.PushFile(id, -1, -1);
 }
 
 void Preprocessor::FillQueueWithMacro(const Macro* macro)
 {
     using TokenSequence = std::vector<Token>;
-
-    size_t n = tokenQueue.size();
-
     if(stages.ConstantExpr == 1 && (macro == nullptr || macro->tokenList.size() == 0))
     {
         Token tokenConst = {};
@@ -332,6 +331,12 @@ void Preprocessor::FillQueueWithMacro(const Macro* macro)
     if(macro == nullptr)
     {
         return;
+    }
+    
+    if(macro->flags.variadicArgs)
+    {
+        printf("Currently calling variadic args is not supported \n");
+        exit(-1);
     }
 
     std::vector<TokenSequence> args;
@@ -364,31 +369,8 @@ scan_arg:
         }
         ConsumeExpectedToken(TokenType::r_parentheses);
     }
-    const std::vector<Token>& macroTokens = macro->tokenList;
-    size_t argOffsets = 0;
-    for(size_t i =0; i < macroTokens.size(); i++)
-    {
-        if(macro->argPlacement.size() > 0 &&
-           macro->argPlacement[argOffsets].argPos == i )
-        {
-            TokenSequence& argTokens =  args[macro->argPlacement[argOffsets].argId];
-            for(size_t j =0; j <argTokens.size(); j++)
-            {
-                tokenQueue.push_front(argTokens[j]);
-            }
-            argOffsets++;
-        }
-        else
-        {
-            // regular token 
-            tokenQueue.push_front(macroTokens[i]);
-        }
-        
-        // as per C 99 6.10.3.3  ## is run before #
-    }
 
-    std::deque<Token>::reverse_iterator lastElem = std::prev(tokenQueue.rend(), n);
-    std::reverse(tokenQueue.rbegin(), lastElem);
+    InsertMacroTokensIntoQueue(macro->tokenList, args, macro->argPlacement);
 }   
 
 uint8_t Preprocessor::GetTokenMode(const Token &token)
@@ -509,6 +491,11 @@ get_token:
     {
         stages.eofTriggered = 1;
     }
+    else if(tokenQueue.front().type == TokenType::comment )
+    {
+        tokenQueue.pop_front();
+        goto get_token;
+    }
 
     return tokenQueue.front();
 }
@@ -538,6 +525,82 @@ void Preprocessor::ConsumeExpectedToken(TokenType::Type type)
         exit(-1);
     }
     return;
+}
+
+void Preprocessor::WriteToPreprocessorFile(const char *data, int64_t dataLen)
+{
+    if(manager->WriteToFile(data, fileOffset, dataLen ,&preprocessorFile) != 0)
+    {
+        printf("Run out of memory for preprocessor file \n");
+        exit(-1);
+    }
+
+    fileOffset += dataLen;
+}
+
+void Preprocessor::InsertMacroTokensIntoQueue(
+    const std::vector<Token>& macroTokens, 
+    const std::vector<std::vector<Token>>& args,
+    const std::vector<MacroArgPlacement>& argPlacement)
+{
+    using TokenSequence = std::vector<Token>;
+    size_t n = tokenQueue.size();
+    size_t argOffsets = 0;
+
+    bool concatTokens = false;
+    size_t insertionOffset = 0;
+    for(size_t i =0; i < macroTokens.size(); i++)
+    {
+        if(argPlacement.size() > 0 &&
+           argPlacement[argOffsets].argPos == i )
+        {
+            const TokenSequence& argTokens =  args[argPlacement[argOffsets].argId];
+            for(size_t j =0; j <argTokens.size(); j++)
+            {
+                tokenQueue.push_front(argTokens[j]);
+            }
+            argOffsets++;
+        }
+        else
+        {
+            if(IsTokenOneOf(&macroTokens[i], TokenType::hash))
+            {
+                printf("Stringify/token concatanation is not supported \n");
+                exit(-1);
+            }
+            
+            if(macroTokens[i].type == TokenType::d_hash)
+            {
+                concatTokens = true;
+                insertionOffset = tokenQueue.size();
+                continue;
+            }
+
+            tokenQueue.push_front(macroTokens[i]);
+        }
+
+        if(concatTokens)
+        {
+            concatTokens = false;
+            size_t tokenL = tokenQueue.size() - insertionOffset;
+            if(tokenL == 0)
+            {
+                IssueWarning(&tokenQueue.front(), "## requires token on both left and right side");
+                exit(-1);
+            }
+            size_t tokenR = tokenL - 1;
+            MergeTokensInLexer(&tokenQueue.at(tokenL), &tokenQueue.at(tokenR));
+            // top of lexer stack has newly created token, 
+            // read all of them before proceding any further
+            
+        }
+        
+        // as per C 99 6.10.3.3  ## is run before #
+    }
+
+    
+    std::deque<Token>::reverse_iterator lastElem = std::prev(tokenQueue.rend(), n);
+    std::reverse(tokenQueue.rbegin(), lastElem);
 }
 
 std::string_view Preprocessor::FormHeadername()
@@ -658,7 +721,7 @@ int32_t Preprocessor::HandleInclude()
             break;
         }
     }
-    lexer.PushFile(headerFileId);
+    lexer.PushFile(headerFileId, -1, -1);
     return 0;
 }
 
@@ -708,8 +771,10 @@ int32_t Preprocessor::HandleDefine()
         }
         if(token.type == TokenType::ellipsis)
         {
-            printf("ellipsis  is not supproted \n");
-            exit(-1);
+            macro.flags.variadicArgs = 1;
+            ConsumeExpectedToken(TokenType::ellipsis);
+            ConsumeExpectedToken(TokenType::r_parentheses);
+            macroExpansion = GetCurrToken();
         }
     }
 
@@ -805,6 +870,7 @@ int32_t Preprocessor::HandleElif()
 int32_t Preprocessor::HandleEndif()
 {
     Token token =  GetCurrToken(); // token used in logging only
+
     ConsumeExpectedToken(TokenType::new_line);
     if(conditionalBlocks.empty())
     {
@@ -966,6 +1032,19 @@ SourceLocation Preprocessor::GetOneLocation()
     loc.len = 1;
     loc.line = 0;
     return loc;
+}
+
+void Preprocessor::MergeTokensInLexer(const Token *left, const Token *right)
+{
+    std::string_view leftToken = GetViewForToken(*left);
+    std::string_view rightToken = GetViewForToken(*right);
+    int64_t tokenStringStart = fileOffset;
+    WriteToPreprocessorFile(leftToken.data(), leftToken.length());
+    WriteToPreprocessorFile(rightToken.data(), rightToken.length());
+    int64_t tokenStringEnd = fileOffset;
+
+    lexer.PushFile(preprocessorFile, tokenStringStart, tokenStringEnd - tokenStringStart);
+    return;
 }
 
 bool Preprocessor::ProcessDefined()

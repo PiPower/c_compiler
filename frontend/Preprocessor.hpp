@@ -20,6 +20,7 @@ struct MacroArgPlacement
 struct MacroFlags
 {
     uint8_t callable : 1;
+    uint8_t variadicArgs : 1;
 };
 struct Macro
 {
@@ -56,6 +57,11 @@ private:
     void PutBackAtFront(Token token);
     void ConsumeToken();
     void ConsumeExpectedToken(TokenType::Type type);
+    void WriteToPreprocessorFile(const char* data, int64_t dataLen);
+    void InsertMacroTokensIntoQueue(
+        const std::vector<Token>& macroTokens, 
+        const std::vector<std::vector<Token>>& args,
+        const std::vector<MacroArgPlacement>& argPlacement);
     std::string_view FormHeadername();
     int32_t HandleIf();
     int32_t HandleElse();
@@ -74,6 +80,7 @@ private:
     ConditionalBlock CreateBlock();
     SourceLocation GetZeroLocation();
     SourceLocation GetOneLocation();
+    void MergeTokensInLexer(const Token* left, const Token* right);
     bool ProcessDefined();
 public:
     Lexer lexer;
@@ -86,4 +93,5 @@ public:
     std::vector<Ast::Node*> constantNodes;
     uint8_t blockResult;
     FILE_ID preprocessorFile;
+    int64_t fileOffset;
 };

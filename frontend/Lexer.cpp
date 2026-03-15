@@ -209,11 +209,6 @@ void Lexer::LexIdentifier(Token* token, const SourceLocation* firstChar)
         }
     }
  
-    if(fCurr == fEnd && files.size() > 1)
-    {
-        ChangeLexedFile(); // for now terminates case as it is not supported
-    }
-    
     std::string_view key(identifierStart, len);
     auto hMapEntry = keywordsMap.find(key);
     if(hMapEntry != keywordsMap.end())
@@ -958,7 +953,7 @@ int32_t Lexer::Lex(Token* token)
     return 0;
 }
 
-int32_t Lexer::PushFile(FILE_ID id)
+int32_t Lexer::PushFile(FILE_ID id, int64_t offset, int64_t len)
 {
     FILE_STATE state =  {};
     if(manager->GetFileState(&id, &state) < 0)
@@ -972,8 +967,18 @@ int32_t Lexer::PushFile(FILE_ID id)
     newFile.fileBase = state.fileData;
     newFile.fileCurrent = state.fileData;
     newFile.fileEnd = state.fileData + state.fileSize;
-
-
+    newFile.fileOffset = 0;
+    if(offset != -1)
+    { 
+        if( newFile.fileBase + offset > newFile.fileEnd) {return -3;}
+        newFile.fileCurrent+= offset;
+        newFile.fileOffset = offset;
+    }
+    if(len != -1)
+    {
+        if(newFile.fileCurrent + len >  newFile.fileEnd){ return -4;}
+        newFile.fileEnd = newFile.fileCurrent + len;
+    }
     // save current context
     if(fCurr)
     {
@@ -981,7 +986,7 @@ int32_t Lexer::PushFile(FILE_ID id)
     }
     // reload all the pointers
     files.push(newFile);
-    fCurr = files.top().fileBase;
+    fCurr = files.top().fileCurrent;
     fEnd = files.top().fileEnd;
     return 0;
 }

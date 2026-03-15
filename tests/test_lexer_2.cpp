@@ -13,7 +13,7 @@ int main()
     fileManager.GetFileId("examples/lexer_stress_test.c", 28, &main);
     CompilationOpts opts(1, (const char**)arr);
     Lexer lexer(&fileManager, &opts);
-    lexer.PushFile(main);
+    lexer.PushFile(main, -1, -1);
     
     Token tok;
     size_t i = 0;
