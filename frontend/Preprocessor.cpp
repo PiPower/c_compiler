@@ -154,9 +154,7 @@ fetch_token:
             return 0;
         }
         FillQueueWithMacro(macro);
-        *token = GetCurrToken();
-        ConsumeToken();
-        return 0;
+        goto fetch_token;
     }
     else if(token->type == TokenType::pp_defined)
     {
@@ -589,7 +587,10 @@ void Preprocessor::InsertMacroTokensIntoQueue(
                 exit(-1);
             }
             size_t tokenR = tokenL - 1;
-            MergeTokensInLexer(&tokenQueue.at(tokenL), &tokenQueue.at(tokenR));
+            std::vector<Token> tokens = MergeTokensInLexer(&tokenQueue.at(tokenL), &tokenQueue.at(tokenR));
+            tokenQueue.insert(tokenQueue.begin() + tokenL + 1, tokens.rbegin(), tokens.rend());
+            tokenQueue.erase(tokenQueue.begin() + tokenR, tokenQueue.begin() + tokenL + 1);
+    
             // top of lexer stack has newly created token, 
             // read all of them before proceding any further
             
@@ -1034,7 +1035,7 @@ SourceLocation Preprocessor::GetOneLocation()
     return loc;
 }
 
-void Preprocessor::MergeTokensInLexer(const Token *left, const Token *right)
+std::vector<Token> Preprocessor::MergeTokensInLexer(const Token *left, const Token *right)
 {
     std::string_view leftToken = GetViewForToken(*left);
     std::string_view rightToken = GetViewForToken(*right);
@@ -1043,8 +1044,7 @@ void Preprocessor::MergeTokensInLexer(const Token *left, const Token *right)
     WriteToPreprocessorFile(rightToken.data(), rightToken.length());
     int64_t tokenStringEnd = fileOffset;
 
-    lexer.PushFile(preprocessorFile, tokenStringStart, tokenStringEnd - tokenStringStart);
-    return;
+    return lexer.LexFile(preprocessorFile, tokenStringStart, tokenStringEnd - tokenStringStart);
 }
 
 bool Preprocessor::ProcessDefined()

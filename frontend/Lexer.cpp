@@ -295,12 +295,21 @@ bool Lexer::LexEscapeSequence()
     return false;
 }
 
+/*
+    Sets fCurr to first char to be processed
+*/
 void Lexer::RestoreLexerPointer()
 {
     assert(charsQueue.empty() && currLocations.empty());
     if(!charsQueue.empty())
     {
         SourceLocation loc = GetCurrLoc();
+        if(loc.id.id != files.top().fileId.id)
+        {
+            printf("lexer pointer restoration is not working between files \n");
+            exit(-1);
+        }
+
         charsQueue.clear();
         while (!currLocations.empty()) { currLocations.pop(); }
         fCurr = files.top().fileBase + loc.offset;
@@ -1006,6 +1015,27 @@ int32_t Lexer::PopFile()
 SourceLocation Lexer::CurrentSourceLocation()
 { 
     return ConstructLocation(files.top(), fCurr, 1);
+}
+
+/*
+    This function is used to bypass char queue system
+    and keep everything consistent
+*/
+std::vector<Token> Lexer::LexFile(FILE_ID id, int64_t offset, int64_t len)
+{
+    RestoreLexerPointer();
+
+    std::vector<Token> out;
+    Token token;
+    PushFile(id, offset, len);
+    Lex(&token);
+    while (token.type != TokenType::eof)
+    {
+        out.push_back(token);
+        Lex(&token);
+    }
+    PopFile();
+    return out;
 }
 
 SourceLocation Lexer::ConstructLocation(const FilePos &filePos, const char *fileCurr, int64_t len)

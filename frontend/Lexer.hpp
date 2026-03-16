@@ -20,6 +20,7 @@ struct Lexer
     int32_t PushFile(FILE_ID id, int64_t offset, int64_t len);
     int32_t PopFile();
     SourceLocation CurrentSourceLocation();
+    std::vector<Token> LexFile(FILE_ID id, int64_t offset, int64_t len);
 public:
     SourceLocation ConstructLocation(const FilePos& filePos, const char* fileCurr, int64_t len);
     void PrepareKeywordMap();

@@ -80,7 +80,7 @@ private:
     ConditionalBlock CreateBlock();
     SourceLocation GetZeroLocation();
     SourceLocation GetOneLocation();
-    void MergeTokensInLexer(const Token* left, const Token* right);
+    std::vector<Token> MergeTokensInLexer(const Token* left, const Token* right);
     bool ProcessDefined();
 public:
     Lexer lexer;
