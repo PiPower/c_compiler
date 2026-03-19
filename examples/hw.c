@@ -1,14 +1,6 @@
-%:% :
-#     # 
-# ??= include
-+    +
-// iujnsdfiujdfgijundfg
-??<
-//
-...
-int main() 
-??<
-   // printf() displays the string inside quotation
-   printf("Hello, World!");
-   return 0;
+static const x = 2;
+
+int main()
+{
+
 }

@@ -70,6 +70,9 @@
     ST(return) \
     ST(continue) \
     ST(break) \
+    /* Declarations*/ \
+    X(declaration_specifier) \
+    X(storage_specifier) \
     /* Misc */ \
     X(node_empty) \
     X(declaration_list) \

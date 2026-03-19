@@ -77,6 +77,10 @@ manager(manager), PP(mainFileId, manager, opts), opts(opts), unaryHandle(nullptr
 
 void Parser::Parse()
 {
+
+    Ast::Node* declSpec = ParseDesclSpec();
+
+
     // temporary loop
     while (true)
     {
@@ -296,6 +300,97 @@ Ast::Node *Parser::ParseIdentifier()
     node->token = token;
     node->type = Ast::NodeType::identifier;
     return node;
+}
+/*
+    right child is used to chain different classes of specifiers,
+    left child is internal to specific specifier
+*/
+Ast::Node *Parser::ParseDeclSpec()
+{
+    Ast::Node* declSpec = AllocateAstNodes();
+    *declSpec = {};
+    declSpec->type = Ast::NodeType::declaration_specifier;
+
+    Ast::Node* bottomChild = declSpec;
+    bool keepParsing = true;
+
+    while (keepParsing)
+    {
+        keepParsing = false;
+        if(Ast::Node* subDecl = DeclSpecSubtype())
+        {
+            keepParsing = true;
+            bottomChild->rChild = subDecl;
+            bottomChild = bottomChild->rChild;
+        }
+    }
+    
+    return nullptr;
+}
+
+Ast::Node *Parser::DeclSpecSubtype()
+{
+    if (Ast::Node* nodeOut = StorageSpec())
+    {
+        return nodeOut;
+    }
+    if (Ast::Node* nodeOut = TypeSpec())
+    {
+        return nodeOut;
+    }
+    if (Ast::Node* nodeOut = TypeQualifier())
+    {
+        return nodeOut;
+    }
+    if (Ast::Node* nodeOut = FunctionSpec())
+    {
+        return nodeOut;
+    }
+    return nullptr;
+}
+
+Ast::Node *Parser::ParseStorageSpec()
+{
+    std::array<TokenType::Type, 5> storageSpecifiers= {TokenType::kw_typedef, TokenType::kw_extern, 
+                                                 TokenType::kw_static, TokenType::kw_auto, TokenType::kw_register};
+    Token token = GetCurrToken();
+
+    if(!IsTokenOneFromArray(&token, storageSpecifiers))
+    {
+        return nullptr;
+    }
+
+    Ast::Node* storageSpec = AllocateAstNodes();
+    storageSpec->type = Ast::NodeType::storage_specifier;
+    storageSpec->token = token;
+    storageSpec->lChild = storageSpec;
+    Ast::Node* bottomChild = storageSpec;
+    ConsumeToken();
+    token = GetCurrToken();
+
+    while (IsTokenOneFromArray(&token, storageSpecifiers) )
+    {
+        Ast::Node* node = AllocateAstNodes();
+        *node = {};
+        node->type = Ast::NodeType::storage_specifier;
+        node->token = token;
+        bottomChild->lChild = node;
+        node = bottomChild;
+        ConsumeToken();
+        token = GetCurrToken();
+    }
+    
+    return storageSpec;
+}
+
+Ast::Node *Parser::TypeSpec()
+{
+    return nullptr;
+}
+
+Ast::Node *Parser::TypeQualifier()
+{
+    return nullptr;
 }
 
 Ast::Node* Parser::PostfixExpression()

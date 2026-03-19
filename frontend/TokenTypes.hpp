@@ -3,8 +3,8 @@
 #include "../utils/FileManager.hpp"
 
 #define TOKEN_LIST \
-    X(eof) \
     X(none) \
+    X(eof) \
     X(identifier) \
     X(numeric_constant) \
     X(character_literal) \
