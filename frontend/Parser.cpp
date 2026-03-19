@@ -424,7 +424,35 @@ Ast::Node *Parser::TypeQualifier()
 
 Ast::Node *Parser::FunctionSpec()
 {
-    return nullptr;
+    std::array<TokenType::Type, 1> typeQuelifiers = {TokenType::kw_inline};
+
+    Token token = GetCurrToken();
+    if(!IsTokenOneFromArray(&token, typeQuelifiers))
+    {
+        return nullptr;
+    }
+
+    Ast::Node* funcSpec = AllocateAstNodes();
+    funcSpec->type = Ast::NodeType::function_specifier;
+    funcSpec->token = token;
+    funcSpec->lChild = funcSpec;
+    Ast::Node* bottomChild = funcSpec;
+    ConsumeToken();
+    token = GetCurrToken();
+
+    while (IsTokenOneFromArray(&token, typeQuelifiers) )
+    {
+        Ast::Node* node = AllocateAstNodes();
+        *node = {};
+        node->type = Ast::NodeType::type_qualifier;
+        node->token = token;
+        bottomChild->lChild = node;
+        node = bottomChild;
+        ConsumeToken();
+        token = GetCurrToken();
+    }
+    
+    return funcSpec;
 }
 
 Ast::Node* Parser::PostfixExpression()
