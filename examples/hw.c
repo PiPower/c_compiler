@@ -1,4 +1,4 @@
-static const x = 2;
+static const int x = 2;
 
 int main()
 {

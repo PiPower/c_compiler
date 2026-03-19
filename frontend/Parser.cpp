@@ -83,7 +83,6 @@ static Ast::Node* SpecifierParseLoop(
     Ast::Node* specifier = p->AllocateAstNodes();
     specifier->type = specType;
     specifier->token = token;
-    specifier->lChild = specifier;
     Ast::Node* bottomChild = specifier;
 
     p->ConsumeToken();
@@ -101,7 +100,6 @@ static Ast::Node* SpecifierParseLoop(
         token =  p->GetCurrToken();
     }
     
-
     return specifier;
 }
 
@@ -363,7 +361,7 @@ Ast::Node *Parser::ParseDeclSpec()
         }
     }
     
-    return nullptr;
+    return declSpec;
 }
 
 Ast::Node *Parser::DeclSpecSubtype()
@@ -396,6 +394,20 @@ Ast::Node *Parser::StorageSpec()
 
 Ast::Node *Parser::TypeSpec()
 {
+    constexpr auto storageSpecifiers = std::to_array<TokenType::Type>({TokenType::kw_void, TokenType::kw_char, 
+        TokenType::kw_short, TokenType::kw_int, TokenType::kw_long, TokenType::kw_float,
+        TokenType::kw_double, TokenType::kw_signed, TokenType::kw_unsigned, TokenType::kw_bool,
+        TokenType::kw_complex, TokenType::kw_imaginary});
+
+    Ast::Node* simpleSpecifiers = SpecifierParseLoop(this, storageSpecifiers, Ast::NodeType::type_specifier);
+    // it is not allowed to chain simple specifier with complex ones
+    // to make sema easier just return here
+    if(simpleSpecifiers)
+    {
+        return simpleSpecifiers;
+    }
+
+    
     return nullptr;
 }
 

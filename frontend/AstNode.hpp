@@ -75,6 +75,7 @@
     X(storage_specifier) \
     X(type_qualifier) \
     X(function_specifier) \
+    X(type_specifier) \
     /* Misc */ \
     X(node_empty) \
     X(declaration_list) \
