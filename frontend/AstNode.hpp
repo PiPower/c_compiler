@@ -73,6 +73,7 @@
     /* Declarations*/ \
     X(declaration_specifier) \
     X(storage_specifier) \
+    X(type_qualifier) \
     /* Misc */ \
     X(node_empty) \
     X(declaration_list) \

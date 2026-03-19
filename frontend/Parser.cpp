@@ -78,7 +78,7 @@ manager(manager), PP(mainFileId, manager, opts), opts(opts), unaryHandle(nullptr
 void Parser::Parse()
 {
 
-    Ast::Node* declSpec = ParseDesclSpec();
+    Ast::Node* declSpec = ParseDeclSpec();
 
 
     // temporary loop
@@ -349,7 +349,7 @@ Ast::Node *Parser::DeclSpecSubtype()
     return nullptr;
 }
 
-Ast::Node *Parser::ParseStorageSpec()
+Ast::Node *Parser::StorageSpec()
 {
     std::array<TokenType::Type, 5> storageSpecifiers= {TokenType::kw_typedef, TokenType::kw_extern, 
                                                  TokenType::kw_static, TokenType::kw_auto, TokenType::kw_register};
@@ -389,6 +389,40 @@ Ast::Node *Parser::TypeSpec()
 }
 
 Ast::Node *Parser::TypeQualifier()
+{
+    std::array<TokenType::Type, 3> typeQuelifiers = {TokenType::kw_const, TokenType::kw_restrict, 
+                                                 TokenType::kw_volatile};
+
+    Token token = GetCurrToken();
+    if(!IsTokenOneFromArray(&token, typeQuelifiers))
+    {
+        return nullptr;
+    }
+
+    Ast::Node* typeQual = AllocateAstNodes();
+    typeQual->type = Ast::NodeType::type_qualifier;
+    typeQual->token = token;
+    typeQual->lChild = typeQual;
+    Ast::Node* bottomChild = typeQual;
+    ConsumeToken();
+    token = GetCurrToken();
+
+    while (IsTokenOneFromArray(&token, typeQuelifiers) )
+    {
+        Ast::Node* node = AllocateAstNodes();
+        *node = {};
+        node->type = Ast::NodeType::type_qualifier;
+        node->token = token;
+        bottomChild->lChild = node;
+        node = bottomChild;
+        ConsumeToken();
+        token = GetCurrToken();
+    }
+    
+    return typeQual;
+}
+
+Ast::Node *Parser::FunctionSpec()
 {
     return nullptr;
 }
