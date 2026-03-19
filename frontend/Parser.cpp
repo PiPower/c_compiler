@@ -67,6 +67,44 @@ static Ast::Node* ParseLoop(
     return expr;
 }
 
+template<size_t Count>
+static Ast::Node* SpecifierParseLoop(
+    Parser* p, 
+    const std::array<TokenType::Type, Count>& specOperators,
+    Ast::NodeType specType)
+{
+    Token token = p->GetCurrToken();
+
+    if(!IsTokenOneFromArray(&token, specOperators))
+    {
+        return nullptr;
+    }
+
+    Ast::Node* specifier = p->AllocateAstNodes();
+    specifier->type = specType;
+    specifier->token = token;
+    specifier->lChild = specifier;
+    Ast::Node* bottomChild = specifier;
+
+    p->ConsumeToken();
+    token = p->GetCurrToken();
+    while (IsTokenOneFromArray(&token, specOperators))
+    {
+        Ast::Node* node = p->AllocateAstNodes();
+        *node = {};
+        node->type = specType;
+        node->token = token;
+        bottomChild->lChild = node;
+        node = bottomChild;
+
+        p->ConsumeToken();
+        token =  p->GetCurrToken();
+    }
+    
+
+    return specifier;
+}
+
 Parser::Parser(FILE_ID mainFileId, FileManager* manager, const CompilationOpts* opts)
 :
 manager(manager), PP(mainFileId, manager, opts), opts(opts), unaryHandle(nullptr), pState({})
@@ -353,34 +391,7 @@ Ast::Node *Parser::StorageSpec()
 {
     std::array<TokenType::Type, 5> storageSpecifiers= {TokenType::kw_typedef, TokenType::kw_extern, 
                                                  TokenType::kw_static, TokenType::kw_auto, TokenType::kw_register};
-    Token token = GetCurrToken();
-
-    if(!IsTokenOneFromArray(&token, storageSpecifiers))
-    {
-        return nullptr;
-    }
-
-    Ast::Node* storageSpec = AllocateAstNodes();
-    storageSpec->type = Ast::NodeType::storage_specifier;
-    storageSpec->token = token;
-    storageSpec->lChild = storageSpec;
-    Ast::Node* bottomChild = storageSpec;
-    ConsumeToken();
-    token = GetCurrToken();
-
-    while (IsTokenOneFromArray(&token, storageSpecifiers) )
-    {
-        Ast::Node* node = AllocateAstNodes();
-        *node = {};
-        node->type = Ast::NodeType::storage_specifier;
-        node->token = token;
-        bottomChild->lChild = node;
-        node = bottomChild;
-        ConsumeToken();
-        token = GetCurrToken();
-    }
-    
-    return storageSpec;
+    return SpecifierParseLoop(this, storageSpecifiers, Ast::NodeType::storage_specifier);
 }
 
 Ast::Node *Parser::TypeSpec()
@@ -390,69 +401,16 @@ Ast::Node *Parser::TypeSpec()
 
 Ast::Node *Parser::TypeQualifier()
 {
-    std::array<TokenType::Type, 3> typeQuelifiers = {TokenType::kw_const, TokenType::kw_restrict, 
-                                                 TokenType::kw_volatile};
+    std::array<TokenType::Type, 3> typeQuelifiers = {TokenType::kw_const,
+         TokenType::kw_restrict, TokenType::kw_volatile};
 
-    Token token = GetCurrToken();
-    if(!IsTokenOneFromArray(&token, typeQuelifiers))
-    {
-        return nullptr;
-    }
-
-    Ast::Node* typeQual = AllocateAstNodes();
-    typeQual->type = Ast::NodeType::type_qualifier;
-    typeQual->token = token;
-    typeQual->lChild = typeQual;
-    Ast::Node* bottomChild = typeQual;
-    ConsumeToken();
-    token = GetCurrToken();
-
-    while (IsTokenOneFromArray(&token, typeQuelifiers) )
-    {
-        Ast::Node* node = AllocateAstNodes();
-        *node = {};
-        node->type = Ast::NodeType::type_qualifier;
-        node->token = token;
-        bottomChild->lChild = node;
-        node = bottomChild;
-        ConsumeToken();
-        token = GetCurrToken();
-    }
-    
-    return typeQual;
+   return SpecifierParseLoop(this, typeQuelifiers, Ast::NodeType::type_qualifier);
 }
 
 Ast::Node *Parser::FunctionSpec()
 {
-    std::array<TokenType::Type, 1> typeQuelifiers = {TokenType::kw_inline};
-
-    Token token = GetCurrToken();
-    if(!IsTokenOneFromArray(&token, typeQuelifiers))
-    {
-        return nullptr;
-    }
-
-    Ast::Node* funcSpec = AllocateAstNodes();
-    funcSpec->type = Ast::NodeType::function_specifier;
-    funcSpec->token = token;
-    funcSpec->lChild = funcSpec;
-    Ast::Node* bottomChild = funcSpec;
-    ConsumeToken();
-    token = GetCurrToken();
-
-    while (IsTokenOneFromArray(&token, typeQuelifiers) )
-    {
-        Ast::Node* node = AllocateAstNodes();
-        *node = {};
-        node->type = Ast::NodeType::type_qualifier;
-        node->token = token;
-        bottomChild->lChild = node;
-        node = bottomChild;
-        ConsumeToken();
-        token = GetCurrToken();
-    }
-    
-    return funcSpec;
+    constexpr std::array<TokenType::Type, 1> funcSpecifiers = {TokenType::kw_inline};
+    return SpecifierParseLoop(this, funcSpecifiers, Ast::NodeType::function_specifier);
 }
 
 Ast::Node* Parser::PostfixExpression()
