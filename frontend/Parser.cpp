@@ -94,7 +94,7 @@ static Ast::Node* SpecifierParseLoop(
         node->type = specType;
         node->token = token;
         bottomChild->lChild = node;
-        node = bottomChild;
+        bottomChild = node;
 
         p->ConsumeToken();
         token =  p->GetCurrToken();
