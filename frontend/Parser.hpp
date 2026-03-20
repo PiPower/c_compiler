@@ -46,12 +46,17 @@ struct Parser
     Ast::Node* PrimaryExpression();
     Ast::Node* ParseIdentifier();
     // declaration parsing
+    Ast::Node* ParseDeclarator();
     Ast::Node* ParseDeclSpec();
     Ast::Node* DeclSpecSubtype();
     Ast::Node* StorageSpec();
-    Ast::Node* TypeSpec();
+    Ast::Node* TypeSpecifier();
     Ast::Node* TypeQualifier();
     Ast::Node* FunctionSpec();
+    Ast::Node* StructOrUnionSpec();
+    Ast::Node* EnumSpec();
+    Ast::Node* StructDeclaration();
+    Ast::Node* StructDeclarator();
 
     FileManager* manager;
     Preprocessor PP;

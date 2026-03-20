@@ -76,7 +76,11 @@
     X(type_qualifier) \
     X(function_specifier) \
     X(type_specifier) \
+    X(typedef_name) \
+    X(struct_declaration) \
+    X(struct_declarator) \
     /* Misc */ \
+    X(glue) \
     X(node_empty) \
     X(declaration_list) \
     X(type_placeholder) \

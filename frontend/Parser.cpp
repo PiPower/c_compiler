@@ -337,6 +337,10 @@ Ast::Node *Parser::ParseIdentifier()
     node->type = Ast::NodeType::identifier;
     return node;
 }
+Ast::Node *Parser::ParseDeclarator()
+{
+    return nullptr;
+}
 /*
     right child is used to chain different classes of specifiers,
     left child is internal to specific specifier
@@ -353,6 +357,7 @@ Ast::Node *Parser::ParseDeclSpec()
     while (keepParsing)
     {
         keepParsing = false;
+        // right child of each top level decl ast is RESERVED for chaining
         if(Ast::Node* subDecl = DeclSpecSubtype())
         {
             keepParsing = true;
@@ -370,7 +375,7 @@ Ast::Node *Parser::DeclSpecSubtype()
     {
         return nodeOut;
     }
-    if (Ast::Node* nodeOut = TypeSpec())
+    if (Ast::Node* nodeOut = TypeSpecifier())
     {
         return nodeOut;
     }
@@ -392,7 +397,7 @@ Ast::Node *Parser::StorageSpec()
     return SpecifierParseLoop(this, storageSpecifiers, Ast::NodeType::storage_specifier);
 }
 
-Ast::Node *Parser::TypeSpec()
+Ast::Node *Parser::TypeSpecifier()
 {
     constexpr auto storageSpecifiers = std::to_array<TokenType::Type>({TokenType::kw_void, TokenType::kw_char, 
         TokenType::kw_short, TokenType::kw_int, TokenType::kw_long, TokenType::kw_float,
@@ -407,6 +412,27 @@ Ast::Node *Parser::TypeSpec()
         return simpleSpecifiers;
     }
 
+    Token token = GetCurrToken();
+    if(IsTokenOneOf(&token, TokenType::kw_struct, TokenType::kw_union))
+    {
+        return StructOrUnionSpec();
+    }
+
+    if(IsTokenOneOf(&token, TokenType::kw_enum))
+    {
+        return EnumSpec();
+    }
+
+    if(IsTokenOneOf(&token, TokenType::identifier))
+    {
+        // currently not supported we need symbol table for this
+        return nullptr;
+        //ConsumeToken();
+        //Ast::Node* node = AllocateAstNodes();
+        //node->type = Ast::typedef_name;
+        //node->token = token;
+        //return node;
+    }
     
     return nullptr;
 }
@@ -423,6 +449,141 @@ Ast::Node *Parser::FunctionSpec()
 {
     constexpr std::array<TokenType::Type, 1> funcSpecifiers = {TokenType::kw_inline};
     return SpecifierParseLoop(this, funcSpecifiers, Ast::NodeType::function_specifier);
+}
+
+Ast::Node *Parser::StructOrUnionSpec()
+{
+    Token structOrUnion = GetCurrToken();
+    ConsumeToken();
+
+    // topLevelNode serves as a handle to ast for struct because right child MUST BE not used
+    // right child is used as chain link node in general
+    Ast::Node* topLevelNode = AllocateAstNodes();
+    topLevelNode->type = Ast::NodeType::type_specifier;
+    topLevelNode->token = structOrUnion;
+    // glue node is used for stiching whole struct ast together
+    Ast::Node* glueNode = AllocateAstNodes();
+    glueNode->type = Ast::NodeType::glue;
+    topLevelNode->lChild = glueNode;
+
+    Token token = GetCurrToken();
+    if(token.type == TokenType::identifier)
+    {
+        ConsumeToken();
+        Ast::Node* identifier = AllocateAstNodes();
+        identifier->type=Ast::NodeType::identifier;
+        glueNode->lChild = identifier;
+
+        token = GetCurrToken();
+        if(token.type != TokenType::l_brace)
+        {
+            // we hit case "struct-or-union identifier"
+            return topLevelNode;
+        }
+
+    }
+    ConsumeExpectedToken(TokenType::l_brace);
+    // declarations will be held as a linked list in the right subtree
+    Ast::Node* bottomChild = glueNode;
+    while (Ast::Node* structDecl = StructDeclaration())
+    {
+        bottomChild->rChild = structDecl;
+        bottomChild = structDecl;
+    }
+    
+    ConsumeExpectedToken(TokenType::r_brace);
+
+    return topLevelNode;
+}
+
+Ast::Node *Parser::EnumSpec()
+{
+    return nullptr;
+}
+
+Ast::Node *Parser::StructDeclaration()
+{
+    Ast::Node* structDecl = AllocateAstNodes();
+    structDecl->type = Ast::NodeType::struct_declaration;
+
+    // create node array [qualSpecList, structDeclList]
+    Ast::Node*  glue = AllocateAstNodes(1);
+    glue->type = Ast::NodeType::glue;
+    structDecl->lChild = glue;
+
+    Ast::Node handleNode;
+    Ast::Node* bottomChild = &handleNode;
+    // parse qualifier specifier list
+    bool keepParsing = true;
+    while (keepParsing)
+    {
+        keepParsing = false;
+        if(Ast::Node* qualifiers = TypeQualifier())
+        {
+            keepParsing = true;
+            bottomChild->rChild = qualifiers;
+            bottomChild = qualifiers;
+        }
+
+        if(Ast::Node* typeSpec = TypeSpecifier())
+        {
+            keepParsing = true;
+            bottomChild->rChild = typeSpec;
+            bottomChild = typeSpec;
+        }
+    }
+    glue->lChild = handleNode.rChild;
+    // if left part of tree does not exist we have error
+    if(glue->lChild  == nullptr)
+    {
+        IssueWarning(&structDecl->token, "Struct declaration does not contain specifier-qualifier list\n");
+        exit(-1);
+    }
+
+    // parse struct declarator list
+    //reset handle 
+    glue->rChild = StructDeclarator();
+    bottomChild = glue->rChild;
+    Token token = GetCurrToken();
+    while (token.type == TokenType::comma)
+    {
+        ConsumeExpectedToken(TokenType::comma);
+        bottomChild->rChild = StructDeclarator();
+        bottomChild = bottomChild->rChild;
+    }
+    
+    ConsumeExpectedToken(TokenType::semicolon);
+    return structDecl;
+}
+
+Ast::Node *Parser::StructDeclarator()
+{
+    Ast::Node* declarator = nullptr;
+    Ast::Node* constantExpr = nullptr;
+
+    declarator = ParseDeclarator();
+    Token token = GetCurrToken();
+    if(token.type == TokenType::colon)
+    {
+        ConsumeToken();
+        constantExpr = ParseConstantExpr();
+    }
+
+    if(declarator == nullptr && constantExpr == nullptr)
+    {
+        IssueWarning(&token, "If struct declarator has no identifier then it MUST have expression: ': constant-expr'");
+        exit(-1);
+    }
+
+    Ast::Node* glue = AllocateAstNodes();
+    glue->type = Ast::glue;
+    glue->lChild = declarator;
+    glue->rChild = constantExpr;
+
+    Ast::Node* structDecl = AllocateAstNodes();
+    structDecl->type = Ast::struct_declarator;
+    structDecl->lChild = glue;
+    return structDecl;
 }
 
 Ast::Node* Parser::PostfixExpression()
