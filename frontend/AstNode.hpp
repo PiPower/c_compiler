@@ -80,9 +80,11 @@
     X(struct_declaration) \
     X(struct_declarator) \
     X(direct_declarator) \
+    X(parameter_type_list) \
+    X(parameter_decl) \
     /* Misc */ \
     X(array_decl) \
-    X(glue) \
+    X(glue_list) \
     X(node_empty) \
     X(declaration_list) \
     X(type_placeholder) \

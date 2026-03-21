@@ -48,6 +48,7 @@ struct Parser
     // declaration parsing
     Ast::Node* ParseDeclarator();
     Ast::Node* ParsePointer();
+    Ast::Node* ParseFunctionCallArgs();
     Ast::Node* ParseArrayArgs();
     Ast::Node* ParseDirectDeclarator();
     Ast::Node* ParseDeclSpec();
@@ -60,6 +61,7 @@ struct Parser
     Ast::Node* EnumSpec();
     Ast::Node* StructDeclaration();
     Ast::Node* StructDeclarator();
+    Ast::Node* AbstractDeclarator();
 
     FileManager* manager;
     Preprocessor PP;

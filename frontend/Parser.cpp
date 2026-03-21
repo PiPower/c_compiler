@@ -366,7 +366,6 @@ Ast::Node *Parser::ParsePointer()
         return nullptr;
     }
 
-
     Ast::Node* ptr = AllocateAstNodes();
     ptr->lChild = TypeQualifierList();
     ptr->type = Ast::pointer;
@@ -388,6 +387,94 @@ Ast::Node *Parser::ParsePointer()
         token = GetCurrToken();
     }
     return ptr;
+}
+Ast::Node *Parser::ParseFunctionCallArgs()
+{
+    bool isIdentifierList = false;
+    // check if it is identifier list
+    Token token = GetCurrToken();
+    if(token.type == TokenType::identifier)
+    {
+        ConsumeToken();
+        Token isComma = GetCurrToken();
+        if(isComma.type == TokenType::comma)
+        {
+            isIdentifierList = true;
+        }
+        PutBackAtFront(token);
+    }
+
+    if(isIdentifierList)
+    {
+        Ast::Node* identifierList = AllocateAstNodes();
+        identifierList->type = Ast::identifier_list;
+
+        Ast::Node* bottomNode = identifierList;
+        Token token = GetCurrToken();
+        while (token.type == TokenType::identifier)
+        {
+            ConsumeToken();
+            Ast::Node *identifier = AllocateAstNodes();
+            identifier->type = Ast::identifier;
+            identifier->token = token;
+            bottomNode->lChild = identifier;
+            bottomNode = identifier;
+
+            token = GetCurrToken();
+            if(token.type != TokenType::comma)
+            {
+                break;
+            }
+            ConsumeExpectedToken(TokenType::comma);
+            token = GetCurrToken();
+        }
+        
+        return identifierList;
+    }
+
+    Ast::Node* parameterTypeList = AllocateAstNodes();
+    parameterTypeList->type = Ast::parameter_type_list;
+    Ast::Node* bottomChild = parameterTypeList;
+    while (true)
+    {
+        Ast::Node* declSpec = ParseDeclSpec();
+        Ast::Node* declarator = AbstractDeclarator();
+        if(!declarator)
+        {
+            declarator = ParseDeclarator();
+        }
+        Ast::Node *parameterDecl = AllocateAstNodes();
+        parameterDecl->type = Ast::parameter_decl;
+        parameterDecl->lChild = declSpec;
+        parameterDecl->rChild = declarator;
+
+        Ast::Node *glueList = AllocateAstNodes();
+        glueList->type = Ast::glue_list;
+        glueList->lChild = parameterDecl;
+
+        bottomChild->rChild = glueList;
+        bottomChild = glueList;
+
+        Token token = GetCurrToken();
+        if(token.type != TokenType::comma)
+        {
+            break;
+        }
+        ConsumeToken();
+
+        token = GetCurrToken();
+        if(token.type == TokenType::ellipsis)
+        {
+            ConsumeToken();
+            Ast::Node *ellipsis = AllocateAstNodes();
+            ellipsis->type = Ast::parameter_decl;
+            ellipsis->token = token;
+            bottomChild->rChild = ellipsis;
+            break;
+        }
+    }
+    
+    return parameterTypeList;
 }
 Ast::Node *Parser::ParseArrayArgs()
 {
@@ -439,18 +526,23 @@ merge_results:
 Ast::Node *Parser::ParseDirectDeclarator()
 {
     Token token = GetCurrToken();
-    Ast::Node* directDeclarator = AllocateAstNodes();
-    directDeclarator->type = Ast::direct_declarator;
-    directDeclarator->token = token;
+    Ast::Node* directDeclarator = nullptr;
 
     if(token.type == TokenType::l_parentheses)
     {
+        directDeclarator = AllocateAstNodes();
+        directDeclarator->type = Ast::direct_declarator;
+        directDeclarator->token = token;
+
         ConsumeExpectedToken(TokenType::l_parentheses);
         directDeclarator->lChild = ParseDeclarator();
         ConsumeExpectedToken(TokenType::r_parentheses);
     }
     else if(token.type == TokenType::identifier)
     {
+        directDeclarator = AllocateAstNodes();
+        directDeclarator->type = Ast::direct_declarator;
+        directDeclarator->token = token;
         ConsumeToken();
     }
 
@@ -459,8 +551,10 @@ Ast::Node *Parser::ParseDirectDeclarator()
     {
         if(token.type == TokenType::l_parentheses)
         {
-            printf("declarator of calls/arrays not implemented\n");
-            exit(-1);
+            ConsumeExpectedToken(TokenType::l_parentheses);
+            Ast::Node* array = ParseFunctionCallArgs();
+            array->token = token;
+            ConsumeExpectedToken(TokenType::r_parentheses);
         }
 
         if(token.type == TokenType::l_bracket)
@@ -598,7 +692,7 @@ Ast::Node *Parser::StructOrUnionSpec()
     topLevelNode->token = structOrUnion;
     // glue node is used for stiching whole struct ast together
     Ast::Node* glueNode = AllocateAstNodes();
-    glueNode->type = Ast::NodeType::glue;
+    glueNode->type = Ast::NodeType::glue_list;
     topLevelNode->lChild = glueNode;
 
     Token token = GetCurrToken();
@@ -624,7 +718,7 @@ Ast::Node *Parser::StructOrUnionSpec()
     while (Ast::Node* structDecl = StructDeclaration())
     {
         Ast::Node* gluNodeDecl = AllocateAstNodes();
-        gluNodeDecl->type = Ast::NodeType::glue;
+        gluNodeDecl->type = Ast::NodeType::glue_list;
         gluNodeDecl->lChild = structDecl;
         bottomChild->rChild = gluNodeDecl;
         bottomChild = gluNodeDecl;
@@ -686,7 +780,7 @@ Ast::Node *Parser::StructDeclaration()
     while (Ast::Node* declarator = StructDeclarator())
     {
         Ast::Node* glueNode = AllocateAstNodes();
-        glueNode->type = Ast::NodeType::glue;
+        glueNode->type = Ast::NodeType::glue_list;
         glueNode->lChild = declarator;
         bottomChild->rChild = glueNode;
         bottomChild = glueNode;
@@ -725,6 +819,11 @@ Ast::Node *Parser::StructDeclarator()
     structDecl->lChild = declarator;
     structDecl->rChild = constantExpr;
     return structDecl;
+}
+
+Ast::Node *Parser::AbstractDeclarator()
+{
+    return nullptr;
 }
 
 Ast::Node* Parser::PostfixExpression()
