@@ -549,6 +549,7 @@ Ast::Node *Parser::ParseDirectDeclarator()
         ConsumeToken();
     }
 
+    Ast::Node* bottomChild = directDeclarator;
     token = GetCurrToken();
     while (IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses))
     {
@@ -558,6 +559,12 @@ Ast::Node *Parser::ParseDirectDeclarator()
             Ast::Node* array = ParseFunctionCallArgs();
             array->token = token;
             ConsumeExpectedToken(TokenType::r_parentheses);
+
+            Ast::Node* glue = AllocateAstNodes();
+            glue->type = Ast::glue_list;
+            glue->lChild = array;
+            bottomChild->rChild = glue;
+            bottomChild = glue;
         }
 
         if(token.type == TokenType::l_bracket)
@@ -566,6 +573,12 @@ Ast::Node *Parser::ParseDirectDeclarator()
             Ast::Node* array = ParseArrayArgs();
             array->token = token;
             ConsumeExpectedToken(TokenType::r_bracket);
+
+            Ast::Node* glue = AllocateAstNodes();
+            glue->type = Ast::glue_list;
+            glue->lChild = array;
+            bottomChild->rChild = glue;
+            bottomChild = glue;
         }
 
         token = GetCurrToken();
