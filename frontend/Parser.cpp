@@ -389,6 +389,53 @@ Ast::Node *Parser::ParsePointer()
     }
     return ptr;
 }
+Ast::Node *Parser::ParseArrayArgs()
+{
+    bool requireAssmExpr = false, consumedStatic = false;
+    Ast::Node* typeQuals = nullptr, *AssmExpr = nullptr;
+    Token token = GetCurrToken();
+    if(token.type == TokenType::kw_static)
+    {
+        requireAssmExpr = true;
+        consumedStatic = true;
+        ConsumeToken();
+    }
+    // parse type qualifier list
+    typeQuals = TypeQualifierList();
+
+    token = GetCurrToken();
+    if(token.type == TokenType::kw_static)
+    {
+        requireAssmExpr = true;
+        consumedStatic = true;
+        ConsumeToken();
+    }
+
+    token = GetCurrToken();
+    if(token.type == TokenType::star && !consumedStatic)
+    {
+        ConsumeToken();
+        AssmExpr = AllocateAstNodes();
+        AssmExpr->type = Ast::pointer;
+        AssmExpr->token = token;
+        goto merge_results;
+    }
+
+    AssmExpr = AssignmentExpression();
+merge_results:
+
+    if(requireAssmExpr)
+    {
+        IssueWarning(&AssmExpr->token, "Assignment expression is required in array expression");
+        exit(-1);
+    }
+
+    Ast::Node* array = AllocateAstNodes();
+    array->type = Ast::array_decl;
+    array->lChild = typeQuals;
+    array->rChild = AssmExpr;
+    return array;
+}
 Ast::Node *Parser::ParseDirectDeclarator()
 {
     Token token = GetCurrToken();
@@ -410,8 +457,21 @@ Ast::Node *Parser::ParseDirectDeclarator()
     token = GetCurrToken();
     while (IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses))
     {
-        printf("declarator of calls/arrays not implemented\n");
-        exit(-1);
+        if(token.type == TokenType::l_parentheses)
+        {
+            printf("declarator of calls/arrays not implemented\n");
+            exit(-1);
+        }
+
+        if(token.type == TokenType::l_bracket)
+        {
+            ConsumeExpectedToken(TokenType::l_bracket);
+            Ast::Node* array = ParseArrayArgs();
+            array->token = token;
+            ConsumeExpectedToken(TokenType::r_bracket);
+        }
+
+        token = GetCurrToken();
     }
     
     return directDeclarator;
@@ -563,11 +623,17 @@ Ast::Node *Parser::StructOrUnionSpec()
     Ast::Node* bottomChild = glueNode;
     while (Ast::Node* structDecl = StructDeclaration())
     {
-        Ast::Node* gluNode = AllocateAstNodes();
-        glueNode->type = Ast::NodeType::glue;
-        glueNode->lChild = structDecl;
-        bottomChild->rChild = glueNode;
-        bottomChild = glueNode;
+        Ast::Node* gluNodeDecl = AllocateAstNodes();
+        gluNodeDecl->type = Ast::NodeType::glue;
+        gluNodeDecl->lChild = structDecl;
+        bottomChild->rChild = gluNodeDecl;
+        bottomChild = gluNodeDecl;
+
+        token = GetCurrToken();
+        if(token.type == TokenType::r_brace)
+        {
+            break;
+        }
     }
     
     ConsumeExpectedToken(TokenType::r_brace);
@@ -653,7 +719,6 @@ Ast::Node *Parser::StructDeclarator()
             exit(-1);
         }
     }
-
 
     Ast::Node* structDecl = AllocateAstNodes();
     structDecl->type = Ast::struct_declarator;

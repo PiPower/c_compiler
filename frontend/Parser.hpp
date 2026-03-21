@@ -48,6 +48,7 @@ struct Parser
     // declaration parsing
     Ast::Node* ParseDeclarator();
     Ast::Node* ParsePointer();
+    Ast::Node* ParseArrayArgs();
     Ast::Node* ParseDirectDeclarator();
     Ast::Node* ParseDeclSpec();
     Ast::Node* DeclSpecSubtype();

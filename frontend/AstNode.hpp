@@ -81,6 +81,7 @@
     X(struct_declarator) \
     X(direct_declarator) \
     /* Misc */ \
+    X(array_decl) \
     X(glue) \
     X(node_empty) \
     X(declaration_list) \
