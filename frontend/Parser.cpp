@@ -365,6 +365,7 @@ Ast::Node *Parser::ParsePointer()
     {
         return nullptr;
     }
+    ConsumeToken();
 
     Ast::Node* ptr = AllocateAstNodes();
     ptr->lChild = TypeQualifierList();
@@ -372,7 +373,6 @@ Ast::Node *Parser::ParsePointer()
     ptr->token = token;
     Ast::Node* bottom = ptr;
     
-    ConsumeToken();
     token = GetCurrToken();
     while (token.type == TokenType::star)
     {   
