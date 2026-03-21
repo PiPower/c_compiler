@@ -47,11 +47,13 @@ struct Parser
     Ast::Node* ParseIdentifier();
     // declaration parsing
     Ast::Node* ParseDeclarator();
+    Ast::Node* ParsePointer();
+    Ast::Node* ParseDirectDeclarator();
     Ast::Node* ParseDeclSpec();
     Ast::Node* DeclSpecSubtype();
     Ast::Node* StorageSpec();
     Ast::Node* TypeSpecifier();
-    Ast::Node* TypeQualifier();
+    Ast::Node* TypeQualifierList();
     Ast::Node* FunctionSpec();
     Ast::Node* StructOrUnionSpec();
     Ast::Node* EnumSpec();

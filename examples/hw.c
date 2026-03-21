@@ -1,5 +1,5 @@
 struct Outer {
-    const volatile unsigned long id;
+    const volatile unsigned long id, gd, *ci;
     /* Bit-fields with mixed integer types */
     struct {
         unsigned int a:3;

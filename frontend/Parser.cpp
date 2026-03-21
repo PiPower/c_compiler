@@ -339,7 +339,82 @@ Ast::Node *Parser::ParseIdentifier()
 }
 Ast::Node *Parser::ParseDeclarator()
 {
+    Ast::Node* ptrExpr = ParsePointer();
+    Ast::Node* declExpr = ParseDirectDeclarator();
+    if(declExpr)
+    {
+        Ast::Node* declarator = AllocateAstNodes();
+        declarator->type = Ast::NodeType::declarator;
+        declarator->lChild = declExpr;
+        declarator->rChild = ptrExpr;
+        return declarator;
+    }
+
+    if(ptrExpr && !declExpr)
+    {
+        IssueWarning(&ptrExpr->token, "It is not allowed to skip direct declarator part in declarator");
+        exit(-1);
+    }
+
     return nullptr;
+}
+Ast::Node *Parser::ParsePointer()
+{
+    Token token = GetCurrToken();
+    if(token.type != TokenType::star)
+    {
+        return nullptr;
+    }
+
+
+    Ast::Node* ptr = AllocateAstNodes();
+    ptr->lChild = TypeQualifierList();
+    ptr->type = Ast::pointer;
+    ptr->token = token;
+    Ast::Node* bottom = ptr;
+    
+    ConsumeToken();
+    token = GetCurrToken();
+    while (token.type == TokenType::star)
+    {   
+        Ast::Node* subPtr = AllocateAstNodes();
+        subPtr->type = Ast::pointer;
+        subPtr->lChild = TypeQualifierList();
+        subPtr->token = token;
+        bottom->rChild = subPtr;
+        bottom = subPtr;
+        
+        ConsumeToken();
+        token = GetCurrToken();
+    }
+    return ptr;
+}
+Ast::Node *Parser::ParseDirectDeclarator()
+{
+    Token token = GetCurrToken();
+    Ast::Node* directDeclarator = AllocateAstNodes();
+    directDeclarator->type = Ast::direct_declarator;
+    directDeclarator->token = token;
+
+    if(token.type == TokenType::l_parentheses)
+    {
+        ConsumeExpectedToken(TokenType::l_parentheses);
+        directDeclarator->lChild = ParseDeclarator();
+        ConsumeExpectedToken(TokenType::r_parentheses);
+    }
+    else if(token.type == TokenType::identifier)
+    {
+        ConsumeToken();
+    }
+
+    token = GetCurrToken();
+    while (IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses))
+    {
+        printf("declarator of calls/arrays not implemented\n");
+        exit(-1);
+    }
+    
+    return directDeclarator;
 }
 /*
     right child is used to chain different classes of specifiers,
@@ -379,7 +454,7 @@ Ast::Node *Parser::DeclSpecSubtype()
     {
         return nodeOut;
     }
-    if (Ast::Node* nodeOut = TypeQualifier())
+    if (Ast::Node* nodeOut = TypeQualifierList())
     {
         return nodeOut;
     }
@@ -437,7 +512,7 @@ Ast::Node *Parser::TypeSpecifier()
     return nullptr;
 }
 
-Ast::Node *Parser::TypeQualifier()
+Ast::Node *Parser::TypeQualifierList()
 {
     std::array<TokenType::Type, 3> typeQuelifiers = {TokenType::kw_const,
          TokenType::kw_restrict, TokenType::kw_volatile};
@@ -484,11 +559,15 @@ Ast::Node *Parser::StructOrUnionSpec()
     }
     ConsumeExpectedToken(TokenType::l_brace);
     // declarations will be held as a linked list in the right subtree
+    // right subtree is struct declaration list
     Ast::Node* bottomChild = glueNode;
     while (Ast::Node* structDecl = StructDeclaration())
     {
-        bottomChild->rChild = structDecl;
-        bottomChild = structDecl;
+        Ast::Node* gluNode = AllocateAstNodes();
+        glueNode->type = Ast::NodeType::glue;
+        glueNode->lChild = structDecl;
+        bottomChild->rChild = glueNode;
+        bottomChild = glueNode;
     }
     
     ConsumeExpectedToken(TokenType::r_brace);
@@ -506,11 +585,6 @@ Ast::Node *Parser::StructDeclaration()
     Ast::Node* structDecl = AllocateAstNodes();
     structDecl->type = Ast::NodeType::struct_declaration;
 
-    // create node array [qualSpecList, structDeclList]
-    Ast::Node*  glue = AllocateAstNodes(1);
-    glue->type = Ast::NodeType::glue;
-    structDecl->lChild = glue;
-
     Ast::Node handleNode;
     Ast::Node* bottomChild = &handleNode;
     // parse qualifier specifier list
@@ -518,7 +592,7 @@ Ast::Node *Parser::StructDeclaration()
     while (keepParsing)
     {
         keepParsing = false;
-        if(Ast::Node* qualifiers = TypeQualifier())
+        if(Ast::Node* qualifiers = TypeQualifierList())
         {
             keepParsing = true;
             bottomChild->rChild = qualifiers;
@@ -532,24 +606,29 @@ Ast::Node *Parser::StructDeclaration()
             bottomChild = typeSpec;
         }
     }
-    glue->lChild = handleNode.rChild;
+    structDecl->lChild = handleNode.rChild;
     // if left part of tree does not exist we have error
-    if(glue->lChild  == nullptr)
+    if(structDecl->lChild  == nullptr)
     {
         IssueWarning(&structDecl->token, "Struct declaration does not contain specifier-qualifier list\n");
         exit(-1);
     }
 
     // parse struct declarator list
-    //reset handle 
-    glue->rChild = StructDeclarator();
-    bottomChild = glue->rChild;
-    Token token = GetCurrToken();
-    while (token.type == TokenType::comma)
+    // reset handle 
+    bottomChild = structDecl;
+    while (Ast::Node* declarator = StructDeclarator())
     {
+        Ast::Node* glueNode = AllocateAstNodes();
+        glueNode->type = Ast::NodeType::glue;
+        glueNode->lChild = declarator;
+        bottomChild->rChild = glueNode;
+        bottomChild = glueNode;
+        if(GetCurrToken().type != TokenType::comma)
+        {
+            break;
+        }
         ConsumeExpectedToken(TokenType::comma);
-        bottomChild->rChild = StructDeclarator();
-        bottomChild = bottomChild->rChild;
     }
     
     ConsumeExpectedToken(TokenType::semicolon);
@@ -567,22 +646,19 @@ Ast::Node *Parser::StructDeclarator()
     {
         ConsumeToken();
         constantExpr = ParseConstantExpr();
+
+        if(declarator != nullptr && constantExpr == nullptr)
+        {
+            IssueWarning(&token, "If struct declarator has 'identifier :' then it MUST have expression: 'constant-expr'");
+            exit(-1);
+        }
     }
 
-    if(declarator == nullptr && constantExpr == nullptr)
-    {
-        IssueWarning(&token, "If struct declarator has no identifier then it MUST have expression: ': constant-expr'");
-        exit(-1);
-    }
-
-    Ast::Node* glue = AllocateAstNodes();
-    glue->type = Ast::glue;
-    glue->lChild = declarator;
-    glue->rChild = constantExpr;
 
     Ast::Node* structDecl = AllocateAstNodes();
     structDecl->type = Ast::struct_declarator;
-    structDecl->lChild = glue;
+    structDecl->lChild = declarator;
+    structDecl->rChild = constantExpr;
     return structDecl;
 }
 

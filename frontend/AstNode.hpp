@@ -79,6 +79,7 @@
     X(typedef_name) \
     X(struct_declaration) \
     X(struct_declarator) \
+    X(direct_declarator) \
     /* Misc */ \
     X(glue) \
     X(node_empty) \
