@@ -507,8 +507,11 @@ Ast::Node *Parser::ParseArrayArgs()
         AssmExpr->token = token;
         goto merge_results;
     }
-
-    AssmExpr = AssignmentExpression();
+    // if right bracket then we have not expression  
+    if(token.type != TokenType::r_bracket)
+    {
+        AssmExpr = AssignmentExpression();
+    }
 merge_results:
 
     if(requireAssmExpr)
