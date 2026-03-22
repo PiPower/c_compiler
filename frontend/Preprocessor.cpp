@@ -131,6 +131,15 @@ fetch_token:
         }
         goto fetch_token;
     }
+    else if ( stages.ConstantExpr == 0 && 
+              token->type >= TokenType::pp_include && 
+              token->type <= TokenType::pp_defined)
+    {
+        // preprocessor specific types outside of preprocessor directives
+        // are to be treated as identifiers
+        token->type = TokenType::identifier;
+    }
+    
     else if(token->type == TokenType::eof && lexer.files.size() > 1)
     {
         lexer.PopFile();
@@ -397,11 +406,6 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
         They get special meaning only if used inside #, so check for this and swap
         type aprioprietly
     */
-    if( ppToken.type == TokenType::identifier)
-    {
-        ppToken.type = GetPreprocessorType(&ppToken);
-    }
-
     ConsumeToken();
 
     switch (ppToken.type)
@@ -667,7 +671,6 @@ std::string_view Preprocessor::FormHeadername()
 
 int32_t Preprocessor::HandleIf()
 {
-    stages.If = 1;
     stages.ConstantExpr = 1;
     ConditionalBlock block = CreateBlock();
     conditionalBlocks.push(block);

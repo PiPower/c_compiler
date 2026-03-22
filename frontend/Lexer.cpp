@@ -1114,7 +1114,6 @@ void Lexer::PrepareKeywordMap()
 
     // preprocessor keywords MUST be resolved by preprocessor because they
     // can be used by a user outside of #macro formula
-    /*
     keywordsMap[std::string_view(kewordStrings[37])] = TokenType::pp_include;
     keywordsMap[std::string_view(kewordStrings[38])] = TokenType::pp_define;
     keywordsMap[std::string_view(kewordStrings[39])] = TokenType::pp_ifdef;
@@ -1125,8 +1124,8 @@ void Lexer::PrepareKeywordMap()
     keywordsMap[std::string_view(kewordStrings[44])] = TokenType::pp_error;
     keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_pragma;
     keywordsMap[std::string_view(kewordStrings[46])] = TokenType::pp_undef;
-    keywordsMap[std::string_view(kewordStrings[47])] = TokenType::pp_defined
-    */
+    keywordsMap[std::string_view(kewordStrings[47])] = TokenType::pp_defined;
+    
 }
 
 bool Lexer::IsDigit(const char &c)

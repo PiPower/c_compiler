@@ -113,10 +113,6 @@ manager(manager), PP(mainFileId, manager, opts), opts(opts), unaryHandle(nullptr
 
 void Parser::Parse()
 {
-
-    Ast::Node* declSpec = ParseDeclSpec();
-
-
     // temporary loop
     while (true)
     {
@@ -129,18 +125,22 @@ start_parsing:
             token = GetCurrToken();
         }
 
+        // when parser recives eof token it marks the end of translation unit
         if(token.type == TokenType::eof)
         {
             return;
         }
-        
-        if(PP.stages.If > 0)
+        // Check if constant expression is pending
+        if(PP.stages.ConstantExpr > 0)
         {
             Ast::Node* expr = ParseConstantExpr();
             PP.ExecuteConstantExpr(expr);
             goto start_parsing;
         }
 
+        Ast::Node* declSpec = ParseDeclSpec();
+        Ast::Node* initDeclaratioList = ParseInitDeclList();
+        ConsumeExpectedToken(TokenType::semicolon);
     }
 
 
@@ -349,6 +349,17 @@ Ast::Node *Parser::ParseIdentifier()
     node->type = Ast::NodeType::identifier;
     return node;
 }
+
+Ast::Node *Parser::ParseInitDeclList()
+{
+    Ast::Node * declarator = ParseDeclarator();
+    if(!declarator)
+    {
+        return nullptr;
+    }
+    return nullptr;
+}
+
 Ast::Node *Parser::ParseDeclarator()
 {
     Ast::Node* ptrExpr = ParsePointer();
