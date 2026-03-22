@@ -18,6 +18,7 @@ struct Parser
     void ConsumeToken();
     void ConsumeExpectedToken(TokenType::Type type);
     void IssueWarning(const Token* token, const char* errMsg, ...);
+    void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
     void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, va_list args);
     // node management
     Ast::Node* AllocateAstNodes(uint16_t count = 1);
@@ -62,6 +63,8 @@ struct Parser
     Ast::Node* StructDeclaration();
     Ast::Node* StructDeclarator();
     Ast::Node* AbstractDeclarator();
+    Ast::Node* ParameterDecl();
+    Ast::Node* ParseDirectAbstractDeclarator();
 
     FileManager* manager;
     Preprocessor PP;
@@ -69,6 +72,6 @@ struct Parser
     std::deque<Token> tokenQueue;
     Ast::Node* unaryHandle;
     PagedBuffer nodeBuffer;
-
+    SourceLocation currentLocation;
     ParsingState pState;
 };

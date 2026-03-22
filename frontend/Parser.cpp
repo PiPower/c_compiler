@@ -166,6 +166,8 @@ get_token:
         tokenQueue.pop_front();
         goto get_token;
     }
+
+    currentLocation = tokenQueue.front().location;
     return tokenQueue.front();
 }
 
@@ -202,6 +204,16 @@ void Parser::IssueWarning(const Token * token, const char *errMsg, ...)
     va_start(args, errMsg);
     if(token) {IssueWarning(&token->location.id, &token->location, errMsg, args);}
     else{IssueWarning(nullptr, nullptr, errMsg, args);}
+    va_end(args);
+
+    return;
+}
+
+void Parser::IssueWarning(const FILE_ID *fileId, const SourceLocation *loc, const char *errMsg, ...)
+{
+    va_list args;
+    va_start(args, errMsg);
+    IssueWarning(fileId, loc, errMsg, args);
     va_end(args);
 
     return;
@@ -437,16 +449,7 @@ Ast::Node *Parser::ParseFunctionCallArgs()
     Ast::Node* bottomChild = parameterTypeList;
     while (true)
     {
-        Ast::Node* declSpec = ParseDeclSpec();
-        Ast::Node* declarator = AbstractDeclarator();
-        if(!declarator)
-        {
-            declarator = ParseDeclarator();
-        }
-        Ast::Node *parameterDecl = AllocateAstNodes();
-        parameterDecl->type = Ast::parameter_decl;
-        parameterDecl->lChild = declSpec;
-        parameterDecl->rChild = declarator;
+        Ast::Node *parameterDecl = ParameterDecl();
 
         Ast::Node *glueList = AllocateAstNodes();
         glueList->type = Ast::glue_list;
@@ -533,12 +536,17 @@ Ast::Node *Parser::ParseDirectDeclarator()
 
     if(token.type == TokenType::l_parentheses)
     {
+        ConsumeExpectedToken(TokenType::l_parentheses);
+        Ast::Node* declarator = ParseDeclarator();
+        if(!declarator)
+        {
+            PutBackAtFront(token);
+            return nullptr;
+        }
         directDeclarator = AllocateAstNodes();
         directDeclarator->type = Ast::direct_declarator;
         directDeclarator->token = token;
-
-        ConsumeExpectedToken(TokenType::l_parentheses);
-        directDeclarator->lChild = ParseDeclarator();
+        directDeclarator->lChild = declarator;
         ConsumeExpectedToken(TokenType::r_parentheses);
     }
     else if(token.type == TokenType::identifier)
@@ -547,6 +555,10 @@ Ast::Node *Parser::ParseDirectDeclarator()
         directDeclarator->type = Ast::direct_declarator;
         directDeclarator->token = token;
         ConsumeToken();
+    }
+    else
+    {
+        return nullptr;
     }
 
     Ast::Node* bottomChild = directDeclarator;
@@ -725,7 +737,7 @@ Ast::Node *Parser::StructOrUnionSpec()
             // we hit case "struct-or-union identifier"
             return topLevelNode;
         }
-
+        
     }
     ConsumeExpectedToken(TokenType::l_brace);
     // declarations will be held as a linked list in the right subtree
@@ -839,7 +851,81 @@ Ast::Node *Parser::StructDeclarator()
 
 Ast::Node *Parser::AbstractDeclarator()
 {
-    return nullptr;
+    Ast::Node* ptrExpr = ParsePointer();
+    Ast::Node* declExpr = ParseDirectAbstractDeclarator();
+
+    Ast::Node* abstractDeclarator = AllocateAstNodes();
+    abstractDeclarator->type = Ast::NodeType::abstact_declarator;
+    abstractDeclarator->lChild = declExpr;
+    abstractDeclarator->rChild = ptrExpr;
+    return abstractDeclarator;
+}
+
+Ast::Node *Parser::ParameterDecl()
+{
+        // parsing: 
+        // declaration-specifiers declarator
+        // declaration-specifiers abstract-declarator_opt
+        Ast::Node* declSpec = ParseDeclSpec();
+        Ast::Node* ptrExpr = ParsePointer();
+        Ast::Node* declarator = ParseDirectDeclarator();
+        if(!declarator)
+        {
+            declarator = ParseDirectAbstractDeclarator();
+        }
+        if(declarator)
+        {
+            declarator->lChild = ptrExpr;
+        }
+        if(ptrExpr && !declarator)
+        {
+            // this is direct abstract declarator 
+            declarator = AllocateAstNodes();
+            declarator->type = Ast::NodeType::abstact_declarator;
+            declarator->rChild = ptrExpr;
+        }
+        if(!declSpec )
+        {
+            IssueWarning(nullptr, &currentLocation, "function call declaration specifier cannot be empty" );
+            exit(-1);
+        }
+        Ast::Node *parameterDecl = AllocateAstNodes();
+        parameterDecl->type = Ast::parameter_decl;
+        parameterDecl->lChild = declSpec;
+        parameterDecl->rChild = declarator;
+
+        return parameterDecl;
+}
+
+Ast::Node *Parser::ParseDirectAbstractDeclarator()
+{
+    Token token = GetCurrToken();
+    Ast::Node* directAbstractDeclarator = nullptr;
+
+    if(token.type == TokenType::l_parentheses)
+    {
+        ConsumeToken();
+        Ast::Node* abstractDeclarator = AbstractDeclarator();
+        if(!abstractDeclarator)
+        {
+            PutBackAtFront(token);
+            goto abstract_direct_decl;
+        }
+        directAbstractDeclarator = AllocateAstNodes();
+        directAbstractDeclarator->type = Ast::direct_declarator;
+        directAbstractDeclarator->token = token;
+        directAbstractDeclarator->lChild = abstractDeclarator;
+        ConsumeExpectedToken(TokenType::r_parentheses);
+    }
+abstract_direct_decl:
+
+    while(IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses))
+    {
+        printf("TokenType::l_bracket, TokenType::l_parentheses, are not supported for abstract declarator");
+        exit(-1);
+    }
+
+    return directAbstractDeclarator;
 }
 
 Ast::Node* Parser::PostfixExpression()

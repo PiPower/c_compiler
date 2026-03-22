@@ -96,7 +96,8 @@
     X(cast) \
     X(get_addr) \
     X(ptr_access) \
-    X(declarator)
+    X(declarator) \
+    X(abstact_declarator)
 
 namespace Ast
 {
