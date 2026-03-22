@@ -56,6 +56,7 @@ private:
     Token GetCurrToken();
     void PutBackAtFront(Token token);
     void ConsumeToken();
+    TokenType::Type GetPreprocessorType(const Token* token);
     void ConsumeExpectedToken(TokenType::Type type);
     void WriteToPreprocessorFile(const char* data, int64_t dataLen);
     void InsertMacroTokensIntoQueue(

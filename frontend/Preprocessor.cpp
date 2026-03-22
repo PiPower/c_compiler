@@ -7,7 +7,6 @@
 #include <iostream>
 static const char* PreprocessorFlename = "preprocessor_file.comp";
 static const char* InsertableValues = "01";
-
 template<typename _Tp>
 struct right_shift 
 {
@@ -170,6 +169,7 @@ fetch_token:
             token->location = GetZeroLocation();
         }
     }
+
     return 0;
 }
 
@@ -390,6 +390,18 @@ const char *Preprocessor::GetDataPtr(const Token *token)
 int32_t Preprocessor::ExecuteDirective(Token *token)
 {
     Token ppToken = GetCurrToken();
+    
+    /*
+        some identifiers like 'define', 'error' have no special meaning in 
+        non preprocessor context so that can be used freely.
+        They get special meaning only if used inside #, so check for this and swap
+        type aprioprietly
+    */
+    if( ppToken.type == TokenType::identifier)
+    {
+        ppToken.type = GetPreprocessorType(&ppToken);
+    }
+
     ConsumeToken();
 
     switch (ppToken.type)
@@ -509,6 +521,25 @@ void Preprocessor::ConsumeToken()
     {
         tokenQueue.pop_front();
     }
+}
+
+TokenType::Type Preprocessor::GetPreprocessorType(const Token *token)
+{
+    std::string_view tokenName = GetViewForToken(*token);
+    if(tokenName == "include") { return TokenType::pp_include; }
+    if(tokenName == "define") { return TokenType::pp_define; }
+    if(tokenName == "ifdef") { return TokenType::pp_ifdef; }
+    if(tokenName == "ifndef") { return TokenType::pp_ifndef; }
+    if(tokenName == "elif") { return TokenType::pp_elif; }
+    if(tokenName == "endif") { return TokenType::pp_endif; }
+    if(tokenName == "line") { return TokenType::pp_line; }
+    if(tokenName == "error") { return TokenType::pp_error; }
+    if(tokenName == "pragma") { return TokenType::pp_pragma; }
+    if(tokenName == "undef") { return TokenType::pp_undef; }
+    if(tokenName == "defined") { return TokenType::pp_defined; }
+    IssueWarning(token, "This identifier is not allowed to appear after #");
+    exit(-1);
+    return TokenType::none;
 }
 
 void Preprocessor::ConsumeExpectedToken(TokenType::Type type)
