@@ -596,9 +596,9 @@ void Preprocessor::InsertMacroTokensIntoQueue(
         }
         else
         {
-            if(IsTokenOneOf(&macroTokens[i], TokenType::hash))
+            if(IsTokenOneOf(&macroTokens[i], TokenType::hash, TokenType::ellipsis))
             {
-                printf("Stringify/token concatanation is not supported \n");
+                printf("Stringify and ellipsis are not supported \n");
                 exit(-1);
             }
             
