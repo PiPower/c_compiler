@@ -63,6 +63,7 @@ public:
     std::stack<FilePos> files;
     std::deque<char> charsQueue;
     std::queue<SourceLocation> currLocations;
+    SourceLocation lastFileLoc;
     const char* fEnd;
     const char* fCurr;
     std::unordered_map<std::string_view, TokenType::Type> keywordsMap;

@@ -101,7 +101,11 @@ char Lexer::GetNextChar()
     {
         if(charsQueue.empty() || charsQueue.front() != '\0') 
         {
-            currLocations.push(ConstructLocation(files.top(), fCurr, 1));
+            SourceLocation loc = files.size() != 0 ?
+                ConstructLocation(files.top(), fCurr, 1) :
+                lastFileLoc;
+
+            currLocations.push(loc);
             charsQueue.emplace_back('\0');
         }
         return charsQueue.front();
@@ -1006,9 +1010,21 @@ int32_t Lexer::PopFile()
     {
         return -1;
     }
+    if(files.size() == 1)
+    {
+        lastFileLoc = ConstructLocation(files.top(), fCurr, 0);
+    }
     files.pop();
-    fCurr = files.top().fileCurrent;
-    fEnd = files.top().fileEnd;
+    if(files.size() > 0)
+    {
+        fCurr = files.top().fileCurrent;
+        fEnd = files.top().fileEnd;
+    }
+    else
+    {
+        fCurr = 0;
+        fEnd = 0;
+    }
     return 0;
 }
 
