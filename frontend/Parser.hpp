@@ -49,6 +49,7 @@ struct Parser
     Ast::Node* PrimaryExpression();
     Ast::Node* ParseIdentifier();
     // declaration parsing
+    Ast::Node* ParseInitializer();
     Ast::Node* ParseInitDeclList();
     Ast::Node* ParseDeclarator();
     Ast::Node* ParsePointer();

@@ -82,6 +82,8 @@
     X(direct_declarator) \
     X(parameter_type_list) \
     X(parameter_decl) \
+    X(init_decl_list) \
+    X(init_declarator) \
     /* Misc */ \
     X(array_decl) \
     X(glue_list) \

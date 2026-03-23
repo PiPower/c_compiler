@@ -135,8 +135,19 @@ start_parsing:
     }
 
     Ast::Node* declSpec = ParseDeclSpec();
-    Ast::Node* initDeclaratioList = ParseInitDeclList();
-    ConsumeExpectedToken(TokenType::semicolon);
+    Ast::Node* initDeclarationList = ParseInitDeclList();
+    token = GetCurrToken();
+    if(token.type == TokenType::semicolon)
+    {
+        ConsumeExpectedToken(TokenType::semicolon);
+        Ast::Node* declaration = AllocateAstNodes();
+        declaration->type = Ast::declaration;
+        declaration->lChild = declSpec;
+        declaration->rChild = initDeclarationList;
+        return declaration;
+    }
+
+    return nullptr;
 }
 
 Token Parser::GetCurrToken()
@@ -359,14 +370,44 @@ Ast::Node *Parser::ParseIdentifier()
     return node;
 }
 
+Ast::Node *Parser::ParseInitializer()
+{
+    return nullptr;
+}
+
 Ast::Node *Parser::ParseInitDeclList()
 {
-    Ast::Node * declarator = ParseDeclarator();
+    Ast::Node* declarator = ParseDeclarator();
     if(!declarator)
     {
         return nullptr;
     }
-    return nullptr;
+
+    Ast::Node* initDeclList = AllocateAstNodes();
+    initDeclList->type = Ast::init_decl_list;
+    Ast::Node* bottomChild = initDeclList;
+    do
+    {
+        Ast::Node* initDeclarator = AllocateAstNodes();
+        initDeclarator->type = Ast::init_declarator;
+        initDeclarator->rChild = declarator;
+        Token token = GetCurrToken();
+        if(token.type == TokenType::equal)
+        {
+            ConsumeToken();
+            initDeclarator->lChild = ParseInitializer();
+        }
+
+        Ast::Node* declGlue = AllocateAstNodes();
+        declGlue->type = Ast::glue_list;
+        declGlue->lChild = initDeclarator;
+        bottomChild->rChild = declGlue;
+        bottomChild = declGlue;
+
+
+    } while (declarator = ParseDeclarator());
+    
+    return initDeclList;
 }
 
 Ast::Node *Parser::ParseDeclarator()
