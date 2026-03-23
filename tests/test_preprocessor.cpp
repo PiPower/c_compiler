@@ -33,7 +33,8 @@ int main()
     FILE_ID main;
     fileManager.GetFileId("examples/preprocessor_test.c", 28, &main);
     CompilationOpts opts(1, (const char**)arr);
-    Parser pp(main, &fileManager, &opts); // parser is needed for complex #if/#elif directives
+    SemanticAnalyzer analyzer;
+    Parser pp(main,&analyzer, &fileManager, &opts); // parser is needed for complex #if/#elif directives
     /*
         In order to capture stdout from preprocessor duplicate stdout file descriptor,
         then bind descriptor nr 2 to memory region using mmap and test memory output

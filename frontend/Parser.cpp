@@ -103,47 +103,40 @@ static Ast::Node* SpecifierParseLoop(
     return specifier;
 }
 
-Parser::Parser(FILE_ID mainFileId, FileManager* manager, const CompilationOpts* opts)
+Parser::Parser(FILE_ID mainFileId, SemanticAnalyzer* analyzer, FileManager* manager, const CompilationOpts* opts)
 :
-manager(manager), PP(mainFileId, manager, opts), opts(opts), unaryHandle(nullptr), pState({})
+analyzer(analyzer), manager(manager), PP(mainFileId, manager, opts), opts(opts), unaryHandle(nullptr), pState({})
 {
     assert(opts != nullptr);
     AddNodePage(); 
 }
 
-void Parser::Parse()
+Ast::Node* Parser::Parse()
 {
-    // temporary loop
-    while (true)
-    {
-        /* code */
 start_parsing:
-        Token token = GetCurrToken();
-        while (token.type == TokenType::new_line)
-        {
-            ConsumeToken();
-            token = GetCurrToken();
-        }
-
-        // when parser recives eof token it marks the end of translation unit
-        if(token.type == TokenType::eof)
-        {
-            return;
-        }
-        // Check if constant expression is pending
-        if(PP.stages.ConstantExpr > 0)
-        {
-            Ast::Node* expr = ParseConstantExpr();
-            PP.ExecuteConstantExpr(expr);
-            goto start_parsing;
-        }
-
-        Ast::Node* declSpec = ParseDeclSpec();
-        Ast::Node* initDeclaratioList = ParseInitDeclList();
-        ConsumeExpectedToken(TokenType::semicolon);
+    Token token = GetCurrToken();
+    while (token.type == TokenType::new_line)
+    {
+        ConsumeToken();
+        token = GetCurrToken();
     }
 
+    // when parser recives eof token it marks the end of translation unit
+    if(token.type == TokenType::eof)
+    {
+        return nullptr;
+    }
+    // Check if constant expression is pending
+    if(PP.stages.ConstantExpr > 0)
+    {
+        Ast::Node* expr = ParseConstantExpr();
+        PP.ExecuteConstantExpr(expr);
+        goto start_parsing;
+    }
 
+    Ast::Node* declSpec = ParseDeclSpec();
+    Ast::Node* initDeclaratioList = ParseInitDeclList();
+    ConsumeExpectedToken(TokenType::semicolon);
 }
 
 Token Parser::GetCurrToken()
@@ -182,6 +175,22 @@ void Parser::ConsumeToken()
     {
         tokenQueue.pop_front();
     }
+}
+
+std::string_view Parser::GetViewForToken(const Token &token)
+{
+    FILE_STATE state;
+    if(manager->GetFileState(&token.location.id, &state) != 0)
+    {
+        printf("Parser critical error: Requested file does not exit\n");
+        exit(-1);
+    }
+
+    // removes \" from both start and end 
+    uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
+    std::string_view tokenView(state.fileData + token.location.offset + offset,
+                                token.location.len - offset);
+    return tokenView;
 }
 
 void Parser::ConsumeExpectedToken(TokenType::Type type)
@@ -693,13 +702,14 @@ Ast::Node *Parser::TypeSpecifier()
 
     if(IsTokenOneOf(&token, TokenType::identifier))
     {
-        // currently not supported we need symbol table for this
+        if(analyzer->AliaseOfType(GetViewForToken(token)))
+        {
+            Ast::Node* type = AllocateAstNodes();
+            type->type = Ast::type_specifier;
+            type->token = token;
+            return type;
+        }
         return nullptr;
-        //ConsumeToken();
-        //Ast::Node* node = AllocateAstNodes();
-        //node->type = Ast::typedef_name;
-        //node->token = token;
-        //return node;
     }
     
     return nullptr;

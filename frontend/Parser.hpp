@@ -2,6 +2,7 @@
 #include "AstNode.hpp"
 #include "../utils/FileManager.hpp"
 #include "Preprocessor.hpp"
+#include "SemanticAnalysis.hpp"
 
 struct ParsingState
 {
@@ -10,12 +11,13 @@ struct ParsingState
 
 struct Parser
 {
-    Parser(FILE_ID mainFileId, FileManager* manager, const CompilationOpts* opts);
-    void Parse();
+    Parser(FILE_ID mainFileId, SemanticAnalyzer* analyzer, FileManager* manager, const CompilationOpts* opts);
+    Ast::Node* Parse();
     // misc ops
     Token GetCurrToken();
     void PutBackAtFront(Token token);
     void ConsumeToken();
+    std::string_view GetViewForToken(const Token &token);
     void ConsumeExpectedToken(TokenType::Type type);
     void IssueWarning(const Token* token, const char* errMsg, ...);
     void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
@@ -67,6 +69,7 @@ struct Parser
     Ast::Node* ParameterDecl();
     Ast::Node* ParseDirectAbstractDeclarator();
 
+    SemanticAnalyzer* analyzer;
     FileManager* manager;
     Preprocessor PP;
     const CompilationOpts* opts;

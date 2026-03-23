@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 struct Outer {
     const volatile unsigned long id, gd, *ci;
     /* Bit-fields with mixed integer types */
@@ -85,4 +87,4 @@ struct Outer {
 
     /* Flexible array member at end (C99) */
     unsigned char payload[];
-};
+} yolo;

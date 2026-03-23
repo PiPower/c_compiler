@@ -3,7 +3,7 @@
 Compiler::Compiler(int argc, char *argv[])
 :
     argc(argc), argv(argv), opts(argc, (const char**)argv),
-    fileManager( opts.filenames, opts.filenameLens)
+    fileManager(opts.filenames, opts.filenameLens), analyzer()
 {
     // standard gcc - 11 search paths
 
@@ -21,8 +21,12 @@ void Compiler::compile()
         FILE_ID mainFile;
         // skip err check, constructor checks for all main files
         fileManager.GetFileId( opts.filenames[i],  opts.filenameLens[i], &mainFile);
-        Parser parser(mainFile, &fileManager, &opts);
+        Parser parser(mainFile, &analyzer, &fileManager, &opts);
+        while (Ast::Node* ast = parser.Parse())
+        {
+            analyzer.Analyze(ast);
+        }
         
-        parser.Parse();
+
     }
 }
