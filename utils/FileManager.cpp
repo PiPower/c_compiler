@@ -75,10 +75,16 @@ void FileManager::LoadFilenameIntoPage(const char *filename, char **pagedFilenam
     int64_t& offsetIntoPage =  filenameBuffer.offsetIntoPage;
     size_t filenameLen = strlen(filename);
 
+    // guard against filenameLen + offsetIntoPage overflow
+    if(filenameLen > FILENAME_PAGE_SIZE)
+    {
+        printf("Filename too long\n"); 
+        exit(-1);
+    }
+
     if(filenameLen + offsetIntoPage > FILENAME_PAGE_SIZE)
     {
-        if(filenameLen > FILENAME_PAGE_SIZE ){printf("Filename too long\n"); exit(-1);}
-        else{AddNewFilenamePage();}
+        AddNewFilenamePage();
     }
 
     char* page = filenamePages[currentPage];
@@ -93,10 +99,17 @@ void FileManager::LoadFileIntoPage(int fd, int64_t fileSize, const char* filenam
     size_t& currentPage = fileBuffer.currentPage;
     int64_t& offsetIntoPage =  fileBuffer.offsetIntoPage;
 
+    // guard against fileSize + offsetIntoPage  overflow
+    if(fileSize > FILEDATA_PAGE_SIZE)
+    {
+        printf("File too large\n");
+        exit(-1);
+    }
+
+
     if(fileSize + offsetIntoPage > FILEDATA_PAGE_SIZE)
     {
-        if(fileSize > FILEDATA_PAGE_SIZE){printf("File too large\n"); exit(-1);}
-        else{AddNewFilePage();}
+        AddNewFilePage();
     }
     char* page = filePages[currentPage];
     *filePos = page + offsetIntoPage;

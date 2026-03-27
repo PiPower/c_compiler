@@ -266,6 +266,12 @@ void Parser::IssueWarning(const FILE_ID *fileId, const SourceLocation *loc, cons
 Ast::Node *Parser::AllocateAstNodes(uint16_t count)
 {
     size_t memorySize = count * sizeof(Ast::Node);
+    if( memorySize >=  PAGE_COUNT * CPU_PAGE)
+    {
+        printf("Requested node array is too large\n");
+        exit(-1);
+    }
+    
     if(memorySize + nodeBuffer.offsetIntoPage >= PAGE_COUNT * CPU_PAGE)
     {
         AddNodePage();
