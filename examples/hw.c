@@ -88,3 +88,9 @@ struct Outer {
     /* Flexible array member at end (C99) */
     unsigned char payload[];
 } yolo;
+
+int main()
+{
+    Yolo2 x = {};
+    x.p = 2;
+}

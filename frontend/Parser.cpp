@@ -743,7 +743,7 @@ Ast::Node *Parser::TypeSpecifier()
 
     if(IsTokenOneOf(&token, TokenType::identifier))
     {
-        if(analyzer->AliaseOfType(GetViewForToken(token)))
+        if(analyzer->AliasOfType(GetViewForToken(token)))
         {
             Ast::Node* type = AllocateAstNodes();
             type->type = Ast::type_specifier;

@@ -147,4 +147,10 @@ namespace Ast
     };
 }
 
+template<typename... Args>
+static bool IsNodeOneOf(const Ast::Node* node, Args&&... args)
+{
+    return ((node->type == args) || ...);
+}
+
 #undef TOKEN_TYPES
