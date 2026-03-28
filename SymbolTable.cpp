@@ -58,3 +58,14 @@ void SymbolTable::AddSymbolImpl(std::string_view name, Symbol *sym)
 
     symbolTable[name] = sym;
 }
+
+Sym::Kind SymbolTable::QuerySymKind(const std::string_view& name)
+{
+    auto symIter = symbolTable.find(name);
+    if(symIter == symbolTable.end())
+    {
+        return Sym::NONE;
+    }
+
+    return symIter->second->kind;
+}

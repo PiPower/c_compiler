@@ -39,6 +39,7 @@ symTab(symTab), manager(manager)
 
     symTab->AddSymbol<SymbolType>("unsigned long", BuiltIn::u_int_64, TypeBits{}, 0, nullptr);
     symTab->AddSymbol<SymbolType>("unsigned long int", BuiltIn::u_int_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("long unsigned int", BuiltIn::u_int_64, TypeBits{}, 0, nullptr);
 
     symTab->AddSymbol<SymbolType>("long long", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
     symTab->AddSymbol<SymbolType>("signed long long", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
@@ -82,6 +83,13 @@ void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast:
 void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *initDeclList)
 {
     const Ast::Node* root = initDeclList;
+    Sym::Kind symKind = symTab->QuerySymKind(declSpec->typenameView);
+    if(symKind != Sym::TYPEDEF && symKind != Sym::TYPE)
+    {
+        printf("Specified identifier does not name a type\n");
+        exit(-1);
+    }
+
     while (const Ast::Node* currChild = root->rChild)
     {
         Ast::Node* initDecl = currChild->lChild;
@@ -183,9 +191,10 @@ std::string_view SemanticAnalyzer::GetViewForToken(const Token &token)
 }
 
 
-bool SemanticAnalyzer::AliasOfType(const std::string_view identifier)
+bool SemanticAnalyzer::IsAliasOfType(const std::string_view& identifier)
 {
-    return false;
+    Sym::Kind symKind = symTab->QuerySymKind(identifier);
+    return symKind == Sym::TYPEDEF || symKind == Sym::TYPE;
 }
 
 DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)

@@ -115,17 +115,21 @@ struct SymbolTable
     SymbolTable();
     std::string_view AddSymbolName(const char* symName);
     void AddSymbolImpl(std::string_view name, Symbol* sym);
+    Sym::Kind QuerySymKind(const std::string_view& name);
 
     template<typename Kind, typename... Args>
-    void AddSymbol(std::string_view name, Args&&... args)
-    {
-        Sym::Kind symKind;
-        if constexpr (std::is_same_v<Kind, SymbolType>){symKind = Sym::TYPE;}
-        else if constexpr (std::is_same_v<Kind, SymbolTypedef>){symKind = Sym::TYPEDEF;}
-        Kind* symbol = new Kind(symKind, std::forward<const Args>(args)...);
-        AddSymbolImpl(name, (Symbol*) symbol);
-    }
+    void AddSymbol(std::string_view name, Args&&... args);
 
     std::unordered_map<std::string_view, Symbol*> symbolTable;
     PagedBuffer symNameBuff;
 };
+
+template<typename Kind, typename... Args>
+void SymbolTable::AddSymbol(std::string_view name, Args&&... args)
+{
+    Sym::Kind symKind;
+    if constexpr (std::is_same_v<Kind, SymbolType>){symKind = Sym::TYPE;}
+    else if constexpr (std::is_same_v<Kind, SymbolTypedef>){symKind = Sym::TYPEDEF;}
+    Kind* symbol = new Kind(symKind, std::forward<const Args>(args)...);
+    AddSymbolImpl(name, (Symbol*) symbol);
+}

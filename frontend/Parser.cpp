@@ -732,11 +732,12 @@ Ast::Node *Parser::TypeSpecifier()
     {
         return EnumSpec();
     }
-
+    
     if(IsTokenOneOf(&token, TokenType::identifier))
     {
-        if(analyzer->AliasOfType(GetViewForToken(token)))
+        if(analyzer->IsAliasOfType(GetViewForToken(token)))
         {
+            ConsumeToken();
             Ast::Node* type = AllocateAstNodes();
             type->type = Ast::type_specifier;
             type->token = token;
