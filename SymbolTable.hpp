@@ -1,5 +1,8 @@
 #pragma once
 #include <stdint.h>
+#include <string_view>
+#include <unordered_map>
+#include "utils/FileManager.hpp"
 
 namespace SymType
 {
@@ -75,18 +78,40 @@ struct TypeBits
     uint8_t inlineSpec : 1;
 };
 
+
+struct Argument
+{
+    BuiltIn::Type* kind;
+    std::string_view structName;
+};
+
+
 struct Symbol
 {
-    SymType::Kind type;
+    SymType::Kind kind;
 };
 
 struct SymbolTypedef
 {
-    SymType::Kind type;
+    SymType::Kind kind;
 };
 
 struct SymbolType
 {
-    SymType::Kind type;
+    SymType::Kind kind;
+    BuiltIn::Type dType;
     TypeBits desc;
+    // used only when type == struct_t
+    size_t argCount;
+    Argument* argsList;
+};
+
+struct SymbolTable
+{
+    SymbolTable();
+    std::string_view AddSymbolName(const char* symName);
+    void AddSymbol(const char* name, Symbol* sym);
+
+    std::unordered_map<std::string_view, Symbol*> symbolTable;
+    PagedBuffer symNameBuff;
 };

@@ -13,5 +13,4 @@ struct Compiler
     char** argv;
     CompilationOpts opts;
     FileManager fileManager;
-    SemanticAnalyzer analyzer;
 };

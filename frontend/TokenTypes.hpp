@@ -1,5 +1,6 @@
 #pragma once
 #include <inttypes.h>
+#include <array>
 #include "../utils/FileManager.hpp"
 
 #define TOKEN_LIST \
@@ -198,6 +199,23 @@ template<typename... Args>
 static bool IsTokenOneOf(const Token* token, Args&&... args)
 {
     return ((token->type == args) || ...);
+}
+
+template <std::size_t Count, std::size_t... Indices>
+static bool IsTokenOneFromArray(
+    const Token* token,
+    const std::array<TokenType::Type, Count>& types,
+    const std::index_sequence<Indices...>&) 
+{
+    return IsTokenOneOf(token, types[Indices]...); 
+}
+
+template <std::size_t Count>
+static bool IsTokenOneFromArray(
+    const Token* token,
+    const std::array<TokenType::Type, Count>& types) 
+{
+    return IsTokenOneFromArray(token, types,  std::make_index_sequence<Count>{}); 
 }
 
 #undef TOKEN_LIST

@@ -1,10 +1,14 @@
 #include "SemanticAnalysis.hpp"
+#include <string.h>
+#include <limits>
 
-SemanticAnalyzer::SemanticAnalyzer(FileManager* manager)
+SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 :
-manager(manager)
+manager(manager), symTab(symTab)
 {
+    // set offset into max so that new page gets allocated
     compoundTypeStr.reserve(100);
+
 }
 
 void SemanticAnalyzer::Analyze(const Ast::Node *root)
@@ -19,43 +23,44 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
 void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast::Node *initDeclList)
 {
     DeclSpecs declaration = AnalyzeDeclSpec(declSpecs);
+    if(declaration.declType.spec.typedef_)
+    {
+        AnalyzeTypedef(&declaration, initDeclList);
+    }
 }
 
-void SemanticAnalyzer::AnalyzeTypedef(const Ast::Node *declSpecs, const Ast::Node *initDeclList)
+void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *initDeclList)
 {
-
-
-    Ast::Node* typedefNode = declSpecs->rChild;
-    // validation step
-    if(declSpecs->lChild != nullptr ||
-       typedefNode-> lChild != nullptr)
-    {
-        printf("Semantic error in typedef\n");
-        exit(-1);
-    }
-
-    DeclSpecs spec = AnalyzeDeclSpec(typedefNode);
+    
+    int x = 2;
     
 }
 
 void SemanticAnalyzer::AnalyzeUnion(const Ast::Node *unionTree, DeclSpecs *spec)
 {
+    printf("Unsupported union\n");
+    exit(-1);
 }
 
 void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spec)
 {
+    printf("Unsupported struct\n");
+    exit(-1);
 }
 
 void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
 {
+    printf("Unsupported enum\n");
+    exit(-1);
 }
 
 void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpecs *spec)
 {
-    compoundTypeStr.clear();
+
     const Ast::Node* currChild = typeSequence;
     do
     {
+
         compoundTypeStr += GetViewForToken(currChild->token);
         currChild = currChild->lChild;
         if(currChild)
@@ -86,6 +91,7 @@ std::string_view SemanticAnalyzer::GetViewForToken(const Token &token)
     return tokenView;
 }
 
+
 bool SemanticAnalyzer::AliasOfType(const std::string_view identifier)
 {
     return false;
@@ -94,6 +100,8 @@ bool SemanticAnalyzer::AliasOfType(const std::string_view identifier)
 DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
 {
     DeclSpecs spec = {};
+    compoundTypeStr.clear();
+
     const Ast::Node* currNode = declSpecs->rChild;
     while (currNode)
     {
@@ -207,9 +215,4 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
     }
 
     return spec;
-}
-
-std::string_view SemanticAnalyzer::AddSymbolName(const char *name)
-{
-
 }

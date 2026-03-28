@@ -3,7 +3,7 @@
 Compiler::Compiler(int argc, char *argv[])
 :
     argc(argc), argv(argv), opts(argc, (const char**)argv),
-    fileManager(opts.filenames, opts.filenameLens), analyzer(&fileManager)
+    fileManager(opts.filenames, opts.filenameLens)
 {
     // standard gcc - 11 search paths
 
@@ -19,8 +19,10 @@ void Compiler::compile()
     for(size_t i =0; i < opts.filenames.size(); i++)
     {
         FILE_ID mainFile;
+        SymbolTable symtab{};
         // skip err check, constructor checks for all main files
         fileManager.GetFileId( opts.filenames[i],  opts.filenameLens[i], &mainFile);
+        SemanticAnalyzer analyzer(&fileManager, &symtab);
         Parser parser(mainFile, &analyzer, &fileManager, &opts);
         while (Ast::Node* ast = parser.Parse())
         {
