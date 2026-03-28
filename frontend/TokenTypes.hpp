@@ -33,6 +33,7 @@
     KW(switch) \
     KW(inline) \
     KW(goto) \
+    KW(_builtin_va_list) \
     /* type keywords */ \
     KW(unsigned) \
     KW(int) \
@@ -140,7 +141,6 @@ namespace TokenType
         #undef KW
         #undef X
     };
-
 
     constexpr const char* tokenStr(TokenType::Type type)
     {

@@ -20,9 +20,9 @@ static const char* kewordStrings[] = {
     "volatile",  "while",     "_Bool",      "_Complex",
     "_Imaginary",
     // preprocessor  specific keywords,
-    "include",   "define",    "ifdef",  "ifndef",  
-    "elif",      "endif",     "line",   "error", 
-    "pragma",    "undef",     "defined"
+    "include",   "define",    "ifdef",   "ifndef",  
+    "elif",      "endif",     "line",    "error", 
+    "pragma",    "undef",     "defined", "__builtin_va_list"
 };
 
 
@@ -1125,6 +1125,8 @@ void Lexer::PrepareKeywordMap()
     keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_pragma;
     keywordsMap[std::string_view(kewordStrings[46])] = TokenType::pp_undef;
     keywordsMap[std::string_view(kewordStrings[47])] = TokenType::pp_defined;
+    keywordsMap[std::string_view(kewordStrings[48])] = TokenType::kw__builtin_va_list;
+
     
 }
 

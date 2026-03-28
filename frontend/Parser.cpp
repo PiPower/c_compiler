@@ -120,15 +120,14 @@ start_parsing:
     Ast::Node* declSpec = ParseDeclSpec();
     Ast::Node* initDeclarationList = ParseInitDeclList();
     token = GetCurrToken();
-    if(token.type == TokenType::semicolon)
-    {
-        ConsumeExpectedToken(TokenType::semicolon);
-        Ast::Node* declaration = AllocateAstNodes();
-        declaration->type = Ast::declaration;
-        declaration->lChild = declSpec;
-        declaration->rChild = initDeclarationList;
-        return declaration;
-    }
+
+    ConsumeExpectedToken(TokenType::semicolon);
+    Ast::Node* declaration = AllocateAstNodes();
+    declaration->type = Ast::declaration;
+    declaration->lChild = declSpec;
+    declaration->rChild = initDeclarationList;
+    return declaration;
+    
 
     return nullptr;
 }
@@ -713,7 +712,7 @@ Ast::Node *Parser::TypeSpecifier()
     constexpr auto storageSpecifiers = std::to_array<TokenType::Type>({TokenType::kw_void, TokenType::kw_char, 
         TokenType::kw_short, TokenType::kw_int, TokenType::kw_long, TokenType::kw_float,
         TokenType::kw_double, TokenType::kw_signed, TokenType::kw_unsigned, TokenType::kw_bool,
-        TokenType::kw_complex, TokenType::kw_imaginary});
+        TokenType::kw_complex, TokenType::kw_imaginary,  TokenType::kw__builtin_va_list});
 
     Ast::Node* simpleSpecifiers = SpecifierParseLoop(this, storageSpecifiers, Ast::NodeType::type_specifier);
     // it is not allowed to chain simple specifier with complex ones

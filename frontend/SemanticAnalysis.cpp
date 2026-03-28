@@ -56,6 +56,9 @@ symTab(symTab), manager(manager)
     symTab->AddSymbol<SymbolType>("float _Complex", BuiltIn::complex_float_64, TypeBits{}, 0, nullptr);
     symTab->AddSymbol<SymbolType>("double _Complex", BuiltIn::complex_double_128, TypeBits{}, 0, nullptr);
     symTab->AddSymbol<SymbolType>("long double _Complex", BuiltIn::complex_long_double, TypeBits{}, 0, nullptr);
+    // special built-in
+    symTab->AddSymbol<SymbolType>("__builtin_va_list", BuiltIn::special, TypeBits{}, 0, nullptr);
+
 }
 
 void SemanticAnalyzer::Analyze(const Ast::Node *root)

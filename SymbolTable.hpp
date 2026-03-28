@@ -40,7 +40,8 @@ enum Type : uint16_t {
     bool_t,           
     complex_float_64, 
     complex_double_128,
-    complex_long_double
+    complex_long_double,
+    special
 };
 
 }
