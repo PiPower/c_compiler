@@ -11,6 +11,7 @@ struct SemanticAnalyzer
     void AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node* initDeclList);
     void AnalyzeUnion(const Ast::Node* unionTree, DeclSpecs* spec);
     void AnalyzeStruct(const Ast::Node* structTree, DeclSpecs* spec);
+    InitDeclarator AnalyzeDeclarator(const Ast::Node* declarator, const Ast::Node* initializer);
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool AliasOfType(const std::string_view identifier);
@@ -20,6 +21,7 @@ struct SemanticAnalyzer
 
     SymbolTable* symTab;
     FileManager* manager;
+    // used as a handle to memory for simple type name
     std::string compoundTypeStr;
 };
 

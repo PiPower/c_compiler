@@ -95,6 +95,7 @@ struct Symbol
 struct SymbolTypedef
 {
     Sym::Kind kind;
+    std::string_view refrencedType;
 };
 
 struct SymbolType
@@ -112,13 +113,14 @@ struct SymbolTable
   
     SymbolTable();
     std::string_view AddSymbolName(const char* symName);
-    void AddSymbolImpl(const char* name, Symbol* sym);
+    void AddSymbolImpl(std::string_view name, Symbol* sym);
 
     template<typename Kind, typename... Args>
-    void AddSymbol(const char* name, const Args&&... args)
+    void AddSymbol(std::string_view name, Args&&... args)
     {
         Sym::Kind symKind;
         if constexpr (std::is_same_v<Kind, SymbolType>){symKind = Sym::TYPE;}
+        else if constexpr (std::is_same_v<Kind, SymbolTypedef>){symKind = Sym::TYPEDEF;}
         Kind* symbol = new Kind(symKind, std::forward<const Args>(args)...);
         AddSymbolImpl(name, (Symbol*) symbol);
     }

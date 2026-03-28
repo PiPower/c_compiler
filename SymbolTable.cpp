@@ -48,14 +48,13 @@ std::string_view SymbolTable::AddSymbolName(const char *symName)
     return view;
 }
 
-void SymbolTable::AddSymbolImpl(const char *name, Symbol *sym)
+void SymbolTable::AddSymbolImpl(std::string_view name, Symbol *sym)
 {
-    std::string_view key = AddSymbolName(name);
-    if(symbolTable.find(key) != symbolTable.end())
+    if(symbolTable.find(name) != symbolTable.end())
     {
         printf("Symbol already exists inside symbol table \n");
         exit(-1);
     }
 
-    symbolTable[key] = sym;
+    symbolTable[name] = sym;
 }

@@ -393,7 +393,11 @@ Ast::Node *Parser::ParseInitDeclList()
         bottomChild->rChild = declGlue;
         bottomChild = declGlue;
 
-
+        if(GetCurrToken().type != TokenType::comma)
+        {
+            break;
+        }
+        ConsumeExpectedToken(TokenType::comma);
     } while (declarator = ParseDeclarator());
     
     return initDeclList;

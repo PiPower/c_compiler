@@ -8,8 +8,12 @@
 struct DeclSpecs
 {
     TypeBits declType; 
-    BuiltIn::Type dataType;
-    const char* typenameHandle;
     std::string_view typenameView; 
+};
+
+struct InitDeclarator
+{
+    std::string_view name;
+    const Ast::Node* initializer;
 };
 

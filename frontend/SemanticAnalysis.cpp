@@ -4,11 +4,13 @@
 
 SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 :
-manager(manager), symTab(symTab)
+symTab(symTab), manager(manager)
 {
     // set offset into max so that new page gets allocated
     compoundTypeStr.reserve(100);
  
+    // each simple built in typename is stored in read section during program lifetime
+    // so each std::string_view will be valid
     symTab->AddSymbol<SymbolType>("void", BuiltIn::void_t, TypeBits{}, 0, nullptr);
     // integer types
     symTab->AddSymbol<SymbolType>("char", BuiltIn::s_char_8, TypeBits{}, 0, nullptr);
@@ -76,8 +78,22 @@ void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast:
 
 void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *initDeclList)
 {
-    
-    int x = 2;
+    const Ast::Node* root = initDeclList;
+    while (const Ast::Node* currChild = root->rChild)
+    {
+        Ast::Node* initDecl = currChild->lChild;
+        InitDeclarator iDecl = AnalyzeDeclarator(initDecl->rChild, initDecl->lChild);
+
+        if(iDecl.initializer)
+        {
+            printf("typedef is not allowed to have initializer\n");
+            exit(-1);
+        }
+        
+        symTab->AddSymbol<SymbolTypedef>(iDecl.name, declSpec->typenameView);
+
+        root = currChild;
+    }
     
 }
 
@@ -93,6 +109,37 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
     exit(-1);
 }
 
+InitDeclarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, const Ast::Node *initializer)
+{
+    InitDeclarator initDecl = {};
+    initDecl.initializer = initializer;
+
+    const Ast::Node* ptrDecl = declarator->rChild;
+    if(declarator->lChild->type == Ast::direct_declarator)
+    {
+        const Ast::Node* directDeclarator = declarator->lChild;
+        if(directDeclarator->lChild)
+        {
+            printf("Nested direct-declarator is not supported \n");
+            exit(-1);
+        }
+        initDecl.name = GetViewForToken(directDeclarator->token);
+
+        if(directDeclarator->rChild)
+        {
+            printf("arrays/callings are not supported\n");
+            exit(-1);
+        }
+
+    }
+    else
+    {
+        printf("Abstract declarator is not supported \n");
+        exit(-1);
+    }
+    return initDecl;
+}
+
 void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
 {
     printf("Unsupported enum\n");
@@ -105,7 +152,6 @@ void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpec
     const Ast::Node* currChild = typeSequence;
     do
     {
-
         compoundTypeStr += GetViewForToken(currChild->token);
         currChild = currChild->lChild;
         if(currChild)
@@ -114,10 +160,7 @@ void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpec
         }
     }while (currChild);
 
-    spec->typenameHandle = compoundTypeStr.c_str();
     spec->typenameView = compoundTypeStr;
-    
-    
 }
 
 std::string_view SemanticAnalyzer::GetViewForToken(const Token &token)
