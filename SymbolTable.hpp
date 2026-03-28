@@ -4,13 +4,14 @@
 #include <unordered_map>
 #include "utils/FileManager.hpp"
 
-namespace SymType
+namespace Sym
 {
 
 enum Kind: uint16_t
 {
     NONE,
-    TYPEDEF
+    TYPEDEF,
+    TYPE
 };
 
 }
@@ -88,17 +89,17 @@ struct Argument
 
 struct Symbol
 {
-    SymType::Kind kind;
+    Sym::Kind kind;
 };
 
 struct SymbolTypedef
 {
-    SymType::Kind kind;
+    Sym::Kind kind;
 };
 
 struct SymbolType
 {
-    SymType::Kind kind;
+    Sym::Kind kind;
     BuiltIn::Type dType;
     TypeBits desc;
     // used only when type == struct_t
@@ -108,9 +109,19 @@ struct SymbolType
 
 struct SymbolTable
 {
+  
     SymbolTable();
     std::string_view AddSymbolName(const char* symName);
-    void AddSymbol(const char* name, Symbol* sym);
+    void AddSymbolImpl(const char* name, Symbol* sym);
+
+    template<typename Kind, typename... Args>
+    void AddSymbol(const char* name, const Args&&... args)
+    {
+        Sym::Kind symKind;
+        if constexpr (std::is_same_v<Kind, SymbolType>){symKind = Sym::TYPE;}
+        Kind* symbol = new Kind(symKind, std::forward<const Args>(args)...);
+        AddSymbolImpl(name, (Symbol*) symbol);
+    }
 
     std::unordered_map<std::string_view, Symbol*> symbolTable;
     PagedBuffer symNameBuff;

@@ -8,6 +8,7 @@
 
 SymbolTable::SymbolTable()
 {
+    symbolTable.reserve(1000);
     symNameBuff.offsetIntoPage = SYMBOL_NAME_PAGE_SIZE;
 }
 
@@ -41,11 +42,20 @@ std::string_view SymbolTable::AddSymbolName(const char *symName)
 
     char* page = filenamePages[currentPage];
     memcpy(page + offsetIntoPage, symName, filenameLen);
+    std::string_view view(page + offsetIntoPage,  filenameLen);
     offsetIntoPage += filenameLen;
 
-    return std::string_view(page + offsetIntoPage,  filenameLen);
+    return view;
 }
 
-void SymbolTable::AddSymbol(const char *name, Symbol *sym)
+void SymbolTable::AddSymbolImpl(const char *name, Symbol *sym)
 {
+    std::string_view key = AddSymbolName(name);
+    if(symbolTable.find(key) != symbolTable.end())
+    {
+        printf("Symbol already exists inside symbol table \n");
+        exit(-1);
+    }
+
+    symbolTable[key] = sym;
 }

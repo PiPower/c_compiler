@@ -8,7 +8,52 @@ manager(manager), symTab(symTab)
 {
     // set offset into max so that new page gets allocated
     compoundTypeStr.reserve(100);
+ 
+    symTab->AddSymbol<SymbolType>("void", BuiltIn::void_t, TypeBits{}, 0, nullptr);
+    // integer types
+    symTab->AddSymbol<SymbolType>("char", BuiltIn::s_char_8, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("signed char", BuiltIn::s_char_8, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("unsigned char", BuiltIn::u_char_8, TypeBits{}, 0, nullptr);
 
+    symTab->AddSymbol<SymbolType>("short", BuiltIn::s_int_16, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("signed short", BuiltIn::s_int_16, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("short int", BuiltIn::s_int_16, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("signed short int", BuiltIn::s_int_16, TypeBits{}, 0, nullptr);
+
+    symTab->AddSymbol<SymbolType>("unsigned short", BuiltIn::u_int_16, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("unsigned short int", BuiltIn::u_int_16, TypeBits{}, 0, nullptr);
+
+    symTab->AddSymbol<SymbolType>("int", BuiltIn::s_int_32, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("signed", BuiltIn::s_int_32, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("signed int", BuiltIn::s_int_32, TypeBits{}, 0, nullptr);
+
+    symTab->AddSymbol<SymbolType>("unsigned", BuiltIn::u_int_32, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("unsigned int", BuiltIn::u_int_32, TypeBits{}, 0, nullptr);
+
+    symTab->AddSymbol<SymbolType>("long", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("signed long", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("long int", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("signed long int", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
+
+    symTab->AddSymbol<SymbolType>("unsigned long", BuiltIn::u_int_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("unsigned long int", BuiltIn::u_int_64, TypeBits{}, 0, nullptr);
+
+    symTab->AddSymbol<SymbolType>("long long", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("signed long long", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("long long int", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("signed long long int", BuiltIn::s_int_64, TypeBits{}, 0, nullptr);
+
+    symTab->AddSymbol<SymbolType>("unsigned long long", BuiltIn::u_int_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("unsigned long long int", BuiltIn::u_int_64, TypeBits{}, 0, nullptr);
+    // floats
+    symTab->AddSymbol<SymbolType>("float", BuiltIn::float_32, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("double", BuiltIn::double_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("long double", BuiltIn::long_double, TypeBits{}, 0, nullptr);
+    // rest
+    symTab->AddSymbol<SymbolType>("_Bool", BuiltIn::bool_t, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("float _Complex", BuiltIn::complex_float_64, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("double _Complex", BuiltIn::complex_double_128, TypeBits{}, 0, nullptr);
+    symTab->AddSymbol<SymbolType>("long double _Complex", BuiltIn::complex_long_double, TypeBits{}, 0, nullptr);
 }
 
 void SemanticAnalyzer::Analyze(const Ast::Node *root)

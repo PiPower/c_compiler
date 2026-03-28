@@ -8,7 +8,7 @@ file(GLOB frontendSources ./frontend/*.cpp)
 file(GLOB utils ./utils/*.cpp)
 
 add_compile_options(-Wall -Wpedantic)
-add_library(frontend STATIC ${frontendSources})
+add_library(frontend STATIC ${frontendSources} SymbolTable.cpp)
 add_library(utils STATIC ${utils})
 add_executable(c_compiler main.cpp Compiler.cpp SymbolTable.cpp)
 
