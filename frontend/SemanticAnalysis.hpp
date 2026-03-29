@@ -17,6 +17,7 @@ struct SemanticAnalyzer
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool IsAliasOfType(const std::string_view& identifier);
+    uint64_t GetAnnonymousId();
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     // misc
     std::string_view GetViewForToken(const Token &token);
