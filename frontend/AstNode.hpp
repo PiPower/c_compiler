@@ -10,6 +10,7 @@
     X(character) \
     X(expression) \
     X(cond_expression) \
+    X(constant_expr_res) \
     /* Basic math ops */ \
     OP(multiply) \
     OP(divide) \

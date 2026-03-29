@@ -2,12 +2,14 @@
 #include "AstNode.hpp"
 #include "SemaTypes.hpp"
 #include <unordered_map>
+#include "Preprocessor.hpp"
 
 struct SemanticAnalyzer
 {
     SemanticAnalyzer(FileManager* manager, SymbolTable* symTab);
     void Analyze(const Ast::Node* root);
     void AnalyzeDeclaration(const Ast::Node* declSpecs, const Ast::Node* initDeclList);
+    StructDeclaration AnalyzeStructDeclaration(const Ast::Node* declSpecs, const Ast::Node* structDeclList);
     void AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node* initDeclList);
     void AnalyzeUnion(const Ast::Node* unionTree, DeclSpecs* spec);
     void AnalyzeStruct(const Ast::Node* structTree, DeclSpecs* spec);

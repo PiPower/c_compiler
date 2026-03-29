@@ -183,7 +183,7 @@ fetch_token:
 }
 
 void Preprocessor::ExecuteConstantExpr(Ast::Node *expr)
-{
+{ 
     Typed::Number constExpr = ExecuteNode(expr);
     stages.ConstantExpr = 0;
     if(constExpr.type == Typed::d_int64_t)

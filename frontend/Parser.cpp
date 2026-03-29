@@ -784,6 +784,7 @@ Ast::Node *Parser::StructOrUnionSpec()
         ConsumeToken();
         Ast::Node* identifier = AllocateAstNodes();
         identifier->type=Ast::NodeType::identifier;
+        identifier->token = token;
         glueNode->lChild = identifier;
 
         token = GetCurrToken();
@@ -889,12 +890,16 @@ Ast::Node *Parser::StructDeclarator()
     {
         ConsumeToken();
         constantExpr = ParseConstantExpr();
-
         if(declarator != nullptr && constantExpr == nullptr)
         {
             IssueWarning(&token, "If struct declarator has 'identifier :' then it MUST have expression: 'constant-expr'");
             exit(-1);
         }
+        Typed::Number bitCount = PP.ExecuteNode(constantExpr);
+        constantExpr = AllocateAstNodes();
+        constantExpr->type = Ast::constant_expr_res;
+        static_assert(sizeof(Typed::Number) <= 2 * sizeof(Ast::Node*));
+        memcpy(&constantExpr->lChild, &bitCount, sizeof(Typed::Number));
     }
 
     Ast::Node* structDecl = AllocateAstNodes();

@@ -1,3 +1,10 @@
+struct simple_struct
+{
+    int x, p : 2;
+    long int k;
+};
+
+
 #include <stdio.h>
 
 struct Outer {

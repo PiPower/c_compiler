@@ -73,11 +73,40 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
 
 void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast::Node *initDeclList)
 {
-    DeclSpecs declaration = AnalyzeDeclSpec(declSpecs);
+    DeclSpecs declaration = AnalyzeDeclSpec(declSpecs->rChild);
     if(declaration.declType.spec.typedef_)
     {
         AnalyzeTypedef(&declaration, initDeclList);
     }
+}
+
+StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *declSpecs, const Ast::Node* structDeclList)
+{
+    StructDeclaration structDecl;
+    structDecl.declSpec = AnalyzeDeclSpec(declSpecs);
+    const Ast::Node* currentNode = structDeclList ;
+    while (currentNode)
+    {
+        const Ast::Node* structDeclarator = currentNode->lChild;
+        // InitDeclarator without initializer is just declarator
+        InitDeclarator initDecl = AnalyzeDeclarator(structDeclarator->lChild, nullptr);
+        int64_t bitCount = -1;
+        if(structDeclarator->rChild)
+        {
+            Typed::Number constExpr;
+            memcpy(&constExpr, &structDeclarator->rChild->lChild, sizeof(Typed::Number));
+            if(constExpr.type != Typed::d_int64_t){printf("constant expr has not allowed type \n"); exit(-1);}
+            bitCount = constExpr.int64;
+        }
+
+        StructDeclarator decl;
+        decl.decl = initDecl.decl;
+        decl.bitCount = bitCount;
+        structDecl.declarators.push_back(decl);
+        currentNode = currentNode->rChild;
+    }
+    
+    return structDecl;
 }
 
 void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *initDeclList)
@@ -101,7 +130,7 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
             exit(-1);
         }
         
-        symTab->AddSymbol<SymbolTypedef>(iDecl.name, declSpec->typenameView);
+        symTab->AddSymbol<SymbolTypedef>(iDecl.decl.name, declSpec->typenameView);
 
         root = currChild;
     }
@@ -116,6 +145,20 @@ void SemanticAnalyzer::AnalyzeUnion(const Ast::Node *unionTree, DeclSpecs *spec)
 
 void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spec)
 {
+    std::string_view structName;
+    if(structTree->lChild)
+    {
+        structName = GetViewForToken(structTree->lChild->token);;
+    }
+    const Ast::Node *argList = structTree;
+    while ((argList = argList->rChild))
+    {
+        const Ast::Node * structDeclPtr =argList->lChild;
+        StructDeclaration structDecl = AnalyzeStructDeclaration(structDeclPtr->lChild, structDeclPtr->rChild);
+        int x = 2;
+    }
+    
+
     printf("Unsupported struct\n");
     exit(-1);
 }
@@ -134,7 +177,7 @@ InitDeclarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, 
             printf("Nested direct-declarator is not supported \n");
             exit(-1);
         }
-        initDecl.name = GetViewForToken(directDeclarator->token);
+        initDecl.decl.name = GetViewForToken(directDeclarator->token);
 
         if(directDeclarator->rChild)
         {
@@ -202,7 +245,7 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
     DeclSpecs spec = {};
     compoundTypeStr.clear();
 
-    const Ast::Node* currNode = declSpecs->rChild;
+    const Ast::Node* currNode = declSpecs;
     while (currNode)
     {
         if(currNode->type == Ast::type_qualifier)

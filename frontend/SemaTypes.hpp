@@ -11,9 +11,25 @@ struct DeclSpecs
     std::string_view typenameView; 
 };
 
-struct InitDeclarator
+struct Declarator
 {
     std::string_view name;
+};
+
+struct InitDeclarator
+{
+    Declarator decl;
     const Ast::Node* initializer;
 };
 
+struct StructDeclarator
+{
+    Declarator decl;
+    int64_t bitCount;
+};
+
+struct StructDeclaration
+{
+    DeclSpecs declSpec;
+    std::vector<StructDeclarator> declarators;
+};
