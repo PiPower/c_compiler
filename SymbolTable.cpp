@@ -8,7 +8,10 @@
 
 SymbolTable::SymbolTable()
 {
-    symbolTable.reserve(1000);
+    tableBufferHandle.push_back({});
+    globalTable = &tableBufferHandle.back();
+    currentTable = &tableBufferHandle.back();
+
     symNameBuff.offsetIntoPage = SYMBOL_NAME_PAGE_SIZE;
 }
 
@@ -50,22 +53,26 @@ std::string_view SymbolTable::AddSymbolName(const char *symName)
 
 void SymbolTable::AddSymbolImpl(std::string_view name, Symbol *sym)
 {
-    if(symbolTable.find(name) != symbolTable.end())
+    if(currentTable->table.find(name) != currentTable->table.end())
     {
         printf("Symbol already exists inside symbol table \n");
         exit(-1);
     }
 
-    symbolTable[name] = sym;
+    currentTable->table[name] = sym;
 }
 
 Sym::Kind SymbolTable::QuerySymKind(const std::string_view& name)
 {
-    auto symIter = symbolTable.find(name);
-    if(symIter == symbolTable.end())
+    ScopedSymbolTable* scopedTable = currentTable;
+    do 
     {
-        return Sym::NONE;
-    }
+        auto symIter = scopedTable->table.find(name);
+        if(symIter != scopedTable->table.end())
+        {
+            return symIter->second->kind;
+        }
+    }while ( (scopedTable = scopedTable->parent) );
 
-    return symIter->second->kind;
+    return Sym::NONE;
 }

@@ -3,7 +3,7 @@
 #include <string_view>
 #include <unordered_map>
 #include "utils/FileManager.hpp"
-
+#include <deque>
 namespace Sym
 {
 
@@ -109,6 +109,13 @@ struct SymbolType
     Argument* argsList;
 };
 
+struct ScopedSymbolTable
+{
+    ScopedSymbolTable* parent;
+    std::unordered_map<std::string_view, Symbol*> table;
+};
+
+
 struct SymbolTable
 {
   
@@ -120,7 +127,9 @@ struct SymbolTable
     template<typename Kind, typename... Args>
     void AddSymbol(std::string_view name, Args&&... args);
 
-    std::unordered_map<std::string_view, Symbol*> symbolTable;
+    ScopedSymbolTable* globalTable;
+    ScopedSymbolTable* currentTable;
+    std::deque<ScopedSymbolTable> tableBufferHandle;
     PagedBuffer symNameBuff;
 };
 
