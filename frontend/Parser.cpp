@@ -397,7 +397,7 @@ Ast::Node *Parser::ParseInitDeclList()
             break;
         }
         ConsumeExpectedToken(TokenType::comma);
-    } while (declarator = ParseDeclarator());
+    } while ((declarator = ParseDeclarator()));
     
     return initDeclList;
 }
