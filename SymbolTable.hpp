@@ -83,7 +83,10 @@ struct TypeBits
 
 struct Argument
 {
-    BuiltIn::Type* kind;
+    BuiltIn::Type kind;
+    TypeBits declType; 
+    int64_t bitCount;
+    // used in struct and unions
     std::string_view structName;
 };
 
@@ -104,8 +107,9 @@ struct SymbolType
     Sym::Kind kind;
     BuiltIn::Type dType;
     TypeBits desc;
-    // used only when type == struct_t
+    // used only when type == struct_t or union
     size_t argCount;
+    std::string_view* argNames;
     Argument* argsList;
 };
 
@@ -123,7 +127,14 @@ struct SymbolTable
     std::string_view AddSymbolName(const char* symName);
     void AddSymbolImpl(std::string_view name, Symbol* sym);
     Sym::Kind QuerySymKind(const std::string_view& name);
+    void CreateNewScope();
+    void PopScope();
+    char* HeapAllocateAligned(uint64_t size, uint8_t alignment);
 
+    template<typename Type>
+    Type* AllocateTypeOnHeap();
+    template<typename Type>
+    Type* AllocateTypeArrayOnHeap(uint64_t count);
     template<typename Kind, typename... Args>
     void AddSymbol(std::string_view name, Args&&... args);
 
@@ -131,10 +142,26 @@ struct SymbolTable
     ScopedSymbolTable* currentTable;
     std::deque<ScopedSymbolTable> tableBufferHandle;
     PagedBuffer symNameBuff;
+    // heap to be used by anything that has to do with data inside symbol table
+    PagedBuffer symbolHeap;
 };
 
-template<typename Kind, typename... Args>
-void SymbolTable::AddSymbol(std::string_view name, Args&&... args)
+template <typename Type>
+inline Type* SymbolTable::AllocateTypeOnHeap()
+{
+    char* data = HeapAllocateAligned(sizeof(Type), alignof(Type));
+    return new (data)Type;
+}
+
+template <typename Type>
+inline Type *SymbolTable::AllocateTypeArrayOnHeap(uint64_t count)
+{
+    char* data = HeapAllocateAligned(count * sizeof(Type), alignof(Type));
+    return new (data)Type[count];
+}
+
+template <typename Kind, typename... Args>
+void SymbolTable::AddSymbol(std::string_view name, Args &&...args)
 {
     Sym::Kind symKind;
     if constexpr (std::is_same_v<Kind, SymbolType>){symKind = Sym::TYPE;}
