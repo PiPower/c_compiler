@@ -13,6 +13,7 @@ SymbolTable::SymbolTable()
     currentTable = &tableBufferHandle.back();
 
     symNameBuff.offsetIntoPage = SYMBOL_NAME_PAGE_SIZE;
+    symbolHeap.offsetIntoPage = SYMBOL_HEAP_DATA_PAGE_SIZE;
 }
 
 std::string_view SymbolTable::AddSymbolName(const char *symName)
@@ -95,9 +96,9 @@ void SymbolTable::PopScope()
 
 char *SymbolTable::HeapAllocateAligned(uint64_t size, uint8_t alignment)
 {
-    std::vector<char*>& filenamePages = symNameBuff.pages;
-    size_t& currentPage = symNameBuff.currentPage;
-    int64_t& offsetIntoPage =  symNameBuff.offsetIntoPage;
+    std::vector<char*>& filenamePages = symbolHeap.pages;
+    size_t& currentPage = symbolHeap.currentPage;
+    int64_t& offsetIntoPage =  symbolHeap.offsetIntoPage;
     
     if(size > SYMBOL_HEAP_DATA_PAGE_SIZE )
     {

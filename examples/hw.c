@@ -1,5 +1,11 @@
 struct simple_struct
 {
+    struct simple_struct
+    {
+        int x, p : 2;
+        long int k;
+    } pt, pk;
+
     int x, p : 2;
     long int k;
 };

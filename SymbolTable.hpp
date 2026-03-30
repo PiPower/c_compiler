@@ -81,13 +81,11 @@ struct TypeBits
 };
 
 
-struct Argument
+struct Member
 {
-    BuiltIn::Type kind;
     TypeBits declType; 
     int64_t bitCount;
-    // used in struct and unions
-    std::string_view structName;
+    std::string_view typeName;
 };
 
 
@@ -102,15 +100,16 @@ struct SymbolTypedef
     std::string_view refrencedType;
 };
 
+struct ScopedSymbolTable;
 struct SymbolType
 {
     Sym::Kind kind;
     BuiltIn::Type dType;
-    TypeBits desc;
     // used only when type == struct_t or union
     size_t argCount;
+    ScopedSymbolTable* structTable;
     std::string_view* argNames;
-    Argument* argsList;
+    Member* argsList;
 };
 
 struct ScopedSymbolTable
@@ -118,7 +117,6 @@ struct ScopedSymbolTable
     ScopedSymbolTable* parent;
     std::unordered_map<std::string_view, Symbol*> table;
 };
-
 
 struct SymbolTable
 {
