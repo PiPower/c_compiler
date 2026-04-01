@@ -210,8 +210,8 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
         structDecls.push_back(structDecl);
         argCount += structDecl.declarators.size();
     }
+    ScopedSymbolTable* scopedTable = symTab->currentTable;
     symTab->PopScope();
-
     std::string_view* argNames = symTab->AllocateTypeArrayOnHeap<std::string_view>(argCount);
     Member* members = symTab->AllocateTypeArrayOnHeap<Member>(argCount);
     size_t idx = 0;
@@ -226,8 +226,12 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
             idx++;
         }
     }
+    SymbolType* sym = symTab->QueryTypeSymbol(spec->typenameView);
+    sym->structTable = scopedTable;
+    sym->argCount = argCount;
+    sym->memberNames = argNames;
+    sym->memberList = members;
 
-    //symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, argCount, structSymtab, argNames, members);
     return; 
 }
 

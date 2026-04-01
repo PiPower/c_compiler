@@ -122,9 +122,10 @@ struct SymbolType
     BuiltIn::Type dType;
     // used only when type == struct_t or union
     size_t argCount;
+    // points to table that holds symbol in struct's scope
     ScopedSymbolTable* structTable;
-    std::string_view* argNames;
-    Member* argsList;
+    std::string_view* memberNames;
+    Member* memberList;
 };
 
 struct ScopedSymbolTable
