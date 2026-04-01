@@ -4,14 +4,15 @@
 #include <unordered_map>
 #include "utils/FileManager.hpp"
 #include <deque>
+#include <array>
 namespace Sym
 {
 
 enum Kind: uint16_t
 {
-    NONE,
-    TYPEDEF,
-    TYPE
+    NONE = 0,
+    TYPEDEF = 0x1 << 0,
+    TYPE = 0x1 << 1
 };
 
 }
@@ -19,7 +20,8 @@ enum Kind: uint16_t
 namespace BuiltIn
 {
 
-enum Type : uint16_t {
+enum Type : uint16_t
+{
     none,
     struct_t,
     union_t,
@@ -42,6 +44,19 @@ enum Type : uint16_t {
     complex_double_128,
     complex_long_double,
     special
+};
+
+}
+
+namespace Scope
+{
+
+enum Type : uint8_t 
+{
+    NONE,
+    GLOBAL,
+    LOCAL,
+    STRUCT
 };
 
 }
@@ -115,7 +130,8 @@ struct SymbolType
 struct ScopedSymbolTable
 {
     ScopedSymbolTable* parent;
-    std::unordered_map<std::string_view, Symbol*> table;
+    std::array<std::unordered_map<std::string_view, Symbol*>, 4> tables;
+    uint8_t scopeType;
 };
 
 struct SymbolTable
@@ -123,18 +139,27 @@ struct SymbolTable
   
     SymbolTable();
     std::string_view AddSymbolName(const char* symName);
-    void AddSymbolImpl(std::string_view name, Symbol* sym);
-    Sym::Kind QuerySymKind(const std::string_view& name);
-    void CreateNewScope();
+    void AddSymbolImpl(const std::string_view&, Symbol* sym);
+    void CreateNewScope(Scope::Type scopeType);
     void PopScope();
     char* HeapAllocateAligned(uint64_t size, uint8_t alignment);
+    uint16_t QuerySymKinds(const std::string_view& name);
+    SymbolType* QueryTypeSymbol(
+        const std::string_view& name,
+        uint8_t* scopeType = nullptr,
+        uint8_t* prevScope = nullptr);
+    Symbol* QuerySymbolGeneric(
+        const std::string_view& name, 
+        uint8_t tableIdx,
+        uint8_t* scopeType = nullptr,
+        uint8_t* prevScope = nullptr);
 
     template<typename Type>
     Type* AllocateTypeOnHeap();
     template<typename Type>
     Type* AllocateTypeArrayOnHeap(uint64_t count);
     template<typename Kind, typename... Args>
-    void AddSymbol(std::string_view name, Args&&... args);
+    void AddSymbol(const std::string_view&, Args&&... args);
 
     ScopedSymbolTable* globalTable;
     ScopedSymbolTable* currentTable;
@@ -159,7 +184,7 @@ inline Type *SymbolTable::AllocateTypeArrayOnHeap(uint64_t count)
 }
 
 template <typename Kind, typename... Args>
-void SymbolTable::AddSymbol(std::string_view name, Args &&...args)
+void SymbolTable::AddSymbol(const std::string_view& name, Args &&...args)
 {
     Sym::Kind symKind;
     if constexpr (std::is_same_v<Kind, SymbolType>){symKind = Sym::TYPE;}

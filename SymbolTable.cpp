@@ -6,11 +6,18 @@
 #define  SYMBOL_HEAP_DATA_PAGE_SIZE 60 * 4096
 #define SYMBOL_NAME_PAGE_SIZE 30 * 4096
 
+constexpr uint8_t fn = 0;
+constexpr uint8_t type = 1;
+constexpr uint8_t typeDef = 2;
+constexpr uint8_t var = 3;
+constexpr uint16_t allSymbols = Sym::TYPE |  Sym::TYPEDEF;
+
 SymbolTable::SymbolTable()
 {
     tableBufferHandle.push_back({});
     globalTable = &tableBufferHandle.back();
     currentTable = &tableBufferHandle.back();
+    currentTable->scopeType = Scope::GLOBAL;
 
     symNameBuff.offsetIntoPage = SYMBOL_NAME_PAGE_SIZE;
     symbolHeap.offsetIntoPage = SYMBOL_HEAP_DATA_PAGE_SIZE;
@@ -52,37 +59,105 @@ std::string_view SymbolTable::AddSymbolName(const char *symName)
     return view;
 }
 
-void SymbolTable::AddSymbolImpl(std::string_view name, Symbol *sym)
+void SymbolTable::AddSymbolImpl(const std::string_view& name, Symbol *sym)
 {
-    if(currentTable->table.find(name) != currentTable->table.end())
+    bool triggerError = false;
+    uint8_t scopeType;
+    uint8_t prevScope;
+    // only correct sequence is GLOBAL, (LOCAL, ..., LOCAL)_opt, (TYPE, ..., TYPE)_opt
+    if(sym->kind == Sym::TYPE && 
+       QueryTypeSymbol(name, &scopeType, &prevScope))
     {
-        printf("Symbol already exists inside symbol table \n");
+        if(prevScope == Scope::NONE || /*symbol exists in the same scope*/
+           scopeType == Scope::STRUCT ) /*symbol repetition is not allowed inside nested structs*/
+        {
+            triggerError = true;
+        }
+    }
+
+
+    uint16_t symKinds = QuerySymKinds(name) & sym->kind;
+
+    if(triggerError)
+    {
+        char* c = (char* )alloca(name.length() + 1);
+        memcpy(c, name.data(), name.length());
+        c[name.length()] = '\0';
+        printf("Symbol '%s' redefinition \n", c);
         exit(-1);
     }
 
-    currentTable->table[name] = sym;
+    switch (sym->kind)
+    {
+    case Sym::TYPE:
+        currentTable->tables[type][name] = sym;
+        break;
+    case Sym::TYPEDEF:
+        currentTable->tables[typeDef][name] = sym;
+        break;  
+    default:
+        printf("Incorrect table\n");
+        exit(-1);
+        break;
+    }
 }
 
-Sym::Kind SymbolTable::QuerySymKind(const std::string_view& name)
+Symbol* SymbolTable::QuerySymbolGeneric(
+    const std::string_view &name,
+    uint8_t tableIdx,
+    uint8_t *scopeType,
+    uint8_t* prevScope)
 {
+    ScopedSymbolTable* scopedTable = currentTable;
+    uint8_t prevScopeV = Scope::NONE;
+    do 
+    {
+        auto symIter = scopedTable->tables[tableIdx].find(name);
+        if(symIter != scopedTable->tables[tableIdx].end())
+        {
+            if(scopeType) {*scopeType = scopedTable->scopeType;}
+            if(prevScope) {*prevScope = prevScopeV;}
+            return symIter->second;
+        }
+        prevScopeV = scopedTable->scopeType;
+    }while (scopedTable = scopedTable->parent);
+
+    return nullptr;
+}
+
+SymbolType* SymbolTable::QueryTypeSymbol(
+    const std::string_view& name,
+    uint8_t* scopeType,
+    uint8_t* prevScope)
+{
+    return (SymbolType*)QuerySymbolGeneric(name, type, scopeType, prevScope);
+}
+
+uint16_t SymbolTable::QuerySymKinds(const std::string_view& name)
+{
+    uint16_t detectedSyms = Sym::NONE;
     ScopedSymbolTable* scopedTable = currentTable;
     do 
     {
-        auto symIter = scopedTable->table.find(name);
-        if(symIter != scopedTable->table.end())
+        for(size_t i = 0; i < scopedTable->tables.size(); i++)
         {
-            return symIter->second->kind;
+            auto symIter = scopedTable->tables[i].find(name);
+            if(symIter != scopedTable->tables[i].end())
+            {
+                return detectedSyms |= symIter->second->kind;
+            }
         }
-    }while ( (scopedTable = scopedTable->parent) );
+    }while ( (scopedTable = scopedTable->parent) && detectedSyms != allSymbols );
 
-    return Sym::NONE;
+    return detectedSyms;
 }
 
-void SymbolTable::CreateNewScope()
+void SymbolTable::CreateNewScope(Scope::Type scopeType)
 {
     tableBufferHandle.push_back({});
     tableBufferHandle.back().parent = currentTable;
     currentTable = &tableBufferHandle.back();
+    currentTable->scopeType = scopeType;
 }
 
 void SymbolTable::PopScope()

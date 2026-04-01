@@ -1,6 +1,7 @@
 #include "SemanticAnalysis.hpp"
 #include <string.h>
 #include <limits>
+
 typedef const Ast::Node Node;
 
 static const char* kTypeNames[] = {
@@ -37,7 +38,7 @@ SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 symTab(symTab), manager(manager)
 {
     // set offset into max so that new page gets allocated
-    compoundTypeStr.reserve(100);
+    handyString.reserve(100);
  
     // each simple built in typename is stored in read section during program lifetime
     // so each std::string_view will be valid
@@ -146,8 +147,8 @@ StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *de
 void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *initDeclList)
 {
     Node* root = initDeclList;
-    Sym::Kind symKind = symTab->QuerySymKind(declSpec->typenameView);
-    if(symKind != Sym::TYPEDEF && symKind != Sym::TYPE)
+    uint16_t symKind = symTab->QuerySymKinds(declSpec->typenameView);
+    if( (symKind & (Sym::TYPEDEF | Sym::TYPE)) == 0)
     {
         printf("Specified identifier does not name a type\n");
         exit(-1);
@@ -187,8 +188,17 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
     {
         
     }
+
+    if(!structTree->rChild)
+    {
+        // test whether its declaration of type or object of said type
+        return;
+    }
+
+    // register name, its gonna be used to test redefinition    
+    symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, 0, nullptr, nullptr, nullptr);
     // struct has its own scope
-    symTab->CreateNewScope();
+    symTab->CreateNewScope(Scope::STRUCT);
     ScopedSymbolTable* structSymtab = symTab->currentTable;
     Node *argList = structTree;
     std::vector<StructDeclaration> structDecls;
@@ -201,6 +211,7 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
         argCount += structDecl.declarators.size();
     }
     symTab->PopScope();
+
     std::string_view* argNames = symTab->AllocateTypeArrayOnHeap<std::string_view>(argCount);
     Member* members = symTab->AllocateTypeArrayOnHeap<Member>(argCount);
     size_t idx = 0;
@@ -216,7 +227,7 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
         }
     }
 
-    symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, argCount, structSymtab, argNames, members);
+    //symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, argCount, structSymtab, argNames, members);
     return; 
 }
 
@@ -259,15 +270,15 @@ void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
 
 void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpecs *spec)
 {
-
+    handyString.clear();
     Node* currChild = typeSequence;
     do
     {
-        compoundTypeStr += GetViewForToken(currChild->token);
+        handyString += GetViewForToken(currChild->token);
         currChild = currChild->lChild;
         if(currChild)
         {
-           compoundTypeStr += ' '; 
+           handyString += ' '; 
         }
     }while (currChild);
 
@@ -275,7 +286,7 @@ void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpec
     for(int i = 0; i < (int) (sizeof(kTypeNames)/sizeof(const char*)); i++)
     {
         const char* tName = kTypeNames[i];
-        if(strcmp(tName, compoundTypeStr.data()) == 0)
+        if(strcmp(tName, handyString.data()) == 0)
         {
             idx = i;
             break;
@@ -306,11 +317,9 @@ std::string_view SemanticAnalyzer::GetViewForToken(const Token &token)
     return tokenView;
 }
 
-
 bool SemanticAnalyzer::IsAliasOfType(const std::string_view& identifier)
 {
-    Sym::Kind symKind = symTab->QuerySymKind(identifier);
-    return symKind == Sym::TYPEDEF || symKind == Sym::TYPE;
+    return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
 }
 
 uint64_t SemanticAnalyzer::GetAnnonymousId()
@@ -322,7 +331,6 @@ uint64_t SemanticAnalyzer::GetAnnonymousId()
 DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
 {
     DeclSpecs spec = {};
-    compoundTypeStr.clear();
 
     Node* currNode = declSpecs;
     while (currNode)

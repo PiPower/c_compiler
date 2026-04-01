@@ -21,11 +21,12 @@ struct SemanticAnalyzer
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     // misc
     std::string_view GetViewForToken(const Token &token);
-
+    
     SymbolTable* symTab;
     FileManager* manager;
-    // used as a handle to memory for simple type name
-    std::string compoundTypeStr;
+    // used as local string to avoid constant re allocation
+    // it is not guaranted to be valid after call to any SEMA function
+    std::string handyString;
 };
 
 
