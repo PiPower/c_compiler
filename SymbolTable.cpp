@@ -137,7 +137,7 @@ SymbolTypedef* SymbolTable::QueryTypedefSymbol(
     uint8_t *scopeType,
     uint8_t *prevScope)
 {
-    return (SymbolTypedef*)QuerySymbolGeneric(name, type, scopeType, prevScope);
+    return (SymbolTypedef*)QuerySymbolGeneric(name, typeDef, scopeType, prevScope);
 
 }
 

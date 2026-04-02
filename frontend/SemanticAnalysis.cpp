@@ -408,10 +408,15 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
         
         else if(currNode->type == Ast::type_specifier)
         {
-            if(NamesAType(GetViewForToken(currNode->token)))
+            if( (symTab->QuerySymKinds(GetViewForToken(currNode->token)) & Sym::TYPEDEF)  > 0)
             {
-                int x = 2;
-            }
+                SymbolTypedef* symTypedef = symTab->QueryTypedefSymbol(GetViewForToken(currNode->token));
+                SymbolType* symType =  symTab->QueryTypeSymbol(symTypedef->refrencedType);
+                
+                spec.typenameView = symTypedef->refrencedType;
+                currNode = currNode->rChild;
+                continue;
+            }   
             switch (currNode->token.type)
             {
             case TokenType::kw_union:

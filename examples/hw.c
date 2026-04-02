@@ -1,9 +1,11 @@
+typedef signed char prol;
+typedef prol xd;
 
-typedef int yolo;
-typedef float yolo;
+typedef long int yolo2;
+typedef yolo2 prd;
 struct simple_struct
 {
-    struct simple_struct
+    struct simple_struct_2
     {
         int x, p : 2;
         long int k;
@@ -12,9 +14,6 @@ struct simple_struct
     int x, p : 2;
     long int k;
 };
-
-typedef struct simple_struct size_t ;
-
 
 #include <stdio.h>
 
