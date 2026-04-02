@@ -663,12 +663,12 @@ Ast::Node *Parser::ParseDeclSpec()
 
     Ast::Node* bottomChild = declSpec;
     bool keepParsing = true;
-
+    bool allowTypeSpec = true;
     while (keepParsing)
     {
         keepParsing = false;
         // right child of each top level decl ast is RESERVED for chaining
-        if(Ast::Node* subDecl = DeclSpecSubtype())
+        if(Ast::Node* subDecl = DeclSpecSubtype(&allowTypeSpec))
         {
             keepParsing = true;
             bottomChild->rChild = subDecl;
@@ -679,15 +679,19 @@ Ast::Node *Parser::ParseDeclSpec()
     return declSpec;
 }
 
-Ast::Node *Parser::DeclSpecSubtype()
+Ast::Node *Parser::DeclSpecSubtype(bool* allowTypeSpec)
 {
     if (Ast::Node* nodeOut = StorageSpec())
     {
         return nodeOut;
     }
-    if (Ast::Node* nodeOut = TypeSpecifier())
+    if (*allowTypeSpec)
     {
-        return nodeOut;
+        if(Ast::Node* nodeOut = TypeSpecifier())
+        {
+            *allowTypeSpec = false;
+            return nodeOut;
+        }
     }
     if (Ast::Node* nodeOut = TypeQualifierList())
     {
@@ -735,7 +739,7 @@ Ast::Node *Parser::TypeSpecifier()
     
     if(IsTokenOneOf(&token, TokenType::identifier))
     {
-        if(analyzer->IsAliasOfType(GetViewForToken(token)))
+        if(analyzer->NamesAType(GetViewForToken(token)))
         {
             ConsumeToken();
             Ast::Node* type = AllocateAstNodes();

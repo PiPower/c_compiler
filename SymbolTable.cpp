@@ -65,8 +65,7 @@ void SymbolTable::AddSymbolImpl(const std::string_view& name, Symbol *sym)
     uint8_t scopeType;
     uint8_t prevScope;
     // only correct sequence is GLOBAL, (LOCAL, ..., LOCAL)_opt, (TYPE, ..., TYPE)_opt
-    if(sym->kind == Sym::TYPE && 
-       QueryTypeSymbol(name, &scopeType, &prevScope))
+    if((sym->kind == Sym::TYPE && QueryTypeSymbol(name, &scopeType, &prevScope)) )
     {
         if(prevScope == Scope::NONE || /*symbol exists in the same scope*/
            scopeType == Scope::STRUCT ) /*symbol repetition is not allowed inside nested structs*/
@@ -131,6 +130,15 @@ SymbolType* SymbolTable::QueryTypeSymbol(
     uint8_t* prevScope)
 {
     return (SymbolType*)QuerySymbolGeneric(name, type, scopeType, prevScope);
+}
+
+SymbolTypedef* SymbolTable::QueryTypedefSymbol(
+    const std::string_view &name,
+    uint8_t *scopeType,
+    uint8_t *prevScope)
+{
+    return (SymbolTypedef*)QuerySymbolGeneric(name, type, scopeType, prevScope);
+
 }
 
 uint16_t SymbolTable::QuerySymKinds(const std::string_view& name)

@@ -156,6 +156,7 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
 
     while (Node* currChild = root->rChild)
     {
+        //większa walidacja 
         Ast::Node* initDecl = currChild->lChild;
         InitDeclarator iDecl = AnalyzeDeclarator(initDecl->rChild, initDecl->lChild);
 
@@ -165,7 +166,7 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
             exit(-1);
         }
         
-        symTab->AddSymbol<SymbolTypedef>(iDecl.decl.name, declSpec->typenameView);
+        symTab->AddSymbol<SymbolTypedef>(iDecl.decl.name, declSpec->typenameView, declSpec->declType.qual);
 
         root = currChild;
     }
@@ -299,7 +300,7 @@ void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpec
 
     if(idx == -1)
     {
-        printf("Unrecognized simple type \n");
+        printf("'%s' does not name a type \n", handyString.c_str());
         exit(-1);
     }
     spec->typenameView = std::string_view(kTypeNames[idx]);
@@ -321,7 +322,7 @@ std::string_view SemanticAnalyzer::GetViewForToken(const Token &token)
     return tokenView;
 }
 
-bool SemanticAnalyzer::IsAliasOfType(const std::string_view& identifier)
+bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 {
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
 }
@@ -404,8 +405,13 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
             }
 
         }
+        
         else if(currNode->type == Ast::type_specifier)
         {
+            if(NamesAType(GetViewForToken(currNode->token)))
+            {
+                int x = 2;
+            }
             switch (currNode->token.type)
             {
             case TokenType::kw_union:

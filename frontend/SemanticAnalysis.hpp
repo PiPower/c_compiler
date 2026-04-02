@@ -16,7 +16,7 @@ struct SemanticAnalyzer
     InitDeclarator AnalyzeDeclarator(const Ast::Node* declarator, const Ast::Node* initializer);
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
-    bool IsAliasOfType(const std::string_view& identifier);
+    bool NamesAType(const std::string_view& identifier);
     uint64_t GetAnnonymousId();
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     // misc

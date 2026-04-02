@@ -57,7 +57,7 @@ struct Parser
     Ast::Node* ParseArrayArgs();
     Ast::Node* ParseDirectDeclarator();
     Ast::Node* ParseDeclSpec();
-    Ast::Node* DeclSpecSubtype();
+    Ast::Node* DeclSpecSubtype(bool* allowTypeSpec);
     Ast::Node* StorageSpec();
     Ast::Node* TypeSpecifier();
     Ast::Node* TypeQualifierList();

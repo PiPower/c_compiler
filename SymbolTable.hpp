@@ -113,6 +113,7 @@ struct SymbolTypedef
 {
     Sym::Kind kind;
     std::string_view refrencedType;
+    Qualifiers qual;
 };
 
 struct ScopedSymbolTable;
@@ -146,6 +147,10 @@ struct SymbolTable
     char* HeapAllocateAligned(uint64_t size, uint8_t alignment);
     uint16_t QuerySymKinds(const std::string_view& name);
     SymbolType* QueryTypeSymbol(
+        const std::string_view& name,
+        uint8_t* scopeType = nullptr,
+        uint8_t* prevScope = nullptr);
+    SymbolTypedef* QueryTypedefSymbol(
         const std::string_view& name,
         uint8_t* scopeType = nullptr,
         uint8_t* prevScope = nullptr);

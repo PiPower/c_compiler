@@ -1,3 +1,6 @@
+
+typedef int yolo;
+typedef float yolo;
 struct simple_struct
 {
     struct simple_struct
@@ -10,8 +13,11 @@ struct simple_struct
     long int k;
 };
 
+typedef struct simple_struct size_t ;
+
 
 #include <stdio.h>
+
 
 struct Outer {
     const volatile unsigned long id, gd, *ci;
@@ -104,6 +110,5 @@ struct Outer {
 
 int main()
 {
-    Yolo2 x = {};
-    x.p = 2;
+
 }
