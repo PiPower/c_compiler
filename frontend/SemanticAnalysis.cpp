@@ -134,7 +134,7 @@ StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *de
             bitCount = constExpr.int64;
         }
 
-        StructDeclarator decl;
+        StructDeclarator decl = {};
         decl.decl = initDecl.decl;
         decl.bitCount = bitCount;
         structDecl.declarators.push_back(decl);
@@ -187,20 +187,19 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
     }
     else
     {
-        
+        std::string anonName = "anonymous_" + std::to_string(GetAnnonymousId());
+        spec->typenameView = symTab->AddSymbolName(anonName.c_str());
     }
 
+    // register name, its gonna be used to test redefinition    
+    symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, 0, nullptr, nullptr, nullptr);
     if(!structTree->rChild)
     {
         // test whether its declaration of type or object of said type
         return;
     }
-
-    // register name, its gonna be used to test redefinition    
-    symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, 0, nullptr, nullptr, nullptr);
     // struct has its own scope
     symTab->CreateNewScope(Scope::STRUCT);
-    ScopedSymbolTable* structSymtab = symTab->currentTable;
     Node *argList = structTree;
     std::vector<StructDeclaration> structDecls;
     size_t argCount = 0;
@@ -223,6 +222,7 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
             members[idx].declType = structDecls[i].declSpec.declType;
             members[idx].typeName = structDecls[i].declSpec.typenameView;
             members[idx].bitCount = structDecls[i].declarators[j].bitCount;
+            members[idx].access = structDecls[i].declarators[j].decl.accessTypes;
             argNames[idx] = structDecls[i].declarators[j].decl.name;
             idx++;
         }
@@ -244,20 +244,7 @@ InitDeclarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, 
     Node* ptrDecl = declarator->rChild;
     if(declarator->lChild->type == Ast::direct_declarator)
     {
-        Node* directDeclarator = declarator->lChild;
-        if(directDeclarator->lChild)
-        {
-            printf("Nested direct-declarator is not supported \n");
-            exit(-1);
-        }
-        initDecl.decl.name = GetViewForToken(directDeclarator->token);
-
-        if(directDeclarator->rChild)
-        {
-            printf("arrays/callings are not supported\n");
-            exit(-1);
-        }
-
+        initDecl.decl = AnalyzeDirectDeclarator(declarator->lChild);
     }
     else
     {
@@ -265,6 +252,42 @@ InitDeclarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, 
         exit(-1);
     }
     return initDecl;
+}
+
+Declarator SemanticAnalyzer::AnalyzeDirectDeclarator(const Ast::Node *directDeclarator)
+{
+    Declarator decl = {};
+    if(directDeclarator->lChild)
+    {
+        printf("Nested direct-declarator is not supported \n");
+        exit(-1);
+    }
+    decl.name = GetViewForToken(directDeclarator->token);
+
+    Ast::Node* accessNode = directDeclarator->rChild;
+    AccessType* accessPtr = decl.accessTypes;
+    while(accessNode)
+    {
+        AccessType* access = symTab->AllocateTypeOnHeap<AccessType>();
+
+        if(accessNode->lChild->type == Ast::parameter_type_list)
+        {
+            printf("function args are are not supported in direct declarator\n");
+            exit(-1);
+        }
+        else
+        {
+            access->isArray = true;
+            access->qualList = accessNode->lChild->lChild;
+            access->asmExpr = accessNode->lChild->rChild;;
+        }
+
+        if(accessPtr){ accessPtr->next = access; }
+        else{ decl.accessTypes = access; }
+        accessPtr = access;
+        accessNode = accessNode->rChild;
+    }
+    return decl;
 }
 
 void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)

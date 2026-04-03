@@ -14,6 +14,7 @@ struct SemanticAnalyzer
     void AnalyzeUnion(const Ast::Node* unionTree, DeclSpecs* spec);
     void AnalyzeStruct(const Ast::Node* structTree, DeclSpecs* spec);
     InitDeclarator AnalyzeDeclarator(const Ast::Node* declarator, const Ast::Node* initializer);
+    Declarator AnalyzeDirectDeclarator(const Ast::Node* directDeclarator);
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);

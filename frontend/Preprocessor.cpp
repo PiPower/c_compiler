@@ -253,6 +253,7 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
     case Ast::NodeType::op_add: return BinaryOp<std::plus<int64_t>>(this, expr);
     case Ast::NodeType::op_multiply: return BinaryOp<std::multiplies<int64_t>>(this, expr);
     case Ast::NodeType::op_equal: return BinaryOp<std::equal_to<int64_t>>(this, expr);
+    case Ast::NodeType::op_not_equal: return BinaryOp<std::not_equal_to<int64_t>>(this, expr);
     case Ast::NodeType::expression: return ExecuteNode(expr->lChild);
     // forbiden element
     case Ast::NodeType::op_pre_inc:

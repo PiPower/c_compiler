@@ -3,6 +3,7 @@
 #include <string_view>
 #include <unordered_map>
 #include "utils/FileManager.hpp"
+#include "frontend/AstNode.hpp"
 #include <deque>
 #include <array>
 namespace Sym
@@ -77,6 +78,14 @@ struct Spec
     uint8_t register_ : 1;
 };
 
+struct AccessType
+{
+    bool isArray;
+    Ast::Node* asmExpr;
+    Ast::Node* qualList;
+    AccessType* next;
+};
+
 struct TypeBits
 {
     // qualifiers
@@ -98,6 +107,7 @@ struct TypeBits
 
 struct Member
 {
+    AccessType* access;
     TypeBits declType; 
     int64_t bitCount;
     std::string_view typeName;
