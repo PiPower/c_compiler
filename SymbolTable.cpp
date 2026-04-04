@@ -74,7 +74,7 @@ void SymbolTable::AddSymbolImpl(const std::string_view& name, Symbol *sym)
         }
     }
 
-
+    
     uint16_t symKinds = QuerySymKinds(name) & sym->kind;
 
     if(triggerError)

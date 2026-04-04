@@ -137,6 +137,7 @@ struct SymbolType
     ScopedSymbolTable* structTable;
     std::string_view* memberNames;
     Member* memberList;
+    bool isDefined;
 };
 
 struct ScopedSymbolTable

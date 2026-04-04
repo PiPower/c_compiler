@@ -173,13 +173,7 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
     
 }
 
-void SemanticAnalyzer::AnalyzeUnion(const Ast::Node *unionTree, DeclSpecs *spec)
-{
-    printf("Unsupported union\n");
-    exit(-1);
-}
-
-void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spec)
+void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs *spec, bool isStruct)
 {
     if(structTree->lChild)
     {
@@ -190,13 +184,28 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
         std::string anonName = "anonymous_" + std::to_string(GetAnnonymousId());
         spec->typenameView = symTab->AddSymbolName(anonName.c_str());
     }
-
-    // register name, its gonna be used to test redefinition    
-    symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, 0, nullptr, nullptr, nullptr);
+    if(spec->typenameView == "_IO_FILE")
+    {
+        int x = 2;
+    }
+    SymbolType* sym = symTab->QueryTypeSymbol(spec->typenameView);
+    if(!sym)
+    {
+        // declare name
+        BuiltIn::Type symType =  isStruct ? BuiltIn::struct_t :  BuiltIn::union_t;
+        symTab->AddSymbol<SymbolType>(spec->typenameView, symType, 0, nullptr, nullptr, nullptr, false);
+    }
     if(!structTree->rChild)
     {
         // test whether its declaration of type or object of said type
         return;
+    }
+
+    sym = symTab->QueryTypeSymbol(spec->typenameView);
+    if(sym->isDefined)
+    {
+        // used simply to trigger redefinition error
+        symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, 0, nullptr, nullptr, nullptr, false);
     }
     // struct has its own scope
     symTab->CreateNewScope(Scope::STRUCT);
@@ -227,12 +236,12 @@ void SemanticAnalyzer::AnalyzeStruct(const Ast::Node *structTree, DeclSpecs *spe
             idx++;
         }
     }
-    SymbolType* sym = symTab->QueryTypeSymbol(spec->typenameView);
+
     sym->structTable = scopedTable;
     sym->argCount = argCount;
     sym->memberNames = argNames;
     sym->memberList = members;
-
+    sym->isDefined = true;
     return; 
 }
 
@@ -443,10 +452,10 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
             switch (currNode->token.type)
             {
             case TokenType::kw_union:
-                AnalyzeUnion(currNode->lChild, &spec);
+                AnalyzeStructUnion(currNode->lChild, &spec, false);
                 break;
             case TokenType::kw_struct:
-                AnalyzeStruct(currNode->lChild, &spec);
+                AnalyzeStructUnion(currNode->lChild, &spec, true);
                 break;
             case TokenType::kw_enum:
                 AnalyzeEnum(currNode->lChild, &spec);
