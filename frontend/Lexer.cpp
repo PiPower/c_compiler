@@ -22,7 +22,8 @@ static const char* kewordStrings[] = {
     // preprocessor  specific keywords,
     "include",   "define",    "ifdef",   "ifndef",  
     "elif",      "endif",     "line",    "error", 
-    "pragma",    "undef",     "defined", "__builtin_va_list"
+    "pragma",    "undef",     "defined", "__builtin_va_list" ,
+    "__attribute__" ,
 };
 
 
@@ -1111,7 +1112,9 @@ void Lexer::PrepareKeywordMap()
     keywordsMap[std::string_view(kewordStrings[34])] = TokenType::kw_bool;
     keywordsMap[std::string_view(kewordStrings[35])] = TokenType::kw_complex;
     keywordsMap[std::string_view(kewordStrings[36])] = TokenType::kw_imaginary;
-
+    
+    keywordsMap[std::string_view(kewordStrings[48])] = TokenType::kw__builtin_va_list;
+    keywordsMap[std::string_view(kewordStrings[49])] = TokenType::kw__attribute__;
     // preprocessor keywords MUST be resolved by preprocessor because they
     // can be used by a user outside of #macro formula
     keywordsMap[std::string_view(kewordStrings[37])] = TokenType::pp_include;
@@ -1125,8 +1128,6 @@ void Lexer::PrepareKeywordMap()
     keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_pragma;
     keywordsMap[std::string_view(kewordStrings[46])] = TokenType::pp_undef;
     keywordsMap[std::string_view(kewordStrings[47])] = TokenType::pp_defined;
-    keywordsMap[std::string_view(kewordStrings[48])] = TokenType::kw__builtin_va_list;
-
     
 }
 

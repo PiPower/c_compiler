@@ -131,7 +131,40 @@ start_parsing:
 
 Token Parser::GetCurrToken()
 {
-get_token:
+    // this is temporary solution to skip kw__attribute__
+    // to be resolved later
+    Token token = GetCurrTokenInternal();
+    if(token.type == TokenType::kw__attribute__)
+    {
+        ConsumeToken();
+        ConsumeExpectedToken(TokenType::l_parentheses);
+        int nest = 1;
+        while (true)
+        {
+            token = GetCurrTokenInternal();
+            ConsumeToken();
+            if(token.type == TokenType::l_parentheses)
+            {
+                nest++;
+            }
+            else if(token.type == TokenType::r_parentheses)
+            {
+                nest--;
+                if(nest == 0)
+                {
+                    break;
+                }
+            }
+        }
+        
+
+    }
+    return GetCurrTokenInternal();
+}
+
+Token Parser::GetCurrTokenInternal()
+{
+    get_token:
     if(tokenQueue.empty())
     {
         Token token;

@@ -33,7 +33,9 @@
     KW(switch) \
     KW(inline) \
     KW(goto) \
+    /*extension keywords*/ \
     KW(_builtin_va_list) \
+    KW(_attribute__) \
     /* type keywords */ \
     KW(unsigned) \
     KW(int) \

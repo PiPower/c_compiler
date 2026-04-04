@@ -15,6 +15,7 @@ struct Parser
     Ast::Node* Parse();
     // misc ops
     Token GetCurrToken();
+    Token GetCurrTokenInternal();
     void PutBackAtFront(Token token);
     void ConsumeToken();
     std::string_view GetViewForToken(const Token &token);
