@@ -184,10 +184,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
         std::string anonName = "anonymous_" + std::to_string(GetAnnonymousId());
         spec->typenameView = symTab->AddSymbolName(anonName.c_str());
     }
-    if(spec->typenameView == "_IO_FILE")
-    {
-        int x = 2;
-    }
+    
     SymbolType* sym = symTab->QueryTypeSymbol(spec->typenameView);
     if(!sym)
     {
@@ -232,6 +229,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             members[idx].typeName = structDecls[i].declSpec.typenameView;
             members[idx].bitCount = structDecls[i].declarators[j].bitCount;
             members[idx].access = structDecls[i].declarators[j].decl.accessTypes;
+            members[idx].ptr = structDecls[i].declarators[j].decl.ptr;
             argNames[idx] = structDecls[i].declarators[j].decl.name;
             idx++;
         }
@@ -250,7 +248,18 @@ InitDeclarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, 
     InitDeclarator initDecl = {};
     initDecl.initializer = initializer;
 
-    Node* ptrDecl = declarator->rChild;
+    Ast::Node* ptrNode = declarator->rChild;
+    Pointer* ptrPtr = initDecl.decl.ptr;
+    while(ptrNode)
+    {
+        Pointer* ptr = symTab->AllocateTypeOnHeap<Pointer>();
+        ptr->quals = AnalyzeDeclSpec(ptrNode->lChild).declType.qual;
+        if(ptrPtr){ ptrPtr->next = ptr; }
+        else{ initDecl.decl.ptr = ptr; }
+        ptrPtr = ptr;
+        ptrNode = ptrNode->rChild;
+    }
+    
     if(declarator->lChild->type == Ast::direct_declarator)
     {
         initDecl.decl = AnalyzeDirectDeclarator(declarator->lChild);

@@ -13,6 +13,7 @@ struct DeclSpecs
 
 struct Declarator
 {
+    Pointer* ptr;
     AccessType* accessTypes;
     std::string_view name;
 };

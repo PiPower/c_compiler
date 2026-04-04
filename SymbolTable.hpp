@@ -86,6 +86,12 @@ struct AccessType
     AccessType* next;
 };
 
+struct Pointer
+{
+    Qualifiers quals;
+    Pointer* next;
+};
+
 struct TypeBits
 {
     // qualifiers
@@ -107,6 +113,7 @@ struct TypeBits
 
 struct Member
 {
+    Pointer* ptr;
     AccessType* access;
     TypeBits declType; 
     int64_t bitCount;

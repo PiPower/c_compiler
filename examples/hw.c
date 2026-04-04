@@ -11,7 +11,7 @@ struct simple_struct
         long int k;
     } pt, pk;
 
-    int x, p : 2;
+    int * const volatile x, p : 2;
     long int k;
 };
 
