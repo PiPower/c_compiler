@@ -127,9 +127,6 @@ start_parsing:
     declaration->lChild = declSpec;
     declaration->rChild = initDeclarationList;
     return declaration;
-    
-
-    return nullptr;
 }
 
 Token Parser::GetCurrToken()
@@ -753,6 +750,38 @@ Ast::Node *Parser::TypeSpecifier()
     return nullptr;
 }
 
+Ast::Node *Parser::TypeName()
+{
+    Ast::Node* typeName = AllocateAstNodes();
+    typeName->type = Ast::type_name;
+
+    //specifier-qualifier-list
+    Ast::Node* bottomChild = typeName;
+    bool keepParsing = true;
+    bool allowTypeSpec = true;
+    while (keepParsing)
+    {
+        keepParsing = false;
+        // right child of each top level decl ast is RESERVED for chaining
+        if(Ast::Node* subDecl = DeclSpecSubtype(&allowTypeSpec))
+        {
+            if(subDecl->type == Ast::storage_specifier || 
+                subDecl->type == Ast::function_specifier)
+            {
+                printf("'%s' is not allowed inside type-name\n", Ast::nodeStr(subDecl->type));
+                exit(-1);
+            }
+
+            keepParsing = true;
+            bottomChild->rChild = subDecl;
+            bottomChild = bottomChild->rChild;
+        }
+    }    
+
+    typeName->rChild = AbstractDeclarator();
+    return typeName;
+}
+
 Ast::Node *Parser::TypeQualifierList()
 {
     std::array<TokenType::Type, 3> typeQuelifiers = {TokenType::kw_const,
@@ -1061,6 +1090,29 @@ Ast::Node* Parser::UnaryExpression()
          Ast::op_minus, Ast::op_complement, Ast::op_log_negate};
 
     Token token = GetCurrToken();
+    if(token.type == TokenType::kw_sizeof)
+    {
+        ConsumeToken();
+        token = GetCurrToken();
+
+        Ast::Node* node =  AllocateAstNodes();
+        node->token = token;
+        node->type = Ast::op_sizeof;
+        if(token.type == TokenType::l_parentheses)
+        {
+            ConsumeExpectedToken(TokenType::l_parentheses);
+            node->lChild = TypeName();
+            node->token = token;
+            ConsumeExpectedToken(TokenType::r_parentheses);
+
+        }
+        else
+        {
+            node->lChild = UnaryExpression();
+        }
+        return node;
+    }
+
 
     while (IsTokenOneFromArray(&token, tokTypes))
     {
@@ -1075,7 +1127,7 @@ Ast::Node* Parser::UnaryExpression()
             return node;
         }
     }
-    
+
     return PostfixExpression();
 }
 

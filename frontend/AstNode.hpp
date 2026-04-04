@@ -42,6 +42,7 @@
     OP(equal) \
     OP(not_equal) \
     OP(log_negate) \
+    OP(sizeof) \
     /* Assignment nodes */ \
     X(assignment) \
     X(mul_assignment) \
@@ -94,6 +95,7 @@
     X(initalizer) \
     X(pointer) \
     X(dref_ptr) \
+    X(type_name) \
     X(array_access) \
     X(struct_access) \
     X(cast) \

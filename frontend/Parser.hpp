@@ -60,6 +60,7 @@ struct Parser
     Ast::Node* DeclSpecSubtype(bool* allowTypeSpec);
     Ast::Node* StorageSpec();
     Ast::Node* TypeSpecifier();
+    Ast::Node* TypeName();
     Ast::Node* TypeQualifierList();
     Ast::Node* FunctionSpec();
     Ast::Node* StructOrUnionSpec();
