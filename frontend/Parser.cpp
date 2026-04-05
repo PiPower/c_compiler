@@ -526,41 +526,8 @@ Ast::Node *Parser::ParseFunctionCallArgs()
         
         return identifierList;
     }
+    return ParameterTypeList();
 
-    Ast::Node* parameterTypeList = AllocateAstNodes();
-    parameterTypeList->type = Ast::parameter_type_list;
-    Ast::Node* bottomChild = parameterTypeList;
-    while (true)
-    {
-        Ast::Node *parameterDecl = ParameterDecl();
-
-        Ast::Node *glueList = AllocateAstNodes();
-        glueList->type = Ast::glue_list;
-        glueList->lChild = parameterDecl;
-
-        bottomChild->rChild = glueList;
-        bottomChild = glueList;
-
-        Token token = GetCurrToken();
-        if(token.type != TokenType::comma)
-        {
-            break;
-        }
-        ConsumeToken();
-
-        token = GetCurrToken();
-        if(token.type == TokenType::ellipsis)
-        {
-            ConsumeToken();
-            Ast::Node *ellipsis = AllocateAstNodes();
-            ellipsis->type = Ast::parameter_decl;
-            ellipsis->token = token;
-            bottomChild->rChild = ellipsis;
-            break;
-        }
-    }
-    
-    return parameterTypeList;
 }
 Ast::Node *Parser::ParseArrayArgs()
 {
@@ -1026,32 +993,90 @@ Ast::Node *Parser::ParameterDecl()
 Ast::Node *Parser::ParseDirectAbstractDeclarator()
 {
     Token token = GetCurrToken();
-    Ast::Node* directAbstractDeclarator = nullptr;
-
-    if(token.type == TokenType::l_parentheses)
+    if(!IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses))
     {
-        ConsumeToken();
-        Ast::Node* abstractDeclarator = AbstractDeclarator();
-        if(!abstractDeclarator)
-        {
-            PutBackAtFront(token);
-            goto abstract_direct_decl;
-        }
-        directAbstractDeclarator = AllocateAstNodes();
-        directAbstractDeclarator->type = Ast::direct_declarator;
-        directAbstractDeclarator->token = token;
-        directAbstractDeclarator->lChild = abstractDeclarator;
-        ConsumeExpectedToken(TokenType::r_parentheses);
+        return nullptr;
     }
-abstract_direct_decl:
 
+    Ast::Node* directAbstractDeclarator = AllocateAstNodes();
+    directAbstractDeclarator->type = Ast::direct_abstract_declarator;
+
+    Ast::Node* bottomChild = directAbstractDeclarator;
     while(IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses))
     {
-        printf("TokenType::l_bracket, TokenType::l_parentheses, are not supported for abstract declarator");
-        exit(-1);
+        ConsumeToken();
+        if(token.type == TokenType::l_parentheses)
+        {
+            printf("TokenType::l_parentheses, are not supported for abstract declarator\n");
+            exit(-1);
+            Ast::Node* directAbstractDeclarator = nullptr;
+            Ast::Node* parameterTypeList = ParameterTypeList();
+            if(!parameterTypeList)
+            {
+                directAbstractDeclarator =  AbstractDeclarator();
+            }
+        }
+        else
+        {
+            Ast::Node* array = AllocateAstNodes();
+            array->token = token;
+            array->type = Ast::array_decl;
+            array->lChild = AssignmentExpression();
+
+            Token star = GetCurrToken();
+            if(!array->lChild && star.type == TokenType::star)
+            {
+                array->type = Ast::var_len_array;
+                ConsumeExpectedToken(TokenType::star);
+            }
+            ConsumeExpectedToken(TokenType::r_bracket);
+
+            bottomChild->rChild = array;
+            bottomChild = array;
+        }
+
+        token = GetCurrToken();
     }
 
     return directAbstractDeclarator;
+}
+
+Ast::Node *Parser::ParameterTypeList()
+{
+    Ast::Node* parameterTypeList = AllocateAstNodes();
+    parameterTypeList->type = Ast::parameter_type_list;
+    Ast::Node* bottomChild = parameterTypeList;
+    while (true)
+    {
+        Ast::Node *parameterDecl = ParameterDecl();
+
+        Ast::Node *glueList = AllocateAstNodes();
+        glueList->type = Ast::glue_list;
+        glueList->lChild = parameterDecl;
+
+        bottomChild->rChild = glueList;
+        bottomChild = glueList;
+
+        Token token = GetCurrToken();
+        if(token.type != TokenType::comma)
+        {
+            break;
+        }
+        ConsumeToken();
+
+        token = GetCurrToken();
+        if(token.type == TokenType::ellipsis)
+        {
+            ConsumeToken();
+            Ast::Node *ellipsis = AllocateAstNodes();
+            ellipsis->type = Ast::parameter_decl;
+            ellipsis->token = token;
+            bottomChild->rChild = ellipsis;
+            break;
+        }
+    }
+    
+    return parameterTypeList;
 }
 
 Ast::Node* Parser::PostfixExpression()

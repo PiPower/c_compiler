@@ -82,11 +82,13 @@
     X(struct_declaration) \
     X(struct_declarator) \
     X(direct_declarator) \
+    X(direct_abstract_declarator) \
     X(parameter_type_list) \
     X(parameter_decl) \
     X(init_decl_list) \
     X(init_declarator) \
     /* Misc */ \
+    X(var_len_array) \
     X(array_decl) \
     X(glue_list) \
     X(node_empty) \

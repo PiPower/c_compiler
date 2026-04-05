@@ -71,7 +71,8 @@ struct Parser
     Ast::Node* AbstractDeclarator();
     Ast::Node* ParameterDecl();
     Ast::Node* ParseDirectAbstractDeclarator();
-
+    Ast::Node* ParameterTypeList();
+    
     SemanticAnalyzer* analyzer;
     FileManager* manager;
     Preprocessor PP;
