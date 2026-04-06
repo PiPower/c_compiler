@@ -83,6 +83,7 @@ struct AccessType
     bool isArray;
     Ast::Node* asmExpr;
     Ast::Node* qualList;
+    Ast::Node* paramTypeList;
     AccessType* next;
 };
 

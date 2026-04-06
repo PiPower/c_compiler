@@ -12,7 +12,7 @@ struct SemanticAnalyzer
     StructDeclaration AnalyzeStructDeclaration(const Ast::Node* declSpecs, const Ast::Node* structDeclList);
     void AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node* initDeclList);
     void AnalyzeStructUnion(const Ast::Node* structTree, DeclSpecs* spec, bool isStruct);
-    InitDeclarator AnalyzeDeclarator(const Ast::Node* declarator, const Ast::Node* initializer);
+    Declarator AnalyzeDeclarator(const Ast::Node* declarator);
     Declarator AnalyzeDirectDeclarator(const Ast::Node* directDeclarator);
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);

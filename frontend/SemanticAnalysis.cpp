@@ -129,7 +129,8 @@ StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *de
             currentNode = currentNode->rChild;
             continue;
         }
-        InitDeclarator initDecl = AnalyzeDeclarator(structDeclarator->lChild, nullptr);
+        InitDeclarator initDecl;
+        initDecl.decl = AnalyzeDeclarator(structDeclarator->lChild);
         int64_t bitCount = -1;
         if(structDeclarator->rChild)
         {
@@ -163,7 +164,9 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
     {
         //większa walidacja 
         Ast::Node* initDecl = currChild->lChild;
-        InitDeclarator iDecl = AnalyzeDeclarator(initDecl->rChild, initDecl->lChild);
+        InitDeclarator iDecl;
+        iDecl.decl = AnalyzeDeclarator(initDecl->rChild);
+        iDecl.initializer =  initDecl->lChild;
 
         if(iDecl.initializer)
         {
@@ -248,33 +251,32 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     return; 
 }
 
-InitDeclarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, const Ast::Node *initializer)
+Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
 {
-    InitDeclarator initDecl = {};
-    initDecl.initializer = initializer;
-
-    Ast::Node* ptrNode = declarator->rChild;
-    Pointer* ptrPtr = initDecl.decl.ptr;
-    while(ptrNode)
-    {
-        Pointer* ptr = symTab->AllocateTypeOnHeap<Pointer>();
-        ptr->quals = AnalyzeDeclSpec(ptrNode->lChild).declType.qual;
-        if(ptrPtr){ ptrPtr->next = ptr; }
-        else{ initDecl.decl.ptr = ptr; }
-        ptrPtr = ptr;
-        ptrNode = ptrNode->rChild;
-    }
+    Declarator decl = {};
     
     if(declarator->lChild->type == Ast::direct_declarator)
     {
-        initDecl.decl = AnalyzeDirectDeclarator(declarator->lChild);
+        decl = AnalyzeDirectDeclarator(declarator->lChild);
     }
     else
     {
         printf("Abstract declarator is not supported \n");
         exit(-1);
     }
-    return initDecl;
+    
+    Ast::Node* ptrNode = declarator->rChild;
+    Pointer* ptrPtr = decl.ptr;
+    while(ptrNode)
+    {
+        Pointer* ptr = symTab->AllocateTypeOnHeap<Pointer>();
+        ptr->quals = AnalyzeDeclSpec(ptrNode->lChild).declType.qual;
+        if(ptrPtr){ ptrPtr->next = ptr; }
+        else{ decl.ptr = ptr; }
+        ptrPtr = ptr;
+        ptrNode = ptrNode->rChild;
+    }
+    return decl;
 }
 
 Declarator SemanticAnalyzer::AnalyzeDirectDeclarator(const Ast::Node *directDeclarator)
@@ -282,8 +284,8 @@ Declarator SemanticAnalyzer::AnalyzeDirectDeclarator(const Ast::Node *directDecl
     Declarator decl = {};
     if(directDeclarator->lChild)
     {
-        printf("Nested direct-declarator is not supported \n");
-        exit(-1);
+        decl.nestedDecl = symTab->AllocateTypeOnHeap<Declarator>();
+        *decl.nestedDecl = AnalyzeDeclarator(directDeclarator->lChild);
     }
     decl.name = GetViewForToken(directDeclarator->token);
 
@@ -295,8 +297,7 @@ Declarator SemanticAnalyzer::AnalyzeDirectDeclarator(const Ast::Node *directDecl
 
         if(accessNode->lChild->type == Ast::parameter_type_list)
         {
-            printf("function args are are not supported in direct declarator\n");
-            exit(-1);
+            access->paramTypeList = accessNode->lChild;
         }
         else
         {

@@ -16,6 +16,7 @@ struct Declarator
     Pointer* ptr;
     AccessType* accessTypes;
     std::string_view name;
+    Declarator* nestedDecl;
 };
 
 struct InitDeclarator
