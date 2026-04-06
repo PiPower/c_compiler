@@ -197,6 +197,7 @@ template <typename Type>
 inline Type* SymbolTable::AllocateTypeOnHeap()
 {
     char* data = HeapAllocateAligned(sizeof(Type), alignof(Type));
+    if(!data) return nullptr;
     return new (data)Type;
 }
 
@@ -204,6 +205,7 @@ template <typename Type>
 inline Type *SymbolTable::AllocateTypeArrayOnHeap(uint64_t count)
 {
     char* data = HeapAllocateAligned(count * sizeof(Type), alignof(Type));
+    if(!data) return nullptr;
     return new (data)Type[count];
 }
 

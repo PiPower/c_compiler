@@ -29,7 +29,11 @@ std::string_view SymbolTable::AddSymbolName(const char *symName)
     size_t& currentPage = symNameBuff.currentPage;
     int64_t& offsetIntoPage =  symNameBuff.offsetIntoPage;
     size_t filenameLen = strlen(symName);
-    
+    if(filenameLen == 0) 
+    {
+        return "";
+    }
+
     if(filenameLen > SYMBOL_NAME_PAGE_SIZE )
     {
         printf("Symbol name too long\n"); exit(-1);
@@ -74,9 +78,6 @@ void SymbolTable::AddSymbolImpl(const std::string_view& name, Symbol *sym)
         }
     }
 
-    
-    uint16_t symKinds = QuerySymKinds(name) & sym->kind;
-
     if(triggerError)
     {
         char* c = (char* )alloca(name.length() + 1);
@@ -119,7 +120,7 @@ Symbol* SymbolTable::QuerySymbolGeneric(
             return symIter->second;
         }
         prevScopeV = scopedTable->scopeType;
-    }while (scopedTable = scopedTable->parent);
+    }while ((scopedTable = scopedTable->parent));
 
     return nullptr;
 }
@@ -179,6 +180,11 @@ void SymbolTable::PopScope()
 
 char *SymbolTable::HeapAllocateAligned(uint64_t size, uint8_t alignment)
 {
+    if(size == 0) 
+    {
+        return nullptr;
+    }
+
     std::vector<char*>& filenamePages = symbolHeap.pages;
     size_t& currentPage = symbolHeap.currentPage;
     int64_t& offsetIntoPage =  symbolHeap.offsetIntoPage;
@@ -190,7 +196,7 @@ char *SymbolTable::HeapAllocateAligned(uint64_t size, uint8_t alignment)
 
     int64_t alignmentOffset = offsetIntoPage % alignment;
 
-    if(size + offsetIntoPage + alignmentOffset > SYMBOL_HEAP_DATA_PAGE_SIZE)
+    if(size + offsetIntoPage + alignmentOffset >= SYMBOL_HEAP_DATA_PAGE_SIZE)
     {
         void* mmapRet = mmap(nullptr, SYMBOL_HEAP_DATA_PAGE_SIZE, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if(mmapRet == MAP_FAILED )

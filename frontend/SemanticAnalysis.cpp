@@ -124,6 +124,11 @@ StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *de
     {
         Node* structDeclarator = currentNode->lChild;
         // InitDeclarator without initializer is just declarator
+        if(!structDeclarator->lChild)
+        {
+            currentNode = currentNode->rChild;
+            continue;
+        }
         InitDeclarator initDecl = AnalyzeDeclarator(structDeclarator->lChild, nullptr);
         int64_t bitCount = -1;
         if(structDeclarator->rChild)
@@ -184,7 +189,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
         std::string anonName = "anonymous_" + std::to_string(GetAnnonymousId());
         spec->typenameView = symTab->AddSymbolName(anonName.c_str());
     }
-    
+   
     SymbolType* sym = symTab->QueryTypeSymbol(spec->typenameView);
     if(!sym)
     {
@@ -452,7 +457,6 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
             if( (symTab->QuerySymKinds(GetViewForToken(currNode->token)) & Sym::TYPEDEF)  > 0)
             {
                 SymbolTypedef* symTypedef = symTab->QueryTypedefSymbol(GetViewForToken(currNode->token));
-                SymbolType* symType =  symTab->QueryTypeSymbol(symTypedef->refrencedType);
                 
                 spec.typenameView = symTypedef->refrencedType;
                 currNode = currNode->rChild;
