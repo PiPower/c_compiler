@@ -24,9 +24,8 @@ static const char* kewordStrings[] = {
     "elif",      "endif",     "line",    "error", 
     "pragma",    "undef",     "defined", "__builtin_va_list" ,
     // gcc extensions 
-    "__attribute__" , "__restrict"
+    "__attribute__" , "__restrict", "__asm__"
 };
-
 
 Lexer::Lexer(FileManager* manager, const CompilationOpts* opts)
 :
@@ -1131,6 +1130,8 @@ void Lexer::PrepareKeywordMap()
     keywordsMap[std::string_view(kewordStrings[48])] = TokenType::kw__builtin_va_list;
     keywordsMap[std::string_view(kewordStrings[49])] = TokenType::kw__attribute__;
     keywordsMap[std::string_view(kewordStrings[50])] = TokenType::kw_restrict;
+    keywordsMap[std::string_view(kewordStrings[51])] = TokenType::kw__asm__;
+
     
 }
 

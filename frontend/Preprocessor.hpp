@@ -43,6 +43,7 @@ struct Preprocessor
     void ExecuteConstantExpr(Ast::Node* expr);
     Typed::Number ExecuteNode(Ast::Node* expr);
 private:
+    Token StringifyParam(const std::vector<Token>& macroParam);
     bool FetchMacro(const std::string_view macroName, Macro** macro);
     bool FetchMacro(const std::string_view* macroName, Macro** macro);
     void PushInitFile();

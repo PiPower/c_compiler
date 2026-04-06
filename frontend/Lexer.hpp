@@ -21,7 +21,6 @@ struct Lexer
     int32_t PopFile();
     SourceLocation CurrentSourceLocation();
     std::vector<Token> LexFile(FILE_ID id, int64_t offset, int64_t len);
-public:
     SourceLocation ConstructLocation(const FilePos& filePos, const char* fileCurr, int64_t len);
     void PrepareKeywordMap();
     bool IsHorizontalWhiteSpace(char C);
@@ -58,7 +57,6 @@ public:
     bool IsNonDigit(const char* c, size_t maxPossibleLen);
     bool IsAlphaDigitFloor(const char& c);
 
-public:
     FileManager* manager;
     std::stack<FilePos> files;
     std::deque<char> charsQueue;

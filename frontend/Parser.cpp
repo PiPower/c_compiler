@@ -134,8 +134,9 @@ Token Parser::GetCurrToken()
     // this is temporary solution to skip kw__attribute__
     // to be resolved later
     Token token = GetCurrTokenInternal();
-    if(token.type == TokenType::kw__attribute__)
+    while (IsTokenOneOf(&token, TokenType::kw__attribute__, TokenType::kw__asm__))
     {
+
         ConsumeToken();
         ConsumeExpectedToken(TokenType::l_parentheses);
         int nest = 1;
@@ -156,10 +157,10 @@ Token Parser::GetCurrToken()
                 }
             }
         }
-        
-
+    
     }
-    return GetCurrTokenInternal();
+    
+    return token;
 }
 
 Token Parser::GetCurrTokenInternal()

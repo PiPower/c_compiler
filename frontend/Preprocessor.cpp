@@ -289,6 +289,30 @@ Typed::Number Preprocessor::ExecuteNode(Ast::Node *expr)
     return numOut;
 }
 
+Token Preprocessor::StringifyParam(const std::vector<Token> &macroParam)
+{
+    std::string stringify;
+    stringify.reserve(100);
+    stringify += "\"";
+    for(const Token& tok : macroParam)
+    {
+        if(!IsTokenOneOf(&tok, TokenType::new_line, TokenType::comment))
+        {
+            stringify += GetViewForToken(tok);
+        }
+    }
+
+    stringify += "\"";
+
+    int64_t tokenStringStart = fileOffset;
+    WriteToPreprocessorFile(stringify.data(), stringify.length());
+    int64_t tokenStringEnd = fileOffset;
+
+    std::vector<Token> stringifyTok = lexer.LexFile(preprocessorFile, tokenStringStart, tokenStringEnd - tokenStringStart);
+    assert(stringifyTok.size() == 1);
+    return stringifyTok[0];
+}
+
 bool Preprocessor::FetchMacro(const std::string_view macroName, Macro **macro)
 {
     return FetchMacro(&macroName, macro);
@@ -355,9 +379,17 @@ void Preprocessor::FillQueueWithMacro(const Macro* macro)
 scan_arg:
         seq.clear();
         Token token = GetCurrToken();
-        token = GetCurrToken();
-        while (!IsTokenOneOf(&token, TokenType::comma, TokenType::r_parentheses))
+        int nest = 0;
+        while (!IsTokenOneOf(&token, TokenType::comma, TokenType::r_parentheses) || nest > 0)
         {
+            if(token.type == TokenType::l_parentheses)
+            {
+                nest++;
+            }
+            else if(token.type == TokenType::r_parentheses)
+            {
+                nest--;
+            }
             seq.push_back(token);
             ConsumeToken();
             token = GetCurrToken();
@@ -597,13 +629,27 @@ void Preprocessor::InsertMacroTokensIntoQueue(
         }
         else
         {
-            if(IsTokenOneOf(&macroTokens[i], TokenType::hash, TokenType::ellipsis))
+            if(IsTokenOneOf(&macroTokens[i],  TokenType::ellipsis))
             {
-                printf("Stringify and ellipsis are not supported \n");
+                printf("ellipsis are not supported \n");
                 exit(-1);
             }
             
-            if(macroTokens[i].type == TokenType::d_hash)
+            if(macroTokens[i].type == TokenType::hash)
+            {   
+                const MacroArgPlacement& argPlcm = argPlacement[argOffsets];
+                argOffsets++;
+                if(argPlcm.argPos != i + 1)
+                {
+                    IssueWarning(&macroTokens[i], "stringify token should be followed by parameter");
+                    exit(-1);
+                }
+                Token stringify = StringifyParam(args[argPlcm.argId]);
+                tokenQueue.push_front(stringify);
+                i+=1;
+                continue;
+            }
+            else if(macroTokens[i].type == TokenType::d_hash)
             {
                 concatTokens = true;
                 insertionOffset = tokenQueue.size();
@@ -635,9 +681,7 @@ void Preprocessor::InsertMacroTokensIntoQueue(
         // as per C 99 6.10.3.3  ## is run before #
     }
 
-    
-    std::deque<Token>::reverse_iterator lastElem = std::prev(tokenQueue.rend(), n);
-    std::reverse(tokenQueue.rbegin(), lastElem);
+    std::reverse(tokenQueue.begin(),tokenQueue.end() - n);
 }
 
 std::string_view Preprocessor::FormHeadername()

@@ -36,6 +36,7 @@
     /*extension keywords*/ \
     KW(_builtin_va_list) \
     KW(_attribute__) \
+    KW(_asm__) \
     /* type keywords */ \
     KW(unsigned) \
     KW(int) \
