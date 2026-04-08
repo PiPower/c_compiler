@@ -117,16 +117,26 @@ start_parsing:
         goto start_parsing;
     }
 
-    Ast::Node* declSpec = ParseDeclSpec();
-    Ast::Node* initDeclarationList = ParseInitDeclList();
+    Ast::Node* declaration = ParseDeclaration();
     token = GetCurrToken();
+    if(!IsTokenOneOf(&token, TokenType::semicolon, TokenType::l_brace))
+    {
+        printf("'declaration-specifiers declarator declaration compound-statement' is not supported \n");
+        exit(-1);
+    }
+    if(token.type == TokenType::semicolon)
+    {
+        ConsumeExpectedToken(TokenType::semicolon);
+        return declaration;
+    }
 
-    ConsumeExpectedToken(TokenType::semicolon);
-    Ast::Node* declaration = AllocateAstNodes();
-    declaration->type = Ast::declaration;
-    declaration->lChild = declSpec;
-    declaration->rChild = initDeclarationList;
-    return declaration;
+    Ast::Node* functionDef = AllocateAstNodes();
+    functionDef->type = Ast::function_def;
+    functionDef->token = token;
+    functionDef->lChild = declaration;
+    functionDef->rChild = ParseCompoundStatement();
+
+    return functionDef;
 }
 
 Token Parser::GetCurrToken()
@@ -387,6 +397,64 @@ Ast::Node *Parser::ParseIdentifier()
     node->token = token;
     node->type = Ast::NodeType::identifier;
     return node;
+}
+
+Ast::Node *Parser::ParseCompoundStatement()
+{
+
+    Ast::Node* CompoundStatement = AllocateAstNodes();
+    CompoundStatement->token = GetCurrToken();
+    CompoundStatement->type = Ast::compound_statement;
+
+    ConsumeExpectedToken(TokenType::l_brace);
+
+    Token token = GetCurrToken();
+    Ast::Node* currNode = CompoundStatement;
+    while (true)
+    {
+        Ast::Node* blockItem = ParseDeclaration();
+        if(!blockItem)
+        {
+            blockItem = ParseStatement();
+        }
+        if(blockItem)
+        {
+            Ast::Node* blockGlue = AllocateAstNodes();
+            blockGlue->type = Ast::glue_list;
+            blockGlue->lChild = blockItem;
+            currNode->rChild = blockGlue;
+
+            currNode = blockGlue;
+        }
+        else
+        {
+            break;
+        }
+
+    }
+    
+
+
+    ConsumeExpectedToken(TokenType::r_brace);
+    return CompoundStatement;
+}
+
+Ast::Node *Parser::ParseStatement()
+{
+    return nullptr;
+}
+
+Ast::Node *Parser::ParseDeclaration()
+{
+    Ast::Node* declSpec = ParseDeclSpec();
+    Ast::Node* initDeclarationList = ParseInitDeclList();
+
+    Ast::Node* declaration = AllocateAstNodes();
+    declaration->type = Ast::declaration;
+    declaration->lChild = declSpec;
+    declaration->rChild = initDeclarationList;
+
+    return declaration;
 }
 
 Ast::Node *Parser::ParseInitializer()

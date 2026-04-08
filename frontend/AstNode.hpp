@@ -88,6 +88,7 @@
     X(init_decl_list) \
     X(init_declarator) \
     /* Misc */ \
+    X(compound_statement) \
     X(var_len_array) \
     X(array_decl) \
     X(glue_list) \
