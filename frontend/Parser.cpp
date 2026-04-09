@@ -117,7 +117,7 @@ start_parsing:
         goto start_parsing;
     }
 
-    Ast::Node* declaration = ParseDeclaration();
+    Ast::Node* declaration = ParseDeclaration(false);
     token = GetCurrToken();
     if(!IsTokenOneOf(&token, TokenType::semicolon, TokenType::l_brace))
     {
@@ -408,11 +408,10 @@ Ast::Node *Parser::ParseCompoundStatement()
 
     ConsumeExpectedToken(TokenType::l_brace);
 
-    Token token = GetCurrToken();
     Ast::Node* currNode = CompoundStatement;
     while (true)
     {
-        Ast::Node* blockItem = ParseDeclaration();
+        Ast::Node* blockItem = ParseDeclaration(true);
         if(!blockItem)
         {
             blockItem = ParseStatement();
@@ -433,8 +432,6 @@ Ast::Node *Parser::ParseCompoundStatement()
 
     }
     
-
-
     ConsumeExpectedToken(TokenType::r_brace);
     return CompoundStatement;
 }
@@ -444,10 +441,19 @@ Ast::Node *Parser::ParseStatement()
     return nullptr;
 }
 
-Ast::Node *Parser::ParseDeclaration()
+Ast::Node *Parser::ParseDeclaration(bool consumeSemicolon)
 {
     Ast::Node* declSpec = ParseDeclSpec();
     Ast::Node* initDeclarationList = ParseInitDeclList();
+    if(!declSpec)
+    {
+        return nullptr;
+    }
+    
+    if(declSpec && consumeSemicolon)
+    {
+        ConsumeExpectedToken(TokenType::semicolon);
+    }
 
     Ast::Node* declaration = AllocateAstNodes();
     declaration->type = Ast::declaration;
@@ -459,7 +465,22 @@ Ast::Node *Parser::ParseDeclaration()
 
 Ast::Node *Parser::ParseInitializer()
 {
-    return nullptr;
+    Token token = GetCurrToken();
+    if(token.type == TokenType::l_bracket)
+    {
+        ConsumeExpectedToken(TokenType::l_bracket);
+
+        Ast::Node* initializerList = InitializerList();
+
+        if(GetCurrToken().type == TokenType::comma)
+        {
+            ConsumeExpectedToken(TokenType::comma);
+        }
+        ConsumeExpectedToken(TokenType::r_bracket);
+
+        return initializerList;
+    }
+    return AssignmentExpression();
 }
 
 Ast::Node *Parser::ParseInitDeclList()
@@ -741,7 +762,11 @@ Ast::Node *Parser::ParseDeclSpec()
             bottomChild = bottomChild->rChild;
         }
     }
-    
+    if(!declSpec->lChild && !declSpec->rChild)
+    {
+        // paged heap traces memory buffers so we have no leak
+        return nullptr;
+    }
     return declSpec;
 }
 
@@ -775,6 +800,13 @@ Ast::Node *Parser::StorageSpec()
     std::array<TokenType::Type, 5> storageSpecifiers= {TokenType::kw_typedef, TokenType::kw_extern, 
                                                  TokenType::kw_static, TokenType::kw_auto, TokenType::kw_register};
     return SpecifierParseLoop(this, storageSpecifiers, Ast::NodeType::storage_specifier);
+}
+
+Ast::Node *Parser::InitializerList()
+{
+    printf("Initializer list not supported \n");
+    exit(-1);
+    return nullptr;
 }
 
 Ast::Node *Parser::TypeSpecifier()

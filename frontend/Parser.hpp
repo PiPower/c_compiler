@@ -53,7 +53,7 @@ struct Parser
     Ast::Node* ParseCompoundStatement();
     Ast::Node* ParseStatement();
     // declaration parsing
-    Ast::Node* ParseDeclaration();
+    Ast::Node* ParseDeclaration(bool consumeSemicolon);
     Ast::Node* ParseInitializer();
     Ast::Node* ParseInitDeclList();
     Ast::Node* ParseDeclarator();
@@ -64,6 +64,7 @@ struct Parser
     Ast::Node* ParseDeclSpec();
     Ast::Node* DeclSpecSubtype(bool* allowTypeSpec);
     Ast::Node* StorageSpec();
+    Ast::Node* InitializerList();
     Ast::Node* TypeSpecifier();
     Ast::Node* TypeName();
     Ast::Node* TypeQualifierList();
