@@ -9,6 +9,8 @@
 
 void test_basic_primitives(void) {
     char                a1 = 'A';
+    char p;
+    p = a1 = 123;
     short               a2 = -32000;
     int                 a3 = -2147483647;
     long                a4 = -2147483648L;

@@ -32,7 +32,8 @@ struct Parser
     // expression parsing
     Ast::Node* ParseConstantExpr();
     Ast::Node* ParseExpression();
-    Ast::Node* AssignmentExpression();
+    Ast::Node* AssignmentExpression(Ast::Node* unaryExpr = nullptr);
+    Ast::NodeType GetAssignmentType(TokenType::Type asmType);
     Ast::Node* ConditionalExpression();
     Ast::Node* LogicalOrExpression();
     Ast::Node* LogicalAndExpression();
@@ -83,7 +84,7 @@ struct Parser
     Preprocessor PP;
     const CompilationOpts* opts;
     std::deque<Token> tokenQueue;
-    Ast::Node* unaryHandle;
+    std::stack<Ast::Node*> unaryHandles;
     PagedBuffer nodeBuffer;
     SourceLocation currentLocation;
     ParsingState pState;

@@ -45,16 +45,6 @@
     OP(sizeof) \
     /* Assignment nodes */ \
     X(assignment) \
-    X(mul_assignment) \
-    X(div_assignment) \
-    X(mod_assignment) \
-    X(add_assignment) \
-    X(sub_assignment) \
-    X(l_shift_assignment) \
-    X(r_shift_assignment) \
-    X(and_assignment) \
-    X(exc_or_assignment) \
-    X(inc_or_assignment) \
     /* Function */ \
     X(function_decl) \
     X(function_def) \

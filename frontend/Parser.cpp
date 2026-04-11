@@ -3,6 +3,7 @@
 #include <sys/mman.h> 
 #include <string.h>
 #include <stdarg.h>
+#include <future>
 #define CPU_PAGE 4096
 #define PAGE_COUNT 50
 typedef Ast::Node* (Parser::*ParseFn)();
@@ -88,7 +89,7 @@ static Ast::Node* SpecifierParseLoop(
 
 Parser::Parser(FILE_ID mainFileId, SemanticAnalyzer* analyzer, FileManager* manager, const CompilationOpts* opts)
 :
-analyzer(analyzer), manager(manager), PP(mainFileId, manager, opts), opts(opts), unaryHandle(nullptr), pState({})
+analyzer(analyzer), manager(manager), PP(mainFileId, manager, opts), opts(opts), pState({})
 {
     assert(opts != nullptr);
     AddNodePage(); 
@@ -438,17 +439,19 @@ Ast::Node *Parser::ParseCompoundStatement()
 
 Ast::Node *Parser::ParseStatement()
 {
-    return nullptr;
+    Ast::Node* expr = ParseExpression();
+    ConsumeExpectedToken(TokenType::semicolon);
+    return expr;
 }
 
 Ast::Node *Parser::ParseDeclaration(bool consumeSemicolon)
 {
     Ast::Node* declSpec = ParseDeclSpec();
-    Ast::Node* initDeclarationList = ParseInitDeclList();
     if(!declSpec)
     {
         return nullptr;
     }
+    Ast::Node* initDeclarationList = ParseInitDeclList();
     
     if(declSpec && consumeSemicolon)
     {
@@ -879,7 +882,7 @@ Ast::Node *Parser::TypeName()
         }
     }    
 
-    typeName->rChild = AbstractDeclarator();
+    typeName->lChild = AbstractDeclarator();
     return typeName;
 }
 
@@ -1292,15 +1295,53 @@ Ast::Node* Parser::UnaryExpression()
 
 Ast::Node* Parser::CastExpression()
 {
-    Ast::Node* unary;
-    if(unaryHandle)
+    Token token = GetCurrToken();
+    Ast::Node* cast = nullptr;
+    Ast::Node* bottomChild = nullptr;
+    while (token.type == TokenType::l_parentheses)
     {
-        unary = unaryHandle;
-        unaryHandle = nullptr;
+        ConsumeToken();
+        Ast::Node* typeName = TypeName();
+        if(!typeName)
+        {
+            PutBackAtFront(token);
+            break;
+        }
+        ConsumeExpectedToken(TokenType::r_parentheses);
+        token = GetCurrToken();
+
+        if(!cast)
+        {
+            cast = AllocateAstNodes();
+            cast->type = Ast::cast;
+            cast->token = token;
+            bottomChild = cast;
+        }
+
+        Ast::Node* glueNode = AllocateAstNodes();\
+        glueNode->type = Ast::glue_list;
+        glueNode->lChild = typeName;
+        bottomChild->rChild = glueNode;
+        bottomChild = glueNode->rChild;
     }
-    else
+    
+
+    Ast::Node* unary = UnaryExpression();
+    token = GetCurrToken();
+    if(unary && IsAssignment(token.type))
     {
-        unary = UnaryExpression();
+        if(cast)
+        {
+            IssueWarning(&cast->token, "assignment expression cannot follow  cast expr");
+        }
+        Ast::Node* asmExpr = AssignmentExpression(unary);
+        return asmExpr;
+    }
+
+    if(cast)
+    {
+        cast->lChild = unary;
+        return cast;
     }
 
     return unary;
@@ -1401,17 +1442,30 @@ Ast::Node* Parser::ConditionalExpression()
     return condExpr;
 }
 
-Ast::Node* Parser::AssignmentExpression()
+Ast::Node* Parser::AssignmentExpression(Ast::Node* unaryExpr)
 {
-    Ast::Node* unary = UnaryExpression();
-    Token token = GetCurrToken();
-    if(!IsAssignment(&token))
+    if(!unaryExpr)
     {
-        unaryHandle = unary;
         return ConditionalExpression();
     }
-    exit(-1);
+
+    Token token = GetCurrToken();
+    if(IsAssignment(token.type))
+    {
+        ConsumeToken();
+        Ast::Node* asmExpr = AllocateAstNodes();
+        asmExpr->token = token;
+        asmExpr->type = Ast::assignment;
+        asmExpr->lChild = unaryExpr;
+        asmExpr->rChild = AssignmentExpression();
+
+        return asmExpr;
+    }
+
     return nullptr;
 }
 
-
+Ast::NodeType Parser::GetAssignmentType(TokenType::Type asmType)
+{
+    return Ast::NodeType();
+}
