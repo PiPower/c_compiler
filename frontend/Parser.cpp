@@ -439,6 +439,10 @@ Ast::Node *Parser::ParseCompoundStatement()
 
 Ast::Node *Parser::ParseStatement()
 {
+    if(GetCurrToken().type == TokenType::r_brace)
+    {
+        return nullptr;
+    }
     Ast::Node* expr = ParseExpression();
     ConsumeExpectedToken(TokenType::semicolon);
     return expr;
@@ -711,7 +715,14 @@ Ast::Node *Parser::ParseDirectDeclarator()
         if(token.type == TokenType::l_parentheses)
         {
             ConsumeExpectedToken(TokenType::l_parentheses);
-            Ast::Node* array = ParseFunctionCallArgs();
+            Ast::Node* array;
+            if(GetCurrToken().type == TokenType::r_parentheses)
+            {
+                array = AllocateAstNodes();
+                array->type = Ast::parameter_type_list;
+            }
+            else{array = ParseFunctionCallArgs();}
+
             array->token = token;
             ConsumeExpectedToken(TokenType::r_parentheses);
 
