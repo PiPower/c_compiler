@@ -213,7 +213,6 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
         symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, 0, nullptr, nullptr, nullptr, false);
     }
     // struct has its own scope
-    symTab->CreateNewScope(Scope::STRUCT);
     Node *argList = structTree;
     std::vector<StructDeclaration> structDecls;
     size_t argCount = 0;
@@ -225,7 +224,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
         argCount += structDecl.declarators.size();
     }
     ScopedSymbolTable* scopedTable = symTab->currentTable;
-    symTab->PopScope();
+
     std::string_view* argNames = symTab->AllocateTypeArrayOnHeap<std::string_view>(argCount);
     Member* members = symTab->AllocateTypeArrayOnHeap<Member>(argCount);
     size_t idx = 0;
