@@ -35,7 +35,7 @@ static const char* kTypeNames[] = {
 };
 SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 :
-symTab(symTab), manager(manager)
+symTab(symTab), manager(manager), codeGen(symTab)
 {
     // set offset into max so that new page gets allocated
     handyString.reserve(100);
@@ -108,11 +108,20 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
 
 void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast::Node *initDeclList)
 {
-    DeclSpecs declaration = AnalyzeDeclSpec(declSpecs->rChild);
-    if(declaration.declType.spec.typedef_)
+    DeclSpecs declSpec = AnalyzeDeclSpec(declSpecs->rChild);
+    if(declSpec.declType.spec.typedef_)
     {
-        AnalyzeTypedef(&declaration, initDeclList);
+        AnalyzeTypedef(&declSpec, initDeclList);
+        return;
     }
+
+    if(initDeclList)
+    {
+        AnalyzeInitDeclList(&declSpec, initDeclList);
+    }
+
+    // if empty decl spec then do nothing 
+    
 }
 
 StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *declSpecs, const Ast::Node* structDeclList)
@@ -232,10 +241,13 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     {
         for(size_t j = 0; j < structDecls[i].declarators.size(); j++)
         {
+            SymbolType* memType = symTab->QueryTypeSymbol(structDecls[i].declSpec.typenameView);
+
             members[idx].declType = structDecls[i].declSpec.declType;
             members[idx].typeName = structDecls[i].declSpec.typenameView;
             members[idx].bitCount = structDecls[i].declarators[j].bitCount;
             members[idx].access = structDecls[i].declarators[j].decl.accessTypes;
+            members[idx].memberType = memType->dType;
             members[idx].ptr = structDecls[i].declarators[j].decl.ptr;
             argNames[idx] = structDecls[i].declarators[j].decl.name;
             idx++;
@@ -248,6 +260,25 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     sym->memberList = members;
     sym->isDefined = true;
     return; 
+}
+
+void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node *initDeclList)
+{
+    const Ast::Node* parent = initDeclList;
+    SymbolType* symType = symTab->QueryTypeSymbol(declSpec->typenameView);
+    codeGen.EmitUnionStruct(symType);
+
+    while (Ast::Node* listElem = parent->rChild)
+    {
+        const Ast::Node* initDecl = listElem->lChild;
+        const Ast::Node* initExpr = listElem->rChild;
+
+        Declarator decl = AnalyzeDeclarator(initDecl->rChild);
+
+
+        parent = listElem;
+    }
+    
 }
 
 Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)

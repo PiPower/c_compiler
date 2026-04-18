@@ -6,6 +6,7 @@
 #include "frontend/AstNode.hpp"
 #include <deque>
 #include <array>
+#include <cstddef>
 namespace Sym
 {
 
@@ -117,6 +118,7 @@ struct Member
     Pointer* ptr;
     AccessType* access;
     TypeBits declType; 
+    BuiltIn::Type memberType;
     int64_t bitCount;
     std::string_view typeName;
 };
@@ -197,7 +199,7 @@ struct SymbolTable
 template <typename Type>
 inline Type* SymbolTable::AllocateTypeOnHeap()
 {
-    char* data = HeapAllocateAligned(sizeof(Type), alignof(Type));
+    char* data = HeapAllocateAligned(sizeof(Type), alignof(std::max_align_t));
     if(!data) return nullptr;
     return new (data)Type;
 }
@@ -205,7 +207,7 @@ inline Type* SymbolTable::AllocateTypeOnHeap()
 template <typename Type>
 inline Type *SymbolTable::AllocateTypeArrayOnHeap(uint64_t count)
 {
-    char* data = HeapAllocateAligned(count * sizeof(Type), alignof(Type));
+    char* data = HeapAllocateAligned(count * sizeof(Type), alignof(std::max_align_t));
     if(!data) return nullptr;
     return new (data)Type[count];
 }

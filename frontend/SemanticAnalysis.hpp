@@ -3,6 +3,7 @@
 #include "SemaTypes.hpp"
 #include <unordered_map>
 #include "Preprocessor.hpp"
+#include "CodeGen.hpp"
 
 struct SemanticAnalyzer
 {
@@ -12,6 +13,7 @@ struct SemanticAnalyzer
     StructDeclaration AnalyzeStructDeclaration(const Ast::Node* declSpecs, const Ast::Node* structDeclList);
     void AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node* initDeclList);
     void AnalyzeStructUnion(const Ast::Node* structTree, DeclSpecs* spec, bool isStruct);
+    void AnalyzeInitDeclList(DeclSpecs* declSpec, const Ast::Node* initDeclList);
     Declarator AnalyzeDeclarator(const Ast::Node* declarator);
     Declarator AnalyzeDirectDeclarator(const Ast::Node* directDeclarator);
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
@@ -24,6 +26,7 @@ struct SemanticAnalyzer
     
     SymbolTable* symTab;
     FileManager* manager;
+    CodeGen codeGen;
     // used as local string to avoid constant re allocation
     // it is not guaranted to be valid after call to any SEMA function
     std::string handyString;

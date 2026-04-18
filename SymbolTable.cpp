@@ -194,7 +194,7 @@ char *SymbolTable::HeapAllocateAligned(uint64_t size, uint8_t alignment)
         printf("Symbol name too long\n"); exit(-1);
     }
 
-    int64_t alignmentOffset = offsetIntoPage % alignment;
+    int64_t alignmentOffset = offsetIntoPage % alignment ? alignment - offsetIntoPage % alignment : 0;
 
     if(size + offsetIntoPage + alignmentOffset >= SYMBOL_HEAP_DATA_PAGE_SIZE)
     {
