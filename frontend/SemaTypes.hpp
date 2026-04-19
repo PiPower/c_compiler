@@ -13,10 +13,8 @@ struct DeclSpecs
 
 struct Declarator
 {
-    Pointer* ptr;
-    AccessType* accessTypes;
+    AccessType accessTypes;
     std::string_view name;
-    Declarator* nestedDecl;
 };
 
 struct InitDeclarator

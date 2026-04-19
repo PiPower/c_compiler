@@ -248,7 +248,6 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             members[idx].bitCount = structDecls[i].declarators[j].bitCount;
             members[idx].access = structDecls[i].declarators[j].decl.accessTypes;
             members[idx].memberType = memType->dType;
-            members[idx].ptr = structDecls[i].declarators[j].decl.ptr;
             argNames[idx] = structDecls[i].declarators[j].decl.name;
             idx++;
         }
@@ -266,7 +265,7 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
 {
     const Ast::Node* parent = initDeclList;
     SymbolType* symType = symTab->QueryTypeSymbol(declSpec->typenameView);
-    codeGen.EmitUnionStruct(symType);
+    codeGen.EmitUnionStruct(symType, declSpec->typenameView);
 
     while (Ast::Node* listElem = parent->rChild)
     {
@@ -283,64 +282,66 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
 
 Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
 {
+    static std::stack<const Ast::Node*> accessTypes;
     Declarator decl = {};
     
-    if(declarator->lChild->type == Ast::direct_declarator)
+    const Ast::Node *currDecl = declarator;
+    while (true)
     {
-        decl = AnalyzeDirectDeclarator(declarator->lChild);
-    }
-    else
-    {
-        printf("Abstract declarator is not supported \n");
-        exit(-1);
+        if(currDecl->rChild) {accessTypes.push(currDecl->rChild);}
+        if(!currDecl->lChild)
+        {
+            break;
+        }
+        currDecl = currDecl->lChild;
     }
     
-    Ast::Node* ptrNode = declarator->rChild;
-    Pointer* ptrPtr = decl.ptr;
-    while(ptrNode)
+    decl.name = GetViewForToken(currDecl->token);
+    AccessType* typePtr = &decl.accessTypes;
+    while (accessTypes.size() > 0)
     {
-        Pointer* ptr = symTab->AllocateTypeOnHeap<Pointer>();
-        ptr->quals = AnalyzeDeclSpec(ptrNode->lChild).declType.qual;
-        if(ptrPtr){ ptrPtr->next = ptr; }
-        else{ decl.ptr = ptr; }
-        ptrPtr = ptr;
-        ptrNode = ptrNode->rChild;
-    }
-    return decl;
-}
-
-Declarator SemanticAnalyzer::AnalyzeDirectDeclarator(const Ast::Node *directDeclarator)
-{
-    Declarator decl = {};
-    if(directDeclarator->lChild)
-    {
-        decl.nestedDecl = symTab->AllocateTypeOnHeap<Declarator>();
-        *decl.nestedDecl = AnalyzeDeclarator(directDeclarator->lChild);
-    }
-    decl.name = GetViewForToken(directDeclarator->token);
-
-    Ast::Node* accessNode = directDeclarator->rChild;
-    AccessType* accessPtr = decl.accessTypes;
-    while(accessNode)
-    {
-        AccessType* access = symTab->AllocateTypeOnHeap<AccessType>();
-
-        if(accessNode->lChild->type == Ast::parameter_type_list)
+        const Ast::Node* accessType = accessTypes.top();
+        accessTypes.pop();
+        while (accessType)
         {
-            access->paramTypeList = accessNode->lChild;
-        }
-        else
-        {
-            access->isArray = true;
-            access->qualList = accessNode->lChild->lChild;
-            access->asmExpr = accessNode->lChild->rChild;;
-        }
+            if(accessType->type == Ast::pointer)
+            {
+                typePtr->type = POINTER;
+                typePtr->ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
+                goto create_next;
+            }
 
-        if(accessPtr){ accessPtr->next = access; }
-        else{ decl.accessTypes = access; }
-        accessPtr = access;
-        accessNode = accessNode->rChild;
+            if(accessType->lChild->type == Ast::array_decl)
+            {
+                typePtr->type = ARRAY;
+                typePtr->array.asmExpr = accessType->lChild->rChild;
+                typePtr->array.qualList = accessType->lChild->lChild;
+            }
+            else if (accessType->lChild->type == Ast::parameter_type_list)
+            {
+                typePtr->type = FN_DECL;
+                typePtr->fnDecl.paramTypeList = accessType->lChild;
+            }
+            else if (accessType->lChild->type == Ast::identifier_list)
+            {
+                typePtr->type = FN_CALL;
+                typePtr->fnCall.identifierList = accessType->lChild;
+            }
+            else
+            {
+                printf("Incorrect node type in AnalyzeDeclarator \n");
+                exit(-1);
+            }
+create_next:
+            accessType = accessType->rChild;
+            if(accessTypes.size() > 0 || accessType )
+            {
+                typePtr->next = symTab->AllocateTypeOnHeap<AccessType>();
+                typePtr = typePtr->next;
+            }
+        }
     }
+    
     return decl;
 }
 

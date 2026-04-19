@@ -7,6 +7,13 @@
 #include <deque>
 #include <array>
 #include <cstddef>
+
+constexpr uint8_t NONE = 0;
+constexpr uint8_t POINTER = 1;
+constexpr uint8_t FN_DECL = 2;
+constexpr uint8_t FN_CALL = 3;
+constexpr uint8_t ARRAY = 4;
+
 namespace Sym
 {
 
@@ -79,19 +86,40 @@ struct Spec
     uint8_t register_ : 1;
 };
 
-struct AccessType
-{
-    bool isArray;
-    Ast::Node* asmExpr;
-    Ast::Node* qualList;
-    Ast::Node* paramTypeList;
-    AccessType* next;
-};
-
 struct Pointer
 {
     Qualifiers quals;
-    Pointer* next;
+};
+
+struct FnDecl
+{
+    Ast::Node* paramTypeList;
+};
+
+struct FnCall
+{
+    Ast::Node* identifierList;
+};
+
+struct Array
+{
+    Ast::Node* asmExpr;
+    Ast::Node* qualList;
+};
+
+
+
+struct AccessType
+{
+    uint8_t type;
+    union 
+    {
+        Pointer ptr;
+        FnDecl fnDecl;
+        FnCall fnCall;
+        Array array;
+    };
+    AccessType* next;
 };
 
 struct TypeBits
@@ -115,8 +143,7 @@ struct TypeBits
 
 struct Member
 {
-    Pointer* ptr;
-    AccessType* access;
+    AccessType access;
     TypeBits declType; 
     BuiltIn::Type memberType;
     int64_t bitCount;
