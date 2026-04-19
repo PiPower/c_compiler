@@ -298,12 +298,14 @@ Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
     
     decl.name = GetViewForToken(currDecl->token);
     AccessType* typePtr = &decl.accessTypes;
+    uint32_t level = 0;
     while (accessTypes.size() > 0)
     {
         const Ast::Node* accessType = accessTypes.top();
         accessTypes.pop();
         while (accessType)
         {
+            typePtr->level = level;
             if(accessType->type == Ast::pointer)
             {
                 typePtr->type = POINTER;
@@ -340,6 +342,7 @@ create_next:
                 typePtr = typePtr->next;
             }
         }
+        level++;
     }
     
     return decl;

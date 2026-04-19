@@ -119,6 +119,7 @@ struct AccessType
         FnCall fnCall;
         Array array;
     };
+    uint32_t level;
     AccessType* next;
 };
 
