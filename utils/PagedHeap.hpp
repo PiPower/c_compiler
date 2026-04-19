@@ -9,7 +9,8 @@ struct PagedHeap
     PagedHeap(uint32_t nrOfPages);
     PagedHeap(PagedHeap& ) = delete;
     PagedHeap& operator=(PagedHeap&) = delete;
-
+    uint64_t GetRemainingMemory();
+    uint64_t GetAllocSize();
     char* allocateAligned(uint64_t size, uint64_t alignment);
 
     template <typename Type>

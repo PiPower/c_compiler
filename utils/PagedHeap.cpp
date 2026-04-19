@@ -12,7 +12,17 @@ currentPage(0), pageOffset(0), nrOfPages(nrOfPages)
     pageOffset = nrOfPages * CPU_PAGE_SIZE;
 }
 
-char* PagedHeap::allocateAligned(uint64_t size, uint64_t alignment)
+uint64_t PagedHeap::GetRemainingMemory()
+{
+    return nrOfPages * CPU_PAGE_SIZE - pageOffset;
+}
+
+uint64_t PagedHeap::GetAllocSize()
+{
+    return nrOfPages * CPU_PAGE_SIZE;
+}
+
+char *PagedHeap::allocateAligned(uint64_t size, uint64_t alignment)
 {
     if(size == 0)
     {
