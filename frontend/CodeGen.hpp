@@ -17,14 +17,18 @@ struct LlvmType
 struct CodeGen
 {
     CodeGen(SymbolTable* symTab);
-    void EmitUnionStruct(SymbolType* symType);
+    void EmitUnionStruct(SymbolType* symType, const std::string_view& name);
+    void EmitTypename(SymbolType* symType, const std::string_view& typeName);
     void EmitMember(Member* member);
-    void WriteCharData(const char* data);
+    void WriteCharData(const char* data, ...);
+    void inline WriteByte(const char* c);
+    void inline WriteByte(char c);
 
     std::unordered_map<std::string_view, int> typeCounter;
     std::unordered_map<SymbolType*, LlvmType> emittedTypes;
 
     uint64_t remainingMemory;
+    char* bufferData;
     PagedHeap typeHeap;
     SymbolTable* symTab;
 };

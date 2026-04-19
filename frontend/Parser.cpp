@@ -719,9 +719,12 @@ Ast::Node *Parser::ParseDirectDeclarator()
             if(GetCurrToken().type == TokenType::r_parentheses)
             {
                 array = AllocateAstNodes();
-                array->type = Ast::parameter_type_list;
+                array->type = Ast::identifier_list; // empty call is treated as identifier_list
             }
-            else{array = ParseFunctionCallArgs();}
+            else
+            {
+                array = ParseFunctionCallArgs();
+            }
 
             array->token = token;
             ConsumeExpectedToken(TokenType::r_parentheses);

@@ -3,7 +3,7 @@ typedef prol xd;
 
 typedef long int yolo2;
 typedef yolo2 prd;
-struct simple_struct
+typedef struct simple_struct
 {
     struct simple_struct_2
     {
@@ -13,9 +13,10 @@ struct simple_struct
 
     int * const volatile x, p : 2;
     long int k;
-};
+} XDDDD;
 
-#include <stdio.h>
+XDDDD prkw;
+//#include <stdio.h>
 
 
 struct Outer {
@@ -44,7 +45,7 @@ struct Outer {
     };
 
     /* Array of pointers to functions returning pointers to functions */
-    int (*(*func_table[4])(char, ...))(double);
+    int (*(*func_table[4][14])(char, ...))(double);
 
     /* Pointer to array of 5 const pointers to volatile int */
     volatile int * const (*ptr_to_array)[5];
