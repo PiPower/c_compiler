@@ -25,6 +25,7 @@ struct CodeGen
     void inline WriteByte(const char* c);
     void inline WriteByte(char c);
     std::string_view GetViewForToken(const Token &token);
+    void WriteToFile(int fd);
 
     std::unordered_map<std::string_view, int> typeCounter;
     std::unordered_map<SymbolType*, LlvmType> emittedTypes;

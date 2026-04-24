@@ -1,6 +1,8 @@
 #include "SemanticAnalysis.hpp"
 #include <string.h>
 #include <limits>
+#include <fcntl.h>
+#include <unistd.h>
 
 typedef const Ast::Node Node;
 
@@ -464,6 +466,14 @@ std::string_view SemanticAnalyzer::GetViewForToken(const Token &token)
     return tokenView;
 }
 
+void SemanticAnalyzer::WriteCodeToFile(const char *filename)
+{
+    int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC,  
+                  S_IRUSR | S_IWUSR |  S_IRGRP | S_IWGRP |  S_IROTH | S_IWOTH);  
+    codeGen.WriteToFile(fd);
+    close(fd);
+}
+
 bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 {
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
@@ -485,22 +495,26 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
         if(currNode->type == Ast::type_qualifier)
         {
             // 6.7.3 Type qualifiers
-            switch (currNode->token.type)
+            const Ast::Node* qualNodes = currNode;
+            do
             {
-            case TokenType::kw_const:
-                spec.declType.qual.const_ = 1;
-                break;
-            case TokenType::kw_restrict:
-                spec.declType.qual.restrict_ = 1;
-                break;
-            case TokenType::kw_volatile:
-                spec.declType.qual.volatile_ = 1;             
-                break;
-            default:
-                printf("Incorrect type qualifier \n");
-                exit(-1);
-                break;
-            }
+                switch (qualNodes->token.type)
+                {
+                case TokenType::kw_const:
+                    spec.declType.qual.const_ = 1;
+                    break;
+                case TokenType::kw_restrict:
+                    spec.declType.qual.restrict_ = 1;
+                    break;
+                case TokenType::kw_volatile:
+                    spec.declType.qual.volatile_ = 1;             
+                    break;
+                default:
+                    printf("Incorrect type qualifier \n");
+                    exit(-1);
+                    break;
+                }
+            } while (qualNodes = qualNodes->lChild);
         }
         else if(currNode->type == Ast::storage_specifier)
         {
@@ -573,10 +587,6 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                 AnalyzeSimpleType(currNode, &spec);
                 break;
             }
-            // in case of type specifiers left subtree has meaning 
-            // related strictly related to type specifier so it should not be crawled
-            currNode = currNode->rChild;
-            continue;
         }
         else if(currNode->type == Ast::function_specifier)
         {
@@ -589,15 +599,8 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
             exit(-1);
         }
 
-
-        if(currNode->lChild)
-        {
-            currNode = currNode->lChild;
-        }
-        else
-        {
-            currNode = currNode->rChild;
-        }
+        currNode = currNode->rChild;
+        
     }
 
     return spec;

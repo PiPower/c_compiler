@@ -24,7 +24,8 @@ struct SemanticAnalyzer
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     // misc
     std::string_view GetViewForToken(const Token &token);
-    
+    void WriteCodeToFile(const char* filename);
+
     SymbolTable* symTab;
     FileManager* manager;
     CodeGen codeGen;

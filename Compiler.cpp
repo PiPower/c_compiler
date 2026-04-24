@@ -1,5 +1,6 @@
 #include "Compiler.hpp"
 #include "frontend/Parser.hpp"
+#include <string.h>
 Compiler::Compiler(int argc, char *argv[])
 :
     argc(argc), argv(argv), opts(argc, (const char**)argv),
@@ -29,6 +30,15 @@ void Compiler::compile()
             analyzer.Analyze(ast);
         }
         
-
+        char* buff = (char*)alloca(opts.filenameLens[i] + 1);
+        memcpy(buff, opts.filenames[i], opts.filenameLens[i]);
+        size_t j;
+        for(j = opts.filenameLens[i] - 1; j > 0; j--)
+        {
+            if(buff[j] == '.'){break;}
+        }
+        buff[j + 1] = 'S';
+        buff[j + 2] = '\0';
+        analyzer.WriteCodeToFile(buff);
     }
 }

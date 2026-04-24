@@ -1,6 +1,8 @@
 #include "CodeGen.hpp"
 #include <stdarg.h>
 #include "../utils/DataEncoder.hpp"
+#include <sys/uio.h>
+#include <unistd.h>
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
@@ -37,7 +39,7 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name)
         }
         Member& currMember = symType->memberList[i];
     }
-    
+    WriteCharData(" }\n");
 }
 
 void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName)
@@ -118,13 +120,21 @@ void CodeGen::EmitMember(Member *member)
         }
         else if(accType->type == ARRAY)
         {
-            if(accType->array.asmExpr->token.type != TokenType::numeric_constant)
+            if(!accType->array.asmExpr)
             {
-                printf("Non constants are not supported currently \n");
-                exit(-1);
+                // variable length array
+                WriteCharData("[0 x ");
             }
-            std::string_view view = GetViewForToken(accType->array.asmExpr->token);
-            WriteCharData("[%s x ", view.data(), view.length());
+            else
+            {
+                if(accType->array.asmExpr->token.type != TokenType::numeric_constant)
+                {
+                    printf("Non constants are not supported currently \n");
+                    exit(-1);
+                }
+                std::string_view view = GetViewForToken(accType->array.asmExpr->token);
+                WriteCharData("[%s x ", view.data(), view.length());
+            }
             brackets++;
         }
         else
@@ -246,4 +256,20 @@ std::string_view CodeGen::GetViewForToken(const Token &token)
     std::string_view tokenView(state.fileData + token.location.offset + offset,
                                 token.location.len - offset);
     return tokenView;
+}
+
+void CodeGen::WriteToFile(int fd)
+{
+    iovec *iov = (iovec *)alloca(sizeof(iovec) * typeHeap.basePtrs.size());
+    size_t i=0;
+    for(; i < typeHeap.basePtrs.size() - 1; i++)
+    {
+        iov[i].iov_base =  typeHeap.basePtrs[i];
+        iov[i].iov_len = typeHeap.GetAllocSize();
+    }
+    iov[i].iov_base =  typeHeap.basePtrs[i];
+    iov[i].iov_len = bufferData - (char*)typeHeap.basePtrs.back();
+
+    writev(fd, iov, (int)typeHeap.basePtrs.size());
+    fsync(fd);
 }
