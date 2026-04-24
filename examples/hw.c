@@ -5,12 +5,14 @@ typedef long int yolo2;
 typedef yolo2 prd;
 typedef struct simple_struct
 {
+    int xasda : 2;
+    int (*(*func_table[4][14])(char, ...))(double);
+    int (*func_table2)[4][14];
     struct simple_struct_2
     {
         int x, p : 2;
         long int k;
-    } pt, pk;
-
+    } pt[6], pk;
     int * const volatile x, p : 2;
     long int k;
 } XDDDD;

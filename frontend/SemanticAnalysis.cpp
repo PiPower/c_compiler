@@ -35,7 +35,7 @@ static const char* kTypeNames[] = {
 };
 SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 :
-symTab(symTab), manager(manager), codeGen(symTab)
+symTab(symTab), manager(manager), codeGen(symTab, manager)
 {
     // set offset into max so that new page gets allocated
     handyString.reserve(100);
@@ -87,7 +87,7 @@ symTab(symTab), manager(manager), codeGen(symTab)
     symTab->AddSymbol<SymbolType>(kTypeNames[30], BuiltIn::long_double, 0, nullptr, nullptr, nullptr);
 
     // rest
-    symTab->AddSymbol<SymbolType>(kTypeNames[31], BuiltIn::bool_t, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[31], BuiltIn::u_char_8, 0, nullptr, nullptr, nullptr);
     symTab->AddSymbol<SymbolType>(kTypeNames[32], BuiltIn::complex_float_64, 0, nullptr, nullptr, nullptr);
     symTab->AddSymbol<SymbolType>(kTypeNames[33], BuiltIn::complex_double_128, 0, nullptr, nullptr, nullptr);
     symTab->AddSymbol<SymbolType>(kTypeNames[34], BuiltIn::complex_long_double, 0, nullptr, nullptr, nullptr);
@@ -249,6 +249,28 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             members[idx].access = structDecls[i].declarators[j].decl.accessTypes;
             members[idx].memberType = memType->dType;
             argNames[idx] = structDecls[i].declarators[j].decl.name;
+
+            if(members[idx].bitCount != -1 && 
+                (members[idx].access.type != NONE ||  
+                 members[idx].memberType < BuiltIn::s_char_8 ||
+                 members[idx].memberType > BuiltIn::u_int_64 ))
+            {
+                printf("Bitfield can only be used with integer types \n");
+                exit(-1);
+            }
+
+            if(members[idx].bitCount != -1)
+            {
+                if(members[idx].bitCount > BuiltInBitCount( members[idx].memberType))
+                {
+                    printf("bitfield cannot be larger than original type\n");
+                    exit(-1);
+                }
+                //unsigned types are divisible by 2
+                members[idx].memberType = 
+                    BitCountToIntegerType(members[idx].bitCount, members[idx].memberType%2);
+            }
+
             idx++;
         }
     }
@@ -352,6 +374,45 @@ void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
 {
     printf("Unsupported enum\n");
     exit(-1);
+}
+
+int SemanticAnalyzer::BuiltInBitCount(BuiltIn::Type type)
+{
+    switch (type)
+    {
+    case BuiltIn::bool_t:    return 8;
+    case BuiltIn::s_char_8:  return 8; 
+    case BuiltIn::u_char_8:  return 8; 
+    case BuiltIn::s_int_16:  return 16;
+    case BuiltIn::u_int_16:  return 16;
+    case BuiltIn::s_int_32:  return 32;
+    case BuiltIn::u_int_32:  return 32;
+    case BuiltIn::s_int_64:  return 64;
+    case BuiltIn::u_int_64:  return 64;
+    case BuiltIn::float_32:  return 32;
+    case BuiltIn::double_64:  return 64;
+    case BuiltIn::long_double:  return 128;
+    case BuiltIn::complex_float_64:  return 128;
+    case BuiltIn::complex_double_128:  return 128;
+    default:
+        return -1;
+    }
+
+    return -1;
+}
+
+BuiltIn::Type SemanticAnalyzer::BitCountToIntegerType(uint8_t BitCount, bool isSigned)
+{
+
+    for(uint16_t type = BuiltIn::s_char_8; type <= BuiltIn::s_int_64; type += 2)
+    {
+        if(BuiltInBitCount((BuiltIn::Type)type) > BitCount)
+        {
+            return isSigned ? (BuiltIn::Type)type : (BuiltIn::Type)(type + 1);
+        }
+    }
+
+    return isSigned ? BuiltIn::s_int_64 : BuiltIn::u_int_64;
 }
 
 void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpecs *spec)

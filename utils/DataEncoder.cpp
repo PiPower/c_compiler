@@ -42,6 +42,11 @@ int64_t stringToInt64(const char *data, int32_t len, uint8_t mode)
     return 0;
 }
 
+int64_t stringToInt64(const std::string_view &view, uint8_t mode)
+{
+    return stringToInt64(view.data(), view.length(), mode);
+}
+
 int64_t stringToChar(const char *data, int32_t len)
 {
     int64_t dataOut = 0;

@@ -1,11 +1,12 @@
 #include "CodeGen.hpp"
 #include <stdarg.h>
+#include "../utils/DataEncoder.hpp"
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
-CodeGen::CodeGen(SymbolTable* symTab)
+CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager)
 :
-typeHeap(nr_of_pages), symTab(symTab)
+typeHeap(nr_of_pages), symTab(symTab), manager(manager)
 {
     bufferData = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
     remainingMemory = typeHeap.GetAllocSize();
@@ -25,10 +26,15 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name)
     }
 
     EmitTypename(symType, name);
-    WriteCharData(" = type {");
+    WriteCharData(" = type { ");
     for(size_t i =0; i < symType->argCount; i++)
     {
         EmitMember(&symType->memberList[i]);
+        if( i < symType->argCount - 1)
+        {
+            WriteByte(',');
+            WriteByte(' ');
+        }
         Member& currMember = symType->memberList[i];
     }
     
@@ -57,6 +63,8 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
             exit(-1);
             break;
         }
+
+        return;
     }
 
     auto typeDesc = emittedTypes.find(symType);
@@ -94,26 +102,52 @@ void CodeGen::EmitMember(Member *member)
 
     if(member->access.type == NONE)
     {
-        WriteByte(' ');
         EmitTypename(symTab->QueryTypeSymbol(member->typeName), member->typeName);
-        WriteByte(',');
         return;
     }
 
     AccessType* accType = &member->access;
     bool hitPointer = false;
-    while (accType && accType->level == 0)
+    uint32_t brackets = 0;
+    while (accType)
     {
         if(accType->type == POINTER)
         {
             hitPointer = true;
+            break;
         }
         else if(accType->type == ARRAY)
         {
-            //arrSizes.push_back( accType->array.asmExpr->token )
+            if(accType->array.asmExpr->token.type != TokenType::numeric_constant)
+            {
+                printf("Non constants are not supported currently \n");
+                exit(-1);
+            }
+            std::string_view view = GetViewForToken(accType->array.asmExpr->token);
+            WriteCharData("[%s x ", view.data(), view.length());
+            brackets++;
         }
+        else
+        {
+            printf("calls are not allowed in declarator \n");
+            exit(-1);
+        }
+        accType = accType->next;
     }
     
+    if(hitPointer)
+    {
+        WriteCharData("ptr");
+    }
+    else
+    {
+        EmitTypename(symTab->QueryTypeSymbol(member->typeName), member->typeName);
+    }
+
+    for(uint32_t i =0; i < brackets; i++)
+    {
+        WriteByte(']');
+    }
 }
 
 void CodeGen::WriteCharData(const char *data, ...)
@@ -196,4 +230,20 @@ inline void CodeGen::WriteByte(char c)
     *bufferData = c;
     bufferData++;
     remainingMemory--;
+}
+
+std::string_view CodeGen::GetViewForToken(const Token &token)
+{
+    FILE_STATE state;
+    if(manager->GetFileState(&token.location.id, &state) != 0)
+    {
+        printf("File Manager error: Requested file does not exit\n");
+        exit(-1);
+    }
+
+    // removes \" from both start and end 
+    uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
+    std::string_view tokenView(state.fileData + token.location.offset + offset,
+                                token.location.len - offset);
+    return tokenView;
 }
