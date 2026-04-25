@@ -25,6 +25,8 @@ struct SemanticAnalyzer
     bool NamesAType(const std::string_view& identifier);
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
+    bool IsMemberPointer(const Member* member);
+    std::string_view SimpleTypeToString(BuiltIn::Type type);
 
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     // misc

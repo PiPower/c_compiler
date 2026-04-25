@@ -14,7 +14,7 @@ typeHeap(nr_of_pages), symTab(symTab), manager(manager)
     remainingMemory = typeHeap.GetAllocSize();
 }
 
-void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name)
+void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name, bool flushQueue)
 {
     if(symType->dType != BuiltIn::struct_t && 
        symType->dType != BuiltIn::union_t)
@@ -22,33 +22,45 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name)
         return;
     }
 
-    if(emittedTypes.find(symType) != emittedTypes.end())
+    auto emittedSym = emittedTypes.find(symType);
+    if( emittedSym != emittedTypes.end() && emittedSym->second.isEmitted)
     {
         return;
     }
 
-    EmitTypename(symType, name);
+    EmitTypename(symType, name, false);
     WriteCharData(" = type { ");
-    for(size_t i =0; i < symType->argCount; i++)
+    if(symType->dType == BuiltIn::struct_t)
     {
-        EmitMember(&symType->memberList[i]);
-        if( i < symType->argCount - 1)
+        for(size_t i =0; i < symType->argCount; i++)
         {
-            WriteByte(',');
-            WriteByte(' ');
+            EmitMember(&symType->memberList[i]);
+            if( i < symType->argCount - 1)
+            {
+                WriteByte(',');
+                WriteByte(' ');
+            }
+            Member& currMember = symType->memberList[i];
         }
-        Member& currMember = symType->memberList[i];
     }
     WriteCharData(" }\n");
+    // mark symbol as emitted
+    emittedTypes[symType].isEmitted = true;
+
+    if(flushQueue)
+    {
+        FlushTypeQueue();
+    }
 }
 
-void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName)
+void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName, bool useQueue)
 {
     if(symType->dType != BuiltIn::struct_t &&
        symType->dType != BuiltIn::union_t)
     {
         switch (symType->dType)
         {
+        case BuiltIn::bool_t:    WriteCharData("i8");   break;
         case BuiltIn::s_char_8:  WriteCharData("i8");   break;
         case BuiltIn::u_char_8:  WriteCharData("i8");   break;
         case BuiltIn::s_int_16:  WriteCharData("i16");  break;
@@ -69,52 +81,57 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
         return;
     }
 
-    auto typeDesc = emittedTypes.find(symType);
-    if(typeDesc == emittedTypes.end())
-    {
-        auto typeCtr = typeCounter.find(typeName);
-        if(typeCtr == typeCounter.end())
-        {
-            typeCounter[typeName] = FIRST_VALUE;
-            emittedTypes[symType] = {FIRST_VALUE};
-            typeDesc = emittedTypes.find(symType);
-        }
-        else
-        {
-            emittedTypes[symType] = {typeCtr->second};
-            typeCtr->second++;
-            typeDesc = emittedTypes.find(symType);
-        }
-    }
-
     // if anonynous struct emitt name as is
     if(typeName[0] == '%')
     {
+        auto typeDesc = emittedTypes.find(symType);
+        if(typeDesc == emittedTypes.end())
+        {
+            if(useQueue)
+            {
+                AddSymbolToEmitQueue(symType, typeName);
+            }
+            emittedTypes[symType] = {FIRST_VALUE, false};
+            typeCounter[typeName] = {FIRST_VALUE};
+        }
         WriteCharData("%s", typeName.data(), typeName.length());
         return;
     }
-    else if(symType->dType == BuiltIn::struct_t)
-    {
-        if(typeDesc->second.symbolSaveCounter == FIRST_VALUE)
-        {
-            WriteCharData("%%struct.%s", typeName.data(), typeName.length());
-        }
-        else
-        {
-            WriteCharData("%%struct.%s.%d", typeName.data(), typeName.length(), typeDesc->second.symbolSaveCounter);
-        }
-    }
     else
     {
+        auto typeDesc = emittedTypes.find(symType);
+        if(typeDesc == emittedTypes.end())
+        {
+            auto typeCtr = typeCounter.find(typeName);
+            if(typeCtr == typeCounter.end())
+            {
+                typeCounter[typeName] = FIRST_VALUE;
+                emittedTypes[symType] = {FIRST_VALUE, false};
+                typeDesc = emittedTypes.find(symType);
+            }
+            else
+            {
+                emittedTypes[symType] = {typeCtr->second, false};
+                typeCtr->second++;
+                typeDesc = emittedTypes.find(symType);
+            }
+            if(useQueue)
+            {
+                AddSymbolToEmitQueue(symType, typeName);
+            }
+        }
+
         if(typeDesc->second.symbolSaveCounter == FIRST_VALUE)
         {
-            WriteCharData("%%union.%s", typeName.data(), typeName.length());
+            std::string_view inst = symType->dType ==  BuiltIn::struct_t ? "%%struct.%s" : "%%union.%s";
+            WriteCharData(inst.data(), typeName.data(), typeName.length());
         }
         else
         {
-            WriteCharData("%%union.%s.%d", typeName.data(), typeName.length(), typeDesc->second.symbolSaveCounter);
+            std::string_view inst = symType->dType ==  BuiltIn::struct_t ? "%%struct.%s.%d": "%%union.%s.%d";
+            WriteCharData(inst.data(), typeName.data(), typeName.length(), typeDesc->second.symbolSaveCounter);
         }
-    }
+    }   
     
 }
 
@@ -276,6 +293,22 @@ std::string_view CodeGen::GetViewForToken(const Token &token)
     std::string_view tokenView(state.fileData + token.location.offset + offset,
                                 token.location.len - offset);
     return tokenView;
+}
+
+void CodeGen::AddSymbolToEmitQueue(SymbolType *symType, const std::string_view &name)
+{
+    typeQueue.push({symType, name});
+}
+
+void CodeGen::FlushTypeQueue()
+{
+    while (typeQueue.size() > 0)
+    {
+        PendingType pt = typeQueue.front();
+        typeQueue.pop();
+        EmitUnionStruct(pt.symType, pt.name, false);
+    }
+    
 }
 
 void CodeGen::WriteToFile(int fd)
