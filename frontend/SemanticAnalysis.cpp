@@ -131,6 +131,8 @@ StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *de
     StructDeclaration structDecl;
     structDecl.declSpec = AnalyzeDeclSpec(declSpecs);
     Node* currentNode = structDeclList ;
+
+    bool NoDeclarators = true;
     while (currentNode)
     {
         Node* structDeclarator = currentNode->lChild;
@@ -140,6 +142,7 @@ StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *de
             currentNode = currentNode->rChild;
             continue;
         }
+        NoDeclarators = false;
         InitDeclarator initDecl;
         initDecl.decl = AnalyzeDeclarator(structDeclarator->lChild);
         int64_t bitCount = -1;
@@ -158,6 +161,36 @@ StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *de
         currentNode = currentNode->rChild;
     }
     
+    if(NoDeclarators && structDecl.declSpec.typenameView.length() > 6)
+    {
+        std::string_view substr = structDecl.declSpec.typenameView.substr(0, 6) ;
+        if(substr == "%union")
+        {
+            static uint64_t anonMemberUnion = 0;
+            StructDeclarator decl = {};
+
+            std::string name = "%anon.member_union." + std::to_string(anonMemberUnion++);
+            decl.decl.name = symTab->AddSymbolName(name.c_str());
+            decl.bitCount = -1;
+            structDecl.declarators.push_back(decl);
+        }
+    }
+
+    if(NoDeclarators && structDecl.declSpec.typenameView.length() > 7)
+    {
+        std::string_view substr = structDecl.declSpec.typenameView.substr(0, 7) ;
+        if(substr == "%struct")
+        {
+            static uint64_t anonMemberStruct = 0;
+            StructDeclarator decl = {};
+
+            std::string name = "%anon.member_struct." + std::to_string(anonMemberStruct++);
+            decl.decl.name = symTab->AddSymbolName(name.c_str());
+            decl.bitCount = -1;
+            structDecl.declarators.push_back(decl);
+        }
+    }
+
     return structDecl;
 }
 
@@ -200,7 +233,15 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     }
     else
     {
-        std::string anonName = "anonymous_" + std::to_string(GetAnnonymousId());
+        std::string anonName;
+        if(isStruct)
+        {
+            anonName = "%struct.anon." + std::to_string(GetAnnonymousStructId());
+        }
+        else
+        {
+            anonName = "%union.anon." + std::to_string(GetAnnonymousUnionId());
+        }
         spec->typenameView = symTab->AddSymbolName(anonName.c_str());
     }
    
@@ -479,7 +520,13 @@ bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
 }
 
-uint64_t SemanticAnalyzer::GetAnnonymousId()
+uint64_t SemanticAnalyzer::GetAnnonymousStructId()
+{
+    static uint64_t id = 0;
+    return id++;
+}
+
+uint64_t SemanticAnalyzer::GetAnnonymousUnionId()
 {
     static uint64_t id = 0;
     return id++;
@@ -514,7 +561,7 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                     exit(-1);
                     break;
                 }
-            } while (qualNodes = qualNodes->lChild);
+            } while ((qualNodes = qualNodes->lChild));
         }
         else if(currNode->type == Ast::storage_specifier)
         {

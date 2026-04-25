@@ -5,6 +5,9 @@
 #include "Preprocessor.hpp"
 #include "CodeGen.hpp"
 
+/*
+    sema supports anonymous struct members
+*/
 struct SemanticAnalyzer
 {
     SemanticAnalyzer(FileManager* manager, SymbolTable* symTab);
@@ -20,7 +23,9 @@ struct SemanticAnalyzer
     BuiltIn::Type BitCountToIntegerType(uint8_t BitCount, bool isSigned);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);
-    uint64_t GetAnnonymousId();
+    uint64_t GetAnnonymousStructId();
+    uint64_t GetAnnonymousUnionId();
+
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     // misc
     std::string_view GetViewForToken(const Token &token);
