@@ -87,13 +87,33 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
         }
     }
 
-    if(typeDesc->second.symbolSaveCounter == FIRST_VALUE)
+    // if anonynous struct emitt name as is
+    if(typeName[0] == '%')
     {
-        WriteCharData("%%struct.%s", typeName.data(), typeName.length());
+        WriteCharData("%s", typeName.data(), typeName.length());
+        return;
+    }
+    else if(symType->dType == BuiltIn::struct_t)
+    {
+        if(typeDesc->second.symbolSaveCounter == FIRST_VALUE)
+        {
+            WriteCharData("%%struct.%s", typeName.data(), typeName.length());
+        }
+        else
+        {
+            WriteCharData("%%struct.%s.%d", typeName.data(), typeName.length(), typeDesc->second.symbolSaveCounter);
+        }
     }
     else
     {
-        WriteCharData("%%struct.%s.%d", typeName.data(), typeName.length(), typeDesc->second.symbolSaveCounter);
+        if(typeDesc->second.symbolSaveCounter == FIRST_VALUE)
+        {
+            WriteCharData("%%union.%s", typeName.data(), typeName.length());
+        }
+        else
+        {
+            WriteCharData("%%union.%s.%d", typeName.data(), typeName.length(), typeDesc->second.symbolSaveCounter);
+        }
     }
     
 }
