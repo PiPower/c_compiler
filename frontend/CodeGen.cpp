@@ -43,6 +43,42 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
             Member& currMember = symType->memberList[i];
         }
     }
+    else
+    {
+        size_t maxSize = 0;
+        size_t maxAlignment = 1;
+        size_t maxSizeMember = 0;
+        size_t maxAlignmentMember = 0;
+
+        for(size_t i =0; i < symType->argCount; i++)
+        {
+            if(symType->memberList[i].size > maxSize)
+            {
+                maxSize = symType->memberList[i].size;
+                maxSizeMember = i;
+            }
+
+            if(symType->memberList[i].alignment > maxAlignment)
+            {
+                maxAlignment = symType->memberList[i].alignment;
+                maxAlignmentMember = i;
+            }
+        }  
+        if(maxAlignmentMember == maxSizeMember)
+        {
+            EmitMember(&symType->memberList[maxSizeMember]);
+        }
+        else
+        {
+            // enforces proper alignment 
+            EmitMember(&symType->memberList[maxAlignmentMember]);
+            size_t aling = maxSize % maxAlignment;
+            maxSize += aling ? maxAlignment - aling : 0;
+            maxSize -= symType->memberList[maxAlignmentMember].size;
+            std::string num = std::to_string(maxSize);
+            WriteCharData(", [%s x i8]", num.data(), num.length());
+        }
+    }
     WriteCharData(" }\n");
     // mark symbol as emitted
     emittedTypes[symType].isEmitted = true;
