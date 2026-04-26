@@ -23,6 +23,21 @@ void Logger::IssueWarningImpl(
 }
 
 void Logger::IssueWarningImpl(
+    const char* moduleName,
+    const FILE_ID *fileId, 
+    const SourceLocation *loc, 
+    const char *errMsg, 
+    ...)
+{
+    va_list args;
+    va_start(args, errMsg);
+    IssueWarningImpl(moduleName, fileId, loc, errMsg, args);
+    va_end(args);
+
+    return;
+}
+
+void Logger::IssueWarningImpl(
         const char* moduleName,
         const FILE_ID* fileId,
         const SourceLocation* loc,
@@ -41,7 +56,7 @@ void Logger::IssueWarningImpl(
 
     if(loc)
     {
-        printf("%ld:%ld", loc->line, loc->offset);
+        printf("%ld:%ld\n", loc->line, loc->offset);
     }
 
     printf("%s warning: \n", moduleName);

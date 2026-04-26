@@ -4,6 +4,9 @@
 #include <string.h>
 #include <stdarg.h>
 #include <future>
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Parser", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+
+
 #define CPU_PAGE 4096
 #define PAGE_COUNT 50
 typedef Ast::Node* (Parser::*ParseFn)();
@@ -89,7 +92,8 @@ static Ast::Node* SpecifierParseLoop(
 
 Parser::Parser(FILE_ID mainFileId, SemanticAnalyzer* analyzer, FileManager* manager, const CompilationOpts* opts)
 :
-analyzer(analyzer), manager(manager), PP(mainFileId, manager, opts), opts(opts), pState({})
+analyzer(analyzer), manager(manager), PP(mainFileId, manager, opts), 
+opts(opts), pState({}), logger(manager)
 {
     assert(opts != nullptr);
     AddNodePage(); 
@@ -240,51 +244,6 @@ void Parser::ConsumeExpectedToken(TokenType::Type type)
         exit(-1);
     }
     return;
-}
-
-void Parser::IssueWarning(const Token * token, const char *errMsg, ...)
-{
-    va_list args;
-    va_start(args, errMsg);
-    if(token) {IssueWarning(&token->location.id, &token->location, errMsg, args);}
-    else{IssueWarning(nullptr, nullptr, errMsg, args);}
-    va_end(args);
-
-    return;
-}
-
-void Parser::IssueWarning(const FILE_ID *fileId, const SourceLocation *loc, const char *errMsg, ...)
-{
-    va_list args;
-    va_start(args, errMsg);
-    IssueWarning(fileId, loc, errMsg, args);
-    va_end(args);
-
-    return;
-}
-
-void Parser::IssueWarning(const FILE_ID *fileId, const SourceLocation *loc, const char *errMsg, va_list args)
-{
-    if(fileId)
-    {
-        FILE_STATE fileState;
-        manager->GetFileState(fileId, &fileState);
-        char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
-        memcpy(pathBuffer, fileState.path, fileState.pathLen);
-        pathBuffer[fileState.pathLen] = '\0';
-        printf("%s:", pathBuffer);
-    }
-    if(loc)
-    {
-        printf("%ld:%ld", loc->line, loc->offset);
-    }
-    printf(" Parser warning \n");
-
-    if(errMsg)
-    {
-        vprintf(errMsg, args);
-    }
-    printf("\n");
 }
 
 Ast::Node *Parser::AllocateAstNodes(uint16_t count)
@@ -1100,7 +1059,8 @@ Ast::Node *Parser::ParameterDecl()
         }
         if(!declSpec )
         {
-            IssueWarning(nullptr, &currentLocation, "function call declaration specifier cannot be empty" );
+            logger.IssueWarningImpl("Parser", nullptr, &currentLocation, 
+                        "function call declaration specifier cannot be empty");
             exit(-1);
         }
         Ast::Node *parameterDecl = AllocateAstNodes();

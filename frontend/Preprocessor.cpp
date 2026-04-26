@@ -5,7 +5,7 @@
 #include "../utils/DataEncoder.hpp"
 #include <functional>
 #include <iostream>
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(typeid(*this).name(), tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Preprocessor", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 
 static const char* PreprocessorFlename = "preprocessor_file.comp";

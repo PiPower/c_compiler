@@ -16,6 +16,13 @@ struct Logger
         const FILE_ID* fileId,
         const SourceLocation* loc,
         const char* errMsg,
+        ...);
+
+    void IssueWarningImpl(
+        const char* moduleName,
+        const FILE_ID* fileId,
+        const SourceLocation* loc,
+        const char* errMsg,
         va_list args);
 
     FileManager* fm;

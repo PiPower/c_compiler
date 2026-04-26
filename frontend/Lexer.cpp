@@ -2,8 +2,7 @@
 #include <cassert>
 #include <stdio.h>
 #include <string.h>
-#include <typeinfo>
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(typeid(*this).name(), tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Lexer", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 
 static constexpr int8_t dec_type_dec = 0;

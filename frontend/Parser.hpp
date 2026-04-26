@@ -3,7 +3,7 @@
 #include "../utils/FileManager.hpp"
 #include "Preprocessor.hpp"
 #include "SemanticAnalysis.hpp"
-
+#include "../utils/Logger.hpp"
 struct ParsingState
 {
     uint16_t parsingConstantExpr : 1;
@@ -20,9 +20,6 @@ struct Parser
     void ConsumeToken();
     std::string_view GetViewForToken(const Token &token);
     void ConsumeExpectedToken(TokenType::Type type);
-    void IssueWarning(const Token* token, const char* errMsg, ...);
-    void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, ...);
-    void IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char* errMsg, va_list args);
     // node management
     Ast::Node* AllocateAstNodes(uint16_t count = 1);
     void AddNodePage();
@@ -88,4 +85,5 @@ struct Parser
     PagedBuffer nodeBuffer;
     SourceLocation currentLocation;
     ParsingState pState;
+    Logger logger;
 };
