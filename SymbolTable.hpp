@@ -148,7 +148,9 @@ struct Member
     TypeBits declType; 
     BuiltIn::Type memberType;
     int64_t bitCount;
+    uint64_t size;
     std::string_view typeName;
+    uint32_t alignment;
 };
 
 
@@ -170,6 +172,8 @@ struct SymbolType
     Sym::Kind kind;
     BuiltIn::Type dType;
     bool isDefined;
+    uint64_t size;
+    uint32_t alignment;
     // used only when type == struct_t or union
     size_t argCount;
     // points to table that holds symbol in struct's scope

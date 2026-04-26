@@ -27,7 +27,7 @@ struct SemanticAnalyzer
     uint64_t GetAnnonymousUnionId();
     bool IsMemberPointer(const Member* member);
     std::string_view SimpleTypeToString(BuiltIn::Type type);
-
+    MemoryDesc GetMemberDesc(AccessType* accType, const std::string_view& typeName);
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     // misc
     std::string_view GetViewForToken(const Token &token);

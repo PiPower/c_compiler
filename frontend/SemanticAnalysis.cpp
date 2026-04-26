@@ -3,8 +3,10 @@
 #include <limits>
 #include <fcntl.h>
 #include <unistd.h>
+#include "../utils/DataEncoder.hpp"
 
 typedef const Ast::Node Node;
+constexpr size_t  POINTER_SIZE = 8;
 
 static const char* kTypeNames[] = {
     // void
@@ -44,58 +46,58 @@ symTab(symTab), manager(manager), codeGen(symTab, manager)
  
     // each simple built in typename is stored in read section during program lifetime
     // so each std::string_view will be valid
-    symTab->AddSymbol<SymbolType>(kTypeNames[0], BuiltIn::void_t, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[0], BuiltIn::void_t, true, 0, 0, 0, nullptr, nullptr, nullptr);
 
     // integer types
-    symTab->AddSymbol<SymbolType>(kTypeNames[1], BuiltIn::s_char_8, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[2], BuiltIn::s_char_8, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[3], BuiltIn::u_char_8, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[1], BuiltIn::s_char_8, true, 1, 1, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[2], BuiltIn::s_char_8, true, 1, 1, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[3], BuiltIn::u_char_8, true, 1, 1, 0, nullptr, nullptr, nullptr);
 
-    symTab->AddSymbol<SymbolType>(kTypeNames[4], BuiltIn::s_int_16, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[5], BuiltIn::s_int_16, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[6], BuiltIn::s_int_16, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[7], BuiltIn::s_int_16, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[4], BuiltIn::s_int_16, true, 2, 2, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[5], BuiltIn::s_int_16, true, 2, 2, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[6], BuiltIn::s_int_16, true, 2, 2, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[7], BuiltIn::s_int_16, true, 2, 2, 0, nullptr, nullptr, nullptr);
 
-    symTab->AddSymbol<SymbolType>(kTypeNames[8], BuiltIn::u_int_16, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[9], BuiltIn::u_int_16, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[8], BuiltIn::u_int_16, true, 2, 2, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[9], BuiltIn::u_int_16, true, 2, 2, 0, nullptr, nullptr, nullptr);
 
-    symTab->AddSymbol<SymbolType>(kTypeNames[10], BuiltIn::s_int_32, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[11], BuiltIn::s_int_32, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[12], BuiltIn::s_int_32, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[10], BuiltIn::s_int_32, true, 4, 4, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[11], BuiltIn::s_int_32, true, 4, 4, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[12], BuiltIn::s_int_32, true, 4, 4, 0, nullptr, nullptr, nullptr);
 
-    symTab->AddSymbol<SymbolType>(kTypeNames[13], BuiltIn::u_int_32, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[14], BuiltIn::u_int_32, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[13], BuiltIn::u_int_32, true, 4, 4, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[14], BuiltIn::u_int_32, true, 4, 4, 0, nullptr, nullptr, nullptr);
 
-    symTab->AddSymbol<SymbolType>(kTypeNames[15], BuiltIn::s_int_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[16], BuiltIn::s_int_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[17], BuiltIn::s_int_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[18], BuiltIn::s_int_64, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[15], BuiltIn::s_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[16], BuiltIn::s_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[17], BuiltIn::s_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[18], BuiltIn::s_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
 
-    symTab->AddSymbol<SymbolType>(kTypeNames[19], BuiltIn::u_int_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[20], BuiltIn::u_int_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[21], BuiltIn::u_int_64, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[19], BuiltIn::u_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[20], BuiltIn::u_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[21], BuiltIn::u_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
 
-    symTab->AddSymbol<SymbolType>(kTypeNames[22], BuiltIn::s_int_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[23], BuiltIn::s_int_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[24], BuiltIn::s_int_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[25], BuiltIn::s_int_64, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[22], BuiltIn::s_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[23], BuiltIn::s_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[24], BuiltIn::s_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[25], BuiltIn::s_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
 
-    symTab->AddSymbol<SymbolType>(kTypeNames[26], BuiltIn::u_int_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[27], BuiltIn::u_int_64, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[26], BuiltIn::u_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[27], BuiltIn::u_int_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
 
     // floats
-    symTab->AddSymbol<SymbolType>(kTypeNames[28], BuiltIn::float_32, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[29], BuiltIn::double_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[30], BuiltIn::long_double, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[28], BuiltIn::float_32, true, 4, 4, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[29], BuiltIn::double_64, true, 8, 8, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[30], BuiltIn::long_double, true, 16, 16, 0, nullptr, nullptr, nullptr);
 
     // rest
-    symTab->AddSymbol<SymbolType>(kTypeNames[31], BuiltIn::u_char_8, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[32], BuiltIn::complex_float_64, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[33], BuiltIn::complex_double_128, true, 0, nullptr, nullptr, nullptr);
-    symTab->AddSymbol<SymbolType>(kTypeNames[34], BuiltIn::complex_long_double, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[31], BuiltIn::u_char_8, true, 1, 1, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[32], BuiltIn::complex_float_64, 8, 8, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[33], BuiltIn::complex_double_128, 16, 16, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[34], BuiltIn::complex_long_double, true, 32, 16, 0, nullptr, nullptr, nullptr);
 
     // special built-in
-    symTab->AddSymbol<SymbolType>(kTypeNames[35], BuiltIn::special, true, 0, nullptr, nullptr, nullptr);
+    symTab->AddSymbol<SymbolType>(kTypeNames[35], BuiltIn::special, true, 0, 0, 0, nullptr, nullptr, nullptr);
 
 }
 
@@ -250,7 +252,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     {
         // declare name
         BuiltIn::Type symType =  isStruct ? BuiltIn::struct_t :  BuiltIn::union_t;
-        symTab->AddSymbol<SymbolType>(spec->typenameView, symType, false, 0, nullptr, nullptr, nullptr);
+        symTab->AddSymbol<SymbolType>(spec->typenameView, symType, false, 0, 0, 0, nullptr, nullptr, nullptr);
     }
     if(!structTree->rChild)
     {
@@ -262,7 +264,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     if(sym->isDefined)
     {
         // used simply to trigger redefinition error
-        symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, false, 0, nullptr, nullptr, nullptr);
+        symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, false, 0, 0, 0, nullptr, nullptr, nullptr);
     }
     // struct has its own scope
     Node *argList = structTree;
@@ -280,18 +282,29 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     std::string_view* argNames = symTab->AllocateTypeArrayOnHeap<std::string_view>(argCount);
     Member* members = symTab->AllocateTypeArrayOnHeap<Member>(argCount);
     size_t idx = 0;
+    uint32_t highestAlignment = 1;
+    uint64_t structSize = 0;
     for(size_t i = 0; i < structDecls.size(); i++)
     {
         for(size_t j = 0; j < structDecls[i].declarators.size(); j++)
         {
             SymbolType* memType = symTab->QueryTypeSymbol(structDecls[i].declSpec.typenameView);
+            argNames[idx] = structDecls[i].declarators[j].decl.name;
 
             members[idx].declType = structDecls[i].declSpec.declType;
             members[idx].typeName = structDecls[i].declSpec.typenameView;
             members[idx].bitCount = structDecls[i].declarators[j].bitCount;
             members[idx].access = structDecls[i].declarators[j].decl.accessTypes;
             members[idx].memberType = memType->dType;
-            argNames[idx] = structDecls[i].declarators[j].decl.name;
+            // memory related processing 
+            MemoryDesc desc = GetMemberDesc(&members[idx].access, members[idx].typeName);
+            members[idx].size = desc.size;
+            members[idx].alignment = desc.alignment;
+            // post processing related to size and offsets within struct/union itself
+            highestAlignment = std::max(highestAlignment, members[idx].alignment);
+            size_t aling = structSize % members[idx].alignment;
+            structSize += aling ? members[idx].alignment - aling : 0;
+            structSize += members[idx].size;
 
             if( !IsMemberPointer(&members[idx]) && !symTab->QueryTypeSymbol(members[idx].typeName )->isDefined)
             {
@@ -335,6 +348,8 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     sym->memberNames = argNames;
     sym->memberList = members;
     sym->isDefined = true;
+    sym->alignment = highestAlignment;
+    sym->size = structSize;
     return; 
 }
 
@@ -585,6 +600,48 @@ std::string_view SemanticAnalyzer::SimpleTypeToString(BuiltIn::Type type)
     }
 
     return "";
+}
+
+MemoryDesc SemanticAnalyzer::GetMemberDesc(AccessType *accType, const std::string_view &typeName)
+{
+    bool hitPointer = false;
+    int64_t arrayCount = 1;
+
+    while (accType)
+    {
+        if(accType->type == POINTER)
+        {
+            hitPointer = true;
+            break;
+        }
+        else if(accType->type == ARRAY)
+        {
+            if(!accType->array.asmExpr)
+            {
+                arrayCount = 0;
+            }
+            else
+            {
+                if(accType->array.asmExpr->token.type != TokenType::numeric_constant)
+                {
+                    printf("Non constants are not supported currently \n");
+                    exit(-1);
+                }
+                std::string_view view = GetViewForToken(accType->array.asmExpr->token);
+                arrayCount *= stringToInt64(view, MODE_DEC);
+            }
+         
+        }
+        accType = accType->next;
+    }
+    
+    if(hitPointer)
+    {
+        return {arrayCount * POINTER_SIZE, 8};
+    }
+
+    SymbolType* symType = symTab->QueryTypeSymbol(typeName);
+    return {arrayCount * symType->size, symType->alignment};
 }
 
 DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)

@@ -34,3 +34,9 @@ struct StructDeclaration
     DeclSpecs declSpec;
     std::vector<StructDeclarator> declarators;
 };
+
+struct MemoryDesc
+{
+    uint64_t size;
+    uint32_t alignment;
+};
