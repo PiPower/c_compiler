@@ -2,6 +2,7 @@
 #include "Lexer.hpp"
 #include "AstNode.hpp"
 #include "TypedNumber.hpp"
+#include "NodeExecutor.hpp"
 struct PreprocessorStages
 {
     uint16_t If : 1; // informs that currently we are inside a macro
@@ -84,6 +85,7 @@ private:
     SourceLocation GetOneLocation();
     std::vector<Token> MergeTokensInLexer(const Token* left, const Token* right);
     bool ProcessDefined();
+
 public:
     Lexer lexer;
     FileManager* manager;
@@ -96,4 +98,5 @@ public:
     uint8_t blockResult;
     FILE_ID preprocessorFile;
     int64_t fileOffset;
+    NodeExecutor ex;
 };

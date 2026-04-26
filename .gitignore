@@ -1,3 +1,4 @@
 build
 .vscode
 .builtin_defines.hpp
+*.S
