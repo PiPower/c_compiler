@@ -2,6 +2,9 @@
 #include <cassert>
 #include <stdio.h>
 #include <string.h>
+#include <typeinfo>
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(typeid(*this).name(), tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+
 
 static constexpr int8_t dec_type_dec = 0;
 static constexpr int8_t dec_type_oct = 1;
@@ -29,7 +32,7 @@ static const char* kewordStrings[] = {
 
 Lexer::Lexer(FileManager* manager, const CompilationOpts* opts)
 :
-manager(manager), fEnd(nullptr), fCurr(nullptr), opts(opts)
+manager(manager), fEnd(nullptr), fCurr(nullptr), opts(opts), logger(manager)
 {
     assert(manager != nullptr);
     assert(opts != nullptr);
@@ -321,30 +324,6 @@ void Lexer::RestoreLexerPointer()
     }
 }
 
-void Lexer::IssueWarning(const char *msg, const SourceLocation* loc)
-{
-    int64_t lineNr ;
-    int64_t fileOffset;
-    if(loc)
-    {
-        lineNr = loc->line;
-        fileOffset =  loc->offset;
-    }
-    else
-    {
-        lineNr = files.top().lineNr;
-        fileOffset =  fCurr - files.top().fileBase;
-    }
-    FILE_STATE fileState;
-    manager->GetFileState(&files.top().fileId, &fileState);
-    char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
-    memcpy(pathBuffer, fileState.path, fileState.pathLen);
-    pathBuffer[fileState.pathLen] = '\0';
-    
-    printf("%s:%ld:%ld %s\n", 
-            pathBuffer, lineNr, fileOffset, msg);
-}
-
 void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
 {
     RestoreLexerPointer();
@@ -409,8 +388,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
 
             if(!(fCurr < fEnd && IsDigit(*fCurr)))
             {
-                IssueWarning("Incorrectly typed hex float value", nullptr);
-                exit(-1);
+                IssueWarning(nullptr, "Incorrectly typed hex float value");
             }
             while (fCurr < fEnd && IsDigit(*fCurr)){fCurr++;}
         }
@@ -433,7 +411,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
 
         if( (isFloat && fCurr >= fEnd) || (isFloat &&  fCurr < fEnd && *fCurr != 'p' ))
         {
-            IssueWarning("Incorrectly typed hex float value", nullptr);
+            IssueWarning(nullptr, "Incorrectly typed hex float value");
             exit(-1);
         }
 
@@ -450,7 +428,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
 
             if(!(fCurr < fEnd && IsDigit(*fCurr)))
             {
-                IssueWarning("Incorrectly typed hex float value", nullptr);
+                IssueWarning(nullptr, "Incorrectly typed hex float value");
                 exit(-1);
             }
 
@@ -655,7 +633,7 @@ int32_t Lexer::Lex(Token* token)
         C = GetNextChar();
         if(C != '\n')
         {
-            IssueWarning("Unexpected followup to \\", &loc);
+            IssueWarning(token, "Unexpected followup to \\");
             exit(-1);
         }
         ConsumeChar();

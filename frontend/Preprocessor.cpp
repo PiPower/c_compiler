@@ -5,6 +5,9 @@
 #include "../utils/DataEncoder.hpp"
 #include <functional>
 #include <iostream>
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(typeid(*this).name(), tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+
+
 static const char* PreprocessorFlename = "preprocessor_file.comp";
 static const char* InsertableValues = "01";
 
@@ -32,7 +35,8 @@ struct MacroTokenQueue
 
 Preprocessor::Preprocessor(FILE_ID mainFileId, FileManager *manager, const CompilationOpts* opts)
 :
-lexer(manager, opts), manager(manager), opts(opts), stages({}), blockResult(EXPR_RESULT_NONE), fileOffset(0), ex(manager)
+lexer(manager, opts), manager(manager), opts(opts), stages({}),
+blockResult(EXPR_RESULT_NONE), fileOffset(0), ex(manager), logger(manager)
 {
     assert(opts != nullptr);
     constexpr size_t initiialBufferSize = 500;
@@ -107,8 +111,8 @@ fetch_token:
     {
         if(token->PossiblyErronous)
         {
-            IssueWarning(token, "Errounsous identifier [%s]",
-                     GetViewForToken(*token));
+            std::string_view view = GetViewForToken(*token);
+            IssueWarning(token, "Errounsous identifier [%.*s]", (int)view.length(), view.data());
         }
         Macro *macro;
         std::string_view macroView = GetViewForToken(*token);
@@ -321,7 +325,6 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
     case TokenType::pp_error:   HandleError(); break;
     case TokenType::pp_pragma:  HandlePragma(); break;
     case TokenType::pp_undef:   HandleUndef(); break;
-
     default:
         printf("Not expected preprocessing token \n");
         exit(-1);
@@ -329,42 +332,6 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
 
     }
     return 0;
-}
-
-void Preprocessor::IssueWarning(const Token *token, const char *errMsg, ...)
-{
-    va_list args;
-    va_start(args, errMsg);
-    if(token) {IssueWarning(&token->location.id, &token->location, errMsg, args);}
-    else{IssueWarning(nullptr, nullptr, errMsg, args);}
-    va_end(args);
-
-    return;
-}
-
-void Preprocessor::IssueWarning(const FILE_ID* fileId, const SourceLocation* loc, const char *errMsg, va_list args)
-{
-    if(fileId)
-    {
-        FILE_STATE fileState;
-        manager->GetFileState(fileId, &fileState);
-        char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
-        memcpy(pathBuffer, fileState.path, fileState.pathLen);
-        pathBuffer[fileState.pathLen] = '\0';
-        printf("%s:", pathBuffer);
-    }
-    if(loc)
-    {
-        printf("%ld:%ld", loc->line, loc->offset);
-    }
-    printf(" Preprocessor warning\n");
-
-    if(errMsg)
-    {
-        vprintf(errMsg, args);
-    }
-    printf("\n");
-    
 }
 
 std::string_view Preprocessor::GetViewForToken(const Token &token)

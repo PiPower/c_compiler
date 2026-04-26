@@ -1,7 +1,7 @@
 #include "NodeExecutor.hpp"
 #include "../utils/DataEncoder.hpp"
 #include <typeinfo>
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(typeid(*this).name(), tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__);
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(typeid(*this).name(), tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 template<typename _Tp>
 struct right_shift 

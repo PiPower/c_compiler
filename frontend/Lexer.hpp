@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <string_view>
 #include <queue>
-
+#include "../utils/Logger.hpp"
 struct FilePos;
 struct SourceLocation;
 struct Token;
@@ -38,7 +38,6 @@ struct Lexer
     void ConsumeChar();
     bool SkipHorizontalWhiteSpace();
     void RestoreLexerPointer();
-    void IssueWarning(const char* msg, const SourceLocation* loc);
     void LexConstant(Token* token, const SourceLocation* firstNum);
     void LexIdentifier(Token* token, const SourceLocation* firstChar);
     void LexCharSequence(Token* token, const char separator);
@@ -66,6 +65,7 @@ struct Lexer
     const char* fCurr;
     std::unordered_map<std::string_view, TokenType::Type> keywordsMap;
     const CompilationOpts* opts;
+    Logger logger;
 };
 
 struct FilePos
