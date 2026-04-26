@@ -895,7 +895,10 @@ Ast::Node *Parser::TypeName()
             bottomChild = bottomChild->rChild;
         }
     }    
-
+    if(!typeName->rChild)
+    {
+        return nullptr;
+    }
     typeName->lChild = AbstractDeclarator();
     return typeName;
 }
