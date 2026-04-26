@@ -1,3 +1,4 @@
+#pragma once
 #include "FileManager.hpp"
 #include "../frontend/TokenTypes.hpp"
 
