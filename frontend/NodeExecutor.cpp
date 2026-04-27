@@ -1,5 +1,7 @@
 #include "NodeExecutor.hpp"
 #include "../utils/DataEncoder.hpp"
+#include "../frontend/SemanticAnalysis.hpp"
+
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("NodeExecutor", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 template<typename _Tp>
@@ -21,7 +23,7 @@ struct left_shift
 };
 
 template<typename Op>
-Typed::Number BinaryOp(NodeExecutor* ne,  Ast::Node* node)
+Typed::Number BinaryOp(NodeExecutor* ne, const Ast::Node* node)
 {
     Typed::Number l = ne->ExecuteNode(node->lChild);
     Typed::Number r = ne->ExecuteNode(node->rChild);
@@ -34,7 +36,7 @@ Typed::Number BinaryOp(NodeExecutor* ne,  Ast::Node* node)
 }
 
 template<typename Op>
-Typed::Number UnaryOp(NodeExecutor* ne,  Ast::Node* node)
+Typed::Number UnaryOp(NodeExecutor* ne, const Ast::Node* node)
 {
     Typed::Number l = ne->ExecuteNode(node->lChild);
 
@@ -45,13 +47,49 @@ Typed::Number UnaryOp(NodeExecutor* ne,  Ast::Node* node)
     return out;
 }
 
-NodeExecutor::NodeExecutor(FileManager *fm)
+NodeExecutor::NodeExecutor(FileManager *fm, SemanticAnalyzer* sm)
 :
-fm(fm), logger(fm)
+fm(fm), logger(fm), sema(sm)
 {
 }
 
-Typed::Number NodeExecutor::ExecuteNode(Ast::Node *expr)
+AccessDesc NodeExecutor::parseAccess(const AccessType *accType)
+{
+    bool hitPointer = false;
+    int64_t arrayCount = 1;
+
+    while (accType)
+    {
+        if(accType->type == POINTER)
+        {
+            hitPointer = true;
+            break;
+        }
+        else if(accType->type == ARRAY)
+        {
+            if(!accType->array.asmExpr)
+            {
+                arrayCount = 0;
+            }
+            else
+            {
+                Typed::Number num = ExecuteNode(accType->array.asmExpr);
+                if(num.type == Typed::d_float || num.type == Typed::d_double)
+                {
+                    printf("Floats cannot be used inside array size declaration \n");
+                    exit(-1);
+                }
+                arrayCount *= num.int64;
+            }
+         
+        }
+        accType = accType->next;
+    }
+    
+    return {hitPointer, arrayCount};
+}
+
+Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
 {
     Typed::Number numOut;
     numOut.type = Typed::d_int64_t;
@@ -88,6 +126,33 @@ Typed::Number NodeExecutor::ExecuteNode(Ast::Node *expr)
         if(condValue.int64 != 0) {numOut = ExecuteNode(exprTrue);}
         else{numOut = ExecuteNode(exprFalse);}
         return numOut;
+    }
+    case Ast::NodeType::op_sizeof:
+    {
+        const Ast::Node* typeName = expr->lChild;
+        const Ast::Node* specQualList = typeName->rChild;
+        const Ast::Node* decl = typeName->lChild;
+        if(!decl->lChild && !decl->rChild)
+        {
+            DeclSpecs spec = sema->AnalyzeDeclSpec(specQualList);
+            SymbolType* symType = sema->symTab->QueryTypeSymbol(spec.typenameView);
+            return {.int64 = symType->size, .type = Typed::DType::d_int64_t };
+        }
+        else
+        {
+            Declarator declarator = sema->AnalyzeDeclarator(decl);
+            AccessDesc desc = parseAccess(&declarator.accessTypes);
+            if(desc.hitPtr) 
+            {
+                return {.int64 = POINTER_SIZE * desc.arraySize, .type = Typed::DType::d_int64_t };
+            }
+            else 
+            {
+                DeclSpecs spec = sema->AnalyzeDeclSpec(specQualList);
+                SymbolType* symType = sema->symTab->QueryTypeSymbol(spec.typenameView);
+                return {.int64 = symType->size * desc.arraySize, .type = Typed::DType::d_int64_t };
+            }
+        }
     }
     // unary ops
     case Ast::NodeType::op_log_negate: return UnaryOp<std::logical_not<int64_t>>(this, expr);

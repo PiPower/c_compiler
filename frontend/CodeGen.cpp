@@ -6,9 +6,9 @@
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
-CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager)
+CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
-typeHeap(nr_of_pages), symTab(symTab), manager(manager)
+typeHeap(nr_of_pages), symTab(symTab), manager(manager), nodeExec(ne)
 {
     bufferData = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
     remainingMemory = typeHeap.GetAllocSize();
@@ -200,13 +200,14 @@ void CodeGen::EmitMember(Member *member)
             }
             else
             {
-                if(accType->array.asmExpr->token.type != TokenType::numeric_constant)
+                Typed::Number num = nodeExec->ExecuteNode(accType->array.asmExpr);
+                if(num.type == Typed::d_float || num.type == Typed::d_double)
                 {
-                    printf("Non constants are not supported currently \n");
+                    printf("Floats cannot be used inside array size declaration \n");
                     exit(-1);
                 }
-                std::string_view view = GetViewForToken(accType->array.asmExpr->token);
-                WriteCharData("[%s x ", view.data(), view.length());
+                std::string str = std::to_string(num.int64);
+                WriteCharData("[%s x ", str.data(), str.length());
             }
             brackets++;
         }

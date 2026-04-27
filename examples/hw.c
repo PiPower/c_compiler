@@ -1,3 +1,4 @@
+#include <stdio.h>
 typedef signed char prol;
 typedef prol xd;
 

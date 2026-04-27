@@ -6,6 +6,7 @@
 #include "../SymbolTable.hpp"
 #include "../utils/PagedHeap.hpp"
 #include "../utils/FileManager.hpp"
+#include "NodeExecutor.hpp"
 constexpr uint8_t LlvmTypeStruct = 0;
 constexpr uint8_t LlvmTypeUnion = 1;
 
@@ -23,7 +24,7 @@ struct PendingType
 
 struct CodeGen
 {
-    CodeGen(SymbolTable* symTab,  FileManager* manager);
+    CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne);
     void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
     void EmitTypename(SymbolType* symType, const std::string_view& typeName, bool useQueue = true);
     void EmitMember(Member* member);
@@ -43,4 +44,5 @@ struct CodeGen
     PagedHeap typeHeap;
     SymbolTable* symTab;
     FileManager* manager;
+    NodeExecutor* nodeExec;
 };

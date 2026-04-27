@@ -6,7 +6,6 @@
 #include "../utils/DataEncoder.hpp"
 
 typedef const Ast::Node Node;
-constexpr size_t  POINTER_SIZE = 8;
 
 static const char* kTypeNames[] = {
     // void
@@ -39,7 +38,7 @@ static const char* kTypeNames[] = {
 };
 SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 :
-symTab(symTab), manager(manager), codeGen(symTab, manager)
+symTab(symTab), manager(manager), ne(manager, this), codeGen(symTab, manager, &ne)
 {
     // set offset into max so that new page gets allocated
     handyString.reserve(100);
@@ -622,13 +621,13 @@ MemoryDesc SemanticAnalyzer::GetMemberDesc(AccessType *accType, const std::strin
             }
             else
             {
-                if(accType->array.asmExpr->token.type != TokenType::numeric_constant)
+                Typed::Number num = ne.ExecuteNode(accType->array.asmExpr);
+                if(num.type == Typed::d_float || num.type == Typed::d_double)
                 {
-                    printf("Non constants are not supported currently \n");
+                    printf("Floats cannot be used inside array size declaration \n");
                     exit(-1);
                 }
-                std::string_view view = GetViewForToken(accType->array.asmExpr->token);
-                arrayCount *= stringToInt64(view, MODE_DEC);
+                arrayCount *= num.int64;
             }
          
         }

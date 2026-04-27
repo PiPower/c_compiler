@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include "Preprocessor.hpp"
 #include "CodeGen.hpp"
-
+constexpr size_t  POINTER_SIZE = 8;
 /*
     sema supports anonymous struct members
 */
@@ -35,6 +35,7 @@ struct SemanticAnalyzer
 
     SymbolTable* symTab;
     FileManager* manager;
+    NodeExecutor ne;
     CodeGen codeGen;
     // used as local string to avoid constant re allocation
     // it is not guaranted to be valid after call to any SEMA function
