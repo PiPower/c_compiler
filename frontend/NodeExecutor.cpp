@@ -60,12 +60,12 @@ AccessDesc NodeExecutor::parseAccess(const AccessType *accType)
 
     while (accType)
     {
-        if(accType->type == POINTER)
+        if(accType->type == ACC_POINTER)
         {
             hitPointer = true;
             break;
         }
-        else if(accType->type == ARRAY)
+        else if(accType->type == ACC_ARRAY)
         {
             if(!accType->array.asmExpr)
             {
@@ -86,7 +86,7 @@ AccessDesc NodeExecutor::parseAccess(const AccessType *accType)
         accType = accType->next;
     }
     
-    return {hitPointer, arrayCount};
+    return {hitPointer, (size_t)arrayCount};
 }
 
 Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
@@ -136,7 +136,7 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
         {
             DeclSpecs spec = sema->AnalyzeDeclSpec(specQualList);
             SymbolType* symType = sema->symTab->QueryTypeSymbol(spec.typenameView);
-            return {.int64 = symType->size, .type = Typed::DType::d_int64_t };
+            return {.int64 = (int64_t)symType->size, .type = Typed::DType::d_int64_t };
         }
         else
         {
@@ -144,13 +144,13 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
             AccessDesc desc = parseAccess(&declarator.accessTypes);
             if(desc.hitPtr) 
             {
-                return {.int64 = POINTER_SIZE * desc.arraySize, .type = Typed::DType::d_int64_t };
+                return {.int64 = (int64_t)(POINTER_SIZE * desc.arraySize), .type = Typed::DType::d_int64_t };
             }
             else 
             {
                 DeclSpecs spec = sema->AnalyzeDeclSpec(specQualList);
                 SymbolType* symType = sema->symTab->QueryTypeSymbol(spec.typenameView);
-                return {.int64 = symType->size * desc.arraySize, .type = Typed::DType::d_int64_t };
+                return {.int64 = (int64_t)(symType->size * desc.arraySize), .type = Typed::DType::d_int64_t };
             }
         }
     }

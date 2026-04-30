@@ -315,7 +315,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             }
 
             if(members[idx].bitCount != -1 && 
-                (members[idx].access.type != NONE ||  
+                (members[idx].access.type != ACC_NONE ||  
                  members[idx].memberType < BuiltIn::s_char_8 ||
                  members[idx].memberType > BuiltIn::u_int_64 ))
             {
@@ -364,7 +364,7 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
         const Ast::Node* initExpr = listElem->rChild;
 
         Declarator decl = AnalyzeDeclarator(initDecl->rChild);
-
+        if(decl.accessTypes.type == ACC_POINTER)
 
         parent = listElem;
     }
@@ -399,25 +399,25 @@ Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
             typePtr->level = level;
             if(accessType->type == Ast::pointer)
             {
-                typePtr->type = POINTER;
+                typePtr->type = ACC_POINTER;
                 typePtr->ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
                 goto create_next;
             }
 
             if(accessType->lChild->type == Ast::array_decl)
             {
-                typePtr->type = ARRAY;
+                typePtr->type = ACC_ARRAY;
                 typePtr->array.asmExpr = accessType->lChild->rChild;
                 typePtr->array.qualList = accessType->lChild->lChild;
             }
             else if (accessType->lChild->type == Ast::parameter_type_list)
             {
-                typePtr->type = FN_DECL;
+                typePtr->type = ACC_FN_DECL;
                 typePtr->fnDecl.paramTypeList = accessType->lChild;
             }
             else if (accessType->lChild->type == Ast::identifier_list)
             {
-                typePtr->type = FN_CALL;
+                typePtr->type = ACC_FN_CALL;
                 typePtr->fnCall.identifierList = accessType->lChild;
             }
             else
@@ -560,12 +560,12 @@ uint64_t SemanticAnalyzer::GetAnnonymousUnionId()
 
 bool SemanticAnalyzer::IsMemberPointer(const Member *member)
 {
-    if(member->access.type != NONE)
+    if(member->access.type != ACC_NONE)
     {
         const AccessType* acc = &member->access;
         while ( acc)
         {
-            if(acc->type == POINTER)
+            if(acc->type == ACC_POINTER)
             {
                 return true;
             }
@@ -608,12 +608,12 @@ MemoryDesc SemanticAnalyzer::GetMemberDesc(AccessType *accType, const std::strin
 
     while (accType)
     {
-        if(accType->type == POINTER)
+        if(accType->type == ACC_POINTER)
         {
             hitPointer = true;
             break;
         }
-        else if(accType->type == ARRAY)
+        else if(accType->type == ACC_ARRAY)
         {
             if(!accType->array.asmExpr)
             {

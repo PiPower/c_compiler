@@ -175,7 +175,7 @@ void CodeGen::EmitMember(Member *member)
 {
     static std::vector<std::string_view> arrSizes;
 
-    if(member->access.type == NONE)
+    if(member->access.type == ACC_NONE)
     {
         EmitTypename(symTab->QueryTypeSymbol(member->typeName), member->typeName);
         return;
@@ -186,12 +186,12 @@ void CodeGen::EmitMember(Member *member)
     uint32_t brackets = 0;
     while (accType)
     {
-        if(accType->type == POINTER)
+        if(accType->type == ACC_POINTER)
         {
             hitPointer = true;
             break;
         }
-        else if(accType->type == ARRAY)
+        else if(accType->type == ACC_ARRAY)
         {
             if(!accType->array.asmExpr)
             {

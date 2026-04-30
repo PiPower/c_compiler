@@ -8,11 +8,11 @@
 #include <array>
 #include <cstddef>
 
-constexpr uint8_t NONE = 0;
-constexpr uint8_t POINTER = 1;
-constexpr uint8_t FN_DECL = 2;
-constexpr uint8_t FN_CALL = 3;
-constexpr uint8_t ARRAY = 4;
+constexpr uint8_t ACC_NONE = 0;
+constexpr uint8_t ACC_POINTER = 1;
+constexpr uint8_t ACC_FN_DECL = 2;
+constexpr uint8_t ACC_FN_CALL = 3;
+constexpr uint8_t ACC_ARRAY = 4;
 
 namespace Sym
 {
