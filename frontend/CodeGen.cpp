@@ -3,6 +3,8 @@
 #include "../utils/DataEncoder.hpp"
 #include <sys/uio.h>
 #include <unistd.h>
+constexpr uint8_t TYPE_BUFFER = 0;
+constexpr uint8_t FUNC_BUFFER = 1;
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
@@ -10,8 +12,11 @@ CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
 typeHeap(nr_of_pages), symTab(symTab), manager(manager), nodeExec(ne)
 {
-    bufferData = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
-    remainingMemory = typeHeap.GetAllocSize();
+    for(size_t i =0 ; i < writableBufferArr.size(); i++)
+    {
+        currPtrArr[i] = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
+        writableBufferArr[i].push_back(currPtrArr[i]);
+    }
 }
 
 void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name, bool flushQueue)
@@ -37,8 +42,8 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
             EmitMember(&symType->memberList[i]);
             if( i < symType->argCount - 1)
             {
-                WriteByte(',');
-                WriteByte(' ');
+                WriteByteT(',');
+                WriteByteT(' ');
             }
             Member& currMember = symType->memberList[i];
         }
@@ -230,7 +235,7 @@ void CodeGen::EmitMember(Member *member)
 
     for(uint32_t i =0; i < brackets; i++)
     {
-        WriteByte(']');
+        WriteByteT(']');
     }
 }
 
@@ -244,7 +249,7 @@ void CodeGen::WriteCharData(const char *data, ...)
     {
         if(*curr != '%')
         {
-            WriteByte(curr);
+            WriteByteT(curr);
             curr++;
             continue;
         }
@@ -253,7 +258,7 @@ void CodeGen::WriteCharData(const char *data, ...)
         switch (*curr)
         {
         case '%':
-            WriteByte(curr);
+            WriteByteT(curr);
             curr++;
             break;
         case 's':
@@ -263,7 +268,7 @@ void CodeGen::WriteCharData(const char *data, ...)
             size_t len = va_arg(args, size_t);
             while (len > 0)
             {
-                WriteByte(str);
+                WriteByteT(str);
                 str++;
                 len--;
             }
@@ -276,7 +281,7 @@ void CodeGen::WriteCharData(const char *data, ...)
             size_t i = 0;
             while (num[i] != '\0')
             {
-                WriteByte(num.data() + i);
+                WriteByteT(num.data() + i);
                 i++;
             }
         }break;
@@ -290,30 +295,14 @@ void CodeGen::WriteCharData(const char *data, ...)
     va_end(args);
 }
 
-inline void CodeGen::WriteByte(const char* c)
+void CodeGen::WriteByteT(const char* c)
 {
-    if(remainingMemory == 0)
-    {
-        bufferData = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
-        remainingMemory = typeHeap.GetAllocSize();
-    }
-
-    *bufferData = *c;
-    bufferData++;
-    remainingMemory--;
+    WriteByteImpl(TYPE_BUFFER, c);
 }
 
-inline void CodeGen::WriteByte(char c)
+void CodeGen::WriteByteT(char c)
 {
-    if(remainingMemory == 0)
-    {
-        bufferData = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
-        remainingMemory = typeHeap.GetAllocSize();
-    }
-
-    *bufferData = c;
-    bufferData++;
-    remainingMemory--;
+    WriteByteImpl(TYPE_BUFFER, c);
 }
 
 std::string_view CodeGen::GetViewForToken(const Token &token)
@@ -350,16 +339,54 @@ void CodeGen::FlushTypeQueue()
 
 void CodeGen::WriteToFile(int fd)
 {
-    iovec *iov = (iovec *)alloca(sizeof(iovec) * typeHeap.basePtrs.size());
-    size_t i=0;
-    for(; i < typeHeap.basePtrs.size() - 1; i++)
+    constexpr std::array<uint8_t, 2> buffOrder = {TYPE_BUFFER, FUNC_BUFFER};
+    size_t maxSize = 0;
+    for(const auto& arr : writableBufferArr)
     {
-        iov[i].iov_base =  typeHeap.basePtrs[i];
-        iov[i].iov_len = typeHeap.GetAllocSize();
+        maxSize = std::max(arr.size(), maxSize);
     }
-    iov[i].iov_base =  typeHeap.basePtrs[i];
-    iov[i].iov_len = bufferData - (char*)typeHeap.basePtrs.back();
+    iovec *iov = new iovec[maxSize];
+    for(uint8_t buffIdx : buffOrder)
+    {
+        const std::vector<char*>& buff = writableBufferArr[buffIdx];
+        if(buff.size() == 1 && 
+           currPtrArr[buffIdx] - buff[0] == 0)
+        {
+            continue;
+        }
 
-    writev(fd, iov, (int)typeHeap.basePtrs.size());
-    fsync(fd);
+        size_t i=0;
+        for(; i < buff.size() - 1; i++)
+        {
+            iov[i].iov_base =  buff[i];
+            iov[i].iov_len = typeHeap.GetAllocSize();
+        }
+        iov[i].iov_base =  buff[i];
+        iov[i].iov_len = currPtrArr[buffIdx] - buff[i];
+
+        writev(fd, iov, (int)buff.size());
+        fsync(fd);
+    }
+
+    delete[] iov;
+}
+
+void CodeGen::WriteByteImpl(uint8_t bufferType, const char *c)
+{
+    WriteByteImpl(bufferType, *c);
+}
+
+void CodeGen::WriteByteImpl(uint8_t bufferType, char c)
+{
+    std::vector<char*>* buffs = &writableBufferArr[bufferType];
+    char* currPtr = currPtrArr[bufferType];
+    if(currPtr - buffs->back() == typeHeap.GetAllocSize())
+    {
+        currPtrArr[bufferType] = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
+        currPtr = currPtrArr[bufferType];
+        buffs->push_back(currPtrArr[bufferType]);
+    }
+
+    *currPtr = c;
+    currPtrArr[bufferType]++;
 }
