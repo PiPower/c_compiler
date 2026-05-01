@@ -1036,44 +1036,45 @@ Ast::Node *Parser::AbstractDeclarator()
 
 Ast::Node *Parser::ParameterDecl()
 {
-        // parsing: 
-        // declaration-specifiers declarator
-        // declaration-specifiers abstract-declarator_opt
-        Ast::Node* generalDecl = AllocateAstNodes();
-        Ast::Node* declSpec = ParseDeclSpec();
-        Ast::Node* ptrExpr = ParsePointer();
-        Ast::Node* declarator = ParseDirectDeclarator();
-        if(!declarator)
+    // parsing: 
+    // declaration-specifiers declarator
+    // declaration-specifiers abstract-declarator_opt
+    Ast::Node* generalDecl = AllocateAstNodes();
+    Ast::Node* declSpec = ParseDeclSpec();
+    Ast::Node* ptrExpr = ParsePointer();
+    Ast::Node* declarator = ParseDirectDeclarator();
+    if(!declarator)
+    {
+        declarator = ParseDirectAbstractDeclarator();
+        /*if(!ptrExpr && !declarator)
         {
-            declarator = ParseDirectAbstractDeclarator();
-            if(!ptrExpr && !declarator)
-            {
-                IssueWarning(nullptr, "Empty parameter declarator");
-            }
-            generalDecl->type = Ast::NodeType::abstact_declarator;
-            generalDecl->rChild = ptrExpr;
-            generalDecl->lChild = declarator;
-        }
-        else
-        {
-            generalDecl->type = Ast::NodeType::declarator;
-            generalDecl->rChild = ptrExpr;
-            generalDecl->lChild = declarator;
-        }
+            //IssueWarning(nullptr, "Empty parameter declarator");
+            return nullptr;
+        }*/
+        generalDecl->type = Ast::NodeType::abstact_declarator;
+        generalDecl->rChild = ptrExpr;
+        generalDecl->lChild = declarator;
+    }
+    else
+    {
+        generalDecl->type = Ast::NodeType::declarator;
+        generalDecl->rChild = ptrExpr;
+        generalDecl->lChild = declarator;
+    }
 
 
-        if(!declSpec )
-        {
-            logger.IssueWarningImpl("Parser", nullptr, &currentLocation, 
-                        "function call declaration specifier cannot be empty");
-            exit(-1);
-        }
-        Ast::Node *parameterDecl = AllocateAstNodes();
-        parameterDecl->type = Ast::parameter_decl;
-        parameterDecl->lChild = declSpec;
-        parameterDecl->rChild = generalDecl;
+    if(!declSpec )
+    {
+        logger.IssueWarningImpl("Parser", nullptr, &currentLocation, 
+                    "function call declaration specifier cannot be empty");
+        exit(-1);
+    }
+    Ast::Node *parameterDecl = AllocateAstNodes();
+    parameterDecl->type = Ast::parameter_decl;
+    parameterDecl->lChild = declSpec;
+    parameterDecl->rChild = generalDecl;
 
-        return parameterDecl;
+    return parameterDecl;
 }
 
 Ast::Node *Parser::ParseDirectAbstractDeclarator()
@@ -1117,8 +1118,11 @@ Ast::Node *Parser::ParseDirectAbstractDeclarator()
             }
             ConsumeExpectedToken(TokenType::r_bracket);
 
-            bottomChild->rChild = array;
-            bottomChild = array;
+            Ast::Node* glue = AllocateAstNodes();
+            glue->type = Ast::glue_list;
+            glue->lChild = array;
+            bottomChild->rChild = glue;
+            bottomChild = glue;
         }
 
         token = GetCurrToken();

@@ -204,6 +204,58 @@ create_next:
     return decl;
 }
 
+Declarator SemanticAnalyzer::ProcessAbstractDecl(const Ast::Node *abstDecl, std::stack<const Ast::Node *> *accessTypes)
+{
+    Declarator decl = {};
+    
+    AccessType* typePtr = &decl.accessTypes;
+    uint32_t level = 0;
+    while (accessTypes->size() > 0)
+    {
+        const Ast::Node* accessType = accessTypes->top();
+        accessTypes->pop();
+        while (accessType)
+        {
+            typePtr->level = level;
+            if(accessType->type == Ast::pointer)
+            {
+                typePtr->type = ACC_POINTER;
+                typePtr->ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
+                goto create_next;
+            }
+
+            if(accessType->lChild->type == Ast::array_decl || 
+               accessType->lChild->type == Ast::var_len_array)
+            {
+                typePtr->type = ACC_ARRAY;
+                typePtr->array.asmExpr = accessType->lChild->rChild;
+                typePtr->array.qualList = nullptr;
+            }
+            else if (accessType->lChild->type == Ast::parameter_type_list)
+            {
+                typePtr->type = ACC_FN_DECL;
+                typePtr->fnDecl.paramTypeList = ProcessFnParams(accessType->lChild, &typePtr->fnDecl.paramCount);
+                //typePtr->fnDecl.paramTypeList = accessType->lChild;
+            }
+            else
+            {
+                printf("Incorrect node type in ProcessAbstractDecl \n");
+                exit(-1);
+            }
+create_next:
+            accessType = accessType->rChild;
+            if(accessTypes->size() > 0 || accessType )
+            {
+                typePtr->next = symTab->AllocateTypeOnHeap<AccessType>();
+                typePtr = typePtr->next;
+            }
+        }
+        level++;
+    }
+    
+    return decl;
+}
+
 FunctionParams *SemanticAnalyzer::ProcessFnParams(const Ast::Node *paramsNode, size_t* paramCount)
 {
     static std::vector<FunctionParams> params;
@@ -491,7 +543,7 @@ Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
 
     if(declarator->type == Ast::abstact_declarator)
     {
-        IssueWarning(nullptr, "Abstract declarator is not supported");
+        return ProcessAbstractDecl(declarator, &accessTypes);
     }
     else
     {

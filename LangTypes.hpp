@@ -150,7 +150,7 @@ struct TypeBits
 struct Declarator
 {
     AccessType accessTypes;
-    std::string_view name;
+    std::string_view name; // abstract declarator has empty name
 };
 
 struct Member
