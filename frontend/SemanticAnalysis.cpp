@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "../utils/DataEncoder.hpp"
+#include "../utils/Logger.hpp"
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Semantic Analysis", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 typedef const Ast::Node Node;
 
@@ -38,11 +40,10 @@ static const char* kTypeNames[] = {
 };
 SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 :
-symTab(symTab), manager(manager), ne(manager, this), codeGen(symTab, manager, &ne)
+symTab(symTab), manager(manager), ne(manager, this), codeGen(symTab, manager, &ne), logger(manager)
 {
     // set offset into max so that new page gets allocated
     handyString.reserve(100);
- 
     // each simple built in typename is stored in read section during program lifetime
     // so each std::string_view will be valid
     symTab->AddSymbol<SymbolType>(kTypeNames[0], BuiltIn::void_t, true, 0, 0, 0, nullptr, nullptr, nullptr);
@@ -107,6 +108,10 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
         AnalyzeDeclaration(root->lChild, root->rChild);
         return;
     }
+    else if(root->type == Ast::function_def)
+    {
+        AnalyzeFunctionDef(root->lChild, root->rChild);
+    }
 }
 
 void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast::Node *initDeclList)
@@ -125,6 +130,97 @@ void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast:
 
     // if empty decl spec then do nothing 
     
+}
+
+void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node *body)
+{
+    DeclSpecs declSpec = AnalyzeDeclSpec(decl->lChild->rChild);
+    AnalyzeInitDeclList(&declSpec, decl->rChild);
+
+}
+
+void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
+{
+    AccessType* FnDecl = &decl->accessTypes;
+    //const Ast::Node* args = FnDecl->fnDecl.paramTypeList;
+    int x = 2;
+}
+
+Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack<const Ast::Node*>* accessTypes)
+{
+    Declarator decl = {};
+    
+    decl.name = GetViewForToken(accessTypes->top()->token);
+    accessTypes->pop();
+    AccessType* typePtr = &decl.accessTypes;
+    uint32_t level = 0;
+    while (accessTypes->size() > 0)
+    {
+        const Ast::Node* accessType = accessTypes->top();
+        accessTypes->pop();
+        while (accessType)
+        {
+            typePtr->level = level;
+            if(accessType->type == Ast::pointer)
+            {
+                typePtr->type = ACC_POINTER;
+                typePtr->ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
+                goto create_next;
+            }
+
+            if(accessType->lChild->type == Ast::array_decl)
+            {
+                typePtr->type = ACC_ARRAY;
+                typePtr->array.asmExpr = accessType->lChild->rChild;
+                typePtr->array.qualList = accessType->lChild->lChild;
+            }
+            else if (accessType->lChild->type == Ast::parameter_type_list)
+            {
+                typePtr->type = ACC_FN_DECL;
+                typePtr->fnDecl.paramTypeList = ProcessFnParams(accessType->lChild, &typePtr->fnDecl.paramCount);
+                //typePtr->fnDecl.paramTypeList = accessType->lChild;
+            }
+            else if (accessType->lChild->type == Ast::identifier_list)
+            {
+                typePtr->type = ACC_FN_CALL;
+                typePtr->fnCall.identifierList = accessType->lChild;
+            }
+            else
+            {
+                printf("Incorrect node type in AnalyzeDeclarator \n");
+                exit(-1);
+            }
+create_next:
+            accessType = accessType->rChild;
+            if(accessTypes->size() > 0 || accessType )
+            {
+                typePtr->next = symTab->AllocateTypeOnHeap<AccessType>();
+                typePtr = typePtr->next;
+            }
+        }
+        level++;
+    }
+    
+    return decl;
+}
+
+FunctionParams *SemanticAnalyzer::ProcessFnParams(const Ast::Node *paramsNode, size_t* paramCount)
+{
+    static std::vector<FunctionParams> params;
+    
+    const Ast::Node* glueNode = paramsNode->rChild;
+    while (glueNode)
+    {
+        const Ast::Node* paramNode = glueNode->lChild;
+        DeclSpecs spec = AnalyzeDeclSpec(paramNode->lChild->rChild);
+        Declarator decl = AnalyzeDeclarator(paramNode->rChild);
+        glueNode = glueNode->rChild;
+    }
+    
+
+
+    params.clear();
+    return nullptr;
 }
 
 StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *declSpecs, const Ast::Node* structDeclList)
@@ -322,7 +418,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
                 printf("Bitfield can only be used with integer types \n");
                 exit(-1);
             }
-
+            
             if(members[idx].bitCount != -1)
             {
                 if(members[idx].bitCount > BuiltInBitCount( members[idx].memberType))
@@ -364,7 +460,14 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
         const Ast::Node* initExpr = listElem->rChild;
 
         Declarator decl = AnalyzeDeclarator(initDecl->rChild);
-        if(decl.accessTypes.type == ACC_POINTER)
+        if(decl.accessTypes.type == ACC_FN_DECL)
+        {
+            if(listElem != initDeclList->rChild || listElem->rChild)
+            {
+                IssueWarning(nullptr, "It is not allowed to declare other variables in function declaration")
+            }
+            AnalyzeFunctionDecl(declSpec, &decl);
+        }
 
         parent = listElem;
     }
@@ -374,69 +477,26 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
 Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
 {
     static std::stack<const Ast::Node*> accessTypes;
-    Declarator decl = {};
-    
     const Ast::Node *currDecl = declarator;
     while (true)
     {
         if(currDecl->rChild) {accessTypes.push(currDecl->rChild);}
         if(!currDecl->lChild)
         {
+            if(currDecl->type == Ast::direct_declarator) {accessTypes.push(currDecl);}
             break;
         }
         currDecl = currDecl->lChild;
     }
-    
-    decl.name = GetViewForToken(currDecl->token);
-    AccessType* typePtr = &decl.accessTypes;
-    uint32_t level = 0;
-    while (accessTypes.size() > 0)
-    {
-        const Ast::Node* accessType = accessTypes.top();
-        accessTypes.pop();
-        while (accessType)
-        {
-            typePtr->level = level;
-            if(accessType->type == Ast::pointer)
-            {
-                typePtr->type = ACC_POINTER;
-                typePtr->ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
-                goto create_next;
-            }
 
-            if(accessType->lChild->type == Ast::array_decl)
-            {
-                typePtr->type = ACC_ARRAY;
-                typePtr->array.asmExpr = accessType->lChild->rChild;
-                typePtr->array.qualList = accessType->lChild->lChild;
-            }
-            else if (accessType->lChild->type == Ast::parameter_type_list)
-            {
-                typePtr->type = ACC_FN_DECL;
-                typePtr->fnDecl.paramTypeList = accessType->lChild;
-            }
-            else if (accessType->lChild->type == Ast::identifier_list)
-            {
-                typePtr->type = ACC_FN_CALL;
-                typePtr->fnCall.identifierList = accessType->lChild;
-            }
-            else
-            {
-                printf("Incorrect node type in AnalyzeDeclarator \n");
-                exit(-1);
-            }
-create_next:
-            accessType = accessType->rChild;
-            if(accessTypes.size() > 0 || accessType )
-            {
-                typePtr->next = symTab->AllocateTypeOnHeap<AccessType>();
-                typePtr = typePtr->next;
-            }
-        }
-        level++;
+    if(declarator->type == Ast::abstact_declarator)
+    {
+        IssueWarning(nullptr, "Abstract declarator is not supported");
     }
-    
-    return decl;
+    else
+    {
+        return ProcessDecl(declarator, &accessTypes);
+    }
 }
 
 void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)

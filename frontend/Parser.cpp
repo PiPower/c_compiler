@@ -1039,24 +1039,29 @@ Ast::Node *Parser::ParameterDecl()
         // parsing: 
         // declaration-specifiers declarator
         // declaration-specifiers abstract-declarator_opt
+        Ast::Node* generalDecl = AllocateAstNodes();
         Ast::Node* declSpec = ParseDeclSpec();
         Ast::Node* ptrExpr = ParsePointer();
         Ast::Node* declarator = ParseDirectDeclarator();
         if(!declarator)
         {
             declarator = ParseDirectAbstractDeclarator();
+            if(!ptrExpr && !declarator)
+            {
+                IssueWarning(nullptr, "Empty parameter declarator");
+            }
+            generalDecl->type = Ast::NodeType::abstact_declarator;
+            generalDecl->rChild = ptrExpr;
+            generalDecl->lChild = declarator;
         }
-        if(declarator)
+        else
         {
-            declarator->lChild = ptrExpr;
+            generalDecl->type = Ast::NodeType::declarator;
+            generalDecl->rChild = ptrExpr;
+            generalDecl->lChild = declarator;
         }
-        if(ptrExpr && !declarator)
-        {
-            // this is direct abstract declarator 
-            declarator = AllocateAstNodes();
-            declarator->type = Ast::NodeType::abstact_declarator;
-            declarator->rChild = ptrExpr;
-        }
+
+
         if(!declSpec )
         {
             logger.IssueWarningImpl("Parser", nullptr, &currentLocation, 
@@ -1066,7 +1071,7 @@ Ast::Node *Parser::ParameterDecl()
         Ast::Node *parameterDecl = AllocateAstNodes();
         parameterDecl->type = Ast::parameter_decl;
         parameterDecl->lChild = declSpec;
-        parameterDecl->rChild = declarator;
+        parameterDecl->rChild = generalDecl;
 
         return parameterDecl;
 }

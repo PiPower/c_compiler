@@ -45,7 +45,6 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
                 WriteByteT(',');
                 WriteByteT(' ');
             }
-            Member& currMember = symType->memberList[i];
         }
     }
     else
@@ -380,7 +379,7 @@ void CodeGen::WriteByteImpl(uint8_t bufferType, char c)
 {
     std::vector<char*>* buffs = &writableBufferArr[bufferType];
     char* currPtr = currPtrArr[bufferType];
-    if(currPtr - buffs->back() == typeHeap.GetAllocSize())
+    if((uint64_t)(currPtr - buffs->back()) == typeHeap.GetAllocSize())
     {
         currPtrArr[bufferType] = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
         currPtr = currPtrArr[bufferType];
