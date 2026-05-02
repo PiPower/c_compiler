@@ -8,9 +8,9 @@ struct Declarator;
 
 constexpr uint8_t ACC_NONE = 0;
 constexpr uint8_t ACC_POINTER = 1;
-constexpr uint8_t ACC_FN_DECL = 2;
-constexpr uint8_t ACC_FN_CALL = 3;
-constexpr uint8_t ACC_ARRAY = 4;
+constexpr uint8_t ACC_FN_DECL = 1 << 1;
+constexpr uint8_t ACC_FN_CALL = 1 << 2;
+constexpr uint8_t ACC_ARRAY = 1 << 3;
 
 namespace Sym
 {
@@ -75,6 +75,11 @@ struct Qualifiers
     uint8_t restrict_ : 1;
     uint8_t volatile_ : 1;
 };
+
+inline bool operator!=(const Qualifiers& lhs, const Qualifiers& rhs)
+{
+    return lhs.const_ != rhs.const_ || lhs.restrict_ != rhs.restrict_ || lhs.volatile_ != rhs.volatile_ ;
+}
 
 struct Spec
 {
@@ -146,6 +151,7 @@ struct TypeBits
 
 struct Declarator
 {
+    Token token;
     AccessType accessTypes;
     std::string_view name; // abstract declarator has empty name
 };

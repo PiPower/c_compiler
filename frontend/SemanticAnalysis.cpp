@@ -5,7 +5,9 @@
 #include <unistd.h>
 #include "../utils/DataEncoder.hpp"
 #include "../utils/Logger.hpp"
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Semantic Analysis", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+
+const char* modName = "Semantic Analysis";
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(modName, tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 typedef const Ast::Node Node;
 
@@ -144,7 +146,11 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
     SymbolFunction* tableSym = symTab->QueryFunctionSymbol(decl->name);
     if(tableSym)
     {
-        
+        if(tableSym->paramCount != FnDecl->fnDecl.paramCount||
+           !CompareParams(tableSym->paramCount, tableSym->params, FnDecl->fnDecl.paramTypeList) )
+        {
+            IssueWarning(&decl->token, "Conflicting function declarations")
+        }
     }
     else
     {
@@ -152,12 +158,13 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
     }
 }
 
-Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack<const Ast::Node*>* accessTypes)
+Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack<const Ast::Node*>* accessTypes, uint8_t forbbidenAccTypes)
 {
     Declarator decl = {};
-    
+    decl.token = accessTypes->top()->token;
     decl.name = GetViewForToken(accessTypes->top()->token);
     accessTypes->pop();
+
     AccessType* typePtr = &decl.accessTypes;
     uint32_t level = 0;
     while (accessTypes->size() > 0)
@@ -169,6 +176,10 @@ Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack
             typePtr->level = level;
             if(accessType->type == Ast::pointer)
             {
+                if((forbbidenAccTypes & ACC_POINTER) > 0 ) 
+                {
+                    IssueWarning(&accessType->token, "Pointer is not allowed in declarator" )
+                }
                 typePtr->type = ACC_POINTER;
                 typePtr->ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
                 goto create_next;
@@ -176,18 +187,30 @@ Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack
 
             if(accessType->lChild->type == Ast::array_decl)
             {
+                if((forbbidenAccTypes & ACC_ARRAY) > 0 )
+                {
+                    IssueWarning(&accessType->token, "Array is not allowed in declarator" )
+                }
                 typePtr->type = ACC_ARRAY;
                 typePtr->array.asmExpr = accessType->lChild->rChild;
                 typePtr->array.qualList = accessType->lChild->lChild;
             }
             else if (accessType->lChild->type == Ast::parameter_type_list)
             {
+                if((forbbidenAccTypes & ACC_FN_DECL) > 0 ) 
+                {
+                    IssueWarning(&accessType->token, "Function declaration is not allowed in declarator" )
+                }
                 typePtr->type = ACC_FN_DECL;
                 typePtr->fnDecl.paramTypeList = ProcessFnParams(accessType->lChild, &typePtr->fnDecl.paramCount);
                 //typePtr->fnDecl.paramTypeList = accessType->lChild;
             }
             else if (accessType->lChild->type == Ast::identifier_list)
             {
+                if((forbbidenAccTypes & ACC_FN_CALL) > 0 ) 
+                {
+                    IssueWarning(&accessType->token, "Function call is not allowed in declarator" )
+                }
                 typePtr->type = ACC_FN_CALL;
                 typePtr->fnCall.identifierList = accessType->lChild;
             }
@@ -210,9 +233,13 @@ create_next:
     return decl;
 }
 
-Declarator SemanticAnalyzer::ProcessAbstractDecl(const Ast::Node *abstDecl, std::stack<const Ast::Node *> *accessTypes)
+Declarator SemanticAnalyzer::ProcessAbstractDecl(const Ast::Node *abstDecl, std::stack<const Ast::Node *> *accessTypes, uint8_t forbbidenAccTypes)
 {
     Declarator decl = {};
+    if(accessTypes->size() > 0)
+    {
+        decl.token = accessTypes->top()->token;
+    }
     
     AccessType* typePtr = &decl.accessTypes;
     uint32_t level = 0;
@@ -225,6 +252,10 @@ Declarator SemanticAnalyzer::ProcessAbstractDecl(const Ast::Node *abstDecl, std:
             typePtr->level = level;
             if(accessType->type == Ast::pointer)
             {
+                if((forbbidenAccTypes & ACC_POINTER) > 0 ) 
+                {
+                    IssueWarning(&accessType->token, "Pointer is not allowed in abstract declarator" )
+                }
                 typePtr->type = ACC_POINTER;
                 typePtr->ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
                 goto create_next;
@@ -233,12 +264,20 @@ Declarator SemanticAnalyzer::ProcessAbstractDecl(const Ast::Node *abstDecl, std:
             if(accessType->lChild->type == Ast::array_decl || 
                accessType->lChild->type == Ast::var_len_array)
             {
+                if((forbbidenAccTypes & ACC_ARRAY) > 0 ) 
+                {
+                    IssueWarning(&accessType->token, "Array is not allowed in abstract declarator" )
+                }
                 typePtr->type = ACC_ARRAY;
                 typePtr->array.asmExpr = accessType->lChild->rChild;
                 typePtr->array.qualList = nullptr;
             }
             else if (accessType->lChild->type == Ast::parameter_type_list)
             {
+                if((forbbidenAccTypes & ACC_FN_DECL) > 0 ) 
+                {
+                    IssueWarning(&accessType->token, "Function declaration is not allowed in abstract declarator" )
+                }
                 typePtr->type = ACC_FN_DECL;
                 typePtr->fnDecl.paramTypeList = ProcessFnParams(accessType->lChild, &typePtr->fnDecl.paramCount);
                 //typePtr->fnDecl.paramTypeList = accessType->lChild;
@@ -282,7 +321,7 @@ FunctionParams *SemanticAnalyzer::ProcessFnParams(const Ast::Node *paramsNode, s
         else
         {
             param.spec = AnalyzeDeclSpec(paramNode->lChild->rChild);
-            param.decl = AnalyzeDeclarator(paramNode->rChild);
+            param.decl = AnalyzeDeclarator(paramNode->rChild, ACC_FN_CALL);
             params.push_back(param);
         }
         glueNode = glueNode->rChild;
@@ -551,7 +590,22 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
     
 }
 
-Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
+bool SemanticAnalyzer::CompareParams(size_t paramCount, const FunctionParams *p1, const FunctionParams *p2)
+{
+    for(size_t i = 0; i < paramCount; i++)
+    {
+        if(!CompareDeclSpec(&p1[i].spec, &p2[i].spec) || 
+           !CompareDeclarators(&p1[i].decl, &p2[i].decl))
+        {
+            return false;
+        }
+    }
+
+
+    return true;
+}
+
+Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, uint8_t forbbidenAccTypes)
 {
     static std::stack<const Ast::Node*> accessTypes;
     const Ast::Node *currDecl = declarator;
@@ -568,11 +622,11 @@ Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
 
     if(declarator->type == Ast::abstact_declarator)
     {
-        return ProcessAbstractDecl(declarator, &accessTypes);
+        return ProcessAbstractDecl(declarator, &accessTypes, forbbidenAccTypes);
     }
     else
     {
-        return ProcessDecl(declarator, &accessTypes);
+        return ProcessDecl(declarator, &accessTypes, forbbidenAccTypes);
     }
 }
 
@@ -678,6 +732,65 @@ void SemanticAnalyzer::WriteCodeToFile(const char *filename)
                   S_IRUSR | S_IWUSR |  S_IRGRP | S_IWGRP |  S_IROTH | S_IWOTH);  
     codeGen.WriteToFile(fd);
     close(fd);
+}
+
+bool SemanticAnalyzer::CompareDeclSpec(const DeclSpecs *s1, const DeclSpecs *s2)
+{
+    return s1->declType.storageFlags == s2->declType.storageFlags &&
+           s1->declType.qualifierFlags == s2->declType.qualifierFlags &&
+           s1->declType.inlineSpec == s2->declType.inlineSpec &&
+           s1->declType.isEllipsis == s2->declType.isEllipsis &&
+           s1->typenameView == s2->typenameView;
+}
+
+bool SemanticAnalyzer::CompareDeclarators(const Declarator *d1, const Declarator *d2)
+{
+    if(d1->accessTypes.type == ACC_NONE &&
+       d2->accessTypes.type == ACC_NONE)
+    {
+        return true;
+    }
+
+    const AccessType* acc1 = &d1->accessTypes;
+    const AccessType* acc2 = &d2->accessTypes;
+
+    while (acc1)
+    {
+        if(acc1->type != acc2->type)
+        {
+            return false;
+        }
+
+        if(acc1->type == ACC_POINTER &&
+           acc1->ptr.quals != acc2->ptr.quals )
+        {
+            return false;
+        }
+        else if(acc1->type == ACC_FN_DECL && 
+                (acc1->fnDecl.paramCount != acc2->fnDecl.paramCount || 
+                 CompareParams(acc1->fnDecl.paramCount, acc1->fnDecl.paramTypeList, acc2->fnDecl.paramTypeList)) )
+        {
+            return false;
+        }
+        else if(acc1->type == ACC_FN_CALL)
+        {
+            IssueWarning(nullptr, "Internal error, ACC_FN_CALL is not supported in CompareDeclarators");
+            return false;
+        }
+        else if(acc1->type == ACC_ARRAY)
+        {
+            Typed::Number num1 = ne.ExecuteNode(acc1->array.asmExpr);
+            Typed::Number num2 = ne.ExecuteNode(acc2->array.asmExpr);
+            if(num1 != num2 )
+            {
+                return false;
+            }
+        }
+        acc1 = acc1->next;
+        acc2 = acc2->next;
+    }
+    
+    return true;
 }
 
 bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)

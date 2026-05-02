@@ -91,7 +91,12 @@ AccessDesc NodeExecutor::parseAccess(const AccessType *accType)
 
 Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
 {
-    Typed::Number numOut;
+    Typed::Number numOut = {};
+    if(!expr)
+    {
+        return numOut;
+    }
+
     numOut.type = Typed::d_int64_t;
     switch (expr->type)
     {

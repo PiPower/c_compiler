@@ -15,14 +15,14 @@ struct SemanticAnalyzer
     void AnalyzeDeclaration(const Ast::Node* declSpecs, const Ast::Node* initDeclList);
     void AnalyzeFunctionDef(const Ast::Node* body, const Ast::Node* decl);
     void AnalyzeFunctionDecl(DeclSpecs* spec, Declarator* decl);
-    Declarator ProcessDecl(const Ast::Node* declarator, std::stack<const Ast::Node*>* accessTypes);
-    Declarator ProcessAbstractDecl(const Ast::Node* abstDecl, std::stack<const Ast::Node*>* accessTypes);
+    Declarator ProcessDecl(const Ast::Node* declarator, std::stack<const Ast::Node*>* accessTypes, uint8_t forbbidenAccTypes);
+    Declarator ProcessAbstractDecl(const Ast::Node* abstDecl, std::stack<const Ast::Node*>* accessTypes, uint8_t forbbidenAccTypes);
     FunctionParams* ProcessFnParams(const Ast::Node* paramsNode, size_t* paramCount);
     StructDeclaration AnalyzeStructDeclaration(const Ast::Node* declSpecs, const Ast::Node* structDeclList);
     void AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node* initDeclList);
     void AnalyzeStructUnion(const Ast::Node* structTree, DeclSpecs* spec, bool isStruct);
     void AnalyzeInitDeclList(DeclSpecs* declSpec, const Ast::Node* initDeclList);
-    Declarator AnalyzeDeclarator(const Ast::Node* declarator);
+    Declarator AnalyzeDeclarator(const Ast::Node* declarator, uint8_t forbbidenAccTypes = 0);
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     int BuiltInBitCount(BuiltIn::Type type);
     BuiltIn::Type BitCountToIntegerType(uint8_t BitCount, bool isSigned);
@@ -37,6 +37,9 @@ struct SemanticAnalyzer
     // misc
     std::string_view GetViewForToken(const Token &token);
     void WriteCodeToFile(const char* filename);
+    bool CompareParams(size_t paramCount, const FunctionParams* p1, const FunctionParams* p2);
+    bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);
+    bool CompareDeclarators(const Declarator* d1, const Declarator* d2);
 
     SymbolTable* symTab;
     FileManager* manager;
