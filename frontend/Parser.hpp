@@ -83,7 +83,7 @@ struct Parser
     std::deque<Token> tokenQueue;
     std::stack<Ast::Node*> unaryHandles;
     PagedBuffer nodeBuffer;
-    SourceLocation currentLocation;
+    Token currentLocToken;
     ParsingState pState;
     Logger logger;
 };

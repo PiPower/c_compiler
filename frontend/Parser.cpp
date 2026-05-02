@@ -199,7 +199,7 @@ Token Parser::GetCurrTokenInternal()
         goto get_token;
     }
 
-    currentLocation = tokenQueue.front().location;
+    currentLocToken = tokenQueue.front();
     return tokenQueue.front();
 }
 
@@ -1065,9 +1065,7 @@ Ast::Node *Parser::ParameterDecl()
 
     if(!declSpec )
     {
-        logger.IssueWarningImpl("Parser", nullptr, &currentLocation, 
-                    "function call declaration specifier cannot be empty");
-        exit(-1);
+        IssueWarning(&currentLocToken, "Expected type specifier")
     }
     Ast::Node *parameterDecl = AllocateAstNodes();
     parameterDecl->type = Ast::parameter_decl;
