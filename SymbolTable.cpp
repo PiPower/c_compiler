@@ -89,6 +89,9 @@ void SymbolTable::AddSymbolImpl(const std::string_view& name, Symbol *sym)
 
     switch (sym->kind)
     {
+    case Sym::FUNC:
+        currentTable->tables[fn][name] = sym;
+        break;
     case Sym::TYPE:
         currentTable->tables[type][name] = sym;
         break;
@@ -105,9 +108,10 @@ void SymbolTable::AddSymbolImpl(const std::string_view& name, Symbol *sym)
 Symbol* SymbolTable::QuerySymbolGeneric(
     const std::string_view &name,
     uint8_t tableIdx,
-    uint8_t *scopeType,
+    uint8_t* scopeType,
     uint8_t* prevScope)
 {
+
     ScopedSymbolTable* scopedTable = currentTable;
     uint8_t prevScopeV = Scope::NONE;
     do 
@@ -159,6 +163,16 @@ uint16_t SymbolTable::QuerySymKinds(const std::string_view& name)
     }while ( (scopedTable = scopedTable->parent) && detectedSyms != allSymbols );
 
     return detectedSyms;
+}
+
+bool SymbolTable::IsCurrentScopeGlobal()
+{
+    return currentTable == globalTable;
+}
+
+SymbolFunction *SymbolTable::QueryFunctionSymbol(const std::string_view &name)
+{
+    return (SymbolFunction *) QuerySymbolGeneric(name, fn, nullptr, nullptr);
 }
 
 void SymbolTable::CreateNewScope(Scope::Type scopeType)

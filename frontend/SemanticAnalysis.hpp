@@ -44,7 +44,6 @@ struct SemanticAnalyzer
     CodeGen codeGen;
     // used as local string to avoid constant re allocation
     // it is not guaranted to be valid after call to any SEMA function
-    std::string handyString;
     Logger logger;
 };
 

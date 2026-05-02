@@ -85,17 +85,13 @@ struct Spec
     uint8_t register_ : 1;
 };
 
-struct FunctionParams
-{
-    DeclSpecs* spec;
-    Declarator* decl;
-};
 
 struct Pointer
 {
     Qualifiers quals;
 };
 
+struct FunctionParams;
 struct FnDecl
 {
     size_t paramCount;
@@ -145,6 +141,7 @@ struct TypeBits
     };
     // function specs
     uint8_t inlineSpec : 1;
+    uint8_t isEllipsis : 1;
 };
 
 struct Declarator
@@ -152,6 +149,7 @@ struct Declarator
     AccessType accessTypes;
     std::string_view name; // abstract declarator has empty name
 };
+
 
 struct Member
 {
@@ -165,16 +163,17 @@ struct Member
 };
 
 
-
-// Most of the type name will be accesible via single token stored in tokenizer
-// yet more annoying types like "long long unsigned int" have to be concatanated from many tokens
-// The more annoying type names will be allocated using viewHandle, then accessed via strView
 struct DeclSpecs
 {
     TypeBits declType; 
     std::string_view typenameView; 
 };
 
+struct FunctionParams
+{
+    DeclSpecs spec;
+    Declarator decl;
+};
 
 struct InitDeclarator
 {

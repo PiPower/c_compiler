@@ -39,6 +39,9 @@ struct SymbolType
 struct SymbolFunction
 {
     Sym::Kind kind;
+    uint32_t paramCount;
+    uint32_t retPtrOrder; // if pointer is to be returned, gives pointer order
+    FunctionParams* params;
     ScopedSymbolTable* fnScope;
     bool isDefined;
 };
@@ -78,6 +81,11 @@ struct SymbolTable
     void PopScope();
     char* HeapAllocateAligned(uint64_t size, uint8_t alignment);
     uint16_t QuerySymKinds(const std::string_view& name);
+    bool IsCurrentScopeGlobal();
+
+    SymbolFunction* QueryFunctionSymbol(
+        const std::string_view& name);
+
     SymbolType* QueryTypeSymbol(
         const std::string_view& name,
         uint8_t* scopeType = nullptr,

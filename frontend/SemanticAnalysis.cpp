@@ -42,8 +42,6 @@ SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 :
 symTab(symTab), manager(manager), ne(manager, this), codeGen(symTab, manager, &ne), logger(manager)
 {
-    // set offset into max so that new page gets allocated
-    handyString.reserve(100);
     // each simple built in typename is stored in read section during program lifetime
     // so each std::string_view will be valid
     symTab->AddSymbol<SymbolType>(kTypeNames[0], BuiltIn::void_t, true, 0, 0, 0, nullptr, nullptr, nullptr);
@@ -143,7 +141,15 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
 {
     AccessType* FnDecl = &decl->accessTypes;
     //const Ast::Node* args = FnDecl->fnDecl.paramTypeList;
-    int x = 2;
+    SymbolFunction* tableSym = symTab->QueryFunctionSymbol(decl->name);
+    if(tableSym)
+    {
+        
+    }
+    else
+    {
+        symTab->AddSymbol<SymbolFunction>(decl->name, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, false);
+    }
 }
 
 Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack<const Ast::Node*>* accessTypes)
@@ -264,15 +270,38 @@ FunctionParams *SemanticAnalyzer::ProcessFnParams(const Ast::Node *paramsNode, s
     while (glueNode)
     {
         const Ast::Node* paramNode = glueNode->lChild;
-        DeclSpecs spec = AnalyzeDeclSpec(paramNode->lChild->rChild);
-        Declarator decl = AnalyzeDeclarator(paramNode->rChild);
+
+        FunctionParams param = {};
+        if(glueNode->type == Ast::parameter_decl)
+        {
+            if(glueNode->rChild) { IssueWarning(&glueNode->token, "elipsis MUST be the last parameter")}
+            param.spec.declType.isEllipsis = 1;
+            params.push_back(param);
+            break;
+        }
+        else
+        {
+            param.spec = AnalyzeDeclSpec(paramNode->lChild->rChild);
+            param.decl = AnalyzeDeclarator(paramNode->rChild);
+            params.push_back(param);
+        }
         glueNode = glueNode->rChild;
     }
+    if(paramCount)
+    {
+        *paramCount = params.size();
+    }
     
+    if(params.size() == 0)
+    {
+        return nullptr;
+    }
 
+    FunctionParams* paramsPtr = symTab->AllocateTypeArrayOnHeap<FunctionParams>(params.size());
+    memcpy(paramsPtr, params.data(), sizeof(FunctionParams) * params.size() );
 
     params.clear();
-    return nullptr;
+    return paramsPtr;
 }
 
 StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *declSpecs, const Ast::Node* structDeclList)
@@ -514,10 +543,6 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
         Declarator decl = AnalyzeDeclarator(initDecl->rChild);
         if(decl.accessTypes.type == ACC_FN_DECL)
         {
-            if(listElem != initDeclList->rChild || listElem->rChild)
-            {
-                IssueWarning(nullptr, "It is not allowed to declare other variables in function declaration")
-            }
             AnalyzeFunctionDecl(declSpec, &decl);
         }
 
@@ -598,6 +623,8 @@ BuiltIn::Type SemanticAnalyzer::BitCountToIntegerType(uint8_t BitCount, bool isS
 
 void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpecs *spec)
 {
+    static std::string handyString;
+
     handyString.clear();
     Node* currChild = typeSequence;
     do
