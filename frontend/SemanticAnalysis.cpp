@@ -135,8 +135,14 @@ void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast:
 void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node *body)
 {
     DeclSpecs declSpec = AnalyzeDeclSpec(decl->lChild->rChild);
-    AnalyzeInitDeclList(&declSpec, decl->rChild);
+    // extract required nodes from ast tree
+    const Ast::Node* initList = decl->rChild;
+    const Ast::Node* initDecl = initList->rChild->lChild;
 
+    Declarator fnDecl = AnalyzeDeclarator(initDecl->rChild);
+    AnalyzeFunctionDecl(&declSpec, &fnDecl);
+    
+    //codeGen.EmitUnionStruct(symType, declSpec->typenameView);
 }
 
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
