@@ -135,14 +135,19 @@ void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast:
 void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node *body)
 {
     DeclSpecs declSpec = AnalyzeDeclSpec(decl->lChild->rChild);
+    //codeGen.EmitUnionStruct(symType, declSpec->typenameView);
     // extract required nodes from ast tree
     const Ast::Node* initList = decl->rChild;
     const Ast::Node* initDecl = initList->rChild->lChild;
 
     Declarator fnDecl = AnalyzeDeclarator(initDecl->rChild);
     AnalyzeFunctionDecl(&declSpec, &fnDecl);
-    
-    //codeGen.EmitUnionStruct(symType, declSpec->typenameView);
+
+    if(!fnDecl.accessTypes.next || !IsPointer(fnDecl.accessTypes.next))
+    {
+        SymbolType* symType = symTab->QueryTypeSymbol(declSpec.typenameView);
+        codeGen.EmitUnionStruct(symType, declSpec.typenameView);
+    }
 }
 
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
@@ -309,7 +314,7 @@ create_next:
 
 FunctionParams *SemanticAnalyzer::ProcessFnParams(const Ast::Node *paramsNode, size_t* paramCount)
 {
-    static std::vector<FunctionParams> params;
+    std::vector<FunctionParams> params;
     
     const Ast::Node* glueNode = paramsNode->rChild;
     while (glueNode)
@@ -621,7 +626,7 @@ bool SemanticAnalyzer::CompareParams(size_t paramCount, const FunctionParams *p1
 
 Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, uint8_t forbbidenAccTypes)
 {
-    static std::stack<const Ast::Node*> accessTypes;
+    std::stack<const Ast::Node*> accessTypes;
     const Ast::Node *currDecl = declarator;
     while (true)
     {
