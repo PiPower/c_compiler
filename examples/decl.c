@@ -6,6 +6,10 @@
 /* =========================================================
  * 1. BASIC PRIMITIVE TYPES
  * ========================================================= */
+typedef int (*(*func_table[4][14])(char, ...))(double);
+typedef int *func_table1;
+
+func_table ptr;
 
 void test_basic_primitives(void) {
     char                a1 = 'A';

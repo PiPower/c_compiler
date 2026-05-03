@@ -37,10 +37,10 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
     WriteCharData(" = type { ");
     if(symType->dType == BuiltIn::struct_t)
     {
-        for(size_t i =0; i < symType->argCount; i++)
+        for(size_t i =0; i < symType->str.argCount; i++)
         {
-            EmitMember(&symType->memberList[i]);
-            if( i < symType->argCount - 1)
+            EmitMember(&symType->str.memberList[i]);
+            if( i < symType->str.argCount - 1)
             {
                 WriteByteT(',');
                 WriteByteT(' ');
@@ -54,31 +54,31 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
         size_t maxSizeMember = 0;
         size_t maxAlignmentMember = 0;
 
-        for(size_t i =0; i < symType->argCount; i++)
+        for(size_t i =0; i < symType->str.argCount; i++)
         {
-            if(symType->memberList[i].size > maxSize)
+            if(symType->str.memberList[i].size > maxSize)
             {
-                maxSize = symType->memberList[i].size;
+                maxSize = symType->str.memberList[i].size;
                 maxSizeMember = i;
             }
 
-            if(symType->memberList[i].alignment > maxAlignment)
+            if(symType->str.memberList[i].alignment > maxAlignment)
             {
-                maxAlignment = symType->memberList[i].alignment;
+                maxAlignment = symType->str.memberList[i].alignment;
                 maxAlignmentMember = i;
             }
         }  
         if(maxAlignmentMember == maxSizeMember)
         {
-            EmitMember(&symType->memberList[maxSizeMember]);
+            EmitMember(&symType->str.memberList[maxSizeMember]);
         }
         else
         {
             // enforces proper alignment 
-            EmitMember(&symType->memberList[maxAlignmentMember]);
+            EmitMember(&symType->str.memberList[maxAlignmentMember]);
             size_t aling = maxSize % maxAlignment;
             maxSize += aling ? maxAlignment - aling : 0;
-            maxSize -= symType->memberList[maxAlignmentMember].size;
+            maxSize -= symType->str.memberList[maxAlignmentMember].size;
             std::string num = std::to_string(maxSize);
             WriteCharData(", [%s x i8]", num.data(), num.length());
         }

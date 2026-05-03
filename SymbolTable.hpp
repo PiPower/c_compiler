@@ -18,9 +18,26 @@ struct SymbolTypedef
     Sym::Kind kind;
     std::string_view refrencedType;
     Qualifiers qual;
+    AccessType accessTypes;
 };
 
 struct ScopedSymbolTable;
+struct StructDesc
+{
+    // used only when type == struct_t or union
+    size_t argCount;
+    // points to table that holds symbol in struct's scope
+    ScopedSymbolTable* structTable;
+    std::string_view* memberNames;
+    Member* memberList;
+};
+
+struct PointerDesc
+{
+    AccessType accessTypes;
+    DeclSpecs spec;
+};
+
 struct SymbolType
 {
     Sym::Kind kind;
@@ -28,12 +45,32 @@ struct SymbolType
     bool isDefined;
     uint64_t size;
     uint32_t alignment;
-    // used only when type == struct_t or union
-    size_t argCount;
-    // points to table that holds symbol in struct's scope
-    ScopedSymbolTable* structTable;
-    std::string_view* memberNames;
-    Member* memberList;
+    union 
+    {
+        StructDesc str;
+        PointerDesc ptr;
+    };
+        // Constructor for StructDesc
+    SymbolType(Sym::Kind k,
+               BuiltIn::Type dt,
+               bool def,
+               uint64_t s,
+               uint32_t align,
+               const StructDesc& sd)
+        : kind(k), dType(dt), isDefined(def), size(s), alignment(align), str(sd)
+        {}
+
+    // Constructor for PointerDesc
+    SymbolType(Sym::Kind k,
+               BuiltIn::Type dt,
+               bool def,
+               uint64_t s,
+               uint32_t align,
+               const PointerDesc& pd)
+        : kind(k), dType(dt), isDefined(def), size(s), alignment(align), ptr(pd)
+        {}
+
+
 };
 
 struct SymbolFunction
