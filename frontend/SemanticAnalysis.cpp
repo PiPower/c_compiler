@@ -106,7 +106,6 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     if(root->type == Ast::declaration)
     {
         AnalyzeDeclaration(root->lChild, root->rChild);
-        return;
     }
     else if(root->type == Ast::function_def)
     {
@@ -148,6 +147,17 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
         SymbolType* symType = symTab->QueryTypeSymbol(declSpec.typenameView);
         codeGen.EmitUnionStruct(symType, declSpec.typenameView);
     }
+
+    const Ast::Node* bodyNode = body->rChild;
+    symTab->CreateNewScope(Scope::LOCAL);
+    ScopedSymbolTable* localScope = symTab->currentTable;
+    while (bodyNode)
+    {
+        Analyze(bodyNode->lChild);
+        bodyNode = bodyNode->rChild;
+    }
+    symTab->PopScope();
+    
 }
 
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
@@ -511,7 +521,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
         structDecls.push_back(structDecl);
         argCount += structDecl.declarators.size();
     }
-    ScopedSymbolTable* scopedTable = symTab->currentTable;
+    //ScopedSymbolTable* scopedTable = symTab->currentTable;
 
     std::string_view* argNames = symTab->AllocateTypeArrayOnHeap<std::string_view>(argCount);
     Member* members = symTab->AllocateTypeArrayOnHeap<Member>(argCount);
@@ -577,7 +587,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
         }
     }
 
-    sym->str.structTable = scopedTable;
+    //sym->str.structTable = scopedTable;
     sym->str.argCount = argCount;
     sym->str.memberNames = argNames;
     sym->str.memberList = members;
@@ -596,11 +606,19 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
     while (Ast::Node* listElem = parent->rChild)
     {
         const Ast::Node* initDecl = listElem->lChild;
-        const Ast::Node* initExpr = listElem->rChild;
+        const Ast::Node* initExpr = initDecl->lChild;
 
         Declarator decl = AnalyzeDeclarator(initDecl->rChild);
-        if(decl.accessTypes.type == ACC_FN_DECL)
+        if(decl.accessTypes.type == ACC_NONE)
         {
+           AnalyzeVariableDecl(declSpec, &decl);
+        }
+        else if(decl.accessTypes.type == ACC_FN_DECL)
+        {
+            if(symTab->currentTable->scopeType != Scope::GLOBAL)
+            {
+                IssueWarning(&decl.token, "Function definitions in local scope are forbidden");
+            }
             AnalyzeFunctionDecl(declSpec, &decl);
         }
 
@@ -847,6 +865,20 @@ bool SemanticAnalyzer::IsPointer(const AccessType *acc)
 bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 {
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
+}
+
+void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl)
+{
+    symTab->AddSymbol<SymbolVariable>(decl->name, spec, decl);
+
+    if(symTab->IsCurrentScopeGlobal())
+    {
+        codeGen.EmitGlobalVariable(spec, decl);
+    }
+    else
+    {
+        codeGen.EmitLocalVariable(spec, decl);
+    }
 }
 
 uint64_t SemanticAnalyzer::GetAnnonymousStructId()

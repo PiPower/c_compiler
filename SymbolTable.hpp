@@ -83,6 +83,17 @@ struct SymbolFunction
     bool isDefined;
 };
 
+struct SymbolVariable
+{
+    Sym::Kind kind;
+    DeclSpecs spec;
+    Declarator decl;
+
+    SymbolVariable(Sym::Kind kind, const DeclSpecs* spec, const Declarator* decl) 
+    :
+    kind(kind), spec(*spec), decl(*decl) {}
+};
+
 struct ScopedSymbolTable
 {
     ScopedSymbolTable* parent;
@@ -108,6 +119,10 @@ struct SymbolKindTraits<SymbolFunction> {
     static constexpr Sym::Kind value = Sym::FUNC;
 };
 
+template <>
+struct SymbolKindTraits<SymbolVariable> {
+    static constexpr Sym::Kind value = Sym::VAR;
+};
 struct SymbolTable
 {
   

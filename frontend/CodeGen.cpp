@@ -3,14 +3,19 @@
 #include "../utils/DataEncoder.hpp"
 #include <sys/uio.h>
 #include <unistd.h>
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Code Gen", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+
 constexpr uint8_t TYPE_BUFFER = 0;
 constexpr uint8_t FUNC_BUFFER = 1;
+constexpr uint8_t GLOB_VAR_BUFFER = 1;
+constexpr uint8_t LOC_VAR_BUFFER = 1;
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
+
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
-typeHeap(nr_of_pages), symTab(symTab), manager(manager), nodeExec(ne)
+typeHeap(nr_of_pages), symTab(symTab), manager(manager), nodeExec(ne), logger(manager)
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
     {
@@ -34,7 +39,7 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
     }
 
     EmitTypename(symType, name, false);
-    WriteCharData(" = type { ");
+    WriteCharDataT(" = type { ");
     if(symType->dType == BuiltIn::struct_t)
     {
         for(size_t i =0; i < symType->str.argCount; i++)
@@ -80,10 +85,10 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
             maxSize += aling ? maxAlignment - aling : 0;
             maxSize -= symType->str.memberList[maxAlignmentMember].size;
             std::string num = std::to_string(maxSize);
-            WriteCharData(", [%s x i8]", num.data(), num.length());
+            WriteCharDataT(", [%s x i8]", num.data(), num.length());
         }
     }
-    WriteCharData(" }\n");
+    WriteCharDataT(" }\n");
     // mark symbol as emitted
     emittedTypes[symType].isEmitted = true;
 
@@ -100,18 +105,18 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
     {
         switch (symType->dType)
         {
-        case BuiltIn::bool_t:    WriteCharData("i8");   break;
-        case BuiltIn::s_char_8:  WriteCharData("i8");   break;
-        case BuiltIn::u_char_8:  WriteCharData("i8");   break;
-        case BuiltIn::s_int_16:  WriteCharData("i16");  break;
-        case BuiltIn::u_int_16:  WriteCharData("i16");  break;
-        case BuiltIn::s_int_32:  WriteCharData("i32");  break;
-        case BuiltIn::u_int_32:  WriteCharData("i32");  break;
-        case BuiltIn::s_int_64:  WriteCharData("i64");  break;
-        case BuiltIn::u_int_64:  WriteCharData("i64");  break;
-        case BuiltIn::float_32:  WriteCharData("float");   break;
-        case BuiltIn::double_64: WriteCharData("double");  break;
-        case BuiltIn::ptr: WriteCharData("ptr");  break;
+        case BuiltIn::bool_t:    WriteCharDataT("i8");   break;
+        case BuiltIn::s_char_8:  WriteCharDataT("i8");   break;
+        case BuiltIn::u_char_8:  WriteCharDataT("i8");   break;
+        case BuiltIn::s_int_16:  WriteCharDataT("i16");  break;
+        case BuiltIn::u_int_16:  WriteCharDataT("i16");  break;
+        case BuiltIn::s_int_32:  WriteCharDataT("i32");  break;
+        case BuiltIn::u_int_32:  WriteCharDataT("i32");  break;
+        case BuiltIn::s_int_64:  WriteCharDataT("i64");  break;
+        case BuiltIn::u_int_64:  WriteCharDataT("i64");  break;
+        case BuiltIn::float_32:  WriteCharDataT("float");   break;
+        case BuiltIn::double_64: WriteCharDataT("double");  break;
+        case BuiltIn::ptr: WriteCharDataT("ptr");  break;
         default:
             printf("code gen: type unsupported");
             exit(-1);
@@ -134,7 +139,7 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
             emittedTypes[symType] = {FIRST_VALUE, false};
             typeCounter[typeName] = {FIRST_VALUE};
         }
-        WriteCharData("%s", typeName.data(), typeName.length());
+        WriteCharDataT("%s", typeName.data(), typeName.length());
         return;
     }
     else
@@ -164,12 +169,12 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
         if(typeDesc->second.symbolSaveCounter == FIRST_VALUE)
         {
             std::string_view inst = symType->dType ==  BuiltIn::struct_t ? "%%struct.%s" : "%%union.%s";
-            WriteCharData(inst.data(), typeName.data(), typeName.length());
+            WriteCharDataT(inst.data(), typeName.data(), typeName.length());
         }
         else
         {
             std::string_view inst = symType->dType ==  BuiltIn::struct_t ? "%%struct.%s.%d": "%%union.%s.%d";
-            WriteCharData(inst.data(), typeName.data(), typeName.length(), typeDesc->second.symbolSaveCounter);
+            WriteCharDataT(inst.data(), typeName.data(), typeName.length(), typeDesc->second.symbolSaveCounter);
         }
     }   
     
@@ -200,7 +205,7 @@ void CodeGen::EmitMember(Member *member)
             if(!accType->array.asmExpr)
             {
                 // variable length array
-                WriteCharData("[0 x ");
+                WriteCharDataT("[0 x ");
             }
             else
             {
@@ -211,7 +216,7 @@ void CodeGen::EmitMember(Member *member)
                     exit(-1);
                 }
                 std::string str = std::to_string(num.int64);
-                WriteCharData("[%s x ", str.data(), str.length());
+                WriteCharDataT("[%s x ", str.data(), str.length());
             }
             brackets++;
         }
@@ -225,7 +230,7 @@ void CodeGen::EmitMember(Member *member)
     
     if(hitPointer)
     {
-        WriteCharData("ptr");
+        WriteCharDataT("ptr");
     }
     else
     {
@@ -238,60 +243,20 @@ void CodeGen::EmitMember(Member *member)
     }
 }
 
-void CodeGen::WriteCharData(const char *data, ...)
+void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
 {
-    const char* curr = data;
-    va_list args;
-    va_start(args, data);
-
-    while (*curr != '\0')
+    if(decl->name.length() == 0)
     {
-        if(*curr != '%')
-        {
-            WriteByteT(curr);
-            curr++;
-            continue;
-        }
-
-        curr++;
-        switch (*curr)
-        {
-        case '%':
-            WriteByteT(curr);
-            curr++;
-            break;
-        case 's':
-        {
-            curr++;
-            const char* str = va_arg(args, const char*);
-            size_t len = va_arg(args, size_t);
-            while (len > 0)
-            {
-                WriteByteT(str);
-                str++;
-                len--;
-            }
-        }break;
-        case 'd':
-        {
-            curr++;
-            int c = va_arg(args, int);
-            std::string num = std::to_string(c);
-            size_t i = 0;
-            while (num[i] != '\0')
-            {
-                WriteByteT(num.data() + i);
-                i++;
-            }
-        }break;
-        default:
-            printf("Unsuported character in WriteCharData\n");
-            exit(-1);
-            break;
-        }
-
+        IssueWarning(&decl->token, "Abstract declarator cannot be emitted");
     }
-    va_end(args);
+
+    WriteByteGV("");
+
+}
+
+void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
+{
+    IssueWarning(&decl->token, "Local variable is not supported");
 }
 
 void CodeGen::WriteByteT(const char* c)
@@ -302,6 +267,24 @@ void CodeGen::WriteByteT(const char* c)
 void CodeGen::WriteByteT(char c)
 {
     WriteByteImpl(TYPE_BUFFER, c);
+}
+
+void CodeGen::WriteByteGV(const char *c)
+{
+    WriteByteImpl(GLOB_VAR_BUFFER, c);
+}
+
+void CodeGen::WriteByteGV(char c)
+{
+    WriteByteImpl(GLOB_VAR_BUFFER, c);
+}
+
+void CodeGen::WriteByteLV(const char *c)
+{
+}
+
+void CodeGen::WriteByteLV(char c)
+{
 }
 
 std::string_view CodeGen::GetViewForToken(const Token &token)
@@ -388,4 +371,12 @@ void CodeGen::WriteByteImpl(uint8_t bufferType, char c)
 
     *currPtr = c;
     currPtrArr[bufferType]++;
+}
+
+void CodeGen::WriteCharDataT(const char *data, ...)
+{
+    va_list args;
+    va_start(args, data);
+    WriteCharData<TYPE_BUFFER>(data, args);
+    va_end(args);
 }

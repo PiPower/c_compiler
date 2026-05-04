@@ -20,7 +20,8 @@ enum Kind: uint16_t
     NONE = 0,
     TYPEDEF = 0x1 << 0,
     TYPE = 0x1 << 1,
-    FUNC = 0x1 << 2
+    FUNC = 0x1 << 2,
+    VAR = 0x1 << 3
 };
 
 }

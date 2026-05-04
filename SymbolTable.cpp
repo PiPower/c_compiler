@@ -98,6 +98,9 @@ void SymbolTable::AddSymbolImpl(const std::string_view& name, Symbol *sym)
     case Sym::TYPEDEF:
         currentTable->tables[typeDef][name] = sym;
         break;  
+    case Sym::VAR:
+        currentTable->tables[var][name] = sym;
+        break; 
     default:
         printf("Incorrect table\n");
         exit(-1);
