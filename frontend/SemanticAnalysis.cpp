@@ -609,9 +609,14 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
         const Ast::Node* initExpr = initDecl->lChild;
 
         Declarator decl = AnalyzeDeclarator(initDecl->rChild);
+
         if(decl.accessTypes.type == ACC_NONE)
         {
-           AnalyzeVariableDecl(declSpec, &decl);
+            if(symType->dType == BuiltIn::ptr)
+            {
+                decl.accessTypes = symType->ptr.accessTypes;
+            }
+            AnalyzeVariableDecl(declSpec, &decl);
         }
         else if(decl.accessTypes.type == ACC_FN_DECL)
         {
