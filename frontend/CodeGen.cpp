@@ -3,6 +3,7 @@
 #include "../utils/DataEncoder.hpp"
 #include <sys/uio.h>
 #include <unistd.h>
+#include "../utils/Misc.hpp"
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Code Gen", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 constexpr uint8_t TYPE_BUFFER = 0;
@@ -249,7 +250,7 @@ void CodeGen::EmitMember(Member *member)
     EmitDeclarator(&member->access, &member->typeName);
 }
 
-void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
+void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, bool zeroInit)
 {
     if(decl->name.length() == 0)
     {
@@ -259,11 +260,29 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
     std::string_view vis = spec->declType.spec.static_ ? "internal" : "dso_local";
     BindGlobalVarBuffer();
 
-    WriteCharData("@%s = %s global ", 
+    WriteCharData("\n@%s = %s global ", 
                     decl->name.data(), decl->name.length(),
                     vis.data(), vis.length() );
     EmitDeclarator(&decl->accessTypes, &spec->typenameView);
+    if(!zeroInit)
+    {
+        // in this case it's caller responsibility to properly end declaration
+        return;
+    }
 
+    SymbolType* symType = symTab->QueryTypeSymbol(spec->typenameView);
+    std::string_view zero_init;
+    std::string alignment;
+
+    if(IsArray(&decl->accessTypes) || symType->dType == BuiltIn::struct_t ||  symType->dType == BuiltIn::union_t)
+    {
+        zero_init = "zeroinitializer";
+    }
+    alignment = std::to_string(symType->alignment);
+
+    WriteCharData(" %s, align %s", 
+        zero_init.data(), zero_init.length(),
+        alignment.data(), alignment.length());
 }
 
 void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
@@ -354,7 +373,7 @@ void CodeGen::BindGlobalVarBuffer()
 
 void CodeGen::BindLocalVarBuffer()
 {
-    chosenBuffer - LOC_VAR_BUFFER;
+    chosenBuffer = LOC_VAR_BUFFER;
 }
 
 void CodeGen::WriteByte( const char *c)

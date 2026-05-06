@@ -28,7 +28,7 @@ struct SemanticAnalyzer
     BuiltIn::Type BitCountToIntegerType(uint8_t BitCount, bool isSigned);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);
-    void AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl);
+    void AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl, bool zeroInit);
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
     bool IsMemberPointer(const Member* member);
@@ -41,7 +41,6 @@ struct SemanticAnalyzer
     bool CompareParams(size_t paramCount, const FunctionParams* p1, const FunctionParams* p2);
     bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);
     bool CompareDeclarators(const Declarator* d1, const Declarator* d2);
-    bool IsPointer(const AccessType* acc);
 
     SymbolTable* symTab;
     FileManager* manager;

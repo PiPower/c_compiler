@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include "../utils/DataEncoder.hpp"
 #include "../utils/Logger.hpp"
+#include "../utils/Misc.hpp"
+
 const char* modName = "Semantic Analysis";
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(modName, tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
@@ -144,8 +146,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
 
     if(!fnDecl.accessTypes.next || !IsPointer(fnDecl.accessTypes.next))
     {
-        SymbolType* symType = symTab->QueryTypeSymbol(declSpec.typenameView);
-        codeGen.EmitUnionStruct(symType, declSpec.typenameView);
+        codeGen.EmitUnionStruct(declSpec.symType, declSpec.typenameView);
     }
 
     const Ast::Node* bodyNode = body->rChild;
@@ -498,6 +499,8 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
         BuiltIn::Type symType =  isStruct ? BuiltIn::struct_t :  BuiltIn::union_t;
         symTab->AddSymbol<SymbolType>(spec->typenameView, symType, false, 0, 0, emptyDesc );
     }
+
+    spec->symType = symTab->QueryTypeSymbol(spec->typenameView);
     if(!structTree->rChild)
     {
         // test whether its declaration of type or object of said type
@@ -532,7 +535,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     {
         for(size_t j = 0; j < structDecls[i].declarators.size(); j++)
         {
-            SymbolType* memType = symTab->QueryTypeSymbol(structDecls[i].declSpec.typenameView);
+            SymbolType* memType = structDecls[i].declSpec.symType;
             argNames[idx] = structDecls[i].declarators[j].decl.name;
 
             members[idx].declType = structDecls[i].declSpec.declType;
@@ -600,7 +603,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
 void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node *initDeclList)
 {
     const Ast::Node* parent = initDeclList;
-    SymbolType* symType = symTab->QueryTypeSymbol(declSpec->typenameView);
+    SymbolType* symType = declSpec->symType;
     codeGen.EmitUnionStruct(symType, declSpec->typenameView);
 
     while (Ast::Node* listElem = parent->rChild)
@@ -616,7 +619,7 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
             {
                 decl.accessTypes = symType->ptr.accessTypes;
             }
-            AnalyzeVariableDecl(declSpec, &decl);
+            AnalyzeVariableDecl(declSpec, &decl, true);
         }
         else if(decl.accessTypes.type == ACC_FN_DECL)
         {
@@ -835,50 +838,18 @@ bool SemanticAnalyzer::CompareDeclarators(const Declarator *d1, const Declarator
     return true;
 }
 
-bool SemanticAnalyzer::IsPointer(const AccessType *acc)
-{
-    if(acc->type == ACC_NONE)
-    {
-        return false;
-    }
-    
-    const AccessType* currAcc = acc;
-    while (currAcc)
-    {
-        if(currAcc->type == ACC_POINTER)
-        {
-            return true;
-        }
-        else if(currAcc->type == ACC_ARRAY)
-        {
-            // do nothing 
-        }
-        else if(currAcc->type == ACC_FN_CALL)
-        {
-            return false;
-        }
-        else if(currAcc->type == ACC_FN_DECL)
-        {
-            return false;
-        }
-        currAcc = currAcc->next;
-    }
-
-    return false;
-}
-
 bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 {
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
 }
 
-void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl)
+void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl, bool zeroInit)
 {
     symTab->AddSymbol<SymbolVariable>(decl->name, spec, decl);
 
     if(symTab->IsCurrentScopeGlobal())
     {
-        codeGen.EmitGlobalVariable(spec, decl);
+        codeGen.EmitGlobalVariable(spec, decl, zeroInit);
     }
     else
     {
@@ -1068,6 +1039,7 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                 
                 spec.typenameView = symTypedef->refrencedType;
                 currNode = currNode->rChild;
+                spec.symType = symTab->QueryTypeSymbol(symTypedef->refrencedType);
                 continue;
             }   
 
@@ -1087,9 +1059,11 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                 // File manager is kept alive over whole duration of program so 
                 // it is safe to fetch typename from token
                 spec.typenameView = GetViewForToken(currNode->token);
+                spec.symType = symTab->QueryTypeSymbol(spec.typenameView);
                 break;
             default:
                 AnalyzeSimpleType(currNode, &spec);
+                spec.symType = symTab->QueryTypeSymbol(spec.typenameView);
                 break;
             }
         }
