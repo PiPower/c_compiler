@@ -149,15 +149,18 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
         codeGen.EmitUnionStruct(declSpec.symType, declSpec.typenameView);
     }
 
+    codeGen.EmitFunctionName(&declSpec, &fnDecl);
     const Ast::Node* bodyNode = body->rChild;
     symTab->CreateNewScope(Scope::LOCAL);
     ScopedSymbolTable* localScope = symTab->currentTable;
     while (bodyNode)
     {
+        break;
         Analyze(bodyNode->lChild);
         bodyNode = bodyNode->rChild;
     }
     symTab->PopScope();
+    codeGen.EmitFunctionClose();
     
 }
 

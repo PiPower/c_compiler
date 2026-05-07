@@ -31,6 +31,8 @@ struct CodeGen
     void EmitMember(Member* member);
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl, bool zeroInit);
     void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl);
+    void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
+    void EmitFunctionClose();
     std::string_view GetViewForToken(const Token &token);
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
     void FlushTypeQueue();
@@ -51,6 +53,8 @@ struct CodeGen
     uint8_t chosenBuffer;
     std::array<std::vector<char*>, 4> writableBufferArr;
     std::array<char*, 4> currPtrArr;
+    std::vector<char*> localBufferHandle;
+
     PagedHeap typeHeap;
     SymbolTable* symTab;
     FileManager* manager;

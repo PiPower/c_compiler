@@ -4,15 +4,17 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include "../utils/Misc.hpp"
+#include <string.h>
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Code Gen", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 constexpr uint8_t TYPE_BUFFER = 0;
 constexpr uint8_t FUNC_BUFFER = 1;
-constexpr uint8_t GLOB_VAR_BUFFER = 1;
-constexpr uint8_t LOC_VAR_BUFFER = 1;
+constexpr uint8_t GLOB_VAR_BUFFER = 2;
+constexpr uint8_t LOC_VAR_BUFFER = 3;
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
+constexpr uint64_t INST_BUFF_SIZE = nr_of_pages * CPU_PAGE_SIZE;
 
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
@@ -20,7 +22,7 @@ chosenBuffer(TYPE_BUFFER), typeHeap(nr_of_pages), symTab(symTab), manager(manage
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
     {
-        currPtrArr[i] = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
+        currPtrArr[i] = typeHeap.allocateArray<char>(INST_BUFF_SIZE);
         writableBufferArr[i].push_back(currPtrArr[i]);
     }
 }
@@ -290,6 +292,71 @@ void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
     IssueWarning(&decl->token, "Local variable is not supported");
 }
 
+void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
+{
+    std::string_view vis = spec->declType.spec.static_ ? "internal" : "dso_local";
+    BindGlobalVarBuffer();
+
+    if(IsArray(&decl->accessTypes))
+    {
+        IssueWarning(&decl->token, "Function cannot return array type");
+    }
+    if( (spec->symType->dType == BuiltIn::struct_t ||  
+             spec->symType->dType == BuiltIn::union_t) &&
+        !IsPointer(&decl->accessTypes))
+    {
+        IssueWarning(&decl->token, "Internal: Complex types are not supported");
+    }
+
+    BindFuncBuffer();
+    WriteCharData("\ndefine %s %s @%s() #0 {\n", 
+                    vis.data(), vis.length(), 
+                    spec->typenameView.data(), spec->typenameView.length(),
+                    decl->name.data(), decl->name.length());
+}
+
+void CodeGen::EmitFunctionClose()
+{
+    BindFuncBuffer();
+    std::vector<char*>& destVec = writableBufferArr[chosenBuffer];
+    std::vector<char*>& srcVec = writableBufferArr[LOC_VAR_BUFFER];
+    for(size_t i = 0; srcVec.size() - 1; i++)
+    {   
+        size_t usedBytes = currPtrArr[chosenBuffer] - destVec.back();
+        size_t freeBytes = INST_BUFF_SIZE - usedBytes;
+        memcpy(destVec.back(), srcVec[i], freeBytes);
+        
+        destVec.push_back(typeHeap.allocateArray<char>(INST_BUFF_SIZE));
+        memcpy(destVec.back(), srcVec[i] + freeBytes, INST_BUFF_SIZE - freeBytes);
+        currPtrArr[chosenBuffer] = destVec.back() + INST_BUFF_SIZE - freeBytes;
+    }
+
+    size_t usedBytes = currPtrArr[chosenBuffer] - destVec.back();
+    size_t freeBytes = INST_BUFF_SIZE - usedBytes;
+    size_t copySize = std::min(freeBytes, (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()));
+    memcpy(destVec.back(), srcVec.back(), copySize);
+    if(freeBytes < currPtrArr[LOC_VAR_BUFFER] - srcVec.back() )
+    {
+        size_t remainingBytes =  (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()) - freeBytes;
+        destVec.push_back(typeHeap.allocateArray<char>(INST_BUFF_SIZE));
+        memcpy(destVec.back(), srcVec.back() + copySize, remainingBytes);
+        currPtrArr[chosenBuffer] = destVec.back() + remainingBytes;
+    }
+    else
+    {   
+        currPtrArr[chosenBuffer] += copySize;
+    }
+
+    WriteCharData("\n}\n");
+    // reset state of LOC_VAR_BUFFER;
+    for(size_t i = 1; i < writableBufferArr[LOC_VAR_BUFFER].size(); i++)
+    {
+        localBufferHandle.push_back(writableBufferArr[LOC_VAR_BUFFER][i]);
+    }
+    writableBufferArr[LOC_VAR_BUFFER].resize(1);
+    currPtrArr[LOC_VAR_BUFFER] = writableBufferArr[LOC_VAR_BUFFER][0];
+}
+
 std::string_view CodeGen::GetViewForToken(const Token &token)
 {
     FILE_STATE state;
@@ -324,7 +391,7 @@ void CodeGen::FlushTypeQueue()
 
 void CodeGen::WriteToFile(int fd)
 {
-    constexpr std::array<uint8_t, 2> buffOrder = {TYPE_BUFFER, FUNC_BUFFER};
+    constexpr std::array<uint8_t, 3> buffOrder = {TYPE_BUFFER, GLOB_VAR_BUFFER, FUNC_BUFFER,};
     size_t maxSize = 0;
     for(const auto& arr : writableBufferArr)
     {
@@ -387,7 +454,15 @@ void CodeGen::WriteByte(char c)
     char* currPtr = currPtrArr[chosenBuffer];
     if((uint64_t)(currPtr - buffs->back()) == typeHeap.GetAllocSize())
     {
-        currPtrArr[chosenBuffer] = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
+        if(chosenBuffer == LOC_VAR_BUFFER && localBufferHandle.size() > 0)
+        {
+            currPtrArr[chosenBuffer] = localBufferHandle.back();
+            localBufferHandle.pop_back();
+        }
+        else
+        {
+            currPtrArr[chosenBuffer] = typeHeap.allocateArray<char>(nr_of_pages * CPU_PAGE_SIZE);
+        }
         currPtr = currPtrArr[chosenBuffer];
         buffs->push_back(currPtrArr[chosenBuffer]);
     }
