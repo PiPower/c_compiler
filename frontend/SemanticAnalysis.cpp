@@ -10,7 +10,7 @@
 const char* modName = "Semantic Analysis";
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(modName, tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
-constexpr StructDesc emptyDesc = {0, nullptr, nullptr, nullptr};
+constexpr StructDesc emptyDesc = {NOT_EMITTED, 0, nullptr, nullptr, nullptr};
 typedef const Ast::Node Node;
 
 static const char* kTypeNames[] = {
@@ -151,15 +151,17 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
 
     codeGen.EmitFunctionName(&declSpec, &fnDecl);
     const Ast::Node* bodyNode = body->rChild;
+
+    variableIdx = 1;
     symTab->CreateNewScope(Scope::LOCAL);
     ScopedSymbolTable* localScope = symTab->currentTable;
     while (bodyNode)
     {
-        break;
         Analyze(bodyNode->lChild);
         bodyNode = bodyNode->rChild;
     }
     symTab->PopScope();
+
     codeGen.EmitFunctionClose();
     
 }
@@ -848,15 +850,16 @@ bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 
 void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl, bool zeroInit)
 {
-    symTab->AddSymbol<SymbolVariable>(decl->name, spec, decl);
-
     if(symTab->IsCurrentScopeGlobal())
     {
+        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl);
         codeGen.EmitGlobalVariable(spec, decl, zeroInit);
     }
     else
     {
+        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, variableIdx);
         codeGen.EmitLocalVariable(spec, decl);
+        variableIdx++;
     }
 }
 

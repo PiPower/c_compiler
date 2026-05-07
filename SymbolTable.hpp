@@ -42,9 +42,12 @@ struct SymbolTable
     uint16_t QuerySymKinds(const std::string_view& name);
     bool IsCurrentScopeGlobal();
 
+    SymbolVariable* QueryVarSymbol(
+        const std::string_view& name,
+        uint8_t* scopeType = nullptr,
+        uint8_t* prevScope = nullptr);
     SymbolFunction* QueryFunctionSymbol(
         const std::string_view& name);
-
     SymbolType* QueryTypeSymbol(
         const std::string_view& name,
         uint8_t* scopeType = nullptr,

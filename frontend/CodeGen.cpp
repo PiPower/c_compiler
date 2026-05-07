@@ -4,6 +4,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include "../utils/Misc.hpp"
+#include "SemanticAnalysis.hpp"
 #include <string.h>
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Code Gen", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
@@ -143,6 +144,7 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
             emittedTypes[symType] = {FIRST_VALUE, false};
             typeCounter[typeName] = {FIRST_VALUE};
         }
+        symType->str.codeGenIdx = ANON_EMITTED;
         WriteCharData("%s", typeName.data(), typeName.length());
         return;
     }
@@ -169,7 +171,8 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
                 AddSymbolToEmitQueue(symType, typeName);
             }
         }
-
+        
+        symType->str.codeGenIdx = typeDesc->second.symbolSaveCounter;
         if(typeDesc->second.symbolSaveCounter == FIRST_VALUE)
         {
             std::string_view inst = symType->dType ==  BuiltIn::struct_t ? "%%struct.%s" : "%%union.%s";
@@ -289,7 +292,41 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, 
 
 void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
 {
-    IssueWarning(&decl->token, "Local variable is not supported");
+    const SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name);
+    const SymbolType* varType = symVar->spec.symType;
+    std::string idx = std::to_string(symVar->varIdx);
+    std::string varAlignment = std::to_string(varType->alignment);
+    BindFuncBuffer();
+
+    WriteCharData("\n\t%%%s = alloca ", idx.data(), idx.length());
+    if(IsPointer(&decl->accessTypes))
+    {
+        WriteCharData("ptr, align 8");
+    }
+    else
+    {
+        switch (varType->dType)
+        {
+            case BuiltIn::bool_t:    WriteCharData("i8");   break;
+            case BuiltIn::s_char_8:  WriteCharData("i8");   break;
+            case BuiltIn::u_char_8:  WriteCharData("i8");   break;
+            case BuiltIn::s_int_16:  WriteCharData("i16");  break;
+            case BuiltIn::u_int_16:  WriteCharData("i16");  break;
+            case BuiltIn::s_int_32:  WriteCharData("i32");  break;
+            case BuiltIn::u_int_32:  WriteCharData("i32");  break;
+            case BuiltIn::s_int_64:  WriteCharData("i64");  break;
+            case BuiltIn::u_int_64:  WriteCharData("i64");  break;
+            case BuiltIn::float_32:  WriteCharData("float");   break;
+            case BuiltIn::double_64: WriteCharData("double");  break;
+            case BuiltIn::long_double: WriteCharData("x86_fp80");  break;
+            default:
+                printf("code gen: type unsupported");
+                exit(-1);
+                break;
+        }
+        WriteCharData(", align %s", varAlignment.data(), varAlignment.length());
+    }
+
 }
 
 void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
@@ -309,7 +346,7 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
     }
 
     BindFuncBuffer();
-    WriteCharData("\ndefine %s %s @%s() #0 {\n", 
+    WriteCharData("\ndefine %s %s @%s() #0 {", 
                     vis.data(), vis.length(), 
                     spec->typenameView.data(), spec->typenameView.length(),
                     decl->name.data(), decl->name.length());
@@ -317,7 +354,8 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
 
 void CodeGen::EmitFunctionClose()
 {
-    BindFuncBuffer();
+    BindFuncBuffer(); 
+    // copy LOC_VAR_BUFFER buffer to FUNC_BUFFER
     std::vector<char*>& destVec = writableBufferArr[chosenBuffer];
     std::vector<char*>& srcVec = writableBufferArr[LOC_VAR_BUFFER];
     for(size_t i = 0; srcVec.size() - 1; i++)
@@ -335,7 +373,7 @@ void CodeGen::EmitFunctionClose()
     size_t freeBytes = INST_BUFF_SIZE - usedBytes;
     size_t copySize = std::min(freeBytes, (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()));
     memcpy(destVec.back(), srcVec.back(), copySize);
-    if(freeBytes < currPtrArr[LOC_VAR_BUFFER] - srcVec.back() )
+    if(freeBytes < (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()) )
     {
         size_t remainingBytes =  (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()) - freeBytes;
         destVec.push_back(typeHeap.allocateArray<char>(INST_BUFF_SIZE));

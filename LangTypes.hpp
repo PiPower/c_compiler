@@ -222,6 +222,8 @@ struct SymbolTypedef
 struct ScopedSymbolTable;
 struct StructDesc
 {
+    // name that is assigned to struct by codegen
+    int64_t codeGenIdx;
     // used only when type == struct_t or union
     size_t argCount;
     // points to table that holds symbol in struct's scope
@@ -284,17 +286,23 @@ struct SymbolFunction
 struct SymbolVariable
 {
     Sym::Kind kind;
+    Scope::Type scope;
     DeclSpecs spec;
     Declarator decl;
-
-    SymbolVariable(Sym::Kind kind, const DeclSpecs* spec, const Declarator* decl) 
+    int64_t varIdx; // if idx == -1 unused
+    SymbolVariable(
+        Sym::Kind kind,  
+        Scope::Type scope, 
+        const DeclSpecs* spec,
+        const Declarator* decl, 
+        int64_t idx = -1) 
     :
-    kind(kind), spec(*spec), decl(*decl) {}
+    kind(kind), scope(scope), spec(*spec), decl(*decl), varIdx(idx) {}
 };
 
 struct ScopedSymbolTable
 {
     ScopedSymbolTable* parent;
     std::array<std::unordered_map<std::string_view, Symbol*>, 4> tables;
-    uint8_t scopeType;
+    Scope::Type scopeType;
 };

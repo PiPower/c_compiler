@@ -173,6 +173,11 @@ bool SymbolTable::IsCurrentScopeGlobal()
     return currentTable == globalTable;
 }
 
+SymbolVariable *SymbolTable::QueryVarSymbol(const std::string_view &name, uint8_t *scopeType, uint8_t *prevScope)
+{
+    return (SymbolVariable*)QuerySymbolGeneric(name, var, scopeType, prevScope);
+}
+
 SymbolFunction *SymbolTable::QueryFunctionSymbol(const std::string_view &name)
 {
     return (SymbolFunction *) QuerySymbolGeneric(name, fn, nullptr, nullptr);

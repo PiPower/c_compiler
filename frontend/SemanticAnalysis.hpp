@@ -5,6 +5,8 @@
 #include "Preprocessor.hpp"
 #include "CodeGen.hpp"
 constexpr size_t  POINTER_SIZE = 8;
+constexpr int64_t NOT_EMITTED = -2;
+constexpr int64_t ANON_EMITTED = -3;
 /*
     sema supports anonymous struct members
 */
@@ -42,6 +44,7 @@ struct SemanticAnalyzer
     bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);
     bool CompareDeclarators(const Declarator* d1, const Declarator* d2);
 
+    int64_t variableIdx;
     SymbolTable* symTab;
     FileManager* manager;
     NodeExecutor ne;
