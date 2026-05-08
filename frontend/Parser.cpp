@@ -821,9 +821,10 @@ Ast::Node *Parser::InitializerList()
         Ast::Node* initItem = AllocateAstNodes();
         initItem->type = Ast::init_item;
         initItem->token = token;
-        if(IsTokenOneOf(&token,  TokenType::dot, TokenType::l_bracket))
+        initItem->rChild = DesignatorList();
+        if(initItem->rChild)
         {
-            IssueWarning(&token, "Designators are not currently supported");
+            ConsumeExpectedToken(TokenType::equal);
         }
         initItem->lChild = ParseInitializer();
 
@@ -1228,6 +1229,47 @@ Ast::Node *Parser::ParameterTypeList()
     }
     
     return parameterTypeList;
+}
+
+Ast::Node *Parser::DesignatorList()
+{
+    Token token = GetCurrToken();
+    if(!IsTokenOneOf(&token,  TokenType::dot, TokenType::l_bracket))
+    {
+        return nullptr;
+    }
+
+    Ast::Node* desList = AllocateAstNodes();
+    desList->type = Ast::designator_list;
+    desList->token = token;
+
+    Ast::Node* currNode = desList;
+    while (IsTokenOneOf(&token,  TokenType::dot, TokenType::l_bracket))
+    {
+        ConsumeToken();
+        Ast::Node* designator = AllocateAstNodes();
+        designator->token = token;
+        designator->type = Ast::designator;
+        token = GetCurrToken();
+        if(token.type == TokenType::dot)
+        {
+            designator->lChild = ParseConstantExpr();
+            ConsumeExpectedToken(TokenType::r_bracket);
+        }
+        else
+        {
+            // token holds identifier value
+            designator->token = GetCurrToken();
+            ConsumeExpectedToken(TokenType::identifier);
+        }
+
+        currNode->rChild = designator;
+        currNode = designator;
+
+        token = GetCurrToken();
+    }
+    
+    return desList;
 }
 
 Ast::Node* Parser::PostfixExpression()
