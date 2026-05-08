@@ -23,6 +23,7 @@ struct Parser
     // node management
     Ast::Node* AllocateAstNodes(uint16_t count = 1);
     void AddNodePage();
+    Ast::Node* GlueNodes(Ast::Node* l, Ast::Node* parent);
     // checks
     bool IsAssignment(Token* token);
     bool IsAssignment(TokenType::Type type);
@@ -76,7 +77,7 @@ struct Parser
     Ast::Node* ParameterDecl();
     Ast::Node* ParseDirectAbstractDeclarator();
     Ast::Node* ParameterTypeList();
-    
+
     SemanticAnalyzer* analyzer;
     FileManager* manager;
     Preprocessor PP;

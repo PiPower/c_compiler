@@ -77,6 +77,8 @@
     X(parameter_decl) \
     X(init_decl_list) \
     X(init_declarator) \
+    X(initializer_list) \
+    X(init_item) \
     /* Misc */ \
     X(compound_statement) \
     X(var_len_array) \

@@ -283,6 +283,15 @@ void Parser::AddNodePage()
     nodeBuffer.currentPage = nodeBuffer.pages.size() - 1;
 }
 
+Ast::Node *Parser::GlueNodes(Ast::Node *l, Ast::Node *parent)
+{
+    Ast::Node* glueNode = AllocateAstNodes();
+    glueNode->type = Ast::NodeType::glue_list;
+    glueNode->lChild = l;
+    parent->rChild = glueNode;
+    return glueNode;
+}
+
 bool Parser::IsAssignment(Token *token)
 {
     return IsAssignment(token->type);
@@ -453,17 +462,18 @@ Ast::Node *Parser::ParseDeclaration(bool consumeSemicolon)
 Ast::Node *Parser::ParseInitializer()
 {
     Token token = GetCurrToken();
-    if(token.type == TokenType::l_bracket)
+    if(token.type == TokenType::l_brace)
     {
-        ConsumeExpectedToken(TokenType::l_bracket);
+        ConsumeExpectedToken(TokenType::l_brace);
 
         Ast::Node* initializerList = InitializerList();
+        initializerList->token = token;
 
         if(GetCurrToken().type == TokenType::comma)
         {
             ConsumeExpectedToken(TokenType::comma);
         }
-        ConsumeExpectedToken(TokenType::r_bracket);
+        ConsumeExpectedToken(TokenType::r_brace);
 
         return initializerList;
     }
@@ -801,9 +811,32 @@ Ast::Node *Parser::StorageSpec()
 
 Ast::Node *Parser::InitializerList()
 {
-    printf("Initializer list not supported \n");
-    exit(-1);
-    return nullptr;
+    Ast::Node* initializerList =  AllocateAstNodes();
+    initializerList->type = Ast::initializer_list;
+
+    Token token = GetCurrToken();
+    Ast::Node* currParent = initializerList;
+    while (token.type != TokenType::r_brace)
+    {
+        Ast::Node* initItem = AllocateAstNodes();
+        initItem->type = Ast::init_item;
+        initItem->token = token;
+        if(IsTokenOneOf(&token,  TokenType::dot, TokenType::l_bracket))
+        {
+            IssueWarning(&token, "Designators are not currently supported");
+        }
+        initItem->lChild = ParseInitializer();
+
+        currParent = GlueNodes(initItem, currParent);
+        token = GetCurrToken();
+        if(token.type == TokenType::comma)
+        {
+            ConsumeExpectedToken(TokenType::comma);
+            token = GetCurrToken();
+        }
+    }   
+    
+    return initializerList;
 }
 
 Ast::Node *Parser::TypeSpecifier()
