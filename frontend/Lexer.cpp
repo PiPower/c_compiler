@@ -566,7 +566,8 @@ DecimalType Lexer::CheckDecimalType()
     {
         return {2, dec_type_bin};
     }
-    else if(fCurr[0] == '0')
+    else if(maxLen >= 2  && fCurr[0] == '0' && 
+            (fCurr[1] >= '0' && fCurr[1] <= '7'))
     {
         return {1, dec_type_oct};
     }
