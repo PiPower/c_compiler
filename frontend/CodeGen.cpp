@@ -307,18 +307,20 @@ void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
     {
         switch (varType->dType)
         {
-            case BuiltIn::bool_t:    WriteCharData("i8");   break;
-            case BuiltIn::s_char_8:  WriteCharData("i8");   break;
-            case BuiltIn::u_char_8:  WriteCharData("i8");   break;
-            case BuiltIn::s_int_16:  WriteCharData("i16");  break;
-            case BuiltIn::u_int_16:  WriteCharData("i16");  break;
-            case BuiltIn::s_int_32:  WriteCharData("i32");  break;
-            case BuiltIn::u_int_32:  WriteCharData("i32");  break;
-            case BuiltIn::s_int_64:  WriteCharData("i64");  break;
-            case BuiltIn::u_int_64:  WriteCharData("i64");  break;
-            case BuiltIn::float_32:  WriteCharData("float");   break;
-            case BuiltIn::double_64: WriteCharData("double");  break;
+            case BuiltIn::bool_t:      WriteCharData("i8");   break;
+            case BuiltIn::s_char_8:    WriteCharData("i8");   break;
+            case BuiltIn::u_char_8:    WriteCharData("i8");   break;
+            case BuiltIn::s_int_16:    WriteCharData("i16");  break;
+            case BuiltIn::u_int_16:    WriteCharData("i16");  break;
+            case BuiltIn::s_int_32:    WriteCharData("i32");  break;
+            case BuiltIn::u_int_32:    WriteCharData("i32");  break;
+            case BuiltIn::s_int_64:    WriteCharData("i64");  break;
+            case BuiltIn::u_int_64:    WriteCharData("i64");  break;
+            case BuiltIn::float_32:    WriteCharData("float");   break;
+            case BuiltIn::double_64:   WriteCharData("double");  break;
             case BuiltIn::long_double: WriteCharData("x86_fp80");  break;
+            case BuiltIn::struct_t:    EmitTypename(spec->symType, spec->typenameView, false);  break;
+            case BuiltIn::union_t:     EmitTypename(spec->symType, spec->typenameView, false);  break;
             default:
                 printf("code gen: type unsupported");
                 exit(-1);
