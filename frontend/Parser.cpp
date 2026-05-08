@@ -1232,14 +1232,13 @@ Ast::Node *Parser::ParameterTypeList()
 
 Ast::Node* Parser::PostfixExpression()
 {
-    Ast::Node* postfixExpr = PrimaryExpression();
     Token token = GetCurrToken();
-    if(token.type == TokenType::l_parentheses)
+    if(token.type == TokenType::l_brace)
     {
-        ConsumeToken();
-        IssueWarning(nullptr, "Currently parsing type-name/initializer-list is not supported \n");
+        return ParseInitializer();
     }
 
+    Ast::Node* postfixExpr = PrimaryExpression();
     while (IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses, 
             TokenType::dot, TokenType::arrow, TokenType::plus_plus, TokenType::minus_minus))
     {
@@ -1365,7 +1364,7 @@ Ast::Node* Parser::CastExpression()
             bottomChild = cast;
         }
 
-        Ast::Node* glueNode = AllocateAstNodes();\
+        Ast::Node* glueNode = AllocateAstNodes();
         glueNode->type = Ast::glue_list;
         glueNode->lChild = typeName;
         bottomChild->rChild = glueNode;
