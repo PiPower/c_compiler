@@ -398,13 +398,34 @@ Ast::Node *Parser::ParseCompoundStatement()
 
 Ast::Node *Parser::ParseStatement()
 {
-    if(GetCurrToken().type == TokenType::r_brace)
+    Token token = GetCurrToken();
+    switch (token.type)
     {
-        return nullptr;
+    case TokenType::r_brace:     return nullptr;
+    case TokenType::kw_return:   return ReturnStatement();
+    default:                     break;            
     }
+
+
     Ast::Node* expr = ParseExpression();
     ConsumeExpectedToken(TokenType::semicolon);
     return expr;
+}
+
+Ast::Node * Parser::ReturnStatement()
+{
+    Ast::Node* retStatement = AllocateAstNodes();
+    retStatement->type = Ast::st_return;
+    retStatement->token = GetCurrToken();
+    ConsumeExpectedToken(TokenType::kw_return);
+
+    if(GetCurrToken().type != TokenType::semicolon)
+    {
+        retStatement->lChild = ParseExpression();
+    }
+    ConsumeExpectedToken(TokenType::semicolon);
+
+    return retStatement;
 }
 
 Ast::Node *Parser::ParseDeclaration(bool consumeSemicolon)
@@ -1092,14 +1113,23 @@ Ast::Node *Parser::ParseDirectAbstractDeclarator()
         ConsumeToken();
         if(token.type == TokenType::l_parentheses)
         {
-            printf("TokenType::l_parentheses, are not supported for abstract declarator\n");
-            exit(-1);
-            Ast::Node* directAbstractDeclarator = nullptr;
-            Ast::Node* parameterTypeList = ParameterTypeList();
-            if(!parameterTypeList)
+            Ast::Node* abst;
+            Token nextToken = GetCurrToken();
+            if(IsTokenOneOf(&nextToken, TokenType::l_bracket, TokenType::l_parentheses, TokenType::star))
             {
-                directAbstractDeclarator =  AbstractDeclarator();
+                abst = AbstractDeclarator();
             }
+            else
+            {
+                abst = ParameterTypeList();
+            }
+            ConsumeExpectedToken(TokenType::r_parentheses);
+
+            Ast::Node* glue = AllocateAstNodes();
+            glue->type = Ast::glue_list;
+            glue->lChild = abst;
+            bottomChild->rChild = glue;
+            bottomChild = glue;
         }
         else
         {

@@ -50,6 +50,7 @@ struct Parser
     // statements
     Ast::Node* ParseCompoundStatement();
     Ast::Node* ParseStatement();
+    Ast::Node* ReturnStatement();
     // declaration parsing
     Ast::Node* ParseDeclaration(bool consumeSemicolon);
     Ast::Node* ParseInitializer();
