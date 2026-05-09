@@ -283,21 +283,32 @@ struct SymbolFunction
     bool isDefined;
 };
 
+struct VariableOpts
+{
+    uint8_t isEnumerator : 1;
+    uint8_t isConst : 1;
+};
 struct SymbolVariable
 {
     Sym::Kind kind;
     Scope::Type scope;
     DeclSpecs spec;
     Declarator decl;
-    int64_t varIdx; // if idx == -1 unused
+    VariableOpts opts;
+    // if idx == -1 unused
+    // if isEnumerator == 1 then it represents value of that enumerator
+    // otherwise its index in codegen in local scope
+    int64_t varIdx;
+
     SymbolVariable(
         Sym::Kind kind,  
         Scope::Type scope, 
         const DeclSpecs* spec,
         const Declarator* decl, 
+        const VariableOpts* opts,
         int64_t idx = -1) 
     :
-    kind(kind), scope(scope), spec(*spec), decl(*decl), varIdx(idx) {}
+    kind(kind), scope(scope), spec(*spec), decl(*decl), opts(*opts), varIdx(idx) {}
 };
 
 struct ScopedSymbolTable

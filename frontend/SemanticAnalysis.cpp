@@ -682,8 +682,42 @@ Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, uint
 
 void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
 {
-    printf("Unsupported enum\n");
-    exit(-1);
+    if(enumTree->token.type == TokenType::identifier)
+    {
+        // reserve name for non anonymous enum
+        symTab->AddSymbol<SymbolType>(GetViewForToken(enumTree->token), BuiltIn::enum_t, true, 4, 4, emptyDesc);
+    }
+    // enums are to be treated as i32 by type system
+    spec->symType = symTab->QueryTypeSymbol(std::string_view(kTypeNames[12]));
+    spec->typenameView = std::string_view(kTypeNames[12]);
+    spec->declType = {};
+
+
+    int64_t value = 0;
+    const Ast::Node* enumerator = enumTree->rChild;
+    while (enumerator)
+    {
+        if(enumerator->lChild)
+        {
+            Typed::Number num = ne.ExecuteNode(enumerator->lChild);
+            switch (num.type)
+            {
+            case Typed::DType::d_int8_t:  value = num.int8; break;
+            case Typed::DType::d_int16_t: value = num.int16; break;
+            case Typed::DType::d_int32_t: value = num.int32; break;
+            case Typed::DType::d_int64_t: value = num.int64; break;
+            default: IssueWarning(&enumerator->token, "Non integer value is not allowed enumerator");
+            }
+        }
+        VariableOpts opts = {.isEnumerator = 1, .isConst = 0};
+        std::string_view enumName = GetViewForToken(enumerator->token);
+        Declarator decl = {enumerator->token, {}, enumName};
+        symTab->AddSymbol<SymbolVariable>(enumName, symTab->currentTable->scopeType, spec, &decl, &opts, value);
+        
+        value++;
+        enumerator = enumerator->rChild;
+    }
+    
 }
 
 int SemanticAnalyzer::BuiltInBitCount(BuiltIn::Type type)
@@ -852,12 +886,14 @@ void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarat
 {
     if(symTab->IsCurrentScopeGlobal())
     {
-        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl);
+        VariableOpts opts = {.isEnumerator = 0, .isConst = 0};
+        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts);
         codeGen.EmitGlobalVariable(spec, decl, zeroInit);
     }
     else
     {
-        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, variableIdx);
+        VariableOpts opts = {.isEnumerator = 1, .isConst = 0};
+        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, variableIdx);
         codeGen.EmitLocalVariable(spec, decl);
         variableIdx++;
     }
