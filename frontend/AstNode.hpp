@@ -69,6 +69,7 @@
     X(function_specifier) \
     X(type_specifier) \
     X(typedef_name) \
+    X(enum_declaration) \
     X(struct_declaration) \
     X(struct_declarator) \
     X(direct_declarator) \
@@ -81,6 +82,7 @@
     X(init_item) \
     X(designator_list) \
     X(designator) \
+    X(enumerator) \
     /* Misc */ \
     X(compound_statement) \
     X(var_len_array) \

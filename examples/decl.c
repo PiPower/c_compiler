@@ -146,7 +146,7 @@ void test_structs(void) {
 enum Color {
     COLOR_RED   = 0,
     COLOR_GREEN = 1,
-    COLOR_BLUE  = 2
+    COLOR_BLUE  = 2,
 };
 
 enum Direction {

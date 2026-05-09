@@ -989,7 +989,51 @@ Ast::Node *Parser::StructOrUnionSpec()
 
 Ast::Node *Parser::EnumSpec()
 {
-    return nullptr;
+    Ast::Node* topLevelNode = AllocateAstNodes(2);
+    topLevelNode->type = Ast::NodeType::type_specifier;
+    topLevelNode->token = GetCurrToken();
+
+    Ast::Node* enumNode = topLevelNode + 1;
+    enumNode->type = Ast::enum_declaration;
+    topLevelNode->lChild = enumNode;
+
+
+    ConsumeExpectedToken(TokenType::kw_enum);
+    Token token = GetCurrToken();
+    if(token.type == TokenType::identifier)
+    {
+        enumNode->token = token;
+        ConsumeToken();
+    }
+    ConsumeExpectedToken(TokenType::l_brace);
+
+    token = GetCurrToken();
+
+    Ast::Node* currNode = enumNode;
+    while (token.type == TokenType::identifier)
+    {
+        ConsumeToken();
+        Ast::Node* enumerator = AllocateAstNodes();
+        enumerator->token = token;
+        enumerator->type = Ast::enumerator;
+        if(GetCurrToken().type == TokenType::equal)
+        {
+            ConsumeToken();
+            enumerator->lChild = ParseConstantExpr();
+        }
+
+        currNode->rChild = enumerator;
+        currNode = enumerator;
+
+        if(GetCurrToken().type == TokenType::comma)
+        {
+            ConsumeExpectedToken(TokenType::comma);
+        }
+        token = GetCurrToken();
+    }
+    ConsumeExpectedToken(TokenType::r_brace);
+
+    return topLevelNode;
 }
 
 Ast::Node *Parser::StructDeclaration()
