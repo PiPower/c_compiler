@@ -1220,7 +1220,10 @@ Ast::Node *Parser::ParseDirectAbstractDeclarator()
             Ast::Node* array = AllocateAstNodes();
             array->token = token;
             array->type = Ast::array_decl;
-            array->lChild = AssignmentExpression();
+            if(GetCurrToken().type != TokenType::r_bracket)
+            {
+                array->lChild = AssignmentExpression();
+            }
 
             Token star = GetCurrToken();
             if(!array->lChild && star.type == TokenType::star)
