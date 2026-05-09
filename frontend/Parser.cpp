@@ -1281,6 +1281,8 @@ Ast::Node* Parser::PostfixExpression()
     }
 
     Ast::Node* postfixExpr = PrimaryExpression();
+
+    token = GetCurrToken();
     while (IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses, 
             TokenType::dot, TokenType::arrow, TokenType::plus_plus, TokenType::minus_minus))
     {
