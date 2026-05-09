@@ -1004,6 +1004,12 @@ Ast::Node *Parser::EnumSpec()
     {
         enumNode->token = token;
         ConsumeToken();
+        if(GetCurrToken().type != TokenType::l_brace)
+        {
+            // we hit case enum-specifier
+            return topLevelNode;
+        }
+
     }
     ConsumeExpectedToken(TokenType::l_brace);
 
