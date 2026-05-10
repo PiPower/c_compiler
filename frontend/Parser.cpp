@@ -312,7 +312,21 @@ Ast::Node *Parser::ParseConstantExpr()
 
 Ast::Node* Parser::ParseExpression()
 {
-    return AssignmentExpression();
+    Ast::Node* expr = AllocateAstNodes();
+    expr->type = Ast::expression;
+    Ast::Node* topLevel = expr;
+    while (true)
+    {
+        Ast::Node* asmExpr = AssignmentExpression();
+        topLevel = GlueNodes(asmExpr, topLevel);
+        if(GetCurrToken().type != TokenType::comma)
+        {
+            break;
+        }
+        ConsumeExpectedToken(TokenType::comma);
+    }
+    
+    return expr;
 }
 
 Ast::Node* Parser::PrimaryExpression()
@@ -411,6 +425,10 @@ Ast::Node *Parser::ParseStatement()
     switch (token.type)
     {
     case TokenType::r_brace:     return nullptr;
+    case TokenType::l_brace:     return ParseCompoundStatement();
+    // Iteration statements
+    case TokenType::kw_for:      return ForLoop();
+    // Jump statements
     case TokenType::kw_return:   return ReturnStatement();
     default:                     break;            
     }
@@ -435,6 +453,49 @@ Ast::Node * Parser::ReturnStatement()
     ConsumeExpectedToken(TokenType::semicolon);
 
     return retStatement;
+}
+
+Ast::Node *Parser::ForLoop()
+{
+    Ast::Node* forLoop = AllocateAstNodes();
+    forLoop->type = Ast::st_for_loop;
+    forLoop->token = GetCurrToken();
+    // for loop is stored as sequence
+    // declaration/expr/None, expr/None, expr/None, statement
+    forLoop->lChild = AllocateAstNodes(4);
+    ConsumeExpectedToken(TokenType::kw_for);
+    ConsumeExpectedToken(TokenType::l_parentheses);
+    Ast::Node* nodeArray[4] = {nullptr, nullptr, nullptr, nullptr};
+
+
+    if(GetCurrToken().type != TokenType::semicolon)
+    {
+        nodeArray[0] = ParseDeclaration(false);
+        if(!nodeArray[0])
+        {
+            nodeArray[0] = ParseExpression();
+        }
+    }
+    ConsumeExpectedToken(TokenType::semicolon);
+
+    if(GetCurrToken().type != TokenType::semicolon)
+    {
+        nodeArray[1] = ParseExpression();
+    }
+    ConsumeExpectedToken(TokenType::semicolon);
+
+    if(GetCurrToken().type != TokenType::semicolon)
+    {
+        nodeArray[2] = ParseExpression();
+    }
+    ConsumeExpectedToken(TokenType::r_parentheses);
+    nodeArray[3] = ParseStatement();
+
+    for(int i =0; i < 4; i++)
+    {
+        forLoop->lChild[i] = nodeArray[i] ? *nodeArray[i] : Ast::Node{};
+    }
+    return forLoop;
 }
 
 Ast::Node *Parser::ParseDeclaration(bool consumeSemicolon)
@@ -1339,6 +1400,7 @@ Ast::Node* Parser::PostfixExpression()
     while (IsTokenOneOf(&token, TokenType::l_bracket, TokenType::l_parentheses, 
             TokenType::dot, TokenType::arrow, TokenType::plus_plus, TokenType::minus_minus))
     {
+        ConsumeToken();
         Ast::Node* node = AllocateAstNodes();
         node->token = token;
         
@@ -1378,6 +1440,7 @@ Ast::Node* Parser::PostfixExpression()
             node->lChild = postfixExpr;
         }
 
+        token = GetCurrToken();
         postfixExpr = node;
 
     }

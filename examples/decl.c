@@ -209,7 +209,8 @@ void test_multi_declarator(void) {
 void test_for_init_decl(void) {
     for (int i = 0; i < 10; i++) {}
 
-    for (int i = 0, j = 10; i < j; i++, j--) {}
+    int i, j;
+    for ( i = 0, j = 10; i < j; i++, j--) {}
 }
 
 /* =========================================================
