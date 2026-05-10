@@ -313,7 +313,7 @@ Ast::Node *Parser::ParseConstantExpr()
 Ast::Node* Parser::ParseExpression()
 {
     Ast::Node* expr = AllocateAstNodes();
-    expr->type = Ast::expression;
+    expr->type = pState.parsingConstantExpr? Ast::constant_expression : Ast::expression;
     Ast::Node* topLevel = expr;
     while (true)
     {
@@ -338,8 +338,12 @@ Ast::Node* Parser::PrimaryExpression()
 
     Token token = GetCurrToken();
     ConsumeToken();
-    Ast::Node* node = AllocateAstNodes(1);
-    node->token = token;
+    Ast::Node* node;
+    if(token.type != TokenType::l_parentheses)
+    {
+        node = AllocateAstNodes(1);
+        node->token = token;
+    }
     switch (token.type)
     {
     case TokenType::identifier:       
@@ -359,8 +363,7 @@ Ast::Node* Parser::PrimaryExpression()
         node->type = Ast::string_literal;
         break;
     case TokenType::l_parentheses:
-        node->type = Ast::expression;
-        node->lChild = ParseExpression();
+        node = ParseExpression();
         ConsumeExpectedToken(TokenType::r_parentheses);
         break;
     default:

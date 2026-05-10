@@ -9,6 +9,7 @@
     X(string_literal) \
     X(character) \
     X(expression) \
+    X(constant_expression) \
     X(cond_expression) \
     X(constant_expr_res) \
     /* Basic math ops */ \

@@ -159,7 +159,16 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
             }
         }
     }
-    // unary ops
+    case Ast::NodeType::constant_expression:
+    {
+        // 6.6 Constant expressions
+        //Constraints
+        //3 Constant expressions shall not contain assignment, increment, decrement, function-call,
+        //or comma operators, except when they are contained within a subexpression that is not
+        //evaluated.
+        // so skip we need only one element from the list
+        return ExecuteNode(expr->rChild->lChild);
+    }
     case Ast::NodeType::op_log_negate: return UnaryOp<std::logical_not<int64_t>>(this, expr);
     case Ast::NodeType::op_minus: return UnaryOp<std::negate<int64_t>>(this, expr);
     case Ast::NodeType::op_complement: return UnaryOp<std::bit_not<int64_t>>(this, expr);
@@ -182,8 +191,8 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
     case Ast::NodeType::op_multiply: return BinaryOp<std::multiplies<int64_t>>(this, expr);
     case Ast::NodeType::op_equal: return BinaryOp<std::equal_to<int64_t>>(this, expr);
     case Ast::NodeType::op_not_equal: return BinaryOp<std::not_equal_to<int64_t>>(this, expr);
-    case Ast::NodeType::expression: return ExecuteNode(expr->lChild);
     // forbiden element
+    case Ast::NodeType::expression:
     case Ast::NodeType::op_pre_inc:
     case Ast::NodeType::op_post_inc:
     case Ast::NodeType::op_pre_dec:
