@@ -385,6 +385,28 @@ Ast::Node *Parser::ParseIdentifier()
     return node;
 }
 
+Ast::Node *Parser::ArgumentExprList()
+{   
+    Ast::Node* argExpr = AllocateAstNodes();
+    argExpr->type = Ast::args_expr_list;
+    argExpr->token = currentLocToken;
+
+    Ast::Node* currTop = argExpr;
+    while (true)
+    {
+        Ast::Node* asmExpr = AssignmentExpression();
+        currTop = GlueNodes(asmExpr, currTop);
+
+        if(GetCurrToken().type != TokenType::comma)
+        {
+            break;
+        }
+        ConsumeExpectedToken(TokenType::comma);
+    }
+    
+    return argExpr;
+}
+
 Ast::Node *Parser::ParseCompoundStatement()
 {
 
@@ -1417,8 +1439,11 @@ Ast::Node* Parser::PostfixExpression()
         {
             node->type = Ast::NodeType::function_call;
             node->lChild = postfixExpr;
-            IssueWarning(&node->token, "Function calls are currenlty not supported \n");
-            exit(-1);
+            if(GetCurrToken().type != TokenType::r_parentheses)
+            {
+                node->rChild = ArgumentExprList();
+            }
+            ConsumeExpectedToken(TokenType::r_parentheses);
         }
         else if(token.type == TokenType::dot)
         {

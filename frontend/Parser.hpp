@@ -48,6 +48,7 @@ struct Parser
     Ast::Node* PostfixExpression();
     Ast::Node* PrimaryExpression();
     Ast::Node* ParseIdentifier();
+    Ast::Node* ArgumentExprList();
     // statements
     Ast::Node* ParseCompoundStatement();
     Ast::Node* ParseStatement();
