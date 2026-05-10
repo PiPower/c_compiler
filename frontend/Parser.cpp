@@ -1473,11 +1473,17 @@ Ast::Node* Parser::UnaryExpression()
         {
             ConsumeExpectedToken(TokenType::l_parentheses);
             node->lChild = TypeName();
+            if(!node->lChild)
+            {
+                PutBackAtFront(token);
+                goto unary_expr;
+            }
             node->token = token;
             ConsumeExpectedToken(TokenType::r_parentheses);
 
         }
-        else
+unary_expr:
+        if(!node->lChild)
         {
             node->lChild = UnaryExpression();
         }
