@@ -119,7 +119,7 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
             IssueWarning(&expr->token, "Multi byte character constants  are not supported\n");
             exit(-1);
         }
-        //numOut.int64 = stringToChar(GetDataPtr(&expr->token), expr->token.location.len);
+        numOut.int64 = (int64_t) *(GetDataPtr(&expr->token) + 1);
         return numOut;
     case Ast::NodeType::cond_expression:
     {

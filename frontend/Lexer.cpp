@@ -248,9 +248,9 @@ void Lexer::LexCharSequence(Token *token, const char separator)
         }
         
     }
+    fCurr++;
     token->location = ConstructLocation(files.top(), CharSeqStart, fCurr - CharSeqStart);
 
-    fCurr++;
     if(error)
     {
         FILE_STATE fileState;

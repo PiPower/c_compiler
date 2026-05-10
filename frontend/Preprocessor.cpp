@@ -6,6 +6,7 @@
 #include <functional>
 #include <iostream>
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Preprocessor", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+#define IssueWarningNoneTerminal(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Preprocessor", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__);
 
 
 static const char* PreprocessorFlename = "preprocessor_file.comp";
@@ -833,7 +834,7 @@ int32_t Preprocessor::HandlePragma()
             char* msg = (char*) alloca(subCommand.length() + 1);
             memcpy(msg, subCommand.data(), subCommand.length());
             msg[subCommand.length()] = '\0';
-            IssueWarning(&tokenWarning, msg);
+            IssueWarningNoneTerminal(&tokenWarning, msg);
         }
         else
         {

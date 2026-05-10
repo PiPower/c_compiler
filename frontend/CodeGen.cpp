@@ -281,11 +281,11 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, 
 
     if(IsArray(&decl->accessTypes) || symType->dType == BuiltIn::struct_t ||  symType->dType == BuiltIn::union_t)
     {
-        zero_init = "zeroinitializer";
+        zero_init = " zeroinitializer";
     }
     alignment = std::to_string(symType->alignment);
 
-    WriteCharData(" %s, align %s", 
+    WriteCharData("%s, align %s", 
         zero_init.data(), zero_init.length(),
         alignment.data(), alignment.length());
 }
