@@ -126,8 +126,7 @@ start_parsing:
     token = GetCurrToken();
     if(!IsTokenOneOf(&token, TokenType::semicolon, TokenType::l_brace))
     {
-        printf("'declaration-specifiers declarator declaration compound-statement' is not supported \n");
-        exit(-1);
+        IssueWarning(&token, "'declaration-specifiers declarator declaration compound-statement' is not supported");
     }
     if(token.type == TokenType::semicolon)
     {
@@ -149,10 +148,15 @@ Token Parser::GetCurrToken()
     // this is temporary solution to skip kw__attribute__
     // to be resolved later
     Token token = GetCurrTokenInternal();
-    while (IsTokenOneOf(&token, TokenType::kw__attribute__, TokenType::kw__asm__))
+    while (IsTokenOneOf(&token, TokenType::kw__attribute__, TokenType::kw__asm__, TokenType::kw__extension__))
     {
 
         ConsumeToken();
+        if(token.type == TokenType::kw__extension__)
+        {
+            token = GetCurrTokenInternal();
+            continue;
+        }
         ConsumeExpectedToken(TokenType::l_parentheses);
         int nest = 1;
         while (true)
@@ -644,6 +648,7 @@ Ast::Node *Parser::ParsePointer()
     token = GetCurrToken();
     while (token.type == TokenType::star)
     {   
+        ConsumeToken();
         Ast::Node* subPtr = AllocateAstNodes();
         subPtr->type = Ast::pointer;
         subPtr->lChild = TypeQualifierList();
@@ -651,7 +656,6 @@ Ast::Node *Parser::ParsePointer()
         bottom->rChild = subPtr;
         bottom = subPtr;
         
-        ConsumeToken();
         token = GetCurrToken();
     }
     return ptr;

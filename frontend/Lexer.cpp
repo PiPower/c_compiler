@@ -24,9 +24,10 @@ static const char* kewordStrings[] = {
     // preprocessor  specific keywords,
     "include",   "define",    "ifdef",   "ifndef",  
     "elif",      "endif",     "line",    "error", 
-    "pragma",    "undef",     "defined", "__builtin_va_list" ,
+    "pragma",    "undef",     "defined", "include_next",
     // gcc extensions 
-    "__attribute__" , "__restrict", "__asm__"
+    "__builtin_va_list" ,
+    "__attribute__" , "__restrict", "__asm__", "__extension__"
 };
 
 Lexer::Lexer(FileManager* manager, const CompilationOpts* opts)
@@ -1104,12 +1105,13 @@ void Lexer::PrepareKeywordMap()
     keywordsMap[std::string_view(kewordStrings[45])] = TokenType::pp_pragma;
     keywordsMap[std::string_view(kewordStrings[46])] = TokenType::pp_undef;
     keywordsMap[std::string_view(kewordStrings[47])] = TokenType::pp_defined;
+    keywordsMap[std::string_view(kewordStrings[48])] = TokenType::pp_include_next;
 
-    keywordsMap[std::string_view(kewordStrings[48])] = TokenType::kw__builtin_va_list;
-    keywordsMap[std::string_view(kewordStrings[49])] = TokenType::kw__attribute__;
-    keywordsMap[std::string_view(kewordStrings[50])] = TokenType::kw_restrict;
-    keywordsMap[std::string_view(kewordStrings[51])] = TokenType::kw__asm__;
-
+    keywordsMap[std::string_view(kewordStrings[49])] = TokenType::kw__builtin_va_list;
+    keywordsMap[std::string_view(kewordStrings[50])] = TokenType::kw__attribute__;
+    keywordsMap[std::string_view(kewordStrings[51])] = TokenType::kw_restrict;
+    keywordsMap[std::string_view(kewordStrings[52])] = TokenType::kw__asm__;
+    keywordsMap[std::string_view(kewordStrings[53])] = TokenType::kw__extension__;
     
 }
 

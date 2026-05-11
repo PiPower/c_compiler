@@ -316,7 +316,8 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
     {
     case TokenType::kw_if:      HandleIf(); break;
     case TokenType::kw_else:    HandleElse();break;
-    case TokenType::pp_include: HandleInclude(); break;
+    case TokenType::pp_include_next: HandleInclude(true); break;
+    case TokenType::pp_include: HandleInclude(false); break;
     case TokenType::pp_define:  HandleDefine(); break;
     case TokenType::pp_ifdef:   HandleIfdef(); break;
     case TokenType::pp_ifndef:  HandleIfndef(); break;
@@ -327,8 +328,7 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
     case TokenType::pp_pragma:  HandlePragma(); break;
     case TokenType::pp_undef:   HandleUndef(); break;
     default:
-        printf("Not expected preprocessing token \n");
-        exit(-1);
+        IssueWarning(&ppToken, "Not expected preprocessing token")
         break;
 
     }
@@ -408,6 +408,8 @@ TokenType::Type Preprocessor::GetPreprocessorType(const Token *token)
     if(tokenName == "pragma") { return TokenType::pp_pragma; }
     if(tokenName == "undef") { return TokenType::pp_undef; }
     if(tokenName == "defined") { return TokenType::pp_defined; }
+    if(tokenName == "include_next") { return TokenType::pp_include_next; }
+
     IssueWarning(token, "This identifier is not allowed to appear after #");
     exit(-1);
     return TokenType::none;
@@ -582,7 +584,7 @@ int32_t Preprocessor::HandleElse()
 * #include <h-char-sequence> new-line or #include "q-char-sequence" new-line
 *  general version #include pp-tokens new-line is not allowed 
 */
-int32_t Preprocessor::HandleInclude()
+int32_t Preprocessor::HandleInclude(bool includeNext)
 {
     Headername header;
     Token headerToken = GetCurrToken();
@@ -609,10 +611,27 @@ int32_t Preprocessor::HandleInclude()
         IssueWarning(&headerToken, "Incorrect file include format");
         exit(-1);
     }
+
     ConsumeExpectedToken(TokenType::new_line);
 
     char* pathBuffer = (char*)alloca(opts->longestPath + header.name.length() + 2);
     FILE_ID headerFileId;
+    int nextCounter = 0;
+    if(includeNext)
+    {
+        auto counter = incNextCounter.find(header.name);
+        if(counter == incNextCounter.end())
+        {
+            nextCounter = 1;
+            incNextCounter[header.name] = 2;
+        }
+        else
+        {
+            nextCounter = counter->second;
+            counter->second++;
+        }
+    }
+
     for(size_t i = 0; i < opts->searchPaths.size(); i++)
     {
         uint64_t offset = 0;
@@ -630,9 +649,14 @@ int32_t Preprocessor::HandleInclude()
         pathBuffer[offset] = '\0';
         int32_t ret = manager->TryLoadFile(pathBuffer, 
             opts->searchPaths[i].length() +  header.name.length() + 1, &headerFileId);
-        if(ret == 0)
+
+        if(ret >= 0 && nextCounter == 0)
         {
             break;
+        }
+        else if(ret >= 0)
+        {
+            nextCounter--;
         }
     }
     lexer.PushFile(headerFileId, -1, -1);

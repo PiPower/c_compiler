@@ -66,7 +66,7 @@ private:
     std::string_view FormHeadername();
     int32_t HandleIf();
     int32_t HandleElse();
-    int32_t HandleInclude();
+    int32_t HandleInclude(bool includeNext);
     int32_t HandleDefine();
     int32_t HandleIfdef();
     int32_t HandleIfndef();
@@ -98,4 +98,5 @@ public:
     int64_t fileOffset;
     NodeExecutor ex;
     Logger logger;
+    std::unordered_map<std::string_view, int> incNextCounter;
 };

@@ -37,6 +37,7 @@
     KW(_builtin_va_list) \
     KW(_attribute__) \
     KW(_asm__) \
+    KW(_extension__) \
     /* type keywords */ \
     KW(unsigned) \
     KW(int) \
@@ -122,8 +123,8 @@
     PP(error) \
     PP(pragma) \
     PP(undef) \
-    PP(defined)
-    
+    PP(defined) \
+    PP(include_next)
     enum YOLO
     {
         x, y,
