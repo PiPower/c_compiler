@@ -59,7 +59,10 @@ void Lexer::TrigraphWarning(const SourceLocation* loc)
     if(opts->trigraphs_refrenced == 0)
     {
         FILE_STATE fileState;
-        manager->GetFileState(&files.top().fileId, &fileState);
+        if(manager->GetFileState(&files.top().fileId, &fileState) != 0)
+        {
+            IssueWarning(nullptr, "Lexer: could not resolve file state for trigraph diagnostic");
+        }
         char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
         memcpy(pathBuffer, fileState.path, fileState.pathLen);
         pathBuffer[fileState.pathLen] = '\0';
@@ -241,7 +244,11 @@ void Lexer::LexCharSequence(Token *token, const char separator)
  
     while (fCurr < fEnd && *fCurr != separator )
     {
-        if( *fCurr != '\\') {fCurr++;}
+        if( *fCurr != '\\')
+        {
+            fCurr++;
+            continue;
+        }
         if((*fCurr == '\\' && !LexEscapeSequence() )|| *fCurr == '\n')
         {
             error = true;
@@ -255,7 +262,10 @@ void Lexer::LexCharSequence(Token *token, const char separator)
     if(error)
     {
         FILE_STATE fileState;
-        manager->GetFileState(&files.top().fileId, &fileState);
+        if(manager->GetFileState(&files.top().fileId, &fileState) != 0)
+        {
+            IssueWarning(nullptr, "Lexer: could not resolve file state for char sequence diagnostic");
+        }
         char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
         memcpy(pathBuffer, fileState.path, fileState.pathLen);
         pathBuffer[fileState.pathLen] = '\0';

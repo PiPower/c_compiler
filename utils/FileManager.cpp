@@ -233,7 +233,7 @@ int32_t FileManager::GetFileState(const char *path, uint64_t pathLen, FILE_STATE
 
 int32_t FileManager::GetFileState(const FILE_ID *fileId, FILE_STATE* fileState)
 {
-    if(fileId->id >= fileStates.size())
+    if(!fileId || fileId->id >= fileStates.size())
     {
         return -1;
     }
@@ -277,7 +277,10 @@ int32_t FileManager::GetFullFilePath(const FILE_STATE *fileState, std::string *p
 int32_t FileManager::WriteToFile(const char *dataBuff, int64_t offset, int64_t dataLen, const FILE_ID *fileId)
 {
     FILE_STATE state;
-    GetFileState(fileId, &state);
+    if(GetFileState(fileId, &state) != 0)
+    {
+        ManagerExitOnErrorMsg("WriteToFile: invalid or unknown file id", nullptr);
+    }
 
     if(state.fileSize - offset < dataLen)
     {

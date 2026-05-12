@@ -47,11 +47,18 @@ void Logger::IssueWarningImpl(
     if(fileId)
     {
         FILE_STATE fileState;
-        fm->GetFileState(fileId, &fileState);
-        char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
-        memcpy(pathBuffer, fileState.path, fileState.pathLen);
-        pathBuffer[fileState.pathLen] = '\0';
-        printf("%s:", pathBuffer);
+        if(fm->GetFileState(fileId, &fileState) == 0)
+        {
+            char* pathBuffer = (char*)alloca(fileState.pathLen + 1);
+            memcpy(pathBuffer, fileState.path, fileState.pathLen);
+            pathBuffer[fileState.pathLen] = '\0';
+            printf("%s:", pathBuffer);
+        }
+        else
+        {
+            printf("<unknown-file>\n");
+            exit(-1);
+        }
     }
 
     if(loc)

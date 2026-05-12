@@ -30,6 +30,10 @@ chosenBuffer(TYPE_BUFFER), typeHeap(nr_of_pages), symTab(symTab), manager(manage
 
 void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name, bool flushQueue)
 {
+    if(!symType)
+    {
+        IssueWarning(nullptr, "EmitUnionStruct: null symbol type");
+    }
     if(symType->dType != BuiltIn::struct_t && 
        symType->dType != BuiltIn::union_t)
     {
@@ -191,9 +195,23 @@ void CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typ
 {
     static std::vector<std::string_view> arrSizes;
 
+    if(!acc)
+    {
+        IssueWarning(nullptr, "EmitDeclarator: null access chain");
+    }
+    if(!typeName)
+    {
+        IssueWarning(nullptr, "EmitDeclarator: null type name");
+    }
+
     if(acc->type == ACC_NONE)
     {
-        EmitTypename(symTab->QueryTypeSymbol(*typeName), *typeName);
+        SymbolType* st = symTab->QueryTypeSymbol(*typeName);
+        if(!st)
+        {
+            IssueWarning(nullptr, "EmitDeclarator: unknown type for typename");
+        }
+        EmitTypename(st, *typeName);
         return;
     }
 
@@ -241,7 +259,12 @@ void CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typ
     }
     else
     {
-        EmitTypename(symTab->QueryTypeSymbol(*typeName), *typeName);
+        SymbolType* st = symTab->QueryTypeSymbol(*typeName);
+        if(!st)
+        {
+            IssueWarning(nullptr, "EmitDeclarator: unknown type for typename");
+        }
+        EmitTypename(st, *typeName);
     }
 
     for(uint32_t i =0; i < brackets; i++)
@@ -276,6 +299,10 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, 
     }
 
     SymbolType* symType = symTab->QueryTypeSymbol(spec->typenameView);
+    if(!symType)
+    {
+        IssueWarning(&decl->token, "EmitGlobalVariable: unknown type for variable");
+    }
     std::string_view zero_init;
     std::string alignment;
 
@@ -293,7 +320,15 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, 
 void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
 {
     const SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name);
+    if(!symVar)
+    {
+        IssueWarning(&decl->token, "EmitLocalVariable: unknown variable symbol");
+    }
     const SymbolType* varType = symVar->spec.symType;
+    if(!varType)
+    {
+        IssueWarning(&decl->token, "EmitLocalVariable: variable has no type");
+    }
     std::string idx = std::to_string(symVar->varIdx);
     std::string varAlignment = std::to_string(varType->alignment);
     BindFuncBuffer();
@@ -339,6 +374,10 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
     if(IsArray(&decl->accessTypes))
     {
         IssueWarning(&decl->token, "Function cannot return array type");
+    }
+    if(!spec->symType)
+    {
+        IssueWarning(&decl->token, "EmitFunctionName: unknown return type");
     }
     if( (spec->symType->dType == BuiltIn::struct_t ||  
              spec->symType->dType == BuiltIn::union_t) &&
@@ -402,8 +441,7 @@ std::string_view CodeGen::GetViewForToken(const Token &token)
     FILE_STATE state;
     if(manager->GetFileState(&token.location.id, &state) != 0)
     {
-        printf("File Manager error: Requested file does not exit\n");
-        exit(-1);
+        IssueWarning(&token, "CodeGen: could not resolve file state for token view");
     }
 
     // removes \" from both start and end 

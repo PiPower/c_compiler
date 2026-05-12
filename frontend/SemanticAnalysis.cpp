@@ -541,6 +541,10 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
         for(size_t j = 0; j < structDecls[i].declarators.size(); j++)
         {
             SymbolType* memType = structDecls[i].declSpec.symType;
+            if(!memType)
+            {
+                IssueWarning(&structDecls[i].declarators[j].decl.token, "struct member: unknown base type from declaration specifiers");
+            }
             argNames[idx] = structDecls[i].declarators[j].decl.name;
 
             members[idx].declType = structDecls[i].declSpec.declType;
@@ -558,13 +562,10 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             structSize += aling ? members[idx].alignment - aling : 0;
             structSize += members[idx].size;
 
-            if( !IsMemberPointer(&members[idx]) && !symTab->QueryTypeSymbol(members[idx].typeName )->isDefined)
+            SymbolType* memberSymType = symTab->QueryTypeSymbol(members[idx].typeName);
+            if( !IsMemberPointer(&members[idx]) && (!memberSymType || !memberSymType->isDefined))
             {
-                char* symName = (char*) alloca(members[idx].typeName .length() + 1);
-                memcpy(symName, members[idx].typeName .data(), members[idx].typeName .length());
-                symName[members[idx].typeName .length()] = '\0';
-                printf("Error: Symbol %s is not defined \n", symName);
-                exit(-1);
+                IssueWarning(&structDecls[i].declarators[j].decl.token, "struct member type is not defined");
             }
 
             if(members[idx].bitCount != -1 && 
@@ -993,6 +994,10 @@ MemoryDesc SemanticAnalyzer::GetMemberDesc(AccessType *accType, const std::strin
     }
 
     SymbolType* symType = symTab->QueryTypeSymbol(typeName);
+    if(!symType)
+    {
+        IssueWarning(nullptr, "GetMemberDesc: unknown type name");
+    }
     return {arrayCount * symType->size, symType->alignment};
 }
 
@@ -1078,10 +1083,17 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
             if( (symTab->QuerySymKinds(GetViewForToken(currNode->token)) & Sym::TYPEDEF)  > 0)
             {
                 SymbolTypedef* symTypedef = symTab->QueryTypedefSymbol(GetViewForToken(currNode->token));
-                
+                if(!symTypedef)
+                {
+                    IssueWarning(&currNode->token, "typedef name did not resolve to a typedef symbol");
+                }
                 spec.typenameView = symTypedef->refrencedType;
-                currNode = currNode->rChild;
                 spec.symType = symTab->QueryTypeSymbol(symTypedef->refrencedType);
+                if(!spec.symType)
+                {
+                    IssueWarning(&currNode->token, "typedef refers to unknown type");
+                }
+                currNode = currNode->rChild;
                 continue;
             }   
 
@@ -1102,10 +1114,18 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                 // it is safe to fetch typename from token
                 spec.typenameView = GetViewForToken(currNode->token);
                 spec.symType = symTab->QueryTypeSymbol(spec.typenameView);
+                if(!spec.symType)
+                {
+                    IssueWarning(&currNode->token, "unknown type name");
+                }
                 break;
             default:
                 AnalyzeSimpleType(currNode, &spec);
                 spec.symType = symTab->QueryTypeSymbol(spec.typenameView);
+                if(!spec.symType)
+                {
+                    IssueWarning(&currNode->token, "unknown type name");
+                }
                 break;
             }
         }

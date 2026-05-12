@@ -141,6 +141,10 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
         {
             DeclSpecs spec = sema->AnalyzeDeclSpec(specQualList);
             SymbolType* symType = sema->symTab->QueryTypeSymbol(spec.typenameView);
+            if(!symType)
+            {
+                IssueWarning(&typeName->token, "sizeof: unknown type name");
+            }
             return {.int64 = (int64_t)symType->size, .type = Typed::DType::d_int64_t };
         }
         else
@@ -155,6 +159,10 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
             {
                 DeclSpecs spec = sema->AnalyzeDeclSpec(specQualList);
                 SymbolType* symType = sema->symTab->QueryTypeSymbol(spec.typenameView);
+                if(!symType)
+                {
+                    IssueWarning(&typeName->token, "sizeof: unknown type name");
+                }
                 return {.int64 = (int64_t)(symType->size * desc.arraySize), .type = Typed::DType::d_int64_t };
             }
         }
@@ -167,6 +175,10 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
         //or comma operators, except when they are contained within a subexpression that is not
         //evaluated.
         // so skip we need only one element from the list
+        if(!expr->rChild || !expr->rChild->lChild)
+        {
+            IssueWarning(&expr->token, "constant_expression: missing subexpression");
+        }
         return ExecuteNode(expr->rChild->lChild);
     }
     case Ast::NodeType::op_log_negate: return UnaryOp<std::logical_not<int64_t>>(this, expr);
@@ -219,7 +231,10 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
 const char *NodeExecutor::GetDataPtr(const Token *token)
 {
     FILE_STATE state;
-    fm->GetFileState(&token->location.id, &state);
+    if(fm->GetFileState(&token->location.id, &state) != 0)
+    {
+        IssueWarning(token, "NodeExecutor: could not resolve file state for token");
+    }
     
     return state.fileData + token->location.offset;
 }

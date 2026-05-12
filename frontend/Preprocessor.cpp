@@ -295,7 +295,10 @@ uint8_t Preprocessor::GetTokenMode(const Token &token)
 const char *Preprocessor::GetDataPtr(const Token *token)
 {
     FILE_STATE state;
-    manager->GetFileState(&token->location.id, &state);
+    if(manager->GetFileState(&token->location.id, &state) != 0)
+    {
+        IssueWarning(token, "Preprocessor: could not resolve file state for token");
+    }
     
     return state.fileData + token->location.offset;
 }
@@ -524,7 +527,10 @@ std::string_view Preprocessor::FormHeadername()
 {
     Token firstToken = GetCurrToken();
     FILE_STATE state;
-    manager->GetFileState(&firstToken.location.id, &state);
+    if(manager->GetFileState(&firstToken.location.id, &state) != 0)
+    {
+        IssueWarning(&firstToken, "Preprocessor: could not resolve file state for header name");
+    }
 
     Token lastToken;
     Token buffToken = GetCurrToken();
@@ -597,7 +603,10 @@ int32_t Preprocessor::HandleInclude(bool includeNext)
     else if(headerToken.type == TokenType::string_literal)
     {
         FILE_STATE state;
-        manager->GetFileState(&headerToken.location.id, &state);
+        if(manager->GetFileState(&headerToken.location.id, &state) != 0)
+        {
+            IssueWarning(&headerToken, "Preprocessor: could not resolve file state for include string");
+        }
 
         const char* stringStart = state.fileData + headerToken.location.offset + 1;
         size_t stringLen = headerToken.location.len - 1;
