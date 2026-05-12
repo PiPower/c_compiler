@@ -430,12 +430,7 @@ Ast::Node *Parser::ParseCompoundStatement()
         }
         if(blockItem)
         {
-            Ast::Node* blockGlue = AllocateAstNodes();
-            blockGlue->type = Ast::glue_list;
-            blockGlue->lChild = blockItem;
-            currNode->rChild = blockGlue;
-
-            currNode = blockGlue;
+            currNode = GlueNodes(blockItem, currNode);
         }
         else
         {
@@ -593,11 +588,7 @@ Ast::Node *Parser::ParseInitDeclList()
             initDeclarator->lChild = ParseInitializer();
         }
 
-        Ast::Node* declGlue = AllocateAstNodes();
-        declGlue->type = Ast::glue_list;
-        declGlue->lChild = initDeclarator;
-        bottomChild->rChild = declGlue;
-        bottomChild = declGlue;
+        bottomChild = GlueNodes(initDeclarator, bottomChild);
 
         if(GetCurrToken().type != TokenType::comma)
         {
@@ -809,11 +800,7 @@ Ast::Node *Parser::ParseDirectDeclarator()
             array->token = token;
             ConsumeExpectedToken(TokenType::r_parentheses);
 
-            Ast::Node* glue = AllocateAstNodes();
-            glue->type = Ast::glue_list;
-            glue->lChild = array;
-            bottomChild->rChild = glue;
-            bottomChild = glue;
+            bottomChild = GlueNodes(array, bottomChild);
         }
 
         if(token.type == TokenType::l_bracket)
@@ -823,11 +810,7 @@ Ast::Node *Parser::ParseDirectDeclarator()
             array->token = token;
             ConsumeExpectedToken(TokenType::r_bracket);
 
-            Ast::Node* glue = AllocateAstNodes();
-            glue->type = Ast::glue_list;
-            glue->lChild = array;
-            bottomChild->rChild = glue;
-            bottomChild = glue;
+            bottomChild = GlueNodes(array, bottomChild);
         }
 
         token = GetCurrToken();
@@ -1059,11 +1042,7 @@ Ast::Node *Parser::StructOrUnionSpec()
     Ast::Node* bottomChild = glueNode;
     while (Ast::Node* structDecl = StructDeclaration())
     {
-        Ast::Node* gluNodeDecl = AllocateAstNodes();
-        gluNodeDecl->type = Ast::NodeType::glue_list;
-        gluNodeDecl->lChild = structDecl;
-        bottomChild->rChild = gluNodeDecl;
-        bottomChild = gluNodeDecl;
+        bottomChild = GlueNodes(structDecl, bottomChild);
 
         token = GetCurrToken();
         if(token.type == TokenType::r_brace)
@@ -1171,11 +1150,7 @@ Ast::Node *Parser::StructDeclaration()
     bottomChild = structDecl;
     while (Ast::Node* declarator = StructDeclarator())
     {
-        Ast::Node* glueNode = AllocateAstNodes();
-        glueNode->type = Ast::NodeType::glue_list;
-        glueNode->lChild = declarator;
-        bottomChild->rChild = glueNode;
-        bottomChild = glueNode;
+        bottomChild = GlueNodes(declarator, bottomChild);
         if(GetCurrToken().type != TokenType::comma)
         {
             break;
@@ -1299,11 +1274,7 @@ Ast::Node *Parser::ParseDirectAbstractDeclarator()
             }
             ConsumeExpectedToken(TokenType::r_parentheses);
 
-            Ast::Node* glue = AllocateAstNodes();
-            glue->type = Ast::glue_list;
-            glue->lChild = abst;
-            bottomChild->rChild = glue;
-            bottomChild = glue;
+            bottomChild = GlueNodes(abst, bottomChild);
         }
         else
         {
@@ -1323,11 +1294,7 @@ Ast::Node *Parser::ParseDirectAbstractDeclarator()
             }
             ConsumeExpectedToken(TokenType::r_bracket);
 
-            Ast::Node* glue = AllocateAstNodes();
-            glue->type = Ast::glue_list;
-            glue->lChild = array;
-            bottomChild->rChild = glue;
-            bottomChild = glue;
+            bottomChild = GlueNodes(array, bottomChild);
         }
 
         token = GetCurrToken();
@@ -1345,12 +1312,7 @@ Ast::Node *Parser::ParameterTypeList()
     {
         Ast::Node *parameterDecl = ParameterDecl();
 
-        Ast::Node *glueList = AllocateAstNodes();
-        glueList->type = Ast::glue_list;
-        glueList->lChild = parameterDecl;
-
-        bottomChild->rChild = glueList;
-        bottomChild = glueList;
+        bottomChild = GlueNodes(parameterDecl, bottomChild);
 
         Token token = GetCurrToken();
         if(token.type != TokenType::comma)
