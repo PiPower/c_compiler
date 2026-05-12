@@ -1481,22 +1481,43 @@ unary_expr:
         return node;
     }
 
-
-    while (IsTokenOneFromArray(&token, tokTypes))
+    Ast::Node* unary = nullptr;
+    token = GetCurrToken();
+    while (IsTokenOneOf(&token, TokenType::plus_plus, TokenType::minus_minus))
     {
-        if(IsTokenOneFromArray(&token, tokTypes))
+        ConsumeToken();
+        unary = AllocateAstNodes();
+        unary->token = token;
+        unary->rChild = unary;
+        switch (token.type )
         {
-            ConsumeToken();
-            Ast::Node* node =  AllocateAstNodes();
-            node->type = ResolveNodeType(token.type, tokTypes, opTypes);
-            node->lChild = CastExpression();
-            node->rChild = nullptr;
-            node->token = token;
-            return node;
+        case TokenType::plus_plus: unary->type = Ast::NodeType::op_pre_inc; break;
+        case TokenType::minus_minus: unary->type = Ast::NodeType::op_pre_dec; break;
+        default:  IssueWarning(&token, "Unexpected token in unary expression");
         }
+
+        token = GetCurrToken();
     }
 
-    return PostfixExpression();
+
+    if(IsTokenOneFromArray(&token, tokTypes))
+    {
+        ConsumeToken();
+        Ast::Node* node =  AllocateAstNodes();
+        node->type = ResolveNodeType(token.type, tokTypes, opTypes);
+        node->lChild = CastExpression();
+        node->rChild = unary;
+        node->token = token;
+        return node;
+    }
+    
+    Ast::Node* postfix = PostfixExpression();
+    if(unary)
+    {
+        unary->rChild = postfix;
+        return unary;
+    }
+    return postfix;
 }
 
 Ast::Node* Parser::CastExpression()
