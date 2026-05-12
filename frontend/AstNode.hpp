@@ -63,6 +63,7 @@
     ST(return) \
     ST(continue) \
     ST(break) \
+    ST(switch) \
     /* Declarations*/ \
     X(declaration_specifier) \
     X(storage_specifier) \

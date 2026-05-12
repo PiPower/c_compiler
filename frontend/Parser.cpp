@@ -120,7 +120,7 @@ start_parsing:
         Ast::Node* expr = ParseConstantExpr();
         PP.ExecuteConstantExpr(expr);
         goto start_parsing;
-    }
+    }   
 
     Ast::Node* declaration = ParseDeclaration(false);
     token = GetCurrToken();
@@ -450,6 +450,9 @@ Ast::Node *Parser::ParseStatement()
     {
     case TokenType::r_brace:     return nullptr;
     case TokenType::l_brace:     return ParseCompoundStatement();
+    // selection statements
+    case TokenType::kw_if:       return ParseIf();
+    case TokenType::kw_switch:   return ParseSwitch();
     // Iteration statements
     case TokenType::kw_for:      return ForLoop();
     // Jump statements
@@ -457,8 +460,17 @@ Ast::Node *Parser::ParseStatement()
     default:                     break;            
     }
 
-
-    Ast::Node* expr = ParseExpression();
+    Ast::Node* expr;
+    if(token.type != TokenType::semicolon)
+    {
+        expr = ParseExpression();
+    }
+    else
+    {
+        expr = AllocateAstNodes();
+        expr->token = token;
+        expr->type = Ast::none;
+    }
     ConsumeExpectedToken(TokenType::semicolon);
     return expr;
 }
@@ -520,6 +532,40 @@ Ast::Node *Parser::ForLoop()
         forLoop->lChild[i] = nodeArray[i] ? *nodeArray[i] : Ast::Node{};
     }
     return forLoop;
+}
+
+Ast::Node *Parser::ParseIf()
+{
+    Ast::Node* ifNode = AllocateAstNodes(4);
+    ifNode->token = GetCurrToken();
+    ifNode->type = Ast::st_if;
+    ifNode->rChild = ifNode + 1;
+    ConsumeToken();
+    // controllable leaks, memory will be freed later by allocator
+    ConsumeExpectedToken(TokenType::l_parentheses);
+    ifNode->rChild[0] = *ParseExpression();
+    ConsumeExpectedToken(TokenType::r_parentheses);
+    ifNode->rChild[1] = *ParseStatement();
+    if(GetCurrToken().type == TokenType::kw_else)
+    {
+        ConsumeToken();
+        ifNode->rChild[2] = *ParseStatement();
+    }
+    return ifNode;
+}
+
+Ast::Node *Parser::ParseSwitch()
+{
+    Ast::Node* switchNode = AllocateAstNodes();
+    switchNode->type = Ast::st_switch;
+    switchNode->token = GetCurrToken();
+    ConsumeToken();
+    ConsumeExpectedToken(TokenType::l_parentheses);
+    switchNode->lChild = ParseExpression();
+    ConsumeExpectedToken(TokenType::r_parentheses);
+    switchNode->rChild = ParseStatement();
+
+    return switchNode;
 }
 
 Ast::Node *Parser::ParseDeclaration(bool consumeSemicolon)
