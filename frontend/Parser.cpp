@@ -457,13 +457,26 @@ Ast::Node *Parser::ParseStatement()
     case TokenType::kw_if:       return If();
     case TokenType::kw_switch:   return Switch();
     // Iteration statements
-    case TokenType::kw_for:      return ForLoop();
     case TokenType::kw_while:    return WhileLoop();
     case TokenType::kw_do:       return DoWhileLoop();
+    case TokenType::kw_for:      return ForLoop();
     // Jump statements
-    case TokenType::kw_return:   return ReturnStatement();
+    case TokenType::kw_goto:     return Goto();
+    case TokenType::kw_continue: return Continue();
     case TokenType::kw_break:    return Break();
+    case TokenType::kw_return:   return ReturnStatement();
     default:                     break;            
+    }
+    ConsumeToken();
+    if(token.type == TokenType::identifier &&
+       GetCurrToken().type == TokenType::colon)
+    {
+        PutBackAtFront(token);
+        return Label();
+    }
+    else
+    {
+        PutBackAtFront(token);
     }
 
     Ast::Node* expr;
@@ -635,6 +648,40 @@ Ast::Node *Parser::Default()
     nodeDef->lChild = ParseStatement();
 
     return nodeDef;
+}
+
+Ast::Node *Parser::Goto()
+{
+    ConsumeToken();
+    Ast::Node* nodeGoto = AllocateAstNodes();
+    nodeGoto->type = Ast::st_goto;
+    nodeGoto->token = GetCurrToken();
+    ConsumeExpectedToken(TokenType::identifier);
+
+    return nodeGoto;
+}
+
+Ast::Node *Parser::Continue()
+{
+    Ast::Node* nodeCont = AllocateAstNodes();
+    nodeCont->type = Ast::st_continue;
+    nodeCont->token = GetCurrToken();
+    ConsumeToken();
+    ConsumeExpectedToken(TokenType::semicolon);
+
+    return nodeCont;
+}
+
+Ast::Node *Parser::Label()
+{
+    Ast::Node* nodeLabel = AllocateAstNodes();
+    nodeLabel->type = Ast::st_label;
+    nodeLabel->token = GetCurrToken();
+    ConsumeToken();
+    ConsumeExpectedToken(TokenType::colon);
+    nodeLabel->lChild = ParseStatement();
+
+    return nodeLabel;
 }
 
 Ast::Node *Parser::ParseDeclaration(bool consumeSemicolon)
@@ -1470,8 +1517,7 @@ Ast::Node *Parser::DesignatorList()
         Ast::Node* designator = AllocateAstNodes();
         designator->token = token;
         designator->type = Ast::designator;
-        token = GetCurrToken();
-        if(token.type == TokenType::dot)
+        if(token.type == TokenType::l_bracket)
         {
             designator->lChild = ParseConstantExpr();
             ConsumeExpectedToken(TokenType::r_bracket);
@@ -1515,6 +1561,7 @@ Ast::Node* Parser::PostfixExpression()
             node->type = Ast::NodeType::array_access;
             node->lChild = postfixExpr;
             node->rChild = ParseExpression();
+            ConsumeExpectedToken(TokenType::r_bracket);
         }
         else if(token.type == TokenType::l_parentheses)
         {

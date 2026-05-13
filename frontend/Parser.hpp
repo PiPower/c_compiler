@@ -61,6 +61,9 @@ struct Parser
     Ast::Node* Case();
     Ast::Node* Break();
     Ast::Node* Default();
+    Ast::Node* Goto();
+    Ast::Node* Continue();
+    Ast::Node* Label();
 
     // declaration parsing
     Ast::Node* ParseDeclaration(bool consumeSemicolon);

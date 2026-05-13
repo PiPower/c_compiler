@@ -67,6 +67,7 @@
     ST(case) \
     ST(goto) \
     ST(default) \
+    ST(label) \
     /* Declarations*/ \
     X(declaration_specifier) \
     X(storage_specifier) \
