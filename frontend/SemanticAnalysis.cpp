@@ -893,7 +893,7 @@ void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarat
     }
     else
     {
-        VariableOpts opts = {.isEnumerator = 1, .isConst = 0};
+        VariableOpts opts = {.isEnumerator = 0, .isConst = 0};
         symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, variableIdx);
         codeGen.EmitLocalVariable(spec, decl);
         variableIdx++;
