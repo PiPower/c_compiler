@@ -64,6 +64,9 @@
     ST(continue) \
     ST(break) \
     ST(switch) \
+    ST(case) \
+    ST(goto) \
+    ST(default) \
     /* Declarations*/ \
     X(declaration_specifier) \
     X(storage_specifier) \

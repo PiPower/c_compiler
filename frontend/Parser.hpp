@@ -54,8 +54,13 @@ struct Parser
     Ast::Node* ParseStatement();
     Ast::Node* ReturnStatement();
     Ast::Node* ForLoop();
-    Ast::Node* ParseIf();
-    Ast::Node* ParseSwitch();
+    Ast::Node* WhileLoop();
+    Ast::Node* DoWhileLoop();
+    Ast::Node* If();
+    Ast::Node* Switch();
+    Ast::Node* Case();
+    Ast::Node* Break();
+    Ast::Node* Default();
 
     // declaration parsing
     Ast::Node* ParseDeclaration(bool consumeSemicolon);

@@ -450,13 +450,19 @@ Ast::Node *Parser::ParseStatement()
     {
     case TokenType::r_brace:     return nullptr;
     case TokenType::l_brace:     return ParseCompoundStatement();
+    // labeled statement
+    case TokenType::kw_case:     return Case();
+    case TokenType::kw_default:  return Default();
     // selection statements
-    case TokenType::kw_if:       return ParseIf();
-    case TokenType::kw_switch:   return ParseSwitch();
+    case TokenType::kw_if:       return If();
+    case TokenType::kw_switch:   return Switch();
     // Iteration statements
     case TokenType::kw_for:      return ForLoop();
+    case TokenType::kw_while:    return WhileLoop();
+    case TokenType::kw_do:       return DoWhileLoop();
     // Jump statements
     case TokenType::kw_return:   return ReturnStatement();
+    case TokenType::kw_break:    return Break();
     default:                     break;            
     }
 
@@ -520,7 +526,7 @@ Ast::Node *Parser::ForLoop()
     }
     ConsumeExpectedToken(TokenType::semicolon);
 
-    if(GetCurrToken().type != TokenType::semicolon)
+    if(GetCurrToken().type != TokenType::r_parentheses)
     {
         nodeArray[2] = ParseExpression();
     }
@@ -534,7 +540,36 @@ Ast::Node *Parser::ForLoop()
     return forLoop;
 }
 
-Ast::Node *Parser::ParseIf()
+Ast::Node *Parser::WhileLoop()
+{
+    Ast::Node* nodeWhile = AllocateAstNodes();
+    nodeWhile->type = Ast::st_while_loop;
+    nodeWhile->token = GetCurrToken();
+    ConsumeToken();
+    ConsumeExpectedToken(TokenType::l_parentheses);
+    nodeWhile->lChild = ParseExpression();
+    ConsumeExpectedToken(TokenType::r_parentheses);
+    nodeWhile->rChild = ParseStatement();
+
+    return nodeWhile;
+}
+
+Ast::Node *Parser::DoWhileLoop()
+{
+    Ast::Node* nodeDoWhile = AllocateAstNodes();
+    nodeDoWhile->type = Ast::st_do_while_loop;
+    nodeDoWhile->token = GetCurrToken();
+    ConsumeToken();
+    nodeDoWhile->lChild = ParseStatement();
+    ConsumeExpectedToken(TokenType::kw_while);
+    ConsumeExpectedToken(TokenType::l_parentheses);
+    nodeDoWhile->rChild = ParseExpression();
+    ConsumeExpectedToken(TokenType::r_parentheses);
+
+    return nodeDoWhile;
+}
+
+Ast::Node *Parser::If()
 {
     Ast::Node* ifNode = AllocateAstNodes(4);
     ifNode->token = GetCurrToken();
@@ -554,7 +589,7 @@ Ast::Node *Parser::ParseIf()
     return ifNode;
 }
 
-Ast::Node *Parser::ParseSwitch()
+Ast::Node *Parser::Switch()
 {
     Ast::Node* switchNode = AllocateAstNodes();
     switchNode->type = Ast::st_switch;
@@ -566,6 +601,40 @@ Ast::Node *Parser::ParseSwitch()
     switchNode->rChild = ParseStatement();
 
     return switchNode;
+}
+
+Ast::Node *Parser::Case()
+{
+    Ast::Node* caseNode = AllocateAstNodes();
+    caseNode->type = Ast::st_case;
+    caseNode->token = GetCurrToken();
+    ConsumeToken();
+    caseNode->lChild = ParseConstantExpr();
+    ConsumeExpectedToken(TokenType::colon);
+    caseNode->rChild = ParseStatement();
+    return caseNode;
+}
+
+Ast::Node *Parser::Break()
+{
+    Ast::Node* nodeBreak = AllocateAstNodes();
+    nodeBreak->type = Ast::st_break;
+    nodeBreak->token = GetCurrToken();
+    ConsumeToken();
+    ConsumeExpectedToken(TokenType::semicolon);
+    return nodeBreak;
+}
+
+Ast::Node *Parser::Default()
+{
+    Ast::Node* nodeDef = AllocateAstNodes();
+    nodeDef->type = Ast::st_default;
+    nodeDef->token = GetCurrToken();
+    ConsumeToken();
+    ConsumeExpectedToken(TokenType::colon);
+    nodeDef->lChild = ParseStatement();
+
+    return nodeDef;
 }
 
 Ast::Node *Parser::ParseDeclaration(bool consumeSemicolon)
