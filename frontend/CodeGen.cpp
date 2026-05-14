@@ -19,13 +19,16 @@ constexpr uint64_t INST_BUFF_SIZE = nr_of_pages * CPU_PAGE_SIZE;
 
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
-chosenBuffer(TYPE_BUFFER), typeHeap(nr_of_pages), symTab(symTab), manager(manager), nodeExec(ne), logger(manager)
+chosenBuffer(TYPE_BUFFER), currFn(false, -1, ""), typeHeap(nr_of_pages), symTab(symTab),
+manager(manager), nodeExec(ne), logger(manager)
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
     {
         currPtrArr[i] = typeHeap.allocateArray<char>(INST_BUFF_SIZE);
         writableBufferArr[i].push_back(currPtrArr[i]);
     }
+    BindFuncBuffer();
+    WriteByte('\n');
 }
 
 void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name, bool flushQueue)
@@ -284,12 +287,29 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, 
     {
         IssueWarning(&decl->token, "Abstract declarator cannot be emitted");
     }
-
-    std::string_view vis = spec->declType.spec.static_ ? "internal" : "dso_local";
     BindGlobalVarBuffer();
 
+    std::string_view vis = spec->declType.spec.static_ ? "internal" : "dso_local";
+    const char* name;
+    size_t len;
+    if(spec->declType.spec.static_ && currFn.inFunction)
+    {
+        len = decl->name.length() + currFn.fnName.length() + 1;
+        char* nameBuff = (char*)alloca(len);
+        memcpy(nameBuff, currFn.fnName.data(), currFn.fnName.length() );
+        nameBuff[currFn.fnName.length()] = '.';
+        memcpy(nameBuff + currFn.fnName.length() + 1, decl->name.data(), decl->name.length());
+        name = nameBuff;
+    }
+    else
+    {
+        name = decl->name.data();
+        len = decl->name.length();
+    }
+
+
     WriteCharData("\n@%s = %s global ", 
-                    decl->name.data(), decl->name.length(),
+                    name, len,
                     vis.data(), vis.length() );
     EmitDeclarator(&decl->accessTypes, &spec->typenameView);
     if(!zeroInit)
@@ -363,11 +383,14 @@ void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
         }
         WriteCharData(", align %s", varAlignment.data(), varAlignment.length());
     }
-
 }
 
 void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
 {
+    currFn.inFunction = true;
+    currFn.variableIdx = 1;
+    currFn.fnName = decl->name;
+    
     std::string_view vis = spec->declType.spec.static_ ? "internal" : "dso_local";
     BindGlobalVarBuffer();
 
@@ -434,6 +457,10 @@ void CodeGen::EmitFunctionClose()
     }
     writableBufferArr[LOC_VAR_BUFFER].resize(1);
     currPtrArr[LOC_VAR_BUFFER] = writableBufferArr[LOC_VAR_BUFFER][0];
+
+    currFn.inFunction = false;
+    currFn.variableIdx = -1;
+    currFn.fnName = "";
 }
 
 std::string_view CodeGen::GetViewForToken(const Token &token)
@@ -499,6 +526,11 @@ void CodeGen::WriteToFile(int fd)
     }
 
     delete[] iov;
+}
+
+int64_t CodeGen::GetIdxForLocalVar()
+{
+    return currFn.variableIdx++;
 }
 
 void CodeGen::BindTypeBuffer()

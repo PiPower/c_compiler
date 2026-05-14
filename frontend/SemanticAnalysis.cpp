@@ -152,7 +152,6 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     codeGen.EmitFunctionName(&declSpec, &fnDecl);
     const Ast::Node* bodyNode = body->rChild;
 
-    variableIdx = 1;
     symTab->CreateNewScope(Scope::LOCAL);
     ScopedSymbolTable* localScope = symTab->currentTable;
     while (bodyNode)
@@ -896,7 +895,7 @@ bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 
 void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl, bool zeroInit)
 {
-    if(symTab->IsCurrentScopeGlobal())
+    if(symTab->IsCurrentScopeGlobal() || spec->declType.spec.static_)
     {
         VariableOpts opts = {.isEnumerator = 0, .isConst = 0};
         symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts);
@@ -905,9 +904,8 @@ void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarat
     else
     {
         VariableOpts opts = {.isEnumerator = 0, .isConst = 0};
-        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, variableIdx);
+        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, codeGen.GetIdxForLocalVar());
         codeGen.EmitLocalVariable(spec, decl);
-        variableIdx++;
     }
 }
 

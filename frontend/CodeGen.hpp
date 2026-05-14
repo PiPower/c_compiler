@@ -22,6 +22,13 @@ struct PendingType
     const std::string_view name;
 };
 
+struct FunctionContext
+{
+    bool inFunction;
+    int64_t variableIdx;
+    std::string_view fnName;
+};
+
 struct CodeGen
 {
     CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne);
@@ -37,7 +44,8 @@ struct CodeGen
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
     void FlushTypeQueue();
     void WriteToFile(int fd);
-    
+    int64_t GetIdxForLocalVar();
+
     void BindTypeBuffer();
     void BindFuncBuffer();
     void BindGlobalVarBuffer();
@@ -54,6 +62,7 @@ struct CodeGen
     std::array<std::vector<char*>, 4> writableBufferArr;
     std::array<char*, 4> currPtrArr;
     std::vector<char*> localBufferHandle;
+    FunctionContext currFn;
 
     PagedHeap typeHeap;
     SymbolTable* symTab;

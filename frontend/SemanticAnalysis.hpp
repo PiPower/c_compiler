@@ -44,7 +44,6 @@ struct SemanticAnalyzer
     bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);
     bool CompareDeclarators(const Declarator* d1, const Declarator* d2);
 
-    int64_t variableIdx;
     SymbolTable* symTab;
     FileManager* manager;
     NodeExecutor ne;
