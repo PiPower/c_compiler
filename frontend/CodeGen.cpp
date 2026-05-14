@@ -115,27 +115,7 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
     if(symType->dType != BuiltIn::struct_t &&
        symType->dType != BuiltIn::union_t)
     {
-        switch (symType->dType)
-        {
-        case BuiltIn::bool_t:    WriteCharData("i8");   break;
-        case BuiltIn::s_char_8:  WriteCharData("i8");   break;
-        case BuiltIn::u_char_8:  WriteCharData("i8");   break;
-        case BuiltIn::s_int_16:  WriteCharData("i16");  break;
-        case BuiltIn::u_int_16:  WriteCharData("i16");  break;
-        case BuiltIn::s_int_32:  WriteCharData("i32");  break;
-        case BuiltIn::u_int_32:  WriteCharData("i32");  break;
-        case BuiltIn::s_int_64:  WriteCharData("i64");  break;
-        case BuiltIn::u_int_64:  WriteCharData("i64");  break;
-        case BuiltIn::float_32:  WriteCharData("float");   break;
-        case BuiltIn::double_64: WriteCharData("double");  break;
-        case BuiltIn::ptr: WriteCharData("ptr");  break;
-        default:
-            printf("code gen: type unsupported");
-            exit(-1);
-            break;
-        }
-
-        return;
+        return EmitBuiltInTypename(symType);
     }
 
     // if anonynous struct emitt name as is
@@ -192,6 +172,37 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
         }
     }   
     
+}
+
+void CodeGen::EmitBuiltInTypename(SymbolType *symType)
+{
+    std::string_view builInType= GetBuiltInName(symType);
+    WriteCharData("%s", builInType.data(), builInType.length());
+}
+
+std::string_view CodeGen::GetBuiltInName(SymbolType *symType)
+{
+    switch (symType->dType)
+    {
+    case BuiltIn::bool_t:    return "i8";   break;
+    case BuiltIn::s_char_8:  return "i8";   break;
+    case BuiltIn::u_char_8:  return "i8";   break;
+    case BuiltIn::s_int_16:  return "i16";  break;
+    case BuiltIn::u_int_16:  return "i16";  break;
+    case BuiltIn::s_int_32:  return "i32";  break;
+    case BuiltIn::u_int_32:  return "i32";  break;
+    case BuiltIn::s_int_64:  return "i64";  break;
+    case BuiltIn::u_int_64:  return "i64";  break;
+    case BuiltIn::float_32:  return "float";   break;
+    case BuiltIn::double_64: return "double";  break;
+    case BuiltIn::ptr:       return "ptr";     break;
+    case BuiltIn::void_t:       return "void";     break;
+    default:
+        printf("code gen: type unsupported");
+        exit(-1);
+        break;
+    }
+    return nullptr;
 }
 
 void CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typeName)
@@ -408,11 +419,17 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
     {
         IssueWarning(&decl->token, "Internal: Complex types are not supported");
     }
+    if(spec->symType->dType == BuiltIn::struct_t ||
+       spec->symType->dType == BuiltIn::union_t)
+    {
+        IssueWarning(nullptr, "Non built in types are not supported in return statement");
+    }
+    std::string_view retName = GetBuiltInName(spec->symType);
 
     BindFuncBuffer();
     WriteCharData("\ndefine %s %s @%s() #0 {", 
                     vis.data(), vis.length(), 
-                    spec->typenameView.data(), spec->typenameView.length(),
+                    retName.data(), retName.length(),
                     decl->name.data(), decl->name.length());
 }
 

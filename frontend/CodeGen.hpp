@@ -34,6 +34,9 @@ struct CodeGen
     CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne);
     void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
     void EmitTypename(SymbolType* symType, const std::string_view& typeName, bool useQueue = true);
+    void EmitBuiltInTypename(SymbolType* symType);
+    std::string_view GetBuiltInName(SymbolType* symType);
+
     void EmitDeclarator(const AccessType* acc,  const std::string_view* typeName);
     void EmitMember(Member* member);
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl, bool zeroInit);
