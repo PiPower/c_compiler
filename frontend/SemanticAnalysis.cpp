@@ -169,6 +169,17 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
 {
     AccessType* FnDecl = &decl->accessTypes;
+    // on empty function parameter declaration add void type
+    if(FnDecl->fnDecl.paramCount == 0)
+    {
+        FnDecl->fnDecl.paramCount = 1;
+        FunctionParams* paramsPtr = symTab->AllocateTypeArrayOnHeap<FunctionParams>(1);
+        paramsPtr->decl = {};
+        paramsPtr->spec.typenameView = kTypeNames[0];
+        paramsPtr->spec.declType = {};
+        paramsPtr->spec.symType = symTab->QueryTypeSymbol(paramsPtr->spec.typenameView);
+        FnDecl->fnDecl.paramTypeList = paramsPtr;
+    }
     //const Ast::Node* args = FnDecl->fnDecl.paramTypeList;
     SymbolFunction* tableSym = symTab->QueryFunctionSymbol(decl->name);
     if(tableSym)
@@ -619,21 +630,21 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
 
         Declarator decl = AnalyzeDeclarator(initDecl->rChild);
 
-        if(decl.accessTypes.type == ACC_NONE)
-        {
-            if(symType->dType == BuiltIn::ptr)
-            {
-                decl.accessTypes = symType->ptr.accessTypes;
-            }
-            AnalyzeVariableDecl(declSpec, &decl, true);
-        }
-        else if(decl.accessTypes.type == ACC_FN_DECL)
+        if(decl.accessTypes.type == ACC_FN_DECL)
         {
             if(symTab->currentTable->scopeType != Scope::GLOBAL)
             {
                 IssueWarning(&decl.token, "Function definitions in local scope are forbidden");
             }
             AnalyzeFunctionDecl(declSpec, &decl);
+        }
+        else
+        {
+            if(symType->dType == BuiltIn::ptr)
+            {
+                decl.accessTypes = symType->ptr.accessTypes;
+            }
+            AnalyzeVariableDecl(declSpec, &decl, true);
         }
 
         parent = listElem;
