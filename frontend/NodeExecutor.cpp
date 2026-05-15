@@ -220,7 +220,7 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
     case Ast::NodeType::ptr_access:
     default:
         IssueWarning(&expr->token,
-        "Operation [%s] is not allowed in preprocessing directive \n",
+        "Operation [%s] is not allowed in constant expression \n",
         Ast::nodeStr(expr->type));
         exit(-1);
         break;

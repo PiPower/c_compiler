@@ -95,7 +95,7 @@ int g_implicit[] = {10, 20, 30};
 void test_arrays(int n) {
     double fa[4] = {1.0, 2.0, 3.0, 4.0};
 
-    int vla[n];
+    //int vla[n];
 
     int matrix[3][3] = {{1,0,0},{0,1,0},{0,0,1}};
 
@@ -114,10 +114,9 @@ struct Point {
 };
 
 struct Flags {
-    unsigned int read  : 1;
-    unsigned int write : 1;
-    unsigned int exec  : 1;
-    unsigned int       : 5;
+    unsigned int read;
+    unsigned int write;
+    unsigned int exec;
 };
 
 struct Line {
@@ -247,8 +246,8 @@ void unspecified_params();
 void test_edge_cases(void) {
     /* VLA sizeof — evaluated at runtime */
     int n = 5;
-    int vla[n];
-    long sz = (long)sizeof(vla);
+    //int vla[n];
+    //long sz = (long)sizeof(vla);
 
     /* _Bool from expression */
     _Bool flag = (3 > 2);

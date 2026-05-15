@@ -557,6 +557,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             }
             argNames[idx] = structDecls[i].declarators[j].decl.name;
 
+            members[idx].typedefAcc = structDecls[i].declSpec.acc ? *structDecls[i].declSpec.acc : AccessType{};
             members[idx].declType = structDecls[i].declSpec.declType;
             members[idx].typeName = structDecls[i].declSpec.typenameView;
             members[idx].bitCount = structDecls[i].declarators[j].bitCount;
@@ -643,7 +644,7 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
             {
                 decl.accessTypes = symType->ptr.accessTypes;
             }
-            AnalyzeVariableDecl(declSpec, &decl, true);
+            AnalyzeVariableDecl(declSpec, &decl, initExpr);
         }
 
         parent = listElem;
@@ -893,19 +894,19 @@ bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
 }
 
-void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl, bool zeroInit)
+void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr)
 {
     if(symTab->IsCurrentScopeGlobal() || spec->declType.spec.static_)
     {
         VariableOpts opts = {.isEnumerator = 0, .isConst = 0};
         symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts);
-        codeGen.EmitGlobalVariable(spec, decl, zeroInit);
+        codeGen.EmitGlobalVariable(spec, decl, initExpr);
     }
     else
     {
         VariableOpts opts = {.isEnumerator = 0, .isConst = 0};
         symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, codeGen.GetIdxForLocalVar());
-        codeGen.EmitLocalVariable(spec, decl);
+        codeGen.EmitLocalVariable(spec, decl, initExpr);
     }
 }
 
@@ -1098,6 +1099,7 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                 }
                 spec.typenameView = symTypedef->refrencedType;
                 spec.symType = symTab->QueryTypeSymbol(symTypedef->refrencedType);
+                spec.acc = &symTypedef->accessTypes;
                 if(!spec.symType)
                 {
                     IssueWarning(&currNode->token, "typedef refers to unknown type");

@@ -30,7 +30,7 @@ struct SemanticAnalyzer
     BuiltIn::Type BitCountToIntegerType(uint8_t BitCount, bool isSigned);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);
-    void AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl, bool zeroInit);
+    void AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr);
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
     bool IsMemberPointer(const Member* member);

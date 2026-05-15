@@ -36,11 +36,11 @@ struct CodeGen
     void EmitTypename(SymbolType* symType, const std::string_view& typeName, bool useQueue = true);
     void EmitBuiltInTypename(SymbolType* symType);
     std::string_view GetBuiltInName(SymbolType* symType);
-
-    void EmitDeclarator(const AccessType* acc,  const std::string_view* typeName);
+    bool EmitDeclarator(const AccessType* acc,  const std::string_view* typeName, const AccessType* typedefAcc);
+    bool EmitDeclaratorAcc(const AccessType* acc, const std::string_view* typeName);
     void EmitMember(Member* member);
-    void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl, bool zeroInit);
-    void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl);
+    void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr);
+    void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr);
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
     void EmitFunctionClose();
     std::string_view GetViewForToken(const Token &token);

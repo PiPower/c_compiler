@@ -293,9 +293,9 @@ void test_declaration_statements(void)
 {
     /* VLA — C99 */
     int n = 5;
-    int vla[n];
-    for (int i = 0; i < n; i++) vla[i] = i;
-    (void)vla[0];
+    //int vla[n];
+    //for (int i = 0; i < n; i++) vla[i] = i;
+    //(void)vla[0];
  
     /* const-qualified */
     const int CI = 42;

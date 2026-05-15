@@ -63,3 +63,12 @@ bool IsArray(const AccessType *acc)
 
     return false;
 }
+
+AccessType* MargeAccessTypes(const AccessType *first, const AccessType *second)
+{
+    return nullptr;
+}
+
+void FreeMergedAccType(AccessType *acc)
+{
+}

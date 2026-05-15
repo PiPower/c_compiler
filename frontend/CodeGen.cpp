@@ -42,7 +42,6 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
     {
         return;
     }
-
     auto emittedSym = emittedTypes.find(symType);
     if( emittedSym != emittedTypes.end() && emittedSym->second.isEmitted)
     {
@@ -184,19 +183,20 @@ std::string_view CodeGen::GetBuiltInName(SymbolType *symType)
 {
     switch (symType->dType)
     {
-    case BuiltIn::bool_t:    return "i8";   break;
-    case BuiltIn::s_char_8:  return "i8";   break;
-    case BuiltIn::u_char_8:  return "i8";   break;
-    case BuiltIn::s_int_16:  return "i16";  break;
-    case BuiltIn::u_int_16:  return "i16";  break;
-    case BuiltIn::s_int_32:  return "i32";  break;
-    case BuiltIn::u_int_32:  return "i32";  break;
-    case BuiltIn::s_int_64:  return "i64";  break;
-    case BuiltIn::u_int_64:  return "i64";  break;
-    case BuiltIn::float_32:  return "float";   break;
-    case BuiltIn::double_64: return "double";  break;
-    case BuiltIn::ptr:       return "ptr";     break;
-    case BuiltIn::void_t:       return "void";     break;
+    case BuiltIn::bool_t:      return "i8";   break;
+    case BuiltIn::s_char_8:    return "i8";   break;
+    case BuiltIn::u_char_8:    return "i8";   break;
+    case BuiltIn::s_int_16:    return "i16";  break;
+    case BuiltIn::u_int_16:    return "i16";  break;
+    case BuiltIn::s_int_32:    return "i32";  break;
+    case BuiltIn::u_int_32:    return "i32";  break;
+    case BuiltIn::s_int_64:    return "i64";  break;
+    case BuiltIn::u_int_64:    return "i64";  break;
+    case BuiltIn::float_32:    return "float";   break;
+    case BuiltIn::double_64:   return "double";  break;
+    case BuiltIn::long_double: return "x86_fp80";  break;
+    case BuiltIn::ptr:         return "ptr";     break;
+    case BuiltIn::void_t:      return "void";     break;
     default:
         printf("code gen: type unsupported");
         exit(-1);
@@ -205,7 +205,7 @@ std::string_view CodeGen::GetBuiltInName(SymbolType *symType)
     return nullptr;
 }
 
-void CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typeName)
+bool CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typeName, const AccessType* typedefAcc)
 {
     static std::vector<std::string_view> arrSizes;
 
@@ -218,7 +218,7 @@ void CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typ
         IssueWarning(nullptr, "EmitDeclarator: null type name");
     }
 
-    if(acc->type == ACC_NONE)
+    if(acc->type == ACC_NONE && !(typedefAcc && typedefAcc->type != ACC_NONE))
     {
         SymbolType* st = symTab->QueryTypeSymbol(*typeName);
         if(!st)
@@ -226,9 +226,34 @@ void CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typ
             IssueWarning(nullptr, "EmitDeclarator: unknown type for typename");
         }
         EmitTypename(st, *typeName);
-        return;
+        return false;
     }
 
+    const AccessType* localAcc = acc;
+    bool freeLocalAcc = false;
+    if(acc->type == ACC_NONE)
+    {
+        localAcc = typedefAcc;
+    }
+    else if(typedefAcc && typedefAcc->type != ACC_NONE)
+    {
+        IssueWarning(nullptr, "Merging access types is not supported")
+        localAcc = MargeAccessTypes(acc, typedefAcc);
+        freeLocalAcc = true;
+    }
+
+    bool isPtr = EmitDeclaratorAcc(localAcc, typeName);
+
+    if(freeLocalAcc)
+    {
+        FreeMergedAccType((AccessType*)localAcc);
+    }
+
+    return isPtr;
+}
+
+bool CodeGen::EmitDeclaratorAcc(const AccessType *acc, const std::string_view *typeName)
+{
     const AccessType* accType = acc;
     bool hitPointer = false;
     uint32_t brackets = 0;
@@ -285,14 +310,15 @@ void CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typ
     {
         WriteByte(']');
     }
+    return hitPointer;
 }
 
 void CodeGen::EmitMember(Member *member)
 {
-    EmitDeclarator(&member->access, &member->typeName);
+    EmitDeclarator(&member->access, &member->typeName, &member->typedefAcc);
 }
 
-void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, bool zeroInit)
+void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, const Ast::Node* initExpr)
 {
     if(decl->name.length() == 0)
     {
@@ -322,8 +348,8 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, 
     WriteCharData("\n@%s = %s global ", 
                     name, len,
                     vis.data(), vis.length() );
-    EmitDeclarator(&decl->accessTypes, &spec->typenameView);
-    if(!zeroInit)
+    EmitDeclarator(&decl->accessTypes, &spec->typenameView, spec->acc);
+    if(initExpr)
     {
         // in this case it's caller responsibility to properly end declaration
         return;
@@ -348,7 +374,7 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, 
         alignment.data(), alignment.length());
 }
 
-void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
+void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl, const Ast::Node* initExpr)
 {
     const SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name);
     if(!symVar)
@@ -361,10 +387,16 @@ void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
         IssueWarning(&decl->token, "EmitLocalVariable: variable has no type");
     }
     std::string idx = std::to_string(symVar->varIdx);
-    std::string varAlignment = std::to_string(varType->alignment);
     BindFuncBuffer();
 
     WriteCharData("\n\t%%%s = alloca ", idx.data(), idx.length());
+
+    bool isPtr = EmitDeclarator(&decl->accessTypes, &spec->typenameView, spec->acc);
+
+    SymbolType* symType = symTab->QueryTypeSymbol(spec->typenameView);
+    std::string alignment = isPtr ? "8" : std::to_string(symType->alignment);
+    WriteCharData(", align %s", alignment.data(), alignment.length());
+    /*
     if(IsPointer(&decl->accessTypes))
     {
         WriteCharData("ptr, align 8");
@@ -393,7 +425,7 @@ void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
                 break;
         }
         WriteCharData(", align %s", varAlignment.data(), varAlignment.length());
-    }
+    }*/
 }
 
 void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)

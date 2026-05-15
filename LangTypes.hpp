@@ -161,6 +161,7 @@ struct Declarator
 struct Member
 {
     AccessType access;
+    AccessType typedefAcc;
     TypeBits declType; 
     BuiltIn::Type memberType;
     int64_t bitCount;
@@ -175,6 +176,7 @@ struct DeclSpecs
     TypeBits declType; 
     std::string_view typenameView; 
     SymbolType* symType;
+    const AccessType* acc;
 };
 
 struct FunctionParams
