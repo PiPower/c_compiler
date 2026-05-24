@@ -167,7 +167,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
 
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
 {
-    AccessType* FnDecl = &decl->accessTypes;
+    AccessType* FnDecl = &decl->accArray[0];
     // on empty function parameter declaration add void type
     if(FnDecl->fnDecl.paramCount == 0)
     {
@@ -195,146 +195,80 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
     }
 }
 
-Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack<const Ast::Node*>* accessTypes, uint8_t forbbidenAccTypes)
+Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack<const Ast::Node*>* accessTypes, bool isAbstract)
 {
     Declarator decl = {};
-    decl.token = accessTypes->top()->token;
-    decl.name = GetViewForToken(accessTypes->top()->token);
-    accessTypes->pop();
+    decl.token = declarator->token;
+    if(!isAbstract)
+    {
+        decl.name = GetViewForToken(accessTypes->top()->token);
+        accessTypes->pop();
+    }
 
-    AccessType* typePtr = &decl.accessTypes;
+    AccessType typeBuffer = {};
     uint32_t level = 0;
+    std::vector<AccessType> localTypes;
+    localTypes.reserve(50);
+
     while (accessTypes->size() > 0)
     {
         const Ast::Node* accessType = accessTypes->top();
         accessTypes->pop();
         while (accessType)
         {
-            typePtr->level = level;
+            typeBuffer.level = level;
             if(accessType->type == Ast::pointer)
             {
-                if((forbbidenAccTypes & ACC_POINTER) > 0 ) 
-                {
-                    IssueWarning(&accessType->token, "Pointer is not allowed in declarator" )
-                }
-                typePtr->type = ACC_POINTER;
-                typePtr->ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
+                typeBuffer.type = ACC_POINTER;
+                typeBuffer.ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
                 goto create_next;
             }
 
             if(accessType->lChild->type == Ast::array_decl)
             {
-                if((forbbidenAccTypes & ACC_ARRAY) > 0 )
+                Typed::Number num = ne.ExecuteNode(accessType->lChild->rChild);
+                if(num.type == Typed::d_dynamic)
                 {
-                    IssueWarning(&accessType->token, "Array is not allowed in declarator" )
+                    typeBuffer.type = ACC_ARRAY_VLA;
+                    typeBuffer.array.asmExpr = accessType->lChild->rChild;
                 }
-                typePtr->type = ACC_ARRAY;
-                typePtr->array.asmExpr = accessType->lChild->rChild;
-                typePtr->array.qualList = accessType->lChild->lChild;
+                else
+                {
+                    typeBuffer.type = ACC_ARRAY;
+                    typeBuffer.array.size = Typed::ToUnit64_t(num);
+                }
+                
+                typeBuffer.array.quals = AnalyzeDeclSpec(accessType->lChild->lChild).declType.qual;
             }
             else if (accessType->lChild->type == Ast::parameter_type_list)
             {
-                if((forbbidenAccTypes & ACC_FN_DECL) > 0 ) 
-                {
-                    IssueWarning(&accessType->token, "Function declaration is not allowed in declarator" )
-                }
-                typePtr->type = ACC_FN_DECL;
-                typePtr->fnDecl.paramTypeList = ProcessFnParams(accessType->lChild, &typePtr->fnDecl.paramCount);
-                //typePtr->fnDecl.paramTypeList = accessType->lChild;
+                typeBuffer.type = ACC_FN_DECL;
+                typeBuffer.fnDecl.paramTypeList = ProcessFnParams(accessType->lChild, &typeBuffer.fnDecl.paramCount);
             }
             else if (accessType->lChild->type == Ast::identifier_list)
             {
-                if((forbbidenAccTypes & ACC_FN_CALL) > 0 ) 
+                if(isAbstract) 
                 {
-                    IssueWarning(&accessType->token, "Function call is not allowed in declarator" )
+                    IssueWarning(&accessType->token, "Function call is not allowed in abstract declarator" )
                 }
-                typePtr->type = ACC_FN_CALL;
-                typePtr->fnCall.identifierList = accessType->lChild;
+                typeBuffer.type = ACC_FN_CALL;
+                typeBuffer.fnCall.identifierList = accessType->lChild;
             }
             else
             {
-                printf("Incorrect node type in AnalyzeDeclarator \n");
-                exit(-1);
+                IssueWarning(&accessType->token, "Incorrect node type in AnalyzeDeclarator" )
             }
 create_next:
             accessType = accessType->rChild;
-            if(accessTypes->size() > 0 || accessType )
-            {
-                typePtr->next = symTab->AllocateTypeOnHeap<AccessType>();
-                typePtr = typePtr->next;
-            }
+            localTypes.push_back(typeBuffer);
         }
         level++;
     }
     
-    return decl;
-}
+    decl.accArray = symTab->AllocateTypeArrayOnHeap<AccessType>(localTypes.size());
+    decl.accCount = localTypes.size();
+    memcpy(decl.accArray, localTypes.data(), sizeof(AccessType) * decl.accCount);
 
-Declarator SemanticAnalyzer::ProcessAbstractDecl(const Ast::Node *abstDecl, std::stack<const Ast::Node *> *accessTypes, uint8_t forbbidenAccTypes)
-{
-    Declarator decl = {};
-    if(accessTypes->size() > 0)
-    {
-        decl.token = accessTypes->top()->token;
-    }
-    
-    AccessType* typePtr = &decl.accessTypes;
-    uint32_t level = 0;
-    while (accessTypes->size() > 0)
-    {
-        const Ast::Node* accessType = accessTypes->top();
-        accessTypes->pop();
-        while (accessType)
-        {
-            typePtr->level = level;
-            if(accessType->type == Ast::pointer)
-            {
-                if((forbbidenAccTypes & ACC_POINTER) > 0 ) 
-                {
-                    IssueWarning(&accessType->token, "Pointer is not allowed in abstract declarator" )
-                }
-                typePtr->type = ACC_POINTER;
-                typePtr->ptr.quals = AnalyzeDeclSpec(accessType->lChild).declType.qual;
-                goto create_next;
-            }
-
-            if(accessType->lChild->type == Ast::array_decl || 
-               accessType->lChild->type == Ast::var_len_array)
-            {
-                if((forbbidenAccTypes & ACC_ARRAY) > 0 ) 
-                {
-                    IssueWarning(&accessType->token, "Array is not allowed in abstract declarator" )
-                }
-                typePtr->type = ACC_ARRAY;
-                typePtr->array.asmExpr = accessType->lChild->rChild;
-                typePtr->array.qualList = nullptr;
-            }
-            else if (accessType->lChild->type == Ast::parameter_type_list)
-            {
-                if((forbbidenAccTypes & ACC_FN_DECL) > 0 ) 
-                {
-                    IssueWarning(&accessType->token, "Function declaration is not allowed in abstract declarator" )
-                }
-                typePtr->type = ACC_FN_DECL;
-                typePtr->fnDecl.paramTypeList = ProcessFnParams(accessType->lChild, &typePtr->fnDecl.paramCount);
-                //typePtr->fnDecl.paramTypeList = accessType->lChild;
-            }
-            else
-            {
-                printf("Incorrect node type in ProcessAbstractDecl \n");
-                exit(-1);
-            }
-create_next:
-            accessType = accessType->rChild;
-            if(accessTypes->size() > 0 || accessType )
-            {
-                typePtr->next = symTab->AllocateTypeOnHeap<AccessType>();
-                typePtr = typePtr->next;
-            }
-        }
-        level++;
-    }
-    
     return decl;
 }
 
@@ -358,7 +292,8 @@ FunctionParams *SemanticAnalyzer::ProcessFnParams(const Ast::Node *paramsNode, s
         else
         {
             param.spec = AnalyzeDeclSpec(paramNode->lChild->rChild);
-            param.decl = AnalyzeDeclarator(paramNode->rChild, ACC_FN_CALL);
+            // TODO validate whethere decl does not contain FN_CALL
+            param.decl = AnalyzeDeclarator(paramNode->rChild); 
             params.push_back(param);
         }
         glueNode = glueNode->rChild;
@@ -626,11 +561,11 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
     while (Ast::Node* listElem = parent->rChild)
     {
         const Ast::Node* initDecl = listElem->lChild;
-        const Ast::Node* initExpr = initDecl->lChild;
 
         Declarator decl = AnalyzeDeclarator(initDecl->rChild);
-
-        if(decl.accessTypes.type == ACC_FN_DECL)
+        decl.initExpr = initDecl->lChild;
+        
+        if(decl.accArray[0].type == ACC_FN_DECL)
         {
             if(symTab->currentTable->scopeType != Scope::GLOBAL)
             {
@@ -644,7 +579,7 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
             {
                 decl.accessTypes = symType->ptr.accessTypes;
             }
-            AnalyzeVariableDecl(declSpec, &decl, initExpr);
+            AnalyzeVariableDecl(declSpec, &decl);
         }
 
         parent = listElem;
@@ -667,7 +602,7 @@ bool SemanticAnalyzer::CompareParams(size_t paramCount, const FunctionParams *p1
     return true;
 }
 
-Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, uint8_t forbbidenAccTypes)
+Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
 {
     std::stack<const Ast::Node*> accessTypes;
     const Ast::Node *currDecl = declarator;
@@ -684,12 +619,11 @@ Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, uint
 
     if(declarator->type == Ast::abstact_declarator)
     {
-        return ProcessAbstractDecl(declarator, &accessTypes, forbbidenAccTypes);
+       return ProcessDecl(declarator, &accessTypes, true);
     }
-    else
-    {
-        return ProcessDecl(declarator, &accessTypes, forbbidenAccTypes);
-    }
+
+    return ProcessDecl(declarator, &accessTypes, false);
+
 }
 
 void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
@@ -723,7 +657,7 @@ void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
         }
         VariableOpts opts = {.isEnumerator = 1, .isConst = 0};
         std::string_view enumName = GetViewForToken(enumerator->token);
-        Declarator decl = {enumerator->token, {}, enumName};
+        Declarator decl = {enumerator->token, {}, nullptr, 0, enumName};
         symTab->AddSymbol<SymbolVariable>(enumName, symTab->currentTable->scopeType, spec, &decl, &opts, value);
         
         value++;
@@ -894,19 +828,18 @@ bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
 }
 
-void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr)
+void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl)
 {
+    VariableOpts opts = {.isEnumerator = 0, .isConst = 0, .isEmitted = 0};
+    symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts);
+
     if(symTab->IsCurrentScopeGlobal() || spec->declType.spec.static_)
     {
-        VariableOpts opts = {.isEnumerator = 0, .isConst = 0};
-        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts);
-        codeGen.EmitGlobalVariable(spec, decl, initExpr);
+        //codeGen.EmitGlobalVariable(spec, decl);
     }
     else
     {
-        VariableOpts opts = {.isEnumerator = 0, .isConst = 0};
-        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, codeGen.GetIdxForLocalVar());
-        codeGen.EmitLocalVariable(spec, decl, initExpr);
+        //codeGen.EmitLocalVariable(spec, decl);
     }
 }
 

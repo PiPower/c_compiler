@@ -27,6 +27,10 @@ Typed::Number BinaryOp(NodeExecutor* ne, const Ast::Node* node)
 {
     Typed::Number l = ne->ExecuteNode(node->lChild);
     Typed::Number r = ne->ExecuteNode(node->rChild);
+    if(l.type == Typed::d_dynamic || r.type == Typed::d_dynamic)
+    {
+        return {.type = Typed::d_dynamic};
+    }
 
     Typed::Number out{};
     out.int64 = Op{}(l.int64, r.int64);
@@ -179,7 +183,12 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
         {
             IssueWarning(&expr->token, "constant_expression: missing subexpression");
         }
-        return ExecuteNode(expr->rChild->lChild);
+        Typed::Number num = ExecuteNode(expr->rChild->lChild);
+        if(num.type == Typed::d_dynamic)
+        {
+            IssueWarning(&expr->token, "constant_expression: contains non constant element");
+        }
+        return num;
     }
     case Ast::NodeType::op_log_negate: return UnaryOp<std::logical_not<int64_t>>(this, expr);
     case Ast::NodeType::op_minus: return UnaryOp<std::negate<int64_t>>(this, expr);
@@ -219,11 +228,7 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
     case Ast::NodeType::struct_access:
     case Ast::NodeType::ptr_access:
     default:
-        IssueWarning(&expr->token,
-        "Operation [%s] is not allowed in constant expression \n",
-        Ast::nodeStr(expr->type));
-        exit(-1);
-        break;
+        return {.type = Typed::d_dynamic};
     }
     return numOut;
 }

@@ -318,7 +318,7 @@ void CodeGen::EmitMember(Member *member)
     EmitDeclarator(&member->access, &member->typeName, &member->typedefAcc);
 }
 
-void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, const Ast::Node* initExpr)
+void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
 {
     if(decl->name.length() == 0)
     {
@@ -349,9 +349,9 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl, 
                     name, len,
                     vis.data(), vis.length() );
     EmitDeclarator(&decl->accessTypes, &spec->typenameView, spec->acc);
-    if(initExpr)
+    if(decl->initExpr)
     {
-        // in this case it's caller responsibility to properly end declaration
+        IssueWarning(nullptr, "Init expr is currenlty not supported");
         return;
     }
 
@@ -387,45 +387,10 @@ void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl, c
         IssueWarning(&decl->token, "EmitLocalVariable: variable has no type");
     }
     std::string idx = std::to_string(symVar->varIdx);
-    BindFuncBuffer();
 
-    WriteCharData("\n\t%%%s = alloca ", idx.data(), idx.length());
-
-    bool isPtr = EmitDeclarator(&decl->accessTypes, &spec->typenameView, spec->acc);
-
-    SymbolType* symType = symTab->QueryTypeSymbol(spec->typenameView);
-    std::string alignment = isPtr ? "8" : std::to_string(symType->alignment);
-    WriteCharData(", align %s", alignment.data(), alignment.length());
-    /*
-    if(IsPointer(&decl->accessTypes))
-    {
-        WriteCharData("ptr, align 8");
-    }
-    else
-    {
-        switch (varType->dType)
-        {
-            case BuiltIn::bool_t:      WriteCharData("i8");   break;
-            case BuiltIn::s_char_8:    WriteCharData("i8");   break;
-            case BuiltIn::u_char_8:    WriteCharData("i8");   break;
-            case BuiltIn::s_int_16:    WriteCharData("i16");  break;
-            case BuiltIn::u_int_16:    WriteCharData("i16");  break;
-            case BuiltIn::s_int_32:    WriteCharData("i32");  break;
-            case BuiltIn::u_int_32:    WriteCharData("i32");  break;
-            case BuiltIn::s_int_64:    WriteCharData("i64");  break;
-            case BuiltIn::u_int_64:    WriteCharData("i64");  break;
-            case BuiltIn::float_32:    WriteCharData("float");   break;
-            case BuiltIn::double_64:   WriteCharData("double");  break;
-            case BuiltIn::long_double: WriteCharData("x86_fp80");  break;
-            case BuiltIn::struct_t:    EmitTypename(spec->symType, spec->typenameView, false);  break;
-            case BuiltIn::union_t:     EmitTypename(spec->symType, spec->typenameView, false);  break;
-            default:
-                printf("code gen: type unsupported");
-                exit(-1);
-                break;
-        }
-        WriteCharData(", align %s", varAlignment.data(), varAlignment.length());
-    }*/
+    ProcessedDecl procDecl = ProcessDecl(&decl->accessTypes, &spec->typenameView, spec->acc);
+    procDecl.variableIdx = symVar->varIdx;
+    Initializer init = ProcessInitExpr(initExpr);
 }
 
 void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
@@ -580,6 +545,102 @@ void CodeGen::WriteToFile(int fd)
 int64_t CodeGen::GetIdxForLocalVar()
 {
     return currFn.variableIdx++;
+}
+
+ProcessedDecl CodeGen::ProcessDecl(const AccessType *acc, const std::string_view *typeName, const AccessType *typedefAcc)
+{
+    static std::vector<std::string_view> arrSizes;
+    if(!acc)
+    {
+        IssueWarning(nullptr, "EmitDeclarator: null access chain");
+    }
+    if(!typeName)
+    {
+        IssueWarning(nullptr, "EmitDeclarator: null type name");
+    }
+
+    if(acc->type == ACC_NONE && !(typedefAcc && typedefAcc->type != ACC_NONE))
+    {
+        ProcessedDecl declAcc= {};
+        declAcc.type = symTab->QueryTypeSymbol(*typeName);
+        if(!declAcc.type)
+        {
+            IssueWarning(nullptr, "Unknown type for typename");
+        }
+        return declAcc;
+    }
+
+    const AccessType* localAcc = acc;
+    bool freeLocalAcc = false;
+    if(acc->type == ACC_NONE)
+    {
+        localAcc = typedefAcc;
+    }
+    else if(typedefAcc && typedefAcc->type != ACC_NONE)
+    {
+        IssueWarning(nullptr, "Merging access types is not supported")
+        localAcc = MargeAccessTypes(acc, typedefAcc);
+        freeLocalAcc = true;
+    }
+
+    ProcessedDecl declAcc =  processAccess(localAcc);
+    declAcc.type = symTab->QueryTypeSymbol(*typeName);
+
+    if(freeLocalAcc)
+    {
+        FreeMergedAccType((AccessType*)localAcc);
+    }
+
+    return declAcc;
+}
+
+ProcessedDecl CodeGen::processAccess(const AccessType *acc)
+{
+    const AccessType* accType = acc;
+    ProcessedDecl processedAcc = {};
+    bool hitPointer = false;
+    uint32_t brackets = 0;
+
+    while (accType)
+    {
+        if(accType->type == ACC_POINTER)
+        {
+            processedAcc.isPtr = true;
+            break;
+        }
+        else if(accType->type == ACC_ARRAY)
+        {
+            if(!accType->array.asmExpr)
+            {
+               processedAcc.sizes.push_back(0);
+            }
+            else
+            {
+                Typed::Number num = nodeExec->ExecuteNode(accType->array.asmExpr);
+                if(num.type == Typed::d_float || num.type == Typed::d_double)
+                {
+                    IssueWarning(&accType->array.asmExpr->token, "Floats cannot be used inside array size declaration \n");
+                }
+                processedAcc.sizes.push_back(ToUnit64_t(num));
+            }
+            brackets++;
+        }
+        else
+        {
+            IssueWarning(nullptr, "Floats cannot be used inside array size declaration \n");
+        }
+        accType = accType->next;
+    }
+    
+    return processedAcc;
+}
+
+Initializer CodeGen::ProcessInitExpr(const Ast::Node *initExpr)
+{
+    Typed::Number num = nodeExec->ExecuteNode(initExpr);
+    Initializer init;
+    InitializerValue v;
+    init.values.push_back({.hi=num.uint64});
 }
 
 void CodeGen::BindTypeBuffer()

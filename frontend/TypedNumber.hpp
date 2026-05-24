@@ -19,6 +19,7 @@ namespace Typed
 
         d_float,      
         d_double,   
+        d_dynamic
     };
 
     struct Number
@@ -73,6 +74,27 @@ namespace Typed
         }
 
         return true; // fallback (shouldn't happen)
+    }
+
+    uint64_t inline ToUnit64_t(const Number& num)
+    {
+        switch (num.type)
+        {
+            case DType::d_int8_t:   return num.int8;;
+            case DType::d_int16_t:  return num.int16;
+            case DType::d_int32_t:  return num.int32;
+            case DType::d_int64_t:  return num.int64;
+
+            case DType::d_uint8_t:  return num.uint8;
+            case DType::d_uint16_t: return num.uint16;
+            case DType::d_uint32_t: return num.uint32;
+            case DType::d_uint64_t: return num.uint64;
+
+            case DType::d_float:  return num.float32;
+            case DType::d_double: return num.float64;
+            default: return 0;
+        }
+
     }
 }
 

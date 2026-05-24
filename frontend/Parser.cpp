@@ -978,6 +978,7 @@ Ast::Node *Parser::ParseDirectDeclarator()
         token = GetCurrToken();
     }
     
+    directDeclarator->token = currentLocToken;
     return directDeclarator;
 }
 /*
@@ -1461,7 +1462,8 @@ Ast::Node *Parser::ParseDirectAbstractDeclarator()
 
         token = GetCurrToken();
     }
-
+    
+    directAbstractDeclarator->token = currentLocToken;
     return directAbstractDeclarator;
 }
 

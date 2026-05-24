@@ -11,6 +11,7 @@ constexpr uint8_t ACC_POINTER = 1;
 constexpr uint8_t ACC_FN_DECL = 1 << 1;
 constexpr uint8_t ACC_FN_CALL = 1 << 2;
 constexpr uint8_t ACC_ARRAY = 1 << 3;
+constexpr uint8_t ACC_ARRAY_VLA = 1 << 4;
 
 namespace Sym
 {
@@ -36,6 +37,7 @@ enum Type : uint16_t
     union_t,
     enum_t,
     ptr,
+    string,
     s_char_8,         
     u_char_8,         
     s_int_16,         
@@ -111,8 +113,12 @@ struct FnCall
 
 struct Array
 {
-    Ast::Node* asmExpr;
-    Ast::Node* qualList;
+    union
+    {    
+        Ast::Node* asmExpr; // if VLA
+        uint64_t size; // if non-VLA
+    };
+    Qualifiers quals;
 };
 
 
@@ -130,6 +136,20 @@ struct AccessType
     uint32_t level;
     AccessType* next;
 };
+
+struct DeclaratorAcces
+{
+    uint8_t type;
+    union 
+    {
+        Pointer ptr;
+        FnDecl fnDecl;
+        FnCall fnCall;
+        Array array;
+    };
+    uint32_t level;
+};
+
 
 struct TypeBits
 {
@@ -150,11 +170,15 @@ struct TypeBits
     uint8_t isEllipsis : 1;
 };
 
+
 struct Declarator
 {
     Token token;
     AccessType accessTypes;
+    AccessType* accArray;
+    size_t accCount;
     std::string_view name; // abstract declarator has empty name
+    const Ast::Node* initExpr;
 };
 
 
@@ -289,6 +313,7 @@ struct VariableOpts
 {
     uint8_t isEnumerator : 1;
     uint8_t isConst : 1;
+    uint8_t isEmitted : 1;
 };
 struct SymbolVariable
 {

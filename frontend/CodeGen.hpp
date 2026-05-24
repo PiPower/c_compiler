@@ -9,7 +9,32 @@
 #include "NodeExecutor.hpp"
 #include <stdarg.h>
 
+struct ProcessedDecl
+{
+    bool isPtr;
+    int64_t variableIdx;
+    std::string_view declName;
+    const SymbolType* type;
+    std::vector<uint64_t> sizes;
+};
 
+struct InitializerValue
+{
+    uint64_t hi;
+    uint64_t lo;
+};
+
+struct InitializerQuirks
+{
+    BuiltIn::Type type;
+    uint8_t isCompileConst : 1;
+};
+
+struct Initializer
+{
+    std::vector<InitializerQuirks> quirks;
+    std::vector<InitializerValue> values;
+}; 
 struct LlvmType
 {
     int symbolSaveCounter;
@@ -39,7 +64,7 @@ struct CodeGen
     bool EmitDeclarator(const AccessType* acc,  const std::string_view* typeName, const AccessType* typedefAcc);
     bool EmitDeclaratorAcc(const AccessType* acc, const std::string_view* typeName);
     void EmitMember(Member* member);
-    void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr);
+    void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
     void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr);
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
     void EmitFunctionClose();
@@ -48,6 +73,10 @@ struct CodeGen
     void FlushTypeQueue();
     void WriteToFile(int fd);
     int64_t GetIdxForLocalVar();
+
+    ProcessedDecl ProcessDecl(const AccessType* acc,  const std::string_view* typeName, const AccessType* typedefAcc);
+    ProcessedDecl processAccess(const AccessType *acc);
+    Initializer ProcessInitExpr(const Ast::Node* initExpr);
 
     void BindTypeBuffer();
     void BindFuncBuffer();
