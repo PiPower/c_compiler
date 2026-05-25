@@ -1,29 +1,27 @@
 #include "Logger.hpp"
 #include <stdarg.h>
 #include <string.h>
-Logger::Logger(FileManager *fm)
+Logger::Logger(FileManager *fm, const char* modName)
 :
-fm(fm)
+fm(fm), modName(modName)
 {
 }
 
 void Logger::IssueWarningImpl(
-    const char *moduleName,
     const Token *token,
     const char *errMsg,
     ...)
 {
     va_list args;
     va_start(args, errMsg);
-    if(token) {IssueWarningImpl(moduleName, &token->location.id, &token->location, errMsg, args);}
-    else{IssueWarningImpl(moduleName, nullptr, nullptr, errMsg, args);}
+    if(token) {IssueWarningImpl(&token->location.id, &token->location, errMsg, args);}
+    else{IssueWarningImpl(nullptr, nullptr, errMsg, args);}
     va_end(args);
 
     return;
 }
 
 void Logger::IssueWarningImpl(
-    const char* moduleName,
     const FILE_ID *fileId, 
     const SourceLocation *loc, 
     const char *errMsg, 
@@ -31,14 +29,13 @@ void Logger::IssueWarningImpl(
 {
     va_list args;
     va_start(args, errMsg);
-    IssueWarningImpl(moduleName, fileId, loc, errMsg, args);
+    IssueWarningImpl(fileId, loc, errMsg, args);
     va_end(args);
 
     return;
 }
 
 void Logger::IssueWarningImpl(
-        const char* moduleName,
         const FILE_ID* fileId,
         const SourceLocation* loc,
         const char* errMsg,
@@ -66,7 +63,7 @@ void Logger::IssueWarningImpl(
         printf("%ld:%ld\n", loc->line, loc->offset);
     }
 
-    printf("%s warning: \n", moduleName);
+    printf("%s warning: \n", modName.c_str());
 
     if(errMsg)
     {

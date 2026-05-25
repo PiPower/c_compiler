@@ -2,7 +2,7 @@
 #include <cassert>
 #include <stdio.h>
 #include <string.h>
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Lexer", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 
 static constexpr int8_t dec_type_dec = 0;
@@ -32,7 +32,7 @@ static const char* kewordStrings[] = {
 
 Lexer::Lexer(FileManager* manager, const CompilationOpts* opts)
 :
-manager(manager), fEnd(nullptr), fCurr(nullptr), opts(opts), logger(manager)
+manager(manager), fEnd(nullptr), fCurr(nullptr), opts(opts), logger(manager, "Lexer")
 {
     assert(manager != nullptr);
     assert(opts != nullptr);

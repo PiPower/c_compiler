@@ -1,8 +1,8 @@
 #include "NodeExecutor.hpp"
 #include "../utils/DataEncoder.hpp"
 #include "../frontend/SemanticAnalysis.hpp"
-
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("NodeExecutor", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+#include "../utils/Misc.hpp"
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 template<typename _Tp>
 struct right_shift 
@@ -53,44 +53,8 @@ Typed::Number UnaryOp(NodeExecutor* ne, const Ast::Node* node)
 
 NodeExecutor::NodeExecutor(FileManager *fm, SemanticAnalyzer* sm)
 :
-fm(fm), logger(fm), sema(sm)
+fm(fm), logger(fm, "NodeExecutor"), sema(sm)
 {
-}
-
-AccessDesc NodeExecutor::parseAccess(const AccessType *accType)
-{
-    bool hitPointer = false;
-    int64_t arrayCount = 1;
-
-    while (accType)
-    {
-        if(accType->type == ACC_POINTER)
-        {
-            hitPointer = true;
-            break;
-        }
-        else if(accType->type == ACC_ARRAY)
-        {
-            if(!accType->array.asmExpr)
-            {
-                arrayCount = 0;
-            }
-            else
-            {
-                Typed::Number num = ExecuteNode(accType->array.asmExpr);
-                if(num.type == Typed::d_float || num.type == Typed::d_double)
-                {
-                    printf("Floats cannot be used inside array size declaration \n");
-                    exit(-1);
-                }
-                arrayCount *= num.int64;
-            }
-         
-        }
-        accType = accType->next;
-    }
-    
-    return {hitPointer, (size_t)arrayCount};
 }
 
 Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
@@ -154,10 +118,10 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
         else
         {
             Declarator declarator = sema->AnalyzeDeclarator(decl);
-            AccessDesc desc = parseAccess(&declarator.accessTypes);
-            if(desc.hitPtr) 
+            ArraySize  arrSize =  GetArrayElemCount(&declarator.accArr, &logger, this);
+            if(arrSize.hitPointer) 
             {
-                return {.int64 = (int64_t)(POINTER_SIZE * desc.arraySize), .type = Typed::DType::d_int64_t };
+                return {.int64 = (int64_t)(POINTER_SIZE * arrSize.elementCount), .type = Typed::DType::d_int64_t };
             }
             else 
             {
@@ -167,7 +131,7 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
                 {
                     IssueWarning(&typeName->token, "sizeof: unknown type name");
                 }
-                return {.int64 = (int64_t)(symType->size * desc.arraySize), .type = Typed::DType::d_int64_t };
+                return {.int64 = (int64_t)(symType->size * arrSize.elementCount), .type = Typed::DType::d_int64_t };
             }
         }
     }

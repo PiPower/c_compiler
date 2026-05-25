@@ -6,7 +6,7 @@
 #include "../utils/Misc.hpp"
 #include "SemanticAnalysis.hpp"
 #include <string.h>
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Code Gen", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 constexpr uint8_t TYPE_BUFFER = 0;
 constexpr uint8_t FUNC_BUFFER = 1;
@@ -20,7 +20,7 @@ constexpr uint64_t INST_BUFF_SIZE = nr_of_pages * CPU_PAGE_SIZE;
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
 chosenBuffer(TYPE_BUFFER), currFn(false, -1, ""), typeHeap(nr_of_pages), symTab(symTab),
-manager(manager), nodeExec(ne), logger(manager)
+manager(manager), nodeExec(ne), logger(manager, "Code Gen")
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
     {
@@ -315,7 +315,7 @@ bool CodeGen::EmitDeclaratorAcc(const AccessType *acc, const std::string_view *t
 
 void CodeGen::EmitMember(Member *member)
 {
-    EmitDeclarator(&member->access, &member->typeName, &member->typedefAcc);
+    //EmitDeclarator(&member->access, &member->typeName, &member->typedefAcc);
 }
 
 void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
@@ -348,7 +348,7 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
     WriteCharData("\n@%s = %s global ", 
                     name, len,
                     vis.data(), vis.length() );
-    EmitDeclarator(&decl->accessTypes, &spec->typenameView, spec->acc);
+    //EmitDeclarator(&decl->accessTypes, &spec->typenameView, spec->acc);
     if(decl->initExpr)
     {
         IssueWarning(nullptr, "Init expr is currenlty not supported");
@@ -363,7 +363,7 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
     std::string_view zero_init;
     std::string alignment;
 
-    if(IsArray(&decl->accessTypes) || symType->dType == BuiltIn::struct_t ||  symType->dType == BuiltIn::union_t)
+    if(IsArray(&decl->accArr) || symType->dType == BuiltIn::struct_t ||  symType->dType == BuiltIn::union_t)
     {
         zero_init = " zeroinitializer";
     }
@@ -388,9 +388,9 @@ void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl, c
     }
     std::string idx = std::to_string(symVar->varIdx);
 
-    ProcessedDecl procDecl = ProcessDecl(&decl->accessTypes, &spec->typenameView, spec->acc);
-    procDecl.variableIdx = symVar->varIdx;
-    Initializer init = ProcessInitExpr(initExpr);
+    //ProcessedDecl procDecl = ProcessDecl(&decl->accessTypes, &spec->typenameView, spec->acc);
+    //procDecl.variableIdx = symVar->varIdx;
+    //Initializer init = ProcessInitExpr(initExpr);
 }
 
 void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
@@ -402,7 +402,7 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
     std::string_view vis = spec->declType.spec.static_ ? "internal" : "dso_local";
     BindGlobalVarBuffer();
 
-    if(IsArray(&decl->accessTypes))
+    if(IsArray(&decl->accArr))
     {
         IssueWarning(&decl->token, "Function cannot return array type");
     }
@@ -411,8 +411,8 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
         IssueWarning(&decl->token, "EmitFunctionName: unknown return type");
     }
     if( (spec->symType->dType == BuiltIn::struct_t ||  
-             spec->symType->dType == BuiltIn::union_t) &&
-        !IsPointer(&decl->accessTypes))
+            spec->symType->dType == BuiltIn::union_t) &&
+        !IsPointer(&decl->accArr))
     {
         IssueWarning(&decl->token, "Internal: Complex types are not supported");
     }

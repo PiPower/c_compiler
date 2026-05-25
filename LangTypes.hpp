@@ -170,13 +170,17 @@ struct TypeBits
     uint8_t isEllipsis : 1;
 };
 
+struct AccessArray
+{
+    AccessType* ptr;
+    size_t count;
+};
 
 struct Declarator
 {
     Token token;
     AccessType accessTypes;
-    AccessType* accArray;
-    size_t accCount;
+    AccessArray accArr;
     std::string_view name; // abstract declarator has empty name
     const Ast::Node* initExpr;
 };
@@ -184,8 +188,8 @@ struct Declarator
 
 struct Member
 {
-    AccessType access;
-    AccessType typedefAcc;
+    AccessArray accArr;
+    AccessArray typedefAccArr;
     TypeBits declType; 
     BuiltIn::Type memberType;
     int64_t bitCount;
@@ -200,7 +204,7 @@ struct DeclSpecs
     TypeBits declType; 
     std::string_view typenameView; 
     SymbolType* symType;
-    const AccessType* acc;
+    const AccessArray* accArr;
 };
 
 struct FunctionParams
@@ -227,11 +231,7 @@ struct StructDeclaration
     std::vector<StructDeclarator> declarators;
 };
 
-struct MemoryDesc
-{
-    uint64_t size;
-    uint32_t alignment;
-};
+
 struct Symbol
 {
     Sym::Kind kind;
@@ -242,7 +242,7 @@ struct SymbolTypedef
     Sym::Kind kind;
     std::string_view refrencedType;
     Qualifiers qual;
-    AccessType accessTypes;
+    AccessArray accArr;
 };
 
 struct ScopedSymbolTable;

@@ -7,8 +7,7 @@
 #include "../utils/Logger.hpp"
 #include "../utils/Misc.hpp"
 
-const char* modName = "Semantic Analysis";
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(modName, tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 constexpr StructDesc emptyDesc = {NOT_EMITTED, 0, nullptr, nullptr, nullptr};
 typedef const Ast::Node Node;
@@ -44,7 +43,7 @@ static const char* kTypeNames[] = {
 };
 SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 :
-symTab(symTab), manager(manager), ne(manager, this), codeGen(symTab, manager, &ne), logger(manager)
+symTab(symTab), manager(manager), ne(manager, this), codeGen(symTab, manager, &ne), logger(manager, "Semantic Analysis")
 {
     // each simple built in typename is stored in read section during program lifetime
     // so each std::string_view will be valid
@@ -144,7 +143,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     Declarator fnDecl = AnalyzeDeclarator(initDecl->rChild);
     AnalyzeFunctionDecl(&declSpec, &fnDecl);
 
-    if(!fnDecl.accessTypes.next || !IsPointer(fnDecl.accessTypes.next))
+    if(!IsPointer(&fnDecl.accArr , 1))
     {
         codeGen.EmitUnionStruct(declSpec.symType, declSpec.typenameView);
     }
@@ -167,7 +166,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
 
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
 {
-    AccessType* FnDecl = &decl->accArray[0];
+    AccessType* FnDecl = &decl->accArr.ptr[0];
     // on empty function parameter declaration add void type
     if(FnDecl->fnDecl.paramCount == 0)
     {
@@ -265,9 +264,9 @@ create_next:
         level++;
     }
     
-    decl.accArray = symTab->AllocateTypeArrayOnHeap<AccessType>(localTypes.size());
-    decl.accCount = localTypes.size();
-    memcpy(decl.accArray, localTypes.data(), sizeof(AccessType) * decl.accCount);
+    decl.accArr.ptr = symTab->AllocateTypeArrayOnHeap<AccessType>(localTypes.size());
+    decl.accArr.count = localTypes.size();
+    memcpy(decl.accArr.ptr, localTypes.data(), sizeof(AccessType) * decl.accArr.count);
 
     return decl;
 }
@@ -406,7 +405,7 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
             printf("typedef is not allowed to have initializer\n");
             exit(-1);
         }
-        if( IsPointer(&iDecl.decl.accessTypes) )
+        if( IsPointer(&iDecl.decl.accArr) )
         {
             PointerDesc ptrDesc;
             ptrDesc.accessTypes = iDecl.decl.accessTypes;
@@ -415,7 +414,7 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
         }
         else
         {
-            symTab->AddSymbol<SymbolTypedef>(iDecl.decl.name, declSpec->typenameView, declSpec->declType.qual, iDecl.decl.accessTypes);
+            symTab->AddSymbol<SymbolTypedef>(iDecl.decl.name, declSpec->typenameView, declSpec->declType.qual, iDecl.decl.accArr);
         }
         root = currChild;
     }
@@ -492,14 +491,15 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             }
             argNames[idx] = structDecls[i].declarators[j].decl.name;
 
-            members[idx].typedefAcc = structDecls[i].declSpec.acc ? *structDecls[i].declSpec.acc : AccessType{};
+            members[idx].typedefAccArr = structDecls[i].declSpec.accArr ? *structDecls[i].declSpec.accArr : AccessArray{};
             members[idx].declType = structDecls[i].declSpec.declType;
             members[idx].typeName = structDecls[i].declSpec.typenameView;
             members[idx].bitCount = structDecls[i].declarators[j].bitCount;
-            members[idx].access = structDecls[i].declarators[j].decl.accessTypes;
+            members[idx].accArr = structDecls[i].declarators[j].decl.accArr;
             members[idx].memberType = memType->dType;
-            // memory related processing 
-            MemoryDesc desc = GetMemberDesc(&members[idx].access, members[idx].typeName);
+            // memory related processing
+            
+            MemoryDesc desc = GetMemoryDesc(&members[idx].accArr, memType, &logger, &ne);
             members[idx].size = desc.size;
             members[idx].alignment = desc.alignment;
             // post processing related to size and offsets within struct/union itself
@@ -515,7 +515,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             }
 
             if(members[idx].bitCount != -1 && 
-                (members[idx].access.type != ACC_NONE ||  
+                (members[idx].accArr.count > 0 ||  
                  members[idx].memberType < BuiltIn::s_char_8 ||
                  members[idx].memberType > BuiltIn::u_int_64 ))
             {
@@ -565,7 +565,7 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
         Declarator decl = AnalyzeDeclarator(initDecl->rChild);
         decl.initExpr = initDecl->lChild;
         
-        if(decl.accArray[0].type == ACC_FN_DECL)
+        if(decl.accArr.count > 0 && decl.accArr.ptr[0].type == ACC_FN_DECL)
         {
             if(symTab->currentTable->scopeType != Scope::GLOBAL)
             {
@@ -857,17 +857,21 @@ uint64_t SemanticAnalyzer::GetAnnonymousUnionId()
 
 bool SemanticAnalyzer::IsMemberPointer(const Member *member)
 {
-    if(member->access.type != ACC_NONE)
+    if(member->accArr.count > 0)
     {
-        const AccessType* acc = &member->access;
-        while ( acc)
+        for(size_t i = 0; i < member->accArr.count; i++)
         {
-            if(acc->type == ACC_POINTER)
+            if(member->accArr.ptr[i].type == ACC_POINTER)
             {
                 return true;
             }
-            acc = acc->next;
+            else if(member->accArr.ptr[i].type == ACC_FN_CALL || 
+                    member->accArr.ptr[i].type == ACC_FN_DECL)
+            {
+                return false;
+            }
         }
+
     }
     return false;
 }
@@ -896,52 +900,6 @@ std::string_view SemanticAnalyzer::SimpleTypeToString(BuiltIn::Type type)
     }
 
     return "";
-}
-
-MemoryDesc SemanticAnalyzer::GetMemberDesc(AccessType *accType, const std::string_view &typeName)
-{
-    bool hitPointer = false;
-    int64_t arrayCount = 1;
-
-    while (accType)
-    {
-        if(accType->type == ACC_POINTER)
-        {
-            hitPointer = true;
-            break;
-        }
-        else if(accType->type == ACC_ARRAY)
-        {
-            if(!accType->array.asmExpr)
-            {
-                arrayCount = 0;
-            }
-            else
-            {
-                Typed::Number num = ne.ExecuteNode(accType->array.asmExpr);
-                if(num.type == Typed::d_float || num.type == Typed::d_double)
-                {
-                    printf("Floats cannot be used inside array size declaration \n");
-                    exit(-1);
-                }
-                arrayCount *= num.int64;
-            }
-         
-        }
-        accType = accType->next;
-    }
-    
-    if(hitPointer)
-    {
-        return {arrayCount * POINTER_SIZE, 8};
-    }
-
-    SymbolType* symType = symTab->QueryTypeSymbol(typeName);
-    if(!symType)
-    {
-        IssueWarning(nullptr, "GetMemberDesc: unknown type name");
-    }
-    return {arrayCount * symType->size, symType->alignment};
 }
 
 DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
@@ -1032,7 +990,7 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                 }
                 spec.typenameView = symTypedef->refrencedType;
                 spec.symType = symTab->QueryTypeSymbol(symTypedef->refrencedType);
-                spec.acc = &symTypedef->accessTypes;
+                spec.accArr = &symTypedef->accArr;
                 if(!spec.symType)
                 {
                     IssueWarning(&currNode->token, "typedef refers to unknown type");

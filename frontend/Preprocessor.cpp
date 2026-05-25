@@ -5,8 +5,8 @@
 #include "../utils/DataEncoder.hpp"
 #include <functional>
 #include <iostream>
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Preprocessor", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
-#define IssueWarningNoneTerminal(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Preprocessor", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__);
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+#define IssueWarningNoneTerminal(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__);
 
 
 static const char* PreprocessorFlename = "preprocessor_file.comp";
@@ -37,7 +37,7 @@ struct MacroTokenQueue
 Preprocessor::Preprocessor(FILE_ID mainFileId, FileManager *manager, const CompilationOpts* opts)
 :
 lexer(manager, opts), manager(manager), opts(opts), stages({}),
-blockResult(EXPR_RESULT_NONE), fileOffset(0), ex(manager), logger(manager)
+blockResult(EXPR_RESULT_NONE), fileOffset(0), ex(manager), logger(manager, "Preprocessor")
 {
     assert(opts != nullptr);
     constexpr size_t initiialBufferSize = 500;

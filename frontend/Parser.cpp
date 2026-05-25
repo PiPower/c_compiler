@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <future>
-#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl("Parser", tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
+#define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 
 #define CPU_PAGE 4096
@@ -93,7 +93,7 @@ static Ast::Node* SpecifierParseLoop(
 Parser::Parser(FILE_ID mainFileId, SemanticAnalyzer* analyzer, FileManager* manager, const CompilationOpts* opts)
 :
 analyzer(analyzer), manager(manager), PP(mainFileId, manager, opts), 
-opts(opts), pState({}), logger(manager)
+opts(opts), pState({}), logger(manager, "Parser")
 {
     assert(opts != nullptr);
     AddNodePage(); 
@@ -108,7 +108,10 @@ start_parsing:
         ConsumeToken();
         token = GetCurrToken();
     }
-
+    if(token.location.id.id == 3 && token.location.line == 205)
+    {
+        int x = 2;
+    }
     // when parser recives eof token it marks the end of translation unit
     if(token.type == TokenType::eof)
     {
@@ -770,6 +773,7 @@ Ast::Node *Parser::ParseDeclarator()
     {
         Ast::Node* declarator = AllocateAstNodes();
         declarator->type = Ast::NodeType::declarator;
+        declarator->token = currentLocToken;
         declarator->lChild = declExpr;
         declarator->rChild = ptrExpr;
         return declarator;
@@ -978,7 +982,6 @@ Ast::Node *Parser::ParseDirectDeclarator()
         token = GetCurrToken();
     }
     
-    directDeclarator->token = currentLocToken;
     return directDeclarator;
 }
 /*
@@ -1361,6 +1364,7 @@ Ast::Node *Parser::AbstractDeclarator()
     Ast::Node* declExpr = ParseDirectAbstractDeclarator();
 
     Ast::Node* abstractDeclarator = AllocateAstNodes();
+    abstractDeclarator->token = currentLocToken;
     abstractDeclarator->type = Ast::NodeType::abstact_declarator;
     abstractDeclarator->lChild = declExpr;
     abstractDeclarator->rChild = ptrExpr;
@@ -1446,11 +1450,11 @@ Ast::Node *Parser::ParseDirectAbstractDeclarator()
             array->type = Ast::array_decl;
             if(GetCurrToken().type != TokenType::r_bracket)
             {
-                array->lChild = AssignmentExpression();
+                array->rChild = AssignmentExpression();
             }
 
             Token star = GetCurrToken();
-            if(!array->lChild && star.type == TokenType::star)
+            if(!array->rChild && star.type == TokenType::star)
             {
                 array->type = Ast::var_len_array;
                 ConsumeExpectedToken(TokenType::star);
@@ -1462,8 +1466,7 @@ Ast::Node *Parser::ParseDirectAbstractDeclarator()
 
         token = GetCurrToken();
     }
-    
-    directAbstractDeclarator->token = currentLocToken;
+
     return directAbstractDeclarator;
 }
 
