@@ -6,12 +6,6 @@
 
 struct SemanticAnalyzer;
 
-struct AccessDesc
-{
-    bool hitPtr;
-    size_t arraySize;
-};
-
 struct NodeExecutor
 {
     NodeExecutor(FileManager* fm, SemanticAnalyzer* sm = nullptr);

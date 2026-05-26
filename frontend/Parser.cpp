@@ -108,7 +108,7 @@ start_parsing:
         ConsumeToken();
         token = GetCurrToken();
     }
-    if(token.location.id.id == 3 && token.location.line == 205)
+    if(token.location.id.id == 1)
     {
         int x = 2;
     }

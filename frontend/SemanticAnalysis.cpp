@@ -405,10 +405,10 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
             printf("typedef is not allowed to have initializer\n");
             exit(-1);
         }
-        if( IsPointer(&iDecl.decl.accArr) )
+        if(IsPointer(&iDecl.decl.accArr))
         {
             PointerDesc ptrDesc;
-            ptrDesc.accessTypes = iDecl.decl.accessTypes;
+            ptrDesc.accessTypes = iDecl.decl.accArr;
             ptrDesc.spec = *declSpec;
             symTab->AddSymbol<SymbolType>(iDecl.decl.name, BuiltIn::ptr, true, 8, 8, ptrDesc);
         }
@@ -577,7 +577,7 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
         {
             if(symType->dType == BuiltIn::ptr)
             {
-                decl.accessTypes = symType->ptr.accessTypes;
+                decl.accArr = symType->ptr.accessTypes;
             }
             AnalyzeVariableDecl(declSpec, &decl);
         }
@@ -657,7 +657,7 @@ void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
         }
         VariableOpts opts = {.isEnumerator = 1, .isConst = 0};
         std::string_view enumName = GetViewForToken(enumerator->token);
-        Declarator decl = {enumerator->token, {}, nullptr, 0, enumName};
+        Declarator decl = {enumerator->token, {}, enumName, nullptr};
         symTab->AddSymbol<SymbolVariable>(enumName, symTab->currentTable->scopeType, spec, &decl, &opts, value);
         
         value++;
@@ -775,17 +775,23 @@ bool SemanticAnalyzer::CompareDeclSpec(const DeclSpecs *s1, const DeclSpecs *s2)
 
 bool SemanticAnalyzer::CompareDeclarators(const Declarator *d1, const Declarator *d2)
 {
-    if(d1->accessTypes.type == ACC_NONE &&
-       d2->accessTypes.type == ACC_NONE)
+    if(d1->accArr.count == 0 &&
+       d2->accArr.count == 0)
     {
         return true;
     }
 
-    const AccessType* acc1 = &d1->accessTypes;
-    const AccessType* acc2 = &d2->accessTypes;
-
-    while (acc1)
+    if(d1->accArr.count != d2->accArr.count)
     {
+        return false;
+    }
+
+
+    for(size_t i = 0; i < d1->accArr.count; i ++)
+    {
+        const AccessType* acc1 = &d1->accArr.ptr[i];
+        const AccessType* acc2 = &d2->accArr.ptr[i];
+
         if(acc1->type != acc2->type)
         {
             return false;
@@ -811,13 +817,12 @@ bool SemanticAnalyzer::CompareDeclarators(const Declarator *d1, const Declarator
         {
             Typed::Number num1 = ne.ExecuteNode(acc1->array.asmExpr);
             Typed::Number num2 = ne.ExecuteNode(acc2->array.asmExpr);
-            if(num1 != num2 )
+            if(num1 != num2)
             {
                 return false;
             }
         }
-        acc1 = acc1->next;
-        acc2 = acc2->next;
+
     }
     
     return true;

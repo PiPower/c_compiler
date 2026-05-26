@@ -179,7 +179,6 @@ struct AccessArray
 struct Declarator
 {
     Token token;
-    AccessType accessTypes;
     AccessArray accArr;
     std::string_view name; // abstract declarator has empty name
     const Ast::Node* initExpr;
@@ -260,7 +259,7 @@ struct StructDesc
 
 struct PointerDesc
 {
-    AccessType accessTypes;
+    AccessArray accessTypes;
     DeclSpecs spec;
 };
 
