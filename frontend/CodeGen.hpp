@@ -61,9 +61,10 @@ struct CodeGen
     void EmitTypename(SymbolType* symType, const std::string_view& typeName, bool useQueue = true);
     void EmitBuiltInTypename(SymbolType* symType);
     std::string_view GetBuiltInName(SymbolType* symType);
-    bool EmitDeclarator(const AccessType* acc,  const std::string_view* typeName, const AccessType* typedefAcc);
-    bool EmitDeclaratorAcc(const AccessType* acc, const std::string_view* typeName);
+    bool EmitDeclarator(const AccessArray* acc, const std::string_view* typeName, const AccessArray* typedefAcc);
+    bool EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName, const AccessArray* typedefAcc);
     void EmitMember(Member* member);
+    bool EmitAccessArrayOpened(const AccessArray* accArr, uint64_t* bracket);
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
     void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr);
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);

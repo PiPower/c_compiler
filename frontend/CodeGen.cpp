@@ -84,20 +84,18 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
                 maxAlignmentMember = i;
             }
         }  
-        if(maxAlignmentMember == maxSizeMember)
+
+        // enforces proper alignment 
+        EmitMember(&symType->str.memberList[maxAlignmentMember]);
+        //size_t aling = maxSize % maxAlignment;
+        //maxSize += aling ? maxAlignment - aling : 0;
+        maxSize -= symType->str.memberList[maxAlignmentMember].size;
+        if(maxSize > 0)
         {
-            EmitMember(&symType->str.memberList[maxSizeMember]);
-        }
-        else
-        {
-            // enforces proper alignment 
-            EmitMember(&symType->str.memberList[maxAlignmentMember]);
-            size_t aling = maxSize % maxAlignment;
-            maxSize += aling ? maxAlignment - aling : 0;
-            maxSize -= symType->str.memberList[maxAlignmentMember].size;
             std::string num = std::to_string(maxSize);
             WriteCharData(", [%s x i8]", num.data(), num.length());
         }
+        
     }
     WriteCharData(" }\n");
     // mark symbol as emitted
@@ -205,7 +203,7 @@ std::string_view CodeGen::GetBuiltInName(SymbolType *symType)
     return nullptr;
 }
 
-bool CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typeName, const AccessType* typedefAcc)
+bool CodeGen::EmitDeclarator(const AccessArray* acc, const std::string_view* typeName, const AccessArray* typedefAcc)
 {
     static std::vector<std::string_view> arrSizes;
 
@@ -218,7 +216,7 @@ bool CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typ
         IssueWarning(nullptr, "EmitDeclarator: null type name");
     }
 
-    if(acc->type == ACC_NONE && !(typedefAcc && typedefAcc->type != ACC_NONE))
+    if(acc->count == 0 && !(typedefAcc && typedefAcc->count != 0))
     {
         SymbolType* st = symTab->QueryTypeSymbol(*typeName);
         if(!st)
@@ -228,36 +226,19 @@ bool CodeGen::EmitDeclarator(const AccessType* acc,  const std::string_view* typ
         EmitTypename(st, *typeName);
         return false;
     }
-
-    const AccessType* localAcc = acc;
-    bool freeLocalAcc = false;
-    if(acc->type == ACC_NONE)
-    {
-        localAcc = typedefAcc;
-    }
-    else if(typedefAcc && typedefAcc->type != ACC_NONE)
-    {
-        IssueWarning(nullptr, "Merging access types is not supported")
-        localAcc = MargeAccessTypes(acc, typedefAcc);
-        freeLocalAcc = true;
-    }
-
-    bool isPtr = EmitDeclaratorAcc(localAcc, typeName);
-
-    if(freeLocalAcc)
-    {
-        FreeMergedAccType((AccessType*)localAcc);
-    }
-
-    return isPtr;
+    
+    return EmitDeclaratorAcc(acc, typeName, typedefAcc);
 }
 
-bool CodeGen::EmitDeclaratorAcc(const AccessType *acc, const std::string_view *typeName)
+bool CodeGen::EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName, const AccessArray* typedefAcc)
 {
+    uint64_t bracket1 = 0;
+    EmitAccessArrayOpened(acc, &bracket1);
+    /*
     const AccessType* accType = acc;
     bool hitPointer = false;
     uint32_t brackets = 0;
-    while (accType)
+    for(size_t )
     {
         if(accType->type == ACC_POINTER)
         {
@@ -286,8 +267,7 @@ bool CodeGen::EmitDeclaratorAcc(const AccessType *acc, const std::string_view *t
         }
         else
         {
-            printf("calls are not allowed in declarator \n");
-            exit(-1);
+            IssueWarning(nullptr, "Internal: Function calls are not allowed in declaration \n")
         }
         accType = accType->next;
     }
@@ -309,13 +289,46 @@ bool CodeGen::EmitDeclaratorAcc(const AccessType *acc, const std::string_view *t
     for(uint32_t i =0; i < brackets; i++)
     {
         WriteByte(']');
-    }
-    return hitPointer;
+    }*/
+    return false;
 }
 
 void CodeGen::EmitMember(Member *member)
 {
-    //EmitDeclarator(&member->access, &member->typeName, &member->typedefAcc);
+    EmitDeclarator(&member->accArr, &member->typeName, &member->typedefAccArr);
+}
+
+bool CodeGen::EmitAccessArrayOpened(const AccessArray *accArr, uint64_t* bracket)
+{
+    for(size_t i = 0; i < accArr->count; i++)
+    {
+        const AccessType* accType = &accArr->ptr[i];
+        if(accType->type == ACC_POINTER)
+        {
+            return true;
+        }
+        else if(accType->type == ACC_ARRAY_VLA)
+        {
+            WriteCharData("[0 x ");
+            (*bracket)++;
+        }
+        else if(accType->type == ACC_ARRAY)
+        {
+            Typed::Number num = nodeExec->ExecuteNode(accType->array.asmExpr);
+            if(num.type == Typed::d_float || num.type == Typed::d_double)
+            {
+                printf("Floats cannot be used inside array size declaration \n");
+                exit(-1);
+            }
+            std::string str = std::to_string(num.int64);
+            WriteCharData("[%s x ", str.data(), str.length());
+            (*bracket)++;
+        }
+        else
+        {
+            IssueWarning(nullptr, "Internal: Function calls are not allowed in declaration \n")
+        }
+    }
 }
 
 void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
