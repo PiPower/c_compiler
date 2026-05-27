@@ -74,6 +74,7 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
            IssueWarning(&expr->token, "Expression must have integral type");
            exit(-1);
         }
+    
         numOut.int64 = stringToInt64(GetDataPtr(&expr->token), 
                 expr->token.location.len, GetTokenMode(expr->token));
         return numOut;

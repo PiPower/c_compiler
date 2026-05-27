@@ -43,7 +43,7 @@ struct CodeGen
     void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr);
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
     void EmitFunctionClose();
-    void InitGlobalVar(const DeclSpecs* spec, const Declarator* decl);
+    void InitGlobalVar(const DeclSpecs* spec, const Declarator* decl, bool isPtr);
     void ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl);
     std::string_view GetViewForToken(const Token &token);
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);

@@ -323,11 +323,11 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
                     vis.data(), vis.length() );
     }
 
-    EmitDeclarator(&decl->accArr, &spec->typenameView, spec->accArr);
+    bool isPtr = EmitDeclarator(&decl->accArr, &spec->typenameView, spec->accArr);
 
     if(decl->initExpr)
     {
-        InitGlobalVar(spec, decl);
+        InitGlobalVar(spec, decl, isPtr);
     }
     else 
     {
@@ -438,8 +438,24 @@ void CodeGen::EmitFunctionClose()
     currFn.fnName = "";
 }
 
-void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl)
+void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl, bool isPtr)
 {
+    if(!isPtr && (spec->symType->dType == BuiltIn::struct_t || spec->symType->dType == BuiltIn::union_t ))
+    {
+        IssueWarning(nullptr, "Struct/union initialization is not supported")
+    }
+
+    if(!spec->accArr && decl->accArr.count == 0)
+    {
+        Typed::Number num = nodeExec->ExecuteNode(decl->initExpr);
+        std::string str = Typed::ToString(num);
+        std::string alignment = std::to_string(spec->symType->alignment);
+
+        WriteCharData(" %s, align %s",
+            str.data(), str.length(),
+            alignment.data(), alignment.length());
+    }
+    int x = 2;
 }
 
 void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
