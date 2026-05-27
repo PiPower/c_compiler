@@ -835,16 +835,43 @@ bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 
 void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl)
 {
-    VariableOpts opts = {.isEnumerator = 0, .isConst = 0, .isEmitted = 0};
-    symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts);
-
     if(symTab->IsCurrentScopeGlobal() || spec->declType.spec.static_)
     {
-        //codeGen.EmitGlobalVariable(spec, decl);
+        AnalyzeGlobalVar(spec, decl);
     }
     else
     {
         //codeGen.EmitLocalVariable(spec, decl);
+    }
+}
+
+void SemanticAnalyzer::AnalyzeGlobalVar(const DeclSpecs* spec, const Declarator* decl)
+{
+    SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name);
+
+    if(symVar == nullptr)
+    {
+        VariableOpts opts = {.isEnumerator = 0, .isConst = 0, .isEmitted = 0};
+        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts);
+        symVar = symTab->QueryVarSymbol(decl->name);
+    }
+
+    if(!decl->initExpr)
+    {
+        if(symVar->opts.isEmitted == 0 && uninitGlobals.find(symVar) == uninitGlobals.end())
+        {
+            uninitGlobals.insert(symVar);
+        }
+    }
+    else
+    {
+        if(symVar->opts.isEmitted)
+        {
+            int len = (int) decl->name.length();
+            IssueWarning(nullptr, "Symbol \'%.*s\' redefinition", len, decl->name.data());
+        }
+        symVar->opts.isEmitted = 1;
+        codeGen.EmitGlobalVariable(spec, decl);
     }
 }
 

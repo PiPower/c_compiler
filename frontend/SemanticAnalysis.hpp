@@ -30,6 +30,7 @@ struct SemanticAnalyzer
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);
     void AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl);
+    void AnalyzeGlobalVar(const DeclSpecs* spec, const Declarator* decl);
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
     bool IsMemberPointer(const Member* member);
@@ -46,6 +47,7 @@ struct SemanticAnalyzer
     FileManager* manager;
     NodeExecutor ne;
     CodeGen codeGen;
+    std::unordered_set<SymbolVariable*> uninitGlobals;
     // used as local string to avoid constant re allocation
     // it is not guaranted to be valid after call to any SEMA function
     Logger logger;

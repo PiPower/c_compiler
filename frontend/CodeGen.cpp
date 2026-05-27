@@ -232,47 +232,14 @@ bool CodeGen::EmitDeclarator(const AccessArray* acc, const std::string_view* typ
 
 bool CodeGen::EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName, const AccessArray* typedefAcc)
 {
-    uint64_t bracket1 = 0;
-    EmitAccessArrayOpened(acc, &bracket1);
-    /*
-    const AccessType* accType = acc;
-    bool hitPointer = false;
-    uint32_t brackets = 0;
-    for(size_t )
+    uint64_t brackets = 0;
+    bool endedWithPtr = EmitAccessArrayOpened(acc, &brackets);
+    if(!endedWithPtr)
     {
-        if(accType->type == ACC_POINTER)
-        {
-            hitPointer = true;
-            break;
-        }
-        else if(accType->type == ACC_ARRAY)
-        {
-            if(!accType->array.asmExpr)
-            {
-                // variable length array
-                WriteCharData("[0 x ");
-            }
-            else
-            {
-                Typed::Number num = nodeExec->ExecuteNode(accType->array.asmExpr);
-                if(num.type == Typed::d_float || num.type == Typed::d_double)
-                {
-                    printf("Floats cannot be used inside array size declaration \n");
-                    exit(-1);
-                }
-                std::string str = std::to_string(num.int64);
-                WriteCharData("[%s x ", str.data(), str.length());
-            }
-            brackets++;
-        }
-        else
-        {
-            IssueWarning(nullptr, "Internal: Function calls are not allowed in declaration \n")
-        }
-        accType = accType->next;
+        endedWithPtr = EmitAccessArrayOpened(typedefAcc, &brackets);
     }
-    
-    if(hitPointer)
+
+    if(endedWithPtr)
     {
         WriteCharData("ptr");
     }
@@ -289,8 +256,9 @@ bool CodeGen::EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* 
     for(uint32_t i =0; i < brackets; i++)
     {
         WriteByte(']');
-    }*/
-    return false;
+    }
+
+    return endedWithPtr;
 }
 
 void CodeGen::EmitMember(Member *member)
@@ -300,6 +268,11 @@ void CodeGen::EmitMember(Member *member)
 
 bool CodeGen::EmitAccessArrayOpened(const AccessArray *accArr, uint64_t* bracket)
 {
+    if(!accArr)
+    {
+        return false;
+    }
+
     for(size_t i = 0; i < accArr->count; i++)
     {
         const AccessType* accType = &accArr->ptr[i];
@@ -314,13 +287,7 @@ bool CodeGen::EmitAccessArrayOpened(const AccessArray *accArr, uint64_t* bracket
         }
         else if(accType->type == ACC_ARRAY)
         {
-            Typed::Number num = nodeExec->ExecuteNode(accType->array.asmExpr);
-            if(num.type == Typed::d_float || num.type == Typed::d_double)
-            {
-                printf("Floats cannot be used inside array size declaration \n");
-                exit(-1);
-            }
-            std::string str = std::to_string(num.int64);
+            std::string str = std::to_string(accType->array.size);
             WriteCharData("[%s x ", str.data(), str.length());
             (*bracket)++;
         }
@@ -329,6 +296,8 @@ bool CodeGen::EmitAccessArrayOpened(const AccessArray *accArr, uint64_t* bracket
             IssueWarning(nullptr, "Internal: Function calls are not allowed in declaration \n")
         }
     }
+
+    return false;
 }
 
 void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
@@ -339,52 +308,31 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
     }
     BindGlobalVarBuffer();
 
-    std::string_view vis = spec->declType.spec.static_ ? "internal" : "dso_local";
-    const char* name;
-    size_t len;
     if(spec->declType.spec.static_ && currFn.inFunction)
     {
-        len = decl->name.length() + currFn.fnName.length() + 1;
-        char* nameBuff = (char*)alloca(len);
-        memcpy(nameBuff, currFn.fnName.data(), currFn.fnName.length() );
-        nameBuff[currFn.fnName.length()] = '.';
-        memcpy(nameBuff + currFn.fnName.length() + 1, decl->name.data(), decl->name.length());
-        name = nameBuff;
+        WriteCharData("\n@%s.%s = internal global ", 
+            currFn.fnName.data(), currFn.fnName.length(),
+            decl->name.data(), decl->name.length());
     }
     else
     {
-        name = decl->name.data();
-        len = decl->name.length();
+        std::string_view vis = spec->declType.spec.static_ ? "internal" : "dso_local";
+
+        WriteCharData("\n@%s = %s global ", 
+                    decl->name.data(), decl->name.length(),
+                    vis.data(), vis.length() );
     }
 
+    EmitDeclarator(&decl->accArr, &spec->typenameView, spec->accArr);
 
-    WriteCharData("\n@%s = %s global ", 
-                    name, len,
-                    vis.data(), vis.length() );
-    //EmitDeclarator(&decl->accessTypes, &spec->typenameView, spec->acc);
     if(decl->initExpr)
     {
-        IssueWarning(nullptr, "Init expr is currenlty not supported");
-        return;
+        InitGlobalVar(spec, decl);
     }
-
-    SymbolType* symType = symTab->QueryTypeSymbol(spec->typenameView);
-    if(!symType)
+    else 
     {
-        IssueWarning(&decl->token, "EmitGlobalVariable: unknown type for variable");
+        ZeroInitGlobalVar(spec, decl);
     }
-    std::string_view zero_init;
-    std::string alignment;
-
-    if(IsArray(&decl->accArr) || symType->dType == BuiltIn::struct_t ||  symType->dType == BuiltIn::union_t)
-    {
-        zero_init = " zeroinitializer";
-    }
-    alignment = std::to_string(symType->alignment);
-
-    WriteCharData("%s, align %s", 
-        zero_init.data(), zero_init.length(),
-        alignment.data(), alignment.length());
 }
 
 void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl, const Ast::Node* initExpr)
@@ -490,6 +438,31 @@ void CodeGen::EmitFunctionClose()
     currFn.fnName = "";
 }
 
+void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl)
+{
+}
+
+void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
+{
+    SymbolType* symType = symTab->QueryTypeSymbol(spec->typenameView);
+    if(!symType)
+    {
+        IssueWarning(&decl->token, "EmitGlobalVariable: unknown type for variable");
+    }
+    std::string_view zero_init;
+    std::string alignment;
+
+    if(IsArray(&decl->accArr) || symType->dType == BuiltIn::struct_t ||  symType->dType == BuiltIn::union_t)
+    {
+        zero_init = " zeroinitializer";
+    }
+    alignment = std::to_string(symType->alignment);
+
+    WriteCharData("%s, align %s", 
+        zero_init.data(), zero_init.length(),
+        alignment.data(), alignment.length());
+}
+
 std::string_view CodeGen::GetViewForToken(const Token &token)
 {
     FILE_STATE state;
@@ -558,102 +531,6 @@ void CodeGen::WriteToFile(int fd)
 int64_t CodeGen::GetIdxForLocalVar()
 {
     return currFn.variableIdx++;
-}
-
-ProcessedDecl CodeGen::ProcessDecl(const AccessType *acc, const std::string_view *typeName, const AccessType *typedefAcc)
-{
-    static std::vector<std::string_view> arrSizes;
-    if(!acc)
-    {
-        IssueWarning(nullptr, "EmitDeclarator: null access chain");
-    }
-    if(!typeName)
-    {
-        IssueWarning(nullptr, "EmitDeclarator: null type name");
-    }
-
-    if(acc->type == ACC_NONE && !(typedefAcc && typedefAcc->type != ACC_NONE))
-    {
-        ProcessedDecl declAcc= {};
-        declAcc.type = symTab->QueryTypeSymbol(*typeName);
-        if(!declAcc.type)
-        {
-            IssueWarning(nullptr, "Unknown type for typename");
-        }
-        return declAcc;
-    }
-
-    const AccessType* localAcc = acc;
-    bool freeLocalAcc = false;
-    if(acc->type == ACC_NONE)
-    {
-        localAcc = typedefAcc;
-    }
-    else if(typedefAcc && typedefAcc->type != ACC_NONE)
-    {
-        IssueWarning(nullptr, "Merging access types is not supported")
-        localAcc = MargeAccessTypes(acc, typedefAcc);
-        freeLocalAcc = true;
-    }
-
-    ProcessedDecl declAcc =  processAccess(localAcc);
-    declAcc.type = symTab->QueryTypeSymbol(*typeName);
-
-    if(freeLocalAcc)
-    {
-        FreeMergedAccType((AccessType*)localAcc);
-    }
-
-    return declAcc;
-}
-
-ProcessedDecl CodeGen::processAccess(const AccessType *acc)
-{
-    const AccessType* accType = acc;
-    ProcessedDecl processedAcc = {};
-    bool hitPointer = false;
-    uint32_t brackets = 0;
-
-    while (accType)
-    {
-        if(accType->type == ACC_POINTER)
-        {
-            processedAcc.isPtr = true;
-            break;
-        }
-        else if(accType->type == ACC_ARRAY)
-        {
-            if(!accType->array.asmExpr)
-            {
-               processedAcc.sizes.push_back(0);
-            }
-            else
-            {
-                Typed::Number num = nodeExec->ExecuteNode(accType->array.asmExpr);
-                if(num.type == Typed::d_float || num.type == Typed::d_double)
-                {
-                    IssueWarning(&accType->array.asmExpr->token, "Floats cannot be used inside array size declaration \n");
-                }
-                processedAcc.sizes.push_back(ToUnit64_t(num));
-            }
-            brackets++;
-        }
-        else
-        {
-            IssueWarning(nullptr, "Floats cannot be used inside array size declaration \n");
-        }
-        accType = accType->next;
-    }
-    
-    return processedAcc;
-}
-
-Initializer CodeGen::ProcessInitExpr(const Ast::Node *initExpr)
-{
-    Typed::Number num = nodeExec->ExecuteNode(initExpr);
-    Initializer init;
-    InitializerValue v;
-    init.values.push_back({.hi=num.uint64});
 }
 
 void CodeGen::BindTypeBuffer()
