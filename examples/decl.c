@@ -9,9 +9,9 @@
 typedef int (*(*func_table[4][14])(char, ...))(double);
 typedef int *func_table1;
 
-typedef int yolo[][2];
+typedef int yolo[4][2];
 struct XD{
-    yolo p;// = { {2, 4}},{ {2, 4}} , { {2, 4}} ;
+    yolo p;
 } sd;
 
 func_table ptr;

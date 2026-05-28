@@ -280,7 +280,10 @@ bool CodeGen::EmitAccessArrayOpened(const AccessArray *accArr, uint64_t* bracket
         }
         else if(accType->type == ACC_ARRAY)
         {
-            std::string str = std::to_string(accType->array.size);
+            std::string str = accType->array.size != CG_ZERO_SIZED_ARRAY ?
+                                std::to_string(accType->array.size):
+                                "0";
+        
             WriteCharData("[%s x ", str.data(), str.length());
             (*bracket)++;
         }

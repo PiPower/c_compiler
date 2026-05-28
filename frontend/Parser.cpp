@@ -1518,15 +1518,16 @@ Ast::Node *Parser::DesignatorList()
         ConsumeToken();
         Ast::Node* designator = AllocateAstNodes();
         designator->token = token;
-        designator->type = Ast::designator;
         if(token.type == TokenType::l_bracket)
         {
+            designator->type = Ast::designator_expr;
             designator->lChild = ParseConstantExpr();
             ConsumeExpectedToken(TokenType::r_bracket);
         }
         else
         {
             // token holds identifier value
+            designator->type = Ast::designator_id;
             designator->token = GetCurrToken();
             ConsumeExpectedToken(TokenType::identifier);
         }

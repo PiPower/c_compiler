@@ -87,7 +87,8 @@
     X(initializer_list) \
     X(init_item) \
     X(designator_list) \
-    X(designator) \
+    X(designator_expr) \
+    X(designator_id) \
     X(enumerator) \
     /* Misc */ \
     X(compound_statement) \
