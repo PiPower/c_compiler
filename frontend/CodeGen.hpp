@@ -9,6 +9,9 @@
 #include "NodeExecutor.hpp"
 #include <stdarg.h>
 
+constexpr uint64_t CG_EMPTY_ARRAY = 0x0;
+constexpr uint64_t CG_ZERO_SIZED_ARRAY = 0xFFFFFFFFFFFFFFFF;
+
 struct LlvmType
 {
     int symbolSaveCounter;
@@ -35,8 +38,8 @@ struct CodeGen
     void EmitTypename(SymbolType* symType, const std::string_view& typeName, bool useQueue = true);
     void EmitBuiltInTypename(SymbolType* symType);
     std::string_view GetBuiltInName(SymbolType* symType);
-    bool EmitDeclarator(const AccessArray* acc, const std::string_view* typeName, const AccessArray* typedefAcc);
-    bool EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName, const AccessArray* typedefAcc);
+    bool EmitDeclarator(const AccessArray* acc, const std::string_view* typeName);
+    bool EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName);
     void EmitMember(Member* member);
     bool EmitAccessArrayOpened(const AccessArray* accArr, uint64_t* bracket);
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);

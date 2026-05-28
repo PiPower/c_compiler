@@ -17,14 +17,15 @@ struct SemanticAnalyzer
     void AnalyzeDeclaration(const Ast::Node* declSpecs, const Ast::Node* initDeclList);
     void AnalyzeFunctionDef(const Ast::Node* body, const Ast::Node* decl);
     void AnalyzeFunctionDecl(DeclSpecs* spec, Declarator* decl);
-    Declarator ProcessDecl(const Ast::Node* declarator, std::stack<const Ast::Node*>* accessTypes, bool isAbstract);
+    Declarator ProcessDecl(const Ast::Node* declarator, std::stack<const Ast::Node*>* accessTypes, bool isAbstract, const AccessArray* typedefAcc);
     FunctionParams* ProcessFnParams(const Ast::Node* paramsNode, size_t* paramCount);
     StructDeclaration AnalyzeStructDeclaration(const Ast::Node* declSpecs, const Ast::Node* structDeclList);
     void AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node* initDeclList);
     void AnalyzeStructUnion(const Ast::Node* structTree, DeclSpecs* spec, bool isStruct);
     void AnalyzeInitDeclList(DeclSpecs* declSpec, const Ast::Node* initDeclList);
-    Declarator AnalyzeDeclarator(const Ast::Node* declarator);
+    Declarator AnalyzeDeclarator(const Ast::Node* declarator, const AccessArray* typedefAcc);
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
+    void DeduceInferableArrSize(Declarator* decl);
     int BuiltInBitCount(BuiltIn::Type type);
     BuiltIn::Type BitCountToIntegerType(uint8_t BitCount, bool isSigned);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);

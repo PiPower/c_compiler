@@ -203,7 +203,7 @@ std::string_view CodeGen::GetBuiltInName(SymbolType *symType)
     return nullptr;
 }
 
-bool CodeGen::EmitDeclarator(const AccessArray* acc, const std::string_view* typeName, const AccessArray* typedefAcc)
+bool CodeGen::EmitDeclarator(const AccessArray* acc, const std::string_view* typeName)
 {
     static std::vector<std::string_view> arrSizes;
 
@@ -211,12 +211,9 @@ bool CodeGen::EmitDeclarator(const AccessArray* acc, const std::string_view* typ
     {
         IssueWarning(nullptr, "EmitDeclarator: null access chain");
     }
-    if(!typeName)
-    {
-        IssueWarning(nullptr, "EmitDeclarator: null type name");
-    }
 
-    if(acc->count == 0 && !(typedefAcc && typedefAcc->count != 0))
+
+    if(acc->count == 0 )
     {
         SymbolType* st = symTab->QueryTypeSymbol(*typeName);
         if(!st)
@@ -226,18 +223,14 @@ bool CodeGen::EmitDeclarator(const AccessArray* acc, const std::string_view* typ
         EmitTypename(st, *typeName);
         return false;
     }
-    
-    return EmitDeclaratorAcc(acc, typeName, typedefAcc);
+
+    return EmitDeclaratorAcc(acc, typeName);
 }
 
-bool CodeGen::EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName, const AccessArray* typedefAcc)
+bool CodeGen::EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName)
 {
     uint64_t brackets = 0;
     bool endedWithPtr = EmitAccessArrayOpened(acc, &brackets);
-    if(!endedWithPtr)
-    {
-        endedWithPtr = EmitAccessArrayOpened(typedefAcc, &brackets);
-    }
 
     if(endedWithPtr)
     {
@@ -263,7 +256,7 @@ bool CodeGen::EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* 
 
 void CodeGen::EmitMember(Member *member)
 {
-    EmitDeclarator(&member->accArr, &member->typeName, &member->typedefAccArr);
+    EmitDeclarator(&member->accArr, &member->typeName);
 }
 
 bool CodeGen::EmitAccessArrayOpened(const AccessArray *accArr, uint64_t* bracket)
@@ -323,7 +316,7 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
                     vis.data(), vis.length() );
     }
 
-    bool isPtr = EmitDeclarator(&decl->accArr, &spec->typenameView, spec->accArr);
+    bool isPtr = EmitDeclarator(&decl->accArr, &spec->typenameView);
 
     if(decl->initExpr)
     {
@@ -454,8 +447,16 @@ void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl, bool 
         WriteCharData(" %s, align %s",
             str.data(), str.length(),
             alignment.data(), alignment.length());
+
+        return;
     }
-    int x = 2;
+    // init arrays
+    const AccessArray* accArr = &decl->accArr;
+    //while (true)
+    {
+        
+    }
+    
 }
 
 void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)

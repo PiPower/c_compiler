@@ -140,7 +140,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     const Ast::Node* initList = decl->rChild;
     const Ast::Node* initDecl = initList->rChild->lChild;
 
-    Declarator fnDecl = AnalyzeDeclarator(initDecl->rChild);
+    Declarator fnDecl = AnalyzeDeclarator(initDecl->rChild, nullptr);
     AnalyzeFunctionDecl(&declSpec, &fnDecl);
 
     if(!IsPointer(&fnDecl.accArr , 1))
@@ -194,7 +194,7 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
     }
 }
 
-Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack<const Ast::Node*>* accessTypes, bool isAbstract)
+Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack<const Ast::Node*>* accessTypes, bool isAbstract, const AccessArray* typedefAcc)
 {
     Declarator decl = {};
     decl.token = declarator->token;
@@ -231,10 +231,19 @@ Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack
                     typeBuffer.type = ACC_ARRAY_VLA;
                     typeBuffer.array.asmExpr = accessType->lChild->rChild;
                 }
+                else if (num.type == Typed::d_none)
+                {
+                    typeBuffer.type = ACC_ARRAY;
+                    typeBuffer.array.size = CG_EMPTY_ARRAY;
+                }
                 else
                 {
                     typeBuffer.type = ACC_ARRAY;
                     typeBuffer.array.size = Typed::ToUnit64_t(num);
+                    if(typeBuffer.array.size == 0 )
+                    {
+                        typeBuffer.array.size = CG_ZERO_SIZED_ARRAY;
+                    }
                 }
                 
                 typeBuffer.array.quals = AnalyzeDeclSpec(accessType->lChild->lChild).declType.qual;
@@ -264,10 +273,18 @@ create_next:
         level++;
     }
     
-    decl.accArr.ptr = symTab->AllocateTypeArrayOnHeap<AccessType>(localTypes.size());
     decl.accArr.count = localTypes.size();
-    memcpy(decl.accArr.ptr, localTypes.data(), sizeof(AccessType) * decl.accArr.count);
+    if(typedefAcc)
+    {
+        decl.accArr.count += typedefAcc->count;
+    }
+    decl.accArr.ptr = symTab->AllocateTypeArrayOnHeap<AccessType>(decl.accArr.count);
+    memcpy(decl.accArr.ptr, localTypes.data(), sizeof(AccessType) * localTypes.size());
 
+    if(typedefAcc)
+    {
+        memcpy(decl.accArr.ptr + localTypes.size(), typedefAcc->ptr, sizeof(AccessType) * typedefAcc->count);
+    }
     return decl;
 }
 
@@ -292,7 +309,7 @@ FunctionParams *SemanticAnalyzer::ProcessFnParams(const Ast::Node *paramsNode, s
         {
             param.spec = AnalyzeDeclSpec(paramNode->lChild->rChild);
             // TODO validate whethere decl does not contain FN_CALL
-            param.decl = AnalyzeDeclarator(paramNode->rChild); 
+            param.decl = AnalyzeDeclarator(paramNode->rChild, param.spec.accArr); 
             params.push_back(param);
         }
         glueNode = glueNode->rChild;
@@ -332,7 +349,7 @@ StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *de
         }
         NoDeclarators = false;
         InitDeclarator initDecl;
-        initDecl.decl = AnalyzeDeclarator(structDeclarator->lChild);
+        initDecl.decl = AnalyzeDeclarator(structDeclarator->lChild, structDecl.declSpec.accArr);
         int64_t bitCount = -1;
         if(structDeclarator->rChild)
         {
@@ -397,7 +414,7 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
         //większa walidacja 
         Ast::Node* initDecl = currChild->lChild;
         InitDeclarator iDecl;
-        iDecl.decl = AnalyzeDeclarator(initDecl->rChild);
+        iDecl.decl = AnalyzeDeclarator(initDecl->rChild, declSpec->accArr);
         iDecl.initializer =  initDecl->lChild;
 
         if(iDecl.initializer)
@@ -562,9 +579,10 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
     {
         const Ast::Node* initDecl = listElem->lChild;
 
-        Declarator decl = AnalyzeDeclarator(initDecl->rChild);
+        Declarator decl = AnalyzeDeclarator(initDecl->rChild, declSpec->accArr);
         decl.initExpr = initDecl->lChild;
-        
+        DeduceInferableArrSize(&decl);
+
         if(decl.accArr.count > 0 && decl.accArr.ptr[0].type == ACC_FN_DECL)
         {
             if(symTab->currentTable->scopeType != Scope::GLOBAL)
@@ -602,7 +620,7 @@ bool SemanticAnalyzer::CompareParams(size_t paramCount, const FunctionParams *p1
     return true;
 }
 
-Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
+Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, const AccessArray* typedefAcc)
 {
     std::stack<const Ast::Node*> accessTypes;
     const Ast::Node *currDecl = declarator;
@@ -619,10 +637,10 @@ Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator)
 
     if(declarator->type == Ast::abstact_declarator)
     {
-       return ProcessDecl(declarator, &accessTypes, true);
+       return ProcessDecl(declarator, &accessTypes, true, typedefAcc);
     }
 
-    return ProcessDecl(declarator, &accessTypes, false);
+    return ProcessDecl(declarator, &accessTypes, false, typedefAcc);
 
 }
 
@@ -663,6 +681,22 @@ void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
         value++;
         enumerator = enumerator->rChild;
     }
+    
+}
+
+void SemanticAnalyzer::DeduceInferableArrSize(Declarator *decl)
+{
+    const AccessArray* arr = &decl->accArr;
+    if(arr->count == 0)
+    {
+        return;
+    }
+
+    if(!(arr->ptr[0].type = ACC_ARRAY && arr->ptr[0].array.size == CG_EMPTY_ARRAY))
+    {
+        return;
+    }
+    
     
 }
 

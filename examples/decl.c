@@ -9,8 +9,13 @@
 typedef int (*(*func_table[4][14])(char, ...))(double);
 typedef int *func_table1;
 
-func_table ptr;
+typedef int yolo[][2];
+struct XD{
+    yolo p;// = { {2, 4}},{ {2, 4}} , { {2, 4}} ;
+} sd;
 
+func_table ptr;
+int test_array[][3] = { [5] = {1, 2, 3}, [2] = {3, 4, 5}, [20] = {1 , 2 ,3} };
 void test_basic_primitives(void) {
     char                a1 = 'A';
     char p;

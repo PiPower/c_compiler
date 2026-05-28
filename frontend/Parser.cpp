@@ -108,10 +108,7 @@ start_parsing:
         ConsumeToken();
         token = GetCurrToken();
     }
-    if(token.location.id.id == 1)
-    {
-        int x = 2;
-    }
+
     // when parser recives eof token it marks the end of translation unit
     if(token.type == TokenType::eof)
     {
