@@ -79,28 +79,24 @@ bool IsPointer(const AccessArray *accArray, size_t startIdx )
 
 bool IsArray(const AccessArray *accArray)
 {
-
-    for(size_t i = 0; i < accArray->count; i++)
+    const AccessType* currAcc = &accArray->ptr[0];
+    if(currAcc->type == ACC_POINTER)
     {
-        const AccessType* currAcc = &accArray->ptr[i];
-        if(currAcc->type == ACC_POINTER)
-        {
-            return false;
-        }
-        else if(currAcc->type == ACC_ARRAY)
-        {
-            return true;
-        }
-        else if(currAcc->type == ACC_FN_CALL)
-        {
-            return false;
-        }
-        else if(currAcc->type == ACC_FN_DECL)
-        {
-            return false;
-        }
-        currAcc = currAcc->next;
+        return false;
     }
+    else if(currAcc->type == ACC_ARRAY)
+    {
+        return true;
+    }
+    else if(currAcc->type == ACC_FN_CALL)
+    {
+        return false;
+    }
+    else if(currAcc->type == ACC_FN_DECL)
+    {
+        return false;
+    }
+ 
 
     return false;
 }

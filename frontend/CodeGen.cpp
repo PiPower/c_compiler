@@ -8,6 +8,12 @@
 #include <string.h>
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
+struct ArrayInitPair
+{
+    uint64_t idx;
+    const Ast::Node* expr;
+};
+
 constexpr uint8_t TYPE_BUFFER = 0;
 constexpr uint8_t FUNC_BUFFER = 1;
 constexpr uint8_t GLOB_VAR_BUFFER = 2;
@@ -441,7 +447,7 @@ void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl, bool 
         IssueWarning(nullptr, "Struct/union initialization is not supported")
     }
 
-    if(!spec->accArr && decl->accArr.count == 0)
+    if(decl->accArr.count == 0)
     {
         Typed::Number num = nodeExec->ExecuteNode(decl->initExpr);
         std::string str = Typed::ToString(num);
@@ -453,14 +459,8 @@ void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl, bool 
 
         return;
     }
-    // init arrays
-    const AccessArray* accArr = &decl->accArr;
-    //while (true)
-    {
-        
-    }
-    
-}
+    InitGlobalArray(&decl->accArr, decl->initExpr, spec);
+}   
 
 void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
 {
@@ -481,6 +481,78 @@ void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
     WriteCharData("%s, align %s", 
         zero_init.data(), zero_init.length(),
         alignment.data(), alignment.length());
+}
+
+void CodeGen::InitGlobalArray(const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec)
+{
+    // init arrays
+    const AccessArray nextAcc = {accArr->ptr + 1, accArr->count - 1};
+
+    std::vector<ArrayInitPair> pairs;
+    if(initExpr)
+    {
+        // first step resolve position of each element in the array
+        uint64_t linearSize = 0;
+        const Ast::Node* nextItem = initExpr->rChild;
+        while (nextItem)
+        {
+            const Ast::Node* desigList = nextItem->lChild->rChild;
+            if(!desigList || !( desigList->rChild &&  desigList->rChild->type == Ast::designator_expr) )
+            {
+                linearSize++;
+            }
+            else
+            {
+                Typed::Number num = nodeExec->ExecuteNode(desigList->rChild->lChild);
+                linearSize = Typed::ToUnit64_t(num);
+            }
+            pairs.push_back({linearSize, nextItem->lChild->lChild});
+            nextItem = nextItem->rChild;
+        }
+        
+        std::sort(pairs.begin(), pairs.end(),
+                [](const ArrayInitPair& l, const ArrayInitPair& r){
+                    return l.idx < r.idx;
+                });
+    }
+    if(pairs.size() > 0 && accArr->ptr[0].array.size < pairs.back().idx )
+    {
+        IssueWarning(nullptr, "Declared array size is smaller than number of elements")
+    }
+    // emit array values
+    bool isNestedArray = nextAcc.count > 0 && IsArray(&nextAcc);
+    if(!initExpr && !isNestedArray)
+    {
+        const AccessType* arrayType = &accArr->ptr[0];
+        if(nextAcc.count > 0 )
+        {
+            arrayType = &nextAcc.ptr[0];
+        }
+        std::string arrayLen = std::to_string(arrayType->array.size);
+        WriteCharData("[%s x ", arrayLen.data(), arrayLen.length() );
+        EmitTypename(spec->symType, spec->typenameView, true);
+        WriteCharData("] zeroinitializer");
+        return;
+    }
+    size_t currentElem = 0;
+    WriteCharData(" [");
+    for(uint64_t i =0; i < accArr->ptr[0].array.size; i++)
+    {
+        const Ast::Node* initExpr = nullptr;
+        if( currentElem < pairs.size() && i == pairs[currentElem].idx)
+        {
+            initExpr = pairs[currentElem].expr;
+            currentElem++;
+        }
+        if(isNestedArray)
+        {
+            // in this case we have nested arrays
+            InitGlobalArray(&nextAcc, initExpr, spec);
+            WriteCharData(", ");
+        }
+    }
+    WriteByte(']');
+
 }
 
 std::string_view CodeGen::GetViewForToken(const Token &token)
