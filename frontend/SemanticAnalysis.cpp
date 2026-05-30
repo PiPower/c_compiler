@@ -696,26 +696,12 @@ void SemanticAnalyzer::DeduceInferableArrSize(Declarator *decl)
     {
         return;
     }
-    uint64_t linearSize = 0;
-    uint64_t desigSize = 0;
-    const Ast::Node* nextItem = decl->initExpr->rChild;
-    while (nextItem)
-    {
-        const Ast::Node* desigList = nextItem->lChild->rChild;
-        if(!desigList || !( desigList->rChild &&  desigList->rChild->type == Ast::designator_expr) )
-        {
-            linearSize++;
-        }
-        else
-        {
-            Typed::Number num = ne.ExecuteNode(desigList->rChild->lChild);
-            desigSize = std::max(desigSize, Typed::ToUnit64_t(num) + 1);
-            linearSize = std::max(desigSize, linearSize);
-        }
 
-        nextItem = nextItem->rChild;
-    }
-    arr->ptr[0].array.size = linearSize > 0 ? linearSize : CG_ZERO_SIZED_ARRAY;
+    const AccessArray nextAcc = {decl->accArr.ptr + 1, decl->accArr.count - 1};
+    std::vector<ArrayInitPair> pairs = PartitionArrayInitializer(decl->initExpr, &nextAcc, &logger, &ne);
+
+    //pairs.back().idx stores largest valid index into array so lenght is +1
+    arr->ptr[0].array.size = pairs.size() > 0 ? pairs.back().idx + 1 : CG_ZERO_SIZED_ARRAY;
 }
 
 int SemanticAnalyzer::BuiltInBitCount(BuiltIn::Type type)

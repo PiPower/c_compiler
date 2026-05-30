@@ -4,8 +4,11 @@
 #include <string.h>
 #include <stdarg.h>
 #include <future>
+#include "../utils/Misc.hpp"
+
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
+static_assert(sizeof(size_t) <= sizeof(Ast::Node*));
 
 #define CPU_PAGE 4096
 #define PAGE_COUNT 50
@@ -93,10 +96,9 @@ static Ast::Node* SpecifierParseLoop(
 Parser::Parser(FILE_ID mainFileId, SemanticAnalyzer* analyzer, FileManager* manager, const CompilationOpts* opts)
 :
 analyzer(analyzer), manager(manager), PP(mainFileId, manager, opts), 
-opts(opts), pState({}), logger(manager, "Parser")
+opts(opts), nodeHeap(10), pState({}), logger(manager, "Parser")
 {
     assert(opts != nullptr);
-    AddNodePage(); 
 }
 
 Ast::Node* Parser::Parse()
@@ -252,40 +254,10 @@ void Parser::ConsumeExpectedToken(TokenType::Type type)
 
 Ast::Node *Parser::AllocateAstNodes(uint16_t count)
 {
-    size_t memorySize = count * sizeof(Ast::Node);
-    if( memorySize >=  PAGE_COUNT * CPU_PAGE)
-    {
-        printf("Requested node array is too large\n");
-        exit(-1);
-    }
-    
-    if(memorySize + nodeBuffer.offsetIntoPage >= PAGE_COUNT * CPU_PAGE)
-    {
-        AddNodePage();
-    }
-
-    const char* dataBase = nodeBuffer.pages[nodeBuffer.currentPage] + nodeBuffer.offsetIntoPage;
-    nodeBuffer.offsetIntoPage+= memorySize;
-    // start lifetime of Ast::Node objects
-    Ast::Node* nodes = new ((void*)dataBase)Ast::Node[count];
-    memset(nodes, 0, memorySize);
-    return nodes;
+    return nodeHeap.allocateArray<Ast::Node>(count);
 }
 
-void Parser::AddNodePage()
-{
-    void* mmapRet = mmap(nullptr, PAGE_COUNT * CPU_PAGE, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if(mmapRet == MAP_FAILED )
-    {
-        printf("Error Message: %s \n", strerror(errno));
-        exit(-1);
-    }
-    
-    char* filePage = (char*)mmapRet;
-    nodeBuffer.pages.push_back(filePage);
-    nodeBuffer.offsetIntoPage = 0;
-    nodeBuffer.currentPage = nodeBuffer.pages.size() - 1;
-}
+
 
 Ast::Node *Parser::GlueNodes(Ast::Node *l, Ast::Node *parent)
 {
@@ -1051,7 +1023,8 @@ Ast::Node *Parser::InitializerList()
     initializerList->type = Ast::initializer_list;
 
     Token token = GetCurrToken();
-    Ast::Node* currParent = initializerList;
+    std::vector<Ast::Node> initItems;
+    initItems.reserve(60);
     while (token.type != TokenType::r_brace)
     {
         Ast::Node* initItem = AllocateAstNodes();
@@ -1063,8 +1036,8 @@ Ast::Node *Parser::InitializerList()
             ConsumeExpectedToken(TokenType::equal);
         }
         initItem->lChild = ParseInitializer();
+        initItems.push_back(*initItem); // we are leak tolerant 
 
-        currParent = GlueNodes(initItem, currParent);
         token = GetCurrToken();
         if(token.type == TokenType::comma)
         {
@@ -1072,7 +1045,10 @@ Ast::Node *Parser::InitializerList()
             token = GetCurrToken();
         }
     }   
-    
+    size_t len = initItems.size();
+    initializerList->lChild = nodeHeap.allocateArray<Ast::Node>(len);
+    memcpy(initializerList->lChild, initItems.data(), sizeof(Ast::Node) * len);
+    initializerList->rChild = lenToAstPtr(len);
     return initializerList;
 }
 

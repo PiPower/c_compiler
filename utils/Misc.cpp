@@ -1,8 +1,9 @@
 #include "Misc.hpp"
 #include "../frontend/TypedNumber.hpp"
+#include <limits>
 #define IssueWarning(tokenPtr, errorMsg, ...) logger->IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
-ArraySize GetArrayElemCount(AccessArray *accArray, Logger* logger, NodeExecutor* ne)
+ArraySize GetArrayElemCount(const AccessArray *accArray, Logger* logger, NodeExecutor* ne)
 {
     bool hitPointer = false;
     bool hitArray = false;
@@ -40,7 +41,7 @@ ArraySize GetArrayElemCount(AccessArray *accArray, Logger* logger, NodeExecutor*
     return {arrayCount, hitPointer};
 }
 
-MemoryDesc GetMemoryDesc(AccessArray *accArray, SymbolType *type, Logger *logger, NodeExecutor *ne)
+MemoryDesc GetMemoryDesc(const AccessArray *accArray, SymbolType *type, Logger *logger, NodeExecutor *ne)
 {
     ArraySize arrSize = GetArrayElemCount(accArray, logger, ne);
     if(arrSize.hitPointer)
@@ -48,6 +49,103 @@ MemoryDesc GetMemoryDesc(AccessArray *accArray, SymbolType *type, Logger *logger
         return {arrSize.elementCount * 8, 8};
     }
    return {arrSize.elementCount * type->size, type->alignment};
+}
+
+const Ast::Node *GetFirstNestedValue(const Ast::Node *designatorList, Logger *logger)
+{
+    if(designatorList->type != Ast::initializer_list)
+    {
+        return designatorList;
+    }
+
+    while (designatorList->type == Ast::initializer_list)
+    {
+        if(astPtrToLen(designatorList->rChild) == 0)
+        {
+            return nullptr;
+        }
+        if(designatorList->lChild->lChild->type != Ast::initializer_list)
+        {
+            if(designatorList->lChild->rChild)
+            {
+                IssueWarning(nullptr, "initialization of of non-aggregate type with designated innitializer list");
+            }
+            return designatorList->lChild->lChild;
+        }
+        designatorList = designatorList->lChild->lChild;
+    }
+    
+    return nullptr;
+}
+
+std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designatorList, const AccessArray* nextAcc, Logger* logger, NodeExecutor* nodeExec)
+{
+    // first step resolve position of each element in the array
+    std::vector<ArrayInitPair> pairs;
+    std::vector<const Ast::Node*> arrayExprs;
+    uint64_t linearSize = 0;
+    const Ast::Node* nextItem = designatorList->rChild;
+    size_t i = 0;
+    while(i < astPtrToLen(designatorList->rChild))
+    {
+        const Ast::Node* item = &designatorList->lChild[i];
+        const Ast::Node* desigExpr  = item->rChild;
+        uint64_t pos;
+        // calculate place for initializer 
+        if(desigExpr)
+        {
+            Typed::Number num = nodeExec->ExecuteNode(desigExpr->rChild->lChild);
+            linearSize = Typed::ToUnit64_t(num);
+        }
+        pos = linearSize;
+        linearSize++;
+        // resolve list of expressions 
+        if(item->type == Ast::designator_list)
+        {
+            IssueWarning(nullptr, "Feature unsupported")
+        }
+        else
+        {
+            // iterate per element
+            uint64_t elemCount = 0;
+            if(nextAcc->count > 0)
+            {
+                elemCount = GetArrayElemCount(nextAcc, logger, nodeExec).elementCount;
+            } 
+            else
+            {
+                // it means array is lowest one so every element is to be treated as single value
+                elemCount = 1; 
+            }
+            while (elemCount > 0 && i < astPtrToLen(designatorList->rChild))
+            {
+                const Ast::Node* expr = item->lChild->type != Ast::initializer_list ? 
+                            item->lChild : 
+                            GetFirstNestedValue(item->lChild, logger);
+                arrayExprs.push_back(expr);
+                item++;
+                i++;
+                elemCount--;
+
+                if(item->rChild)
+                {
+                    // if element has designator it marks we need to process it as another element in the array
+                    break;
+                }
+            }
+            
+        }
+
+        pairs.push_back({pos, arrayExprs});
+        arrayExprs.clear();
+    }
+
+    std::sort(pairs.begin(), pairs.end(),
+            [](const ArrayInitPair& l, const ArrayInitPair& r){
+                return l.idx < r.idx;
+            });
+
+    return pairs;
 }
 
 bool IsPointer(const AccessArray *accArray, size_t startIdx )
@@ -71,7 +169,6 @@ bool IsPointer(const AccessArray *accArray, size_t startIdx )
         {
             return false;
         }
-        currAcc = currAcc->next;
     }
 
     return false;

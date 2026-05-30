@@ -49,6 +49,7 @@ struct CodeGen
     void InitGlobalVar(const DeclSpecs* spec, const Declarator* decl, bool isPtr);
     void ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl);
     void InitGlobalArray(const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
+    void EmitInitGlobalArray(const AccessArray* accArr, const DeclSpecs *spec, const std::vector<const Ast::Node *>& bottomInitializers);
     std::string_view GetViewForToken(const Token &token);
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
     void FlushTypeQueue();
@@ -73,6 +74,7 @@ struct CodeGen
     std::vector<char*> localBufferHandle;
     FunctionContext currFn;
 
+    PagedHeap utilHeap;
     PagedHeap typeHeap;
     SymbolTable* symTab;
     FileManager* manager;

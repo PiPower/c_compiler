@@ -9,6 +9,8 @@ struct PagedHeap
     PagedHeap(uint32_t nrOfPages);
     PagedHeap(PagedHeap& ) = delete;
     PagedHeap& operator=(PagedHeap&) = delete;
+    ~PagedHeap();
+
     uint64_t GetRemainingMemory();
     uint64_t GetAllocSize();
     char* allocateAligned(uint64_t size, uint64_t alignment);
@@ -25,7 +27,6 @@ struct PagedHeap
         char* data = allocateAligned(count * sizeof(Type), alignof(std::max_align_t));
         return new (data)Type[count];
     }
-    ~PagedHeap();
 
     std::vector<void*> basePtrs;
     size_t currentPage;

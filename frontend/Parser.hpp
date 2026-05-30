@@ -4,6 +4,7 @@
 #include "Preprocessor.hpp"
 #include "SemanticAnalysis.hpp"
 #include "../utils/Logger.hpp"
+
 struct ParsingState
 {
     uint16_t parsingConstantExpr : 1;
@@ -22,7 +23,6 @@ struct Parser
     void ConsumeExpectedToken(TokenType::Type type);
     // node management
     Ast::Node* AllocateAstNodes(uint16_t count = 1);
-    void AddNodePage();
     Ast::Node* GlueNodes(Ast::Node* l, Ast::Node* parent);
     // checks
     bool IsAssignment(Token* token);
@@ -98,7 +98,7 @@ struct Parser
     const CompilationOpts* opts;
     std::deque<Token> tokenQueue;
     std::stack<Ast::Node*> unaryHandles;
-    PagedBuffer nodeBuffer;
+    PagedHeap nodeHeap;
     Token currentLocToken;
     ParsingState pState;
     Logger logger;

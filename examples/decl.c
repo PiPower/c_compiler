@@ -15,7 +15,10 @@ struct XD{
 } sd;
 
 func_table ptr;
-int test_array[][3][2] = { [5] = {1, 2, 3}, [2] = {3, 4, 5},  {100, 1000, 100}, [7] = {1 , 2 ,3} };
+int test_array666[] = { 2, 3, [8] = 4, {{2}, 7}};
+int test_array333[3][2] = { 2, 3, [2] = 4, {{2}, 7}};
+int test_array[][3][2] = { [5] = {1, 2, 3}, [2] = {3, 4, 5}, 100, 1000, 100, [7] = {1 , 2 ,3} };
+
 void test_basic_primitives(void) {
     char                a1 = 'A';
     char p;
