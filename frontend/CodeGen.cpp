@@ -478,7 +478,17 @@ void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl, bool 
 
         return;
     }
+    // array stuff
     InitGlobalArray(&decl->accArr, decl->initExpr, spec);
+    if(IsPointer(&decl->accArr))
+    {
+        WriteCharData(", align 8");
+    }
+    else
+    {
+        std::string alignment = std::to_string(spec->symType->alignment);
+        WriteCharData(", align %s", alignment.data(), alignment.length());
+    }
 }   
 
 void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
