@@ -29,6 +29,7 @@ void Compiler::compile()
         {
             analyzer.Analyze(ast);
         }
+        analyzer.EmitUninitializedGlobals();
         
         char* buff = (char*)alloca(opts.filenameLens[i] + 1);
         memcpy(buff, opts.filenames[i], opts.filenameLens[i]);

@@ -866,6 +866,15 @@ bool SemanticAnalyzer::CompareDeclarators(const Declarator *d1, const Declarator
     return true;
 }
 
+void SemanticAnalyzer::EmitUninitializedGlobals()
+{
+    for(SymbolVariable* symVar : uninitGlobals)
+    {
+        symVar->opts.isEmitted = 1;
+        codeGen.EmitGlobalVariable(&symVar->spec, &symVar->decl);
+    }
+}
+
 bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 {
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
@@ -910,6 +919,10 @@ void SemanticAnalyzer::AnalyzeGlobalVar(const DeclSpecs* spec, const Declarator*
         }
         symVar->opts.isEmitted = 1;
         codeGen.EmitGlobalVariable(spec, decl);
+        if(uninitGlobals.find(symVar) != uninitGlobals.end())
+        {
+            uninitGlobals.erase(symVar);
+        }
     }
 }
 

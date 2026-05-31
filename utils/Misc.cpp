@@ -176,6 +176,11 @@ bool IsPointer(const AccessArray *accArray, size_t startIdx )
 
 bool IsArray(const AccessArray *accArray)
 {
+    if(accArray->count == 0)
+    {
+        return false;
+    }
+
     const AccessType* currAcc = &accArray->ptr[0];
     if(currAcc->type == ACC_POINTER)
     {

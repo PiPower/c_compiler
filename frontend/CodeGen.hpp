@@ -8,7 +8,7 @@
 #include "../utils/FileManager.hpp"
 #include "NodeExecutor.hpp"
 #include <stdarg.h>
-
+#include "../utils/Misc.hpp"
 constexpr uint64_t CG_EMPTY_ARRAY = 0x0;
 constexpr uint64_t CG_ZERO_SIZED_ARRAY = 0xFFFFFFFFFFFFFFFF;
 
@@ -45,11 +45,12 @@ struct CodeGen
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
     void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr);
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
+    void EmitInitializer(const DeclSpecs* spec, const Ast::Node* intializer);
     void EmitFunctionClose();
     void InitGlobalVar(const DeclSpecs* spec, const Declarator* decl, bool isPtr);
     void ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl);
     void InitGlobalArray(const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
-    void EmitInitGlobalArray(const AccessArray* accArr, const DeclSpecs *spec, const std::vector<const Ast::Node *>& bottomInitializers);
+    void EmitInitGlobalArray(const AccessArray *accArr, const DeclSpecs *spec, const ArrayInitPair* initialzier);
     std::string_view GetViewForToken(const Token &token);
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
     void FlushTypeQueue();

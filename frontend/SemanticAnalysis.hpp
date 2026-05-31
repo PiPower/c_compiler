@@ -43,6 +43,7 @@ struct SemanticAnalyzer
     bool CompareParams(size_t paramCount, const FunctionParams* p1, const FunctionParams* p2);
     bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);
     bool CompareDeclarators(const Declarator* d1, const Declarator* d2);
+    void EmitUninitializedGlobals();
 
     SymbolTable* symTab;
     FileManager* manager;

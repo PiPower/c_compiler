@@ -3,7 +3,6 @@
 #include "../utils/DataEncoder.hpp"
 #include <sys/uio.h>
 #include <unistd.h>
-#include "../utils/Misc.hpp"
 #include "SemanticAnalysis.hpp"
 #include <string.h>
 #include "Parser.hpp"
@@ -321,15 +320,7 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
     }
 
     bool isPtr = EmitDeclarator(&decl->accArr, &spec->typenameView);
-
-    if(decl->initExpr)
-    {
-        InitGlobalVar(spec, decl, isPtr);
-    }
-    else 
-    {
-        ZeroInitGlobalVar(spec, decl);
-    }
+    InitGlobalVar(spec, decl, isPtr);
 }
 
 void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl, const Ast::Node* initExpr)
@@ -388,6 +379,12 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
                     decl->name.data(), decl->name.length());
 }
 
+void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *intializer)
+{
+    EmitTypename(spec->symType, spec->typenameView);
+
+}
+
 void CodeGen::EmitFunctionClose()
 {
     BindFuncBuffer(); 
@@ -437,6 +434,12 @@ void CodeGen::EmitFunctionClose()
 
 void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl, bool isPtr)
 {
+    if(!decl->initExpr)
+    {
+        ZeroInitGlobalVar(spec, decl);
+        return;
+    }
+
     if(!isPtr && (spec->symType->dType == BuiltIn::struct_t || spec->symType->dType == BuiltIn::union_t ))
     {
         IssueWarning(nullptr, "Struct/union initialization is not supported")
@@ -481,7 +484,14 @@ void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
     {
         zero_init = " zeroinitializer";
     }
-    alignment = std::to_string(symType->alignment);
+    if(!IsPointer(&decl->accArr))
+    {
+        alignment = std::to_string(symType->alignment);
+    }
+    else
+    {
+        alignment = "8";
+    }
 
     WriteCharData("%s, align %s", 
         zero_init.data(), zero_init.length(),
@@ -490,6 +500,16 @@ void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
 
 void CodeGen::InitGlobalArray(const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec)
 {
+    if(spec->symType->dType == BuiltIn::struct_t || spec->symType->dType == BuiltIn::union_t )
+    {
+        IssueWarning(nullptr, "Array of non built-in types are not supported")
+    }
+
+    if(IsPointer(accArr))
+    {
+        WriteCharData(" zeroinitializer, align 8");
+    }
+
       // init arrays
     const AccessArray nextAcc = {accArr->ptr + 1, accArr->count - 1};
     bool isNestedArray = nextAcc.count > 0 && IsArray(&nextAcc);
@@ -500,26 +520,58 @@ void CodeGen::InitGlobalArray(const AccessArray* accArr, const Ast::Node* initEx
         pairs = PartitionArrayInitializer(initExpr, &nextAcc, &logger, nodeExec);
     }
 
-    return; 
-    uint64_t bottomArraySize = accArr->ptr[accArr->count - 1].array.size;
-    std::vector<const Ast::Node *> bottomInitializers;
-    size_t topLevelNodes = astPtrToLen(initExpr->rChild);
-    while (true)
+    
+    uint64_t currentPair = 0;
+    uint64_t arraySize = accArr->ptr->array.size;
+    WriteByte(' ');
+    WriteCharData(" [");
+    for(uint64_t i = 0; i < arraySize; i++)
     {
-        EmitInitGlobalArray(accArr, spec, bottomInitializers);
-        bottomInitializers.clear();
+        ArrayInitPair* initPair = nullptr;
+        if(currentPair < pairs.size() && i == pairs[currentPair].idx)
+        {
+            initPair = &pairs[currentPair];
+            currentPair++;
+        }
+        EmitInitGlobalArray(&nextAcc, spec, initPair);
     }
+    WriteByte(']');
 
-    
-    
 }
 
-void CodeGen::EmitInitGlobalArray(const AccessArray *accArr, const DeclSpecs *spec, const std::vector<const Ast::Node *>& bottomInitializers)
+void CodeGen::EmitInitGlobalArray(const AccessArray *accArr, const DeclSpecs *spec, const ArrayInitPair* initialzier)
 {
     const AccessArray nextAcc = {accArr->ptr + 1, accArr->count - 1};
     bool isNestedArray = nextAcc.count > 0 && IsArray(&nextAcc);
 
+    if(!initialzier && isNestedArray)
+    {
+        EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
+        WriteCharData(" zeroinitializer");
+        return;
+    }
+    // here we emit type
+    if(accArr->count == 0)
+    {
+        WriteByte(' ');
+        EmitTypename(spec->symType, spec->typenameView, true);
+        if(initialzier)
+        {
+            EmitInitializer(spec, initialzier->expr[0]);
+        }
+        else
+        {
+            WriteCharData(" 0,");
+        }
+
+        return;
+    }
+
     size_t currentElem = 0;
+    ArrayInitPair init;
+    init.expr.resize(1);
+
+    EmitDeclaratorAcc(accArr, &spec->typenameView);
     WriteCharData(" [ ");
     for(uint64_t i =0; i < accArr->ptr[0].array.size; i++)
     {
@@ -527,13 +579,19 @@ void CodeGen::EmitInitGlobalArray(const AccessArray *accArr, const DeclSpecs *sp
         if(isNestedArray)
         {
             // in this case we have nested arrays
-            EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
-            EmitInitGlobalArray(&nextAcc, spec, bottomInitializers);
+            //EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
+            //EmitInitGlobalArray(&nextAcc, spec, bottomInitializers);
             WriteCharData(", ");
         }
         else
         {
-            int x = 2;
+            ArrayInitPair* initPtr = nullptr;
+            if(initialzier && i < initialzier->expr.size())
+            {
+                init.expr[0] = initialzier->expr[i];
+                initPtr = &init;
+            }
+            EmitInitGlobalArray(&nextAcc, spec, initPtr);
         }
     }
     WriteByte(']');
