@@ -1019,9 +1019,6 @@ Ast::Node *Parser::StorageSpec()
 
 Ast::Node *Parser::InitializerList()
 {
-    Ast::Node* initializerList =  AllocateAstNodes();
-    initializerList->type = Ast::initializer_list;
-
     Token token = GetCurrToken();
     std::vector<Ast::Node> initItems;
     initItems.reserve(60);
@@ -1045,11 +1042,8 @@ Ast::Node *Parser::InitializerList()
             token = GetCurrToken();
         }
     }   
-    size_t len = initItems.size();
-    initializerList->lChild = nodeHeap.allocateArray<Ast::Node>(len);
-    memcpy(initializerList->lChild, initItems.data(), sizeof(Ast::Node) * len);
-    initializerList->rChild = lenToAstPtr(len);
-    return initializerList;
+
+    return BuildInitializerList(initItems, &nodeHeap);
 }
 
 Ast::Node *Parser::TypeSpecifier()

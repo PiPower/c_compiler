@@ -1,9 +1,23 @@
 #include "Misc.hpp"
 #include "../frontend/TypedNumber.hpp"
 #include <limits>
+#include <string.h>
 #define IssueWarning(tokenPtr, errorMsg, ...) logger->IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
-ArraySize GetArrayElemCount(const AccessArray *accArray, Logger* logger, NodeExecutor* ne)
+Ast::Node *BuildInitializerList(const std::vector<Ast::Node>& initItems, PagedHeap *allocator)
+{
+    Ast::Node* initializerList = allocator->allocate<Ast::Node>();
+    initializerList->type = Ast::initializer_list;
+
+    size_t len = initItems.size();
+    initializerList->lChild = allocator->allocateArray<Ast::Node>(len);
+    memcpy(initializerList->lChild, initItems.data(), sizeof(Ast::Node) * len);
+    initializerList->rChild = lenToAstPtr(len);
+
+    return initializerList;
+}
+
+ArraySize GetArrayElemCount(const AccessArray *accArray, Logger *logger, NodeExecutor *ne)
 {
     bool hitPointer = false;
     bool hitArray = false;
@@ -70,7 +84,7 @@ const Ast::Node *GetFirstNestedValue(const Ast::Node *designatorList, Logger *lo
             {
                 IssueWarning(nullptr, "initialization of of non-aggregate type with designated innitializer list");
             }
-            return designatorList->lChild->lChild;
+            return designatorList->lChild;
         }
         designatorList = designatorList->lChild->lChild;
     }
@@ -78,11 +92,11 @@ const Ast::Node *GetFirstNestedValue(const Ast::Node *designatorList, Logger *lo
     return nullptr;
 }
 
-std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designatorList, const AccessArray* nextAcc, Logger* logger, NodeExecutor* nodeExec)
+std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designatorList, const AccessArray* nextAcc, Logger* logger, NodeExecutor* nodeExec, PagedHeap* allocator)
 {
     // first step resolve position of each element in the array
     std::vector<ArrayInitPair> pairs;
-    std::vector<const Ast::Node*> arrayExprs;
+    std::vector<Ast::Node> arrayExprs;
     uint64_t linearSize = 0;
     const Ast::Node* nextItem = designatorList->rChild;
     size_t i = 0;
@@ -90,6 +104,7 @@ std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designator
     {
         const Ast::Node* item = &designatorList->lChild[i];
         const Ast::Node* desigExpr  = item->rChild;
+        const Ast::Node* subInitializerList = nullptr;
         uint64_t pos;
         // calculate place for initializer 
         if(desigExpr)
@@ -100,9 +115,14 @@ std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designator
         pos = linearSize;
         linearSize++;
         // resolve list of expressions 
-        if(item->type == Ast::designator_list)
+        if(item->lChild->type == Ast::initializer_list)
         {
-            IssueWarning(nullptr, "Feature unsupported")
+            if(allocator)
+            {
+                subInitializerList = item->lChild;
+            }
+            item++;
+            i++;
         }
         else
         {
@@ -120,9 +140,18 @@ std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designator
             while (elemCount > 0 && i < astPtrToLen(designatorList->rChild))
             {
                 const Ast::Node* expr = item->lChild->type != Ast::initializer_list ? 
-                            item->lChild : 
+                            item: 
                             GetFirstNestedValue(item->lChild, logger);
-                arrayExprs.push_back(expr);
+                if(allocator && desigExpr)
+                {
+                    // designator must be removed so allocate new node in place
+                    Ast::Node* replacement = allocator->allocate<Ast::Node>();
+                    replacement->type = item->type;
+                    replacement->token = item->token;
+                    replacement->lChild = item->lChild;
+                    expr = replacement;
+                }
+                arrayExprs.push_back(*expr);
                 item++;
                 i++;
                 elemCount--;
@@ -133,10 +162,13 @@ std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designator
                     break;
                 }
             }
-            
+            if(allocator)
+            {
+                subInitializerList = BuildInitializerList(arrayExprs, allocator);
+            }
         }
 
-        pairs.push_back({pos, arrayExprs});
+        pairs.push_back({pos, subInitializerList});
         arrayExprs.clear();
     }
 

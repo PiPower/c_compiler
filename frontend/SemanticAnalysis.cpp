@@ -698,7 +698,7 @@ void SemanticAnalyzer::DeduceInferableArrSize(Declarator *decl)
     }
 
     const AccessArray nextAcc = {decl->accArr.ptr + 1, decl->accArr.count - 1};
-    std::vector<ArrayInitPair> pairs = PartitionArrayInitializer(decl->initExpr, &nextAcc, &logger, &ne);
+    std::vector<ArrayInitPair> pairs = PartitionArrayInitializer(decl->initExpr, &nextAcc, &logger, &ne, nullptr);
 
     //pairs.back().idx stores largest valid index into array so lenght is +1
     arr->ptr[0].array.size = pairs.size() > 0 ? pairs.back().idx + 1 : CG_ZERO_SIZED_ARRAY;

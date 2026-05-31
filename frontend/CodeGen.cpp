@@ -381,8 +381,19 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
 
 void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *intializer)
 {
-    EmitTypename(spec->symType, spec->typenameView);
+    if(!(spec->symType->dType >= BuiltIn::s_char_8 && spec->symType->dType <= BuiltIn::u_int_64))
+    {
+        IssueWarning(nullptr, "Unsupported initializer type by codegen");
+    }
+    if(!intializer)
+    {
+        WriteCharData(" 0");
+        return;
+    }
 
+    Typed::Number num = nodeExec->ExecuteNode(intializer);
+    std::string str = Typed::ToString(num);
+    WriteCharData(" %s", str.data(), str.length());
 }
 
 void CodeGen::EmitFunctionClose()
@@ -510,91 +521,62 @@ void CodeGen::InitGlobalArray(const AccessArray* accArr, const Ast::Node* initEx
         WriteCharData(" zeroinitializer, align 8");
     }
 
-      // init arrays
+    // init arrays
     const AccessArray nextAcc = {accArr->ptr + 1, accArr->count - 1};
     bool isNestedArray = nextAcc.count > 0 && IsArray(&nextAcc);
+
+     // here we emit type
+    if(accArr->count == 0)
+    {
+        EmitTypename(spec->symType, spec->typenameView, true);
+        EmitInitializer(spec, initExpr->lChild->lChild);
+        return;
+    }
 
     std::vector<ArrayInitPair> pairs;
     if(initExpr)
     {   
-        pairs = PartitionArrayInitializer(initExpr, &nextAcc, &logger, nodeExec);
+        pairs = PartitionArrayInitializer(initExpr, &nextAcc, &logger, nodeExec, &utilHeap);
     }
 
     
     uint64_t currentPair = 0;
     uint64_t arraySize = accArr->ptr->array.size;
-    WriteByte(' ');
+    
     WriteCharData(" [");
     for(uint64_t i = 0; i < arraySize; i++)
     {
+        if(nextAcc.count > 0)
+        {
+            EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
+        }
+
         ArrayInitPair* initPair = nullptr;
         if(currentPair < pairs.size() && i == pairs[currentPair].idx)
         {
-            initPair = &pairs[currentPair];
+            InitGlobalArray(&nextAcc, pairs[currentPair].initializerList, spec);
             currentPair++;
         }
-        EmitInitGlobalArray(&nextAcc, spec, initPair);
-    }
-    WriteByte(']');
-
-}
-
-void CodeGen::EmitInitGlobalArray(const AccessArray *accArr, const DeclSpecs *spec, const ArrayInitPair* initialzier)
-{
-    const AccessArray nextAcc = {accArr->ptr + 1, accArr->count - 1};
-    bool isNestedArray = nextAcc.count > 0 && IsArray(&nextAcc);
-
-    if(!initialzier && isNestedArray)
-    {
-        EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
-        WriteCharData(" zeroinitializer");
-        return;
-    }
-    // here we emit type
-    if(accArr->count == 0)
-    {
-        WriteByte(' ');
-        EmitTypename(spec->symType, spec->typenameView, true);
-        if(initialzier)
-        {
-            EmitInitializer(spec, initialzier->expr[0]);
-        }
         else
         {
-            WriteCharData(" 0,");
+            if(isNestedArray)
+            {
+                WriteCharData(" zeroinitializer");
+            }
+            else
+            {
+                EmitTypename(spec->symType, spec->typenameView, true);
+                EmitInitializer(spec, nullptr);
+            }
         }
 
-        return;
-    }
-
-    size_t currentElem = 0;
-    ArrayInitPair init;
-    init.expr.resize(1);
-
-    EmitDeclaratorAcc(accArr, &spec->typenameView);
-    WriteCharData(" [ ");
-    for(uint64_t i =0; i < accArr->ptr[0].array.size; i++)
-    {
-        const Ast::Node* initExpr = nullptr;
-        if(isNestedArray)
+        if(i < arraySize - 1)
         {
-            // in this case we have nested arrays
-            //EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
-            //EmitInitGlobalArray(&nextAcc, spec, bottomInitializers);
             WriteCharData(", ");
         }
-        else
-        {
-            ArrayInitPair* initPtr = nullptr;
-            if(initialzier && i < initialzier->expr.size())
-            {
-                init.expr[0] = initialzier->expr[i];
-                initPtr = &init;
-            }
-            EmitInitGlobalArray(&nextAcc, spec, initPtr);
-        }
     }
     WriteByte(']');
+
 }
 
 std::string_view CodeGen::GetViewForToken(const Token &token)
