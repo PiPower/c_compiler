@@ -595,7 +595,14 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
         {
             if(symType->dType == BuiltIn::ptr)
             {
-                decl.accArr = symType->ptr.accessTypes;
+                //access arrays needs to be merged
+                AccessArray accArr;
+                accArr.count = symType->ptr.accessTypes.count + decl.accArr.count;
+                accArr.ptr = symTab->AllocateTypeArrayOnHeap<AccessType>(accArr.count);
+
+                memcpy(accArr.ptr, decl.accArr.ptr, decl.accArr.count * sizeof(AccessType));
+                memcpy(accArr.ptr + decl.accArr.count, symType->ptr.accessTypes.ptr, symType->ptr.accessTypes.count * sizeof(AccessType));
+                decl.accArr = accArr;
             }
             AnalyzeVariableDecl(declSpec, &decl);
         }
@@ -884,15 +891,15 @@ void SemanticAnalyzer::AnalyzeVariableDecl(const DeclSpecs* spec, const Declarat
 {
     if(symTab->IsCurrentScopeGlobal() || spec->declType.spec.static_)
     {
-        AnalyzeGlobalVar(spec, decl);
+        AnalyzeGlobalVarDecl(spec, decl);
     }
     else
     {
-        //codeGen.EmitLocalVariable(spec, decl);
+        AnalyzeLocalVarDecl(spec, decl);
     }
 }
 
-void SemanticAnalyzer::AnalyzeGlobalVar(const DeclSpecs* spec, const Declarator* decl)
+void SemanticAnalyzer::AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declarator* decl)
 {
     SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name);
 
@@ -924,6 +931,25 @@ void SemanticAnalyzer::AnalyzeGlobalVar(const DeclSpecs* spec, const Declarator*
             uninitGlobals.erase(symVar);
         }
     }
+}
+
+void SemanticAnalyzer::AnalyzeLocalVarDecl(const DeclSpecs *spec, const Declarator *decl)
+{
+    SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name);
+
+    if(symVar == nullptr)
+    {
+        VariableOpts opts = {.isEnumerator = 0, .isConst = 0, .isEmitted = 0};
+        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, codeGen.GetIdxForLocalVar());
+        symVar = symTab->QueryVarSymbol(decl->name);
+    }
+    else
+    {
+        IssueWarning(&decl->token, "Local variable redefinition")
+    }
+
+    symVar->opts.isEmitted = 1;
+    codeGen.EmitLocalVariable(spec, decl);
 }
 
 uint64_t SemanticAnalyzer::GetAnnonymousStructId()

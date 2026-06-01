@@ -43,7 +43,7 @@ struct CodeGen
     void EmitMember(Member* member);
     bool EmitAccessArrayOpened(const AccessArray* accArr, uint64_t* bracket);
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
-    void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl, const Ast::Node* initExpr);
+    void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl);
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
     void EmitInitializer(const DeclSpecs* spec, const Ast::Node* intializer);
     void EmitFunctionClose();

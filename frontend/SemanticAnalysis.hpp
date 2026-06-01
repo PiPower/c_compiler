@@ -31,7 +31,8 @@ struct SemanticAnalyzer
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);
     void AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl);
-    void AnalyzeGlobalVar(const DeclSpecs* spec, const Declarator* decl);
+    void AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declarator* decl);
+    void AnalyzeLocalVarDecl(const DeclSpecs* spec, const Declarator* decl);
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
     bool IsMemberPointer(const Member* member);
