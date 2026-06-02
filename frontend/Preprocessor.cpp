@@ -350,7 +350,7 @@ std::string_view Preprocessor::GetViewForToken(const Token &token)
     // removes \" from both start and end 
     uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
     std::string_view tokenView(state.fileData + token.location.offset + offset,
-                                token.location.len - offset);
+                                token.location.len - offset * 2);
     return tokenView;
 }
 

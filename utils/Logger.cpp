@@ -63,7 +63,7 @@ void Logger::IssueWarningImpl(
         printf("%ld:%ld\n", loc->line, loc->offset);
     }
 
-    printf("%s warning: \n", modName.c_str());
+    printf("%s warning:\n", modName.c_str());
 
     if(errMsg)
     {
