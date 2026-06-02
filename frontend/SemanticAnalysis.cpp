@@ -152,7 +152,6 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     const Ast::Node* bodyNode = body->rChild;
 
     symTab->CreateNewScope(Scope::LOCAL);
-    ScopedSymbolTable* localScope = symTab->currentTable;
     while (bodyNode)
     {
         Analyze(bodyNode->lChild);
@@ -593,17 +592,6 @@ void SemanticAnalyzer::AnalyzeInitDeclList(DeclSpecs *declSpec, const Ast::Node 
         }
         else
         {
-            if(symType->dType == BuiltIn::ptr)
-            {
-                //access arrays needs to be merged
-                AccessArray accArr;
-                accArr.count = symType->ptr.accessTypes.count + decl.accArr.count;
-                accArr.ptr = symTab->AllocateTypeArrayOnHeap<AccessType>(accArr.count);
-
-                memcpy(accArr.ptr, decl.accArr.ptr, decl.accArr.count * sizeof(AccessType));
-                memcpy(accArr.ptr + decl.accArr.count, symType->ptr.accessTypes.ptr, symType->ptr.accessTypes.count * sizeof(AccessType));
-                decl.accArr = accArr;
-            }
             AnalyzeVariableDecl(declSpec, &decl);
         }
 
@@ -949,7 +937,20 @@ void SemanticAnalyzer::AnalyzeLocalVarDecl(const DeclSpecs *spec, const Declarat
     }
 
     symVar->opts.isEmitted = 1;
-    codeGen.EmitLocalVariable(spec, decl);
+    codeGen.EmitLocalVariable(symVar);
+    if(decl->initExpr)
+    {
+        Ast::Node node = {
+            .type = Ast::init_expr,
+            .lChild = const_cast<Ast::Node*>(decl->initExpr)
+        };
+        ExprRet initInfo;
+        initInfo.type = IsPointer(&decl->accArr) ? BuiltIn::ptr : spec->symType->dType; 
+        initInfo.id = symVar->varIdx;
+        node.rChild = (Ast::Node*)&initInfo;
+
+        AnalyzeExpr(&node);
+    }
 }
 
 uint64_t SemanticAnalyzer::GetAnnonymousStructId()
@@ -1125,6 +1126,13 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                 // it is safe to fetch typename from token
                 spec.typenameView = GetViewForToken(currNode->token);
                 spec.symType = symTab->QueryTypeSymbol(spec.typenameView);
+                if(spec.symType->dType != BuiltIn::ptr)
+                {
+                    IssueWarning(nullptr, "Internal: spec.symType->dType != BuiltIn::ptr")
+                }
+                spec.accArr = &spec.symType->ptr.accessTypes;
+                
+                
                 if(!spec.symType)
                 {
                     IssueWarning(&currNode->token, "unknown type name");
@@ -1162,4 +1170,44 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
     }
 
     return spec;
+}
+
+ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
+{
+    switch (root->type)
+    {
+    case Ast::get_addr:
+    {
+        ExprRet handle = AnalyzeExpr(root->lChild);
+        return {BuiltIn::ptr, handle.id};
+        
+    }break;
+    case Ast::init_expr:
+    {
+        ExprRet* sourceHandle = (ExprRet*)root->rChild;
+        ExprRet handle = AnalyzeExpr(root->lChild);
+
+        
+    }break;
+    case Ast::compound_literal:
+    {
+        return CompoundLiteral(root);
+    }break;
+    default:
+        break;
+    }
+}
+
+ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
+{
+    int64_t literalIdx = codeGen.GetIdxForLocalVar();
+
+    DeclSpecs spec = AnalyzeDeclSpec(literal->rChild->rChild);
+    Declarator decl = {};
+    if(literal->rChild->rChild)
+    {
+        decl = AnalyzeDeclarator(literal->rChild->lChild, spec.accArr);
+    }
+    
+    return {BuiltIn::struct_t, literalIdx};
 }

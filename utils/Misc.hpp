@@ -31,10 +31,17 @@ constexpr inline size_t astPtrToLen(Ast::Node* node)
     return static_cast<size_t>(reinterpret_cast<uintptr_t>(node));
 }
 
+constexpr inline bool nodeIsNotCompoundLiteral(const Ast::Node* root)
+{
+    return !(root->type == Ast::cast || 
+            (root->type == Ast::get_addr && root->lChild && root->lChild->type == Ast::cast));
+}
+
 Ast::Node* BuildInitializerList(const std::vector<Ast::Node>& initItems, PagedHeap* allocator);
 ArraySize GetArrayElemCount(const AccessArray *accArray, Logger* logger, NodeExecutor* ne);
 MemoryDesc GetMemoryDesc(const AccessArray *accArray, SymbolType* type, Logger* logger, NodeExecutor* ne);
 const Ast::Node* GetFirstNestedValue(const Ast::Node* designatorList, Logger *logger);
 std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designatorList, const AccessArray* nextAcc, Logger* logger, NodeExecutor* nodeExec, PagedHeap* allocator);
 bool IsPointer(const AccessArray *accArray, size_t startIdx = 0);
+bool DecaysToPointer(const AccessArray *accArray, size_t startIdx = 0);
 bool IsArray(const AccessArray *accArray);

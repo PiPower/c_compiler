@@ -91,6 +91,7 @@
     X(designator_id) \
     X(enumerator) \
     /* Misc */ \
+    X(init_expr) \
     X(compound_literal) \
     X(compound_statement) \
     X(var_len_array) \

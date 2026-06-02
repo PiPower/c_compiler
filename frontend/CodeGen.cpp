@@ -325,24 +325,20 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
     InitGlobalVar(spec, decl, isPtr);
 }
 
-void CodeGen::EmitLocalVariable(const DeclSpecs *spec, const Declarator *decl)
+void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
 {
-    const SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name);
-    if(!symVar)
-    {
-        IssueWarning(&decl->token, "EmitLocalVariable: unknown variable symbol");
-    }
     const SymbolType* varType = symVar->spec.symType;
     if(!varType)
     {
-        IssueWarning(&decl->token, "EmitLocalVariable: variable has no type");
+        IssueWarning(&symVar->decl.token, "EmitLocalVariable: variable has no type");
     }
     std::string idx = std::to_string(symVar->varIdx);
 
-    WriteCharData("\n\t%%%s = alloca ", idx.data(), idx.length());
+    BindLocalVarBuffer();
 
-    bool isPtr = EmitDeclarator(&decl->accArr, &spec->typenameView);
-    std::string alignment = isPtr ? ptrAlignment : std::to_string(spec->symType->alignment);
+    WriteCharData("\n\t%%%s = alloca ", idx.data(), idx.length());
+    bool isPtr = EmitDeclarator(&symVar->decl.accArr, &symVar->spec.typenameView);
+    std::string alignment = isPtr ? ptrAlignment : std::to_string(varType->alignment);
     WriteCharData(", align %s", alignment.data(), alignment.length());
     //ProcessedDecl procDecl = ProcessDecl(&decl->accessTypes, &spec->typenameView, spec->acc);
     //procDecl.variableIdx = symVar->varIdx;
@@ -661,10 +657,13 @@ void CodeGen::WriteToFile(int fd)
     delete[] iov;
 }
 
+
+
 int64_t CodeGen::GetIdxForLocalVar()
 {
     return currFn.variableIdx++;
 }
+
 
 void CodeGen::BindTypeBuffer()
 {

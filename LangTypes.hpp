@@ -54,7 +54,8 @@ enum Type : uint16_t
     complex_float_64, 
     complex_double_128,
     complex_long_double,
-    special
+    compound_literal,
+    special,
 };
 
 }

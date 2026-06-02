@@ -5,11 +5,16 @@
 #include "Preprocessor.hpp"
 #include "CodeGen.hpp"
 constexpr size_t  POINTER_SIZE = 8;
-constexpr int64_t NOT_EMITTED = -2;
-constexpr int64_t ANON_EMITTED = -3;
 /*
     sema supports anonymous struct members
 */
+
+struct ExprRet
+{
+    BuiltIn::Type type;
+    int64_t id;
+};
+
 struct SemanticAnalyzer
 {
     SemanticAnalyzer(FileManager* manager, SymbolTable* symTab);
@@ -38,6 +43,9 @@ struct SemanticAnalyzer
     bool IsMemberPointer(const Member* member);
     std::string_view SimpleTypeToString(BuiltIn::Type type);
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
+    // expressions
+    ExprRet AnalyzeExpr(const Ast::Node* root);
+    ExprRet CompoundLiteral(const Ast::Node* literal);
     // misc
     std::string_view GetViewForToken(const Token &token);
     void WriteCodeToFile(const char* filename);

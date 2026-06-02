@@ -206,6 +206,32 @@ bool IsPointer(const AccessArray *accArray, size_t startIdx )
     return false;
 }
 
+bool DecaysToPointer(const AccessArray *accArray, size_t startIdx)
+{
+    for(size_t i = startIdx; i < accArray->count; i++)
+    {
+        const AccessType* currAcc = &accArray->ptr[i];
+        if(currAcc->type == ACC_POINTER)
+        {
+            return true;
+        }
+        else if(currAcc->type == ACC_ARRAY)
+        {
+            return true;
+        }
+        else if(currAcc->type == ACC_FN_CALL)
+        {
+            return false;
+        }
+        else if(currAcc->type == ACC_FN_DECL)
+        {
+            return false;
+        }
+    }
+
+    return false;
+}
+
 bool IsArray(const AccessArray *accArray)
 {
     if(accArray->count == 0)

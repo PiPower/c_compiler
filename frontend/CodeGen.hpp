@@ -11,6 +11,9 @@
 #include "../utils/Misc.hpp"
 constexpr uint64_t CG_EMPTY_ARRAY = 0x0;
 constexpr uint64_t CG_ZERO_SIZED_ARRAY = 0xFFFFFFFFFFFFFFFF;
+// special variable idx values
+constexpr int64_t NOT_EMITTED = -2;
+constexpr int64_t ANON_EMITTED = -3;
 
 struct LlvmType
 {
@@ -43,7 +46,7 @@ struct CodeGen
     void EmitMember(Member* member);
     bool EmitAccessArrayOpened(const AccessArray* accArr, uint64_t* bracket);
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
-    void EmitLocalVariable(const DeclSpecs* spec, const Declarator* decl);
+    void EmitLocalVariable(const SymbolVariable* symVar);
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
     void EmitInitializer(const DeclSpecs* spec, const Ast::Node* intializer);
     void EmitFunctionClose();
@@ -56,6 +59,8 @@ struct CodeGen
     void FlushTypeQueue();
     void WriteToFile(int fd);
     int64_t GetIdxForLocalVar();
+    // expressions
+
 
     void BindTypeBuffer();
     void BindFuncBuffer();
