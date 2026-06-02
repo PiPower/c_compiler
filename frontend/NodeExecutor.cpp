@@ -118,7 +118,7 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
         }
         else
         {
-            Declarator declarator = sema->AnalyzeDeclarator(decl, nullptr);
+            Declarator declarator = sema->AnalyzeDeclarator(decl, nullptr, nullptr);
             ArraySize  arrSize =  GetArrayElemCount(&declarator.accArr, &logger, this);
             if(arrSize.hitPointer) 
             {

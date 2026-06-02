@@ -28,7 +28,7 @@ struct SemanticAnalyzer
     void AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node* initDeclList);
     void AnalyzeStructUnion(const Ast::Node* structTree, DeclSpecs* spec, bool isStruct);
     void AnalyzeInitDeclList(DeclSpecs* declSpec, const Ast::Node* initDeclList);
-    Declarator AnalyzeDeclarator(const Ast::Node* declarator, const AccessArray* typedefAcc);
+    Declarator AnalyzeDeclarator(const Ast::Node* declarator, const AccessArray* typedefAcc, const Ast::Node *initExpr);
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void DeduceInferableArrSize(Declarator* decl);
     int BuiltInBitCount(BuiltIn::Type type);
