@@ -407,33 +407,33 @@ void CodeGen::EmitFunctionClose()
 {
     BindFuncBuffer(); 
     // copy LOC_VAR_BUFFER buffer to FUNC_BUFFER
-    std::vector<char*>& destVec = writableBufferArr[chosenBuffer];
+    std::vector<char*>& destVec = writableBufferArr[FUNC_BUFFER];
     std::vector<char*>& srcVec = writableBufferArr[LOC_VAR_BUFFER];
     for(size_t i = 0; srcVec.size() - 1; i++)
     {   
-        size_t usedBytes = currPtrArr[chosenBuffer] - destVec.back();
+        size_t usedBytes = currPtrArr[FUNC_BUFFER] - destVec.back();
         size_t freeBytes = INST_BUFF_SIZE - usedBytes;
         memcpy(destVec.back(), srcVec[i], freeBytes);
         
         destVec.push_back(typeHeap.allocateArray<char>(INST_BUFF_SIZE));
         memcpy(destVec.back(), srcVec[i] + freeBytes, INST_BUFF_SIZE - freeBytes);
-        currPtrArr[chosenBuffer] = destVec.back() + INST_BUFF_SIZE - freeBytes;
+        currPtrArr[FUNC_BUFFER] = destVec.back() + INST_BUFF_SIZE - freeBytes;
     }
 
-    size_t usedBytes = currPtrArr[chosenBuffer] - destVec.back();
+    size_t usedBytes = currPtrArr[FUNC_BUFFER] - destVec.back();
     size_t freeBytes = INST_BUFF_SIZE - usedBytes;
     size_t copySize = std::min(freeBytes, (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()));
-    memcpy(destVec.back(), srcVec.back(), copySize);
+    memcpy(destVec.back() + usedBytes, srcVec.back(), copySize);
     if(freeBytes < (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()) )
     {
         size_t remainingBytes =  (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()) - freeBytes;
         destVec.push_back(typeHeap.allocateArray<char>(INST_BUFF_SIZE));
         memcpy(destVec.back(), srcVec.back() + copySize, remainingBytes);
-        currPtrArr[chosenBuffer] = destVec.back() + remainingBytes;
+        currPtrArr[FUNC_BUFFER] = destVec.back() + remainingBytes;
     }
     else
     {   
-        currPtrArr[chosenBuffer] += copySize;
+        currPtrArr[FUNC_BUFFER] += copySize;
     }
 
     WriteCharData("\n}\n");
