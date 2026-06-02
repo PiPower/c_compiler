@@ -1672,6 +1672,21 @@ Ast::Node* Parser::CastExpression()
         ConsumeExpectedToken(TokenType::r_parentheses);
         token = GetCurrToken();
 
+        // here we hit special case of compound literal that is hit
+        // in series of cast i.e (typename)_1...(typename)_k compound_literal
+        if(token.type == TokenType::l_brace)
+        {
+            Ast::Node* compoundLiteral = AllocateAstNodes();
+            compoundLiteral->type = Ast::compound_literal;
+            compoundLiteral->lChild = ParseInitializer();
+            compoundLiteral->rChild = typeName;
+            if(cast)
+            {
+                cast->lChild = compoundLiteral;
+                return cast;
+            }
+            return compoundLiteral;
+        }
         if(!cast)
         {
             cast = AllocateAstNodes();
@@ -1685,9 +1700,10 @@ Ast::Node* Parser::CastExpression()
         glueNode->lChild = typeName;
         bottomChild->rChild = glueNode;
         bottomChild = glueNode->rChild;
+
+        token = GetCurrToken();
     }
     
-
     Ast::Node* unary = UnaryExpression();
     token = GetCurrToken();
     if(unary && IsAssignment(token.type))
