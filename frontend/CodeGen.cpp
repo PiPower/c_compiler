@@ -12,6 +12,7 @@ constexpr uint8_t TYPE_BUFFER = 0;
 constexpr uint8_t FUNC_BUFFER = 1;
 constexpr uint8_t GLOB_VAR_BUFFER = 2;
 constexpr uint8_t LOC_VAR_BUFFER = 3;
+constexpr uint8_t TMP_BUFFER = 4;
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
@@ -115,7 +116,6 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
     {
         return EmitBuiltInTypename(GetBuiltInName(symType->dType));
     }
-
     // if anonynous struct emitt name as is
     if(typeName[0] == '%')
     {
@@ -276,7 +276,7 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
     {
         IssueWarning(&decl->token, "Abstract declarator cannot be emitted");
     }
-    BindGlobalVarBuffer();
+    BindTmpBuffer();
 
     if(spec->declType.spec.static_ && currFn.inFunction)
     {
@@ -296,6 +296,9 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
 
     bool isPtr = EmitDeclarator(&decl->accArr, &spec->typenameView);
     InitGlobalVar(spec, decl, isPtr);
+
+    CopyBuffers(GLOB_VAR_BUFFER, TMP_BUFFER);
+    ResetBuffer(TMP_BUFFER);
 }
 
 void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
@@ -355,68 +358,44 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
                     decl->name.data(), decl->name.length());
 }
 
-void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *intializer)
+void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initializer)
 {
     if(!(spec->symType->dType >= BuiltIn::s_char_8 && spec->symType->dType <= BuiltIn::double_64))
     {
         IssueWarning(nullptr, "Unsupported initializer type by codegen");
     }
-    if(!intializer)
+    if(!initializer)
     {
         WriteCharData(" 0");
         return;
     }
+    std::string initStr;
+    if(initializer->type == Ast::string_literal)
+    {
+        int64_t strIdx = EmitString(initializer);
+        initStr = "@.str." + std::to_string(strIdx);
+    }
+    else
+    {
+        Typed::Number num = nodeExec->ExecuteNode(initializer);
+        initStr = Typed::ToString(num);
+    }
 
-    Typed::Number num = nodeExec->ExecuteNode(intializer);
-    std::string str = Typed::ToString(num);
-    WriteCharData(" %s", str.data(), str.length());
+    WriteCharData(" %s", initStr.data(), initStr.length());
 }
 
 void CodeGen::EmitFunctionClose()
 {
     BindFuncBuffer(); 
     // copy LOC_VAR_BUFFER buffer to FUNC_BUFFER
-    std::vector<char*>& destVec = writableBufferArr[FUNC_BUFFER];
-    std::vector<char*>& srcVec = writableBufferArr[LOC_VAR_BUFFER];
-    for(size_t i = 0; srcVec.size() - 1; i++)
-    {   
-        size_t usedBytes = currPtrArr[FUNC_BUFFER] - destVec.back();
-        size_t freeBytes = INST_BUFF_SIZE - usedBytes;
-        memcpy(destVec.back(), srcVec[i], freeBytes);
-        
-        destVec.push_back(typeHeap.allocateArray<char>(INST_BUFF_SIZE));
-        memcpy(destVec.back(), srcVec[i] + freeBytes, INST_BUFF_SIZE - freeBytes);
-        currPtrArr[FUNC_BUFFER] = destVec.back() + INST_BUFF_SIZE - freeBytes;
-    }
-
-    size_t usedBytes = currPtrArr[FUNC_BUFFER] - destVec.back();
-    size_t freeBytes = INST_BUFF_SIZE - usedBytes;
-    size_t copySize = std::min(freeBytes, (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()));
-    memcpy(destVec.back() + usedBytes, srcVec.back(), copySize);
-    if(freeBytes < (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()) )
-    {
-        size_t remainingBytes =  (size_t)(currPtrArr[LOC_VAR_BUFFER] - srcVec.back()) - freeBytes;
-        destVec.push_back(typeHeap.allocateArray<char>(INST_BUFF_SIZE));
-        memcpy(destVec.back(), srcVec.back() + copySize, remainingBytes);
-        currPtrArr[FUNC_BUFFER] = destVec.back() + remainingBytes;
-    }
-    else
-    {   
-        currPtrArr[FUNC_BUFFER] += copySize;
-    }
-
+    CopyBuffers(FUNC_BUFFER, LOC_VAR_BUFFER);
     WriteCharData("\n}\n");
-    // reset state of LOC_VAR_BUFFER;
-    for(size_t i = 1; i < writableBufferArr[LOC_VAR_BUFFER].size(); i++)
-    {
-        localBufferHandle.push_back(writableBufferArr[LOC_VAR_BUFFER][i]);
-    }
-    writableBufferArr[LOC_VAR_BUFFER].resize(1);
-    currPtrArr[LOC_VAR_BUFFER] = writableBufferArr[LOC_VAR_BUFFER][0];
 
     currFn.inFunction = false;
     currFn.variableIdx = -1;
     currFn.fnName = "";
+
+    ResetBuffer(LOC_VAR_BUFFER);
 }
 
 void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl, bool isPtr)
@@ -502,19 +481,13 @@ void CodeGen::InitGlobalArray(const AccessArray* accArr, const Ast::Node* initEx
         IssueWarning(nullptr, "Array of non built-in types are not supported")
     }
 
-    if(IsPointer(accArr))
-    {
-        WriteCharData(" zeroinitializer, align 8");
-    }
-
     // init arrays
     const AccessArray nextAcc = {accArr->ptr + 1, accArr->count - 1};
     bool isNestedArray = nextAcc.count > 0 && IsArray(&nextAcc);
 
      // here we emit type
-    if(accArr->count == 0)
+    if(accArr->count == 0 || (accArr->ptr[0].type == ACC_POINTER))
     {
-        EmitTypename(spec->symType, spec->typenameView, true);
         EmitInitializer(spec, initExpr->lChild->lChild);
         return;
     }
@@ -532,11 +505,8 @@ void CodeGen::InitGlobalArray(const AccessArray* accArr, const Ast::Node* initEx
     WriteCharData(" [");
     for(uint64_t i = 0; i < arraySize; i++)
     {
-        if(nextAcc.count > 0)
-        {
-            EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
-        }
 
+        EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
         ArrayInitPair* initPair = nullptr;
         if(currentPair < pairs.size() && i == pairs[currentPair].idx)
         {
@@ -568,7 +538,7 @@ void CodeGen::InitGlobalArray(const AccessArray* accArr, const Ast::Node* initEx
 void CodeGen::InitLocalArray(const std::string_view& arrName, const AccessArray *accArr, const Ast::Node *initExpr, const DeclSpecs *spec)
 {
     PushBufferType();
-    BindGlobalVarBuffer();
+    BindTmpBuffer();
 
     WriteCharData("\n@__const.%s.%s = private unnamed_addr constant ",
         currFn.fnName.data(), currFn.fnName.length(),
@@ -577,6 +547,8 @@ void CodeGen::InitLocalArray(const std::string_view& arrName, const AccessArray 
     EmitDeclarator(accArr, &spec->typenameView);
     InitGlobalArray(accArr, initExpr, spec);
 
+    CopyBuffers(GLOB_VAR_BUFFER, TMP_BUFFER);
+    ResetBuffer(TMP_BUFFER);
     PopBufferType();
 }
 
@@ -596,6 +568,26 @@ void CodeGen::EmitStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx
     WriteCharData(" %%%s, align %s", src.data(), src.length(), align.data(), align.length());
 
     PopBufferType();
+}
+
+int64_t CodeGen::EmitString(const Ast::Node *string)
+{
+    static int64_t stringIdx= 1;
+    int64_t idx = stringIdx++;
+
+    std::string strIdx = std::to_string(idx);
+    std::string_view strLiteral = GetViewForToken(string->token);
+    std::string strLen = std::to_string(strLiteral.length());
+    
+    PushBufferType();
+    BindGlobalVarBuffer(); 
+
+    WriteCharData("\n@.str.%s = private unnamed_addr constant [%s x i8] c\"",
+    strIdx.data(), strIdx.length(), strLen.data(), strLen.length());
+    WriteCharData("\", align 1");
+
+    PopBufferType();
+    return idx;
 }
 
 std::string_view CodeGen::GetViewForToken(const Token &token)
@@ -686,6 +678,11 @@ void CodeGen::BindTypeBuffer()
     chosenBuffer = TYPE_BUFFER;
 }
 
+void CodeGen::BindTmpBuffer()
+{
+    chosenBuffer = TMP_BUFFER;
+}
+
 void CodeGen::BindFuncBuffer()
 {
     chosenBuffer = FUNC_BUFFER;
@@ -712,10 +709,10 @@ void CodeGen::WriteByte(char c)
     char* currPtr = currPtrArr[chosenBuffer];
     if((uint64_t)(currPtr - buffs->back()) == typeHeap.GetAllocSize())
     {
-        if(chosenBuffer == LOC_VAR_BUFFER && localBufferHandle.size() > 0)
+        if(allocatedBufferHandles[chosenBuffer].size() > 0)
         {
-            currPtrArr[chosenBuffer] = localBufferHandle.back();
-            localBufferHandle.pop_back();
+            currPtrArr[chosenBuffer] = allocatedBufferHandles[chosenBuffer].back();
+            allocatedBufferHandles[chosenBuffer].pop_back();
         }
         else
         {
@@ -788,3 +785,46 @@ void CodeGen::WriteCharData(const char* data, ...)
     va_end(args);
 }
 
+void CodeGen::CopyBuffers(uint8_t dest, uint8_t src)
+{
+        // copy LOC_VAR_BUFFER buffer to FUNC_BUFFER
+    std::vector<char*>& destVec = writableBufferArr[dest];
+    std::vector<char*>& srcVec = writableBufferArr[src];
+    for(size_t i = 0; srcVec.size() - 1; i++)
+    {   
+        size_t usedBytes = currPtrArr[dest] - destVec.back();
+        size_t freeBytes = INST_BUFF_SIZE - usedBytes;
+        memcpy(destVec.back(), srcVec[i], freeBytes);
+        
+        destVec.push_back(typeHeap.allocateArray<char>(INST_BUFF_SIZE));
+        memcpy(destVec.back(), srcVec[i] + freeBytes, INST_BUFF_SIZE - freeBytes);
+        currPtrArr[dest] = destVec.back() + INST_BUFF_SIZE - freeBytes;
+    }
+
+    size_t usedBytes = currPtrArr[dest] - destVec.back();
+    size_t freeBytes = INST_BUFF_SIZE - usedBytes;
+    size_t copySize = std::min(freeBytes, (size_t)(currPtrArr[src] - srcVec.back()));
+    memcpy(destVec.back() + usedBytes, srcVec.back(), copySize);
+    if(freeBytes < (size_t)(currPtrArr[src] - srcVec.back()) )
+    {
+        size_t remainingBytes =  (size_t)(currPtrArr[src] - srcVec.back()) - freeBytes;
+        destVec.push_back(typeHeap.allocateArray<char>(INST_BUFF_SIZE));
+        memcpy(destVec.back(), srcVec.back() + copySize, remainingBytes);
+        currPtrArr[dest] = destVec.back() + remainingBytes;
+    }
+    else
+    {   
+        currPtrArr[dest] += copySize;
+    }
+
+}
+
+void CodeGen::ResetBuffer(uint8_t buff)
+{
+    for(size_t i = 1; i < writableBufferArr[buff].size(); i++)
+    {
+        allocatedBufferHandles[buff].push_back(writableBufferArr[buff][i]);
+    }
+    writableBufferArr[buff].resize(1);
+    currPtrArr[buff] = writableBufferArr[buff][0];
+}
