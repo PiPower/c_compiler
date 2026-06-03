@@ -950,25 +950,7 @@ void SemanticAnalyzer::AnalyzeLocalVarDecl(const DeclSpecs *spec, const Declarat
 
     symVar->opts.isEmitted = 1;
     codeGen.EmitLocalVariable(symVar);
-    if(decl->initExpr)
-    {
-        Ast::Node node = {
-            .type = Ast::init_expr,
-            .lChild = const_cast<Ast::Node*>(decl->initExpr)
-        };
-        ExprRet initInfo;
-        initInfo.type = IsPointer(&decl->accArr) ? BuiltIn::ptr : spec->symType->dType; 
-        initInfo.id = symVar->varIdx;
-        node.rChild = (Ast::Node*)&initInfo;
-        if(!IsArray(&decl->accArr))
-        {
-            AnalyzeExpr(&node);
-        }
-        else
-        {
-            codeGen.InitLocalArray(decl->name, &decl->accArr, decl->initExpr, spec);
-        }
-    }
+    InitLocalVariable(symVar);
 }
 
 uint64_t SemanticAnalyzer::GetAnnonymousStructId()
@@ -1190,6 +1172,30 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
     return spec;
 }
 
+void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
+{
+    if(!symVar->decl.initExpr)
+    {
+        return;
+    }
+    Ast::Node node = {
+        .type = Ast::init_expr,
+        .lChild = const_cast<Ast::Node*>(symVar->decl.initExpr)
+    };
+    ExprRet initInfo;
+    initInfo.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType; 
+    initInfo.id = symVar->varIdx;
+    node.rChild = (Ast::Node*)&initInfo;
+    if(!IsArray(&symVar->decl.accArr))
+    {
+        AnalyzeExpr(&node);
+    }
+    else
+    {
+        codeGen.InitLocalArray(symVar->decl.name, &symVar->decl.accArr, symVar->decl.initExpr, &symVar->spec);
+    }
+}
+
 ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
 {
     switch (root->type)
@@ -1244,10 +1250,16 @@ ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
     {
         decl = AnalyzeDeclarator(literal->rChild->lChild, spec.accArr, literal->lChild);
     }
-    
+    int64_t varIdx = codeGen.GetIdxForLocalVar();
+    std::string tmpName = "compound_literal_" + std::to_string(varIdx);
+    if(decl.name == "")
+    {
+        decl.name = tmpName;
+    }
     VariableOpts opts = {.isEnumerator = 0, .isConst = 0, .isEmitted = 0};
-    SymbolVariable localVar(Sym::Kind::VAR, symTab->currentTable->scopeType, &spec, &decl, &opts, codeGen.GetIdxForLocalVar());
+    SymbolVariable localVar(Sym::Kind::VAR, symTab->currentTable->scopeType, &spec, &decl, &opts, varIdx);
     codeGen.EmitLocalVariable(&localVar);
+    InitLocalVariable(&localVar);
 
     return {BuiltIn::struct_t, localVar.varIdx};
 }

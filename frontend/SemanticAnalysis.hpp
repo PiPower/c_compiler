@@ -43,6 +43,7 @@ struct SemanticAnalyzer
     bool IsMemberPointer(const Member* member);
     std::string_view SimpleTypeToString(BuiltIn::Type type);
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
+    void InitLocalVariable(const SymbolVariable* symVar);
     // expressions
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet CompoundLiteral(const Ast::Node* literal);
