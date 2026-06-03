@@ -141,7 +141,13 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     const Ast::Node* initDecl = initList->rChild->lChild;
 
     Declarator fnDecl = AnalyzeDeclarator(initDecl->rChild, nullptr, nullptr);
+    SymbolFunction* fnSym = symTab->QueryFunctionSymbol(fnDecl.name);
+    if(fnSym != nullptr)
+    {
+        IssueWarning(&fnDecl.token, "Function redefinition")
+    }
     AnalyzeFunctionDecl(&declSpec, &fnDecl);
+    
 
     if(!IsPointer(&fnDecl.accArr , 1))
     {
