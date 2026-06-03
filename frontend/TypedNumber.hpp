@@ -75,8 +75,8 @@ namespace Typed
 
         return true; // fallback (shouldn't happen)
     }
-
-    inline uint64_t ToUnit64_t(const Number& num)
+    template<typename T>
+    inline T CastTo(const Number& num)
     {
         switch (num.type)
         {

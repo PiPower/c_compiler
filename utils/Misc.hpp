@@ -45,3 +45,5 @@ std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designator
 bool IsPointer(const AccessArray *accArray, size_t startIdx = 0);
 bool DecaysToPointer(const AccessArray *accArray, size_t startIdx = 0);
 bool IsArray(const AccessArray *accArray);
+std::string_view GetBuiltInName(const BuiltIn::Type type);
+uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type);

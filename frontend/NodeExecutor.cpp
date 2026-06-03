@@ -32,9 +32,21 @@ Typed::Number BinaryOp(NodeExecutor* ne, const Ast::Node* node)
         return {.type = Typed::d_dynamic};
     }
 
+
     Typed::Number out{};
-    out.int64 = Op{}(l.int64, r.int64);
-    out.type = Typed::d_int64_t;
+    if(l.type == Typed::d_double || l.type == Typed::d_float ||
+       r.type == Typed::d_double || r.type == Typed::d_float )
+    {
+        double lf = Typed::CastTo<double>(l);
+        double rf = Typed::CastTo<double>(r);
+        out.int64 = Op{}(lf, rf);
+        out.type = Typed::d_double;
+    }
+    else
+    {
+        out.int64 = Op{}(l.int64, r.int64);
+        out.type = Typed::d_int64_t;
+    }
 
     return out;
 }
@@ -71,12 +83,15 @@ Typed::Number NodeExecutor::ExecuteNode(const Ast::Node *expr)
     case Ast::NodeType::constant:
         if(expr->token.isFloat) 
         {
-           IssueWarning(&expr->token, "Expression must have integral type");
-           exit(-1);
+            numOut.type = Typed::d_double;
+            numOut.float64 = stringToDouble(GetDataPtr(&expr->token), 
+                    expr->token.location.len, GetTokenMode(expr->token));
         }
-    
-        numOut.int64 = stringToInt64(GetDataPtr(&expr->token), 
-                expr->token.location.len, GetTokenMode(expr->token));
+        else
+        {
+            numOut.int64 = stringToInt64(GetDataPtr(&expr->token), 
+                    expr->token.location.len, GetTokenMode(expr->token));
+        }
         return numOut;
     case Ast::NodeType::string_literal:
         IssueWarning(&expr->token, "Expression must have integral type");

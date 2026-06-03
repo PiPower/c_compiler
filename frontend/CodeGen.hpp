@@ -39,8 +39,7 @@ struct CodeGen
     CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne);
     void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
     void EmitTypename(SymbolType* symType, const std::string_view& typeName, bool useQueue = true);
-    void EmitBuiltInTypename(SymbolType* symType);
-    std::string_view GetBuiltInName(SymbolType* symType);
+    void EmitBuiltInTypename(const std::string_view& builInType);
     bool EmitDeclarator(const AccessArray* acc, const std::string_view* typeName);
     bool EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName);
     void EmitMember(Member* member);
@@ -53,7 +52,8 @@ struct CodeGen
     void InitGlobalVar(const DeclSpecs* spec, const Declarator* decl, bool isPtr);
     void ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl);
     void InitGlobalArray(const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
-    void EmitInitGlobalArray(const AccessArray *accArr, const DeclSpecs *spec, const ArrayInitPair* initialzier);
+    void InitLocalArray(const std::string_view& arrName, const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
+    void EmitStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx);
     std::string_view GetViewForToken(const Token &token);
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
     void FlushTypeQueue();
@@ -61,12 +61,13 @@ struct CodeGen
     int64_t GetIdxForLocalVar();
     // expressions
 
-
+    // data writing
+    void PushBufferType();
+    void PopBufferType();
     void BindTypeBuffer();
     void BindFuncBuffer();
     void BindGlobalVarBuffer();
     void BindLocalVarBuffer();
-
     void WriteByte(const char* c);
     void WriteByte(char c);
     void WriteCharData(const char* data, ...);
@@ -79,6 +80,7 @@ struct CodeGen
     std::array<char*, 4> currPtrArr;
     std::vector<char*> localBufferHandle;
     FunctionContext currFn;
+    std::stack<uint8_t> buffStack;
 
     PagedHeap utilHeap;
     PagedHeap typeHeap;

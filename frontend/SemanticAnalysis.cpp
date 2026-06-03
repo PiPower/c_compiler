@@ -238,7 +238,7 @@ Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack
                 else
                 {
                     typeBuffer.type = ACC_ARRAY;
-                    typeBuffer.array.size = Typed::ToUnit64_t(num);
+                    typeBuffer.array.size = Typed::CastTo<uint64_t>(num);
                     if(typeBuffer.array.size == 0 )
                     {
                         typeBuffer.array.size = CG_ZERO_SIZED_ARRAY;
@@ -954,8 +954,14 @@ void SemanticAnalyzer::AnalyzeLocalVarDecl(const DeclSpecs *spec, const Declarat
         initInfo.type = IsPointer(&decl->accArr) ? BuiltIn::ptr : spec->symType->dType; 
         initInfo.id = symVar->varIdx;
         node.rChild = (Ast::Node*)&initInfo;
-
-        AnalyzeExpr(&node);
+        if(!IsArray(&decl->accArr))
+        {
+            AnalyzeExpr(&node);
+        }
+        else
+        {
+            codeGen.InitLocalArray(decl->name, &decl->accArr, decl->initExpr, spec);
+        }
     }
 }
 
@@ -1185,23 +1191,43 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     case Ast::get_addr:
     {
         ExprRet handle = AnalyzeExpr(root->lChild);
+        if(handle.id == -1000)
+        {
+            return ExprRet{BuiltIn::none, -1000};
+        }
         return {BuiltIn::ptr, handle.id};
         
     }break;
     case Ast::init_expr:
     {
-        ExprRet* sourceHandle = (ExprRet*)root->rChild;
-        ExprRet handle = AnalyzeExpr(root->lChild);
+        ExprRet* destHandle = (ExprRet*)root->rChild;
+        ExprRet source = AnalyzeExpr(root->lChild);
+        if(source.id == -1000)
+        {
+            return ExprRet{BuiltIn::none, -1000};
+        }
 
-        
+        if(destHandle->type != source.type)
+        {
+            return ExprRet{BuiltIn::none, -1000};
+        }
+        if(destHandle->type != BuiltIn::struct_t &&
+           destHandle->type != BuiltIn::union_t)
+        {
+
+            codeGen.EmitStorage(destHandle->type, GetBuiltInAlignemnt(destHandle->type), destHandle->id, source.id);
+        }
+        return ExprRet{BuiltIn::none, -1};
     }break;
     case Ast::compound_literal:
     {
         return CompoundLiteral(root);
     }break;
     default:
-        break;
+        return ExprRet{BuiltIn::none, -1000};
     }
+
+    return ExprRet{BuiltIn::none, -1};
 }
 
 ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)

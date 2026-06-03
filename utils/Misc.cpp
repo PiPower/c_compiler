@@ -110,7 +110,7 @@ std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designator
         if(desigExpr)
         {
             Typed::Number num = nodeExec->ExecuteNode(desigExpr->rChild->lChild);
-            linearSize = Typed::ToUnit64_t(num);
+            linearSize = Typed::CastTo<uint64_t>(num);
         }
         pos = linearSize;
         linearSize++;
@@ -260,3 +260,56 @@ bool IsArray(const AccessArray *accArray)
 
     return false;
 }
+
+std::string_view GetBuiltInName(const BuiltIn::Type type)
+{
+    switch (type)
+    {
+    case BuiltIn::bool_t:      return "i8";   break;
+    case BuiltIn::s_char_8:    return "i8";   break;
+    case BuiltIn::u_char_8:    return "i8";   break;
+    case BuiltIn::s_int_16:    return "i16";  break;
+    case BuiltIn::u_int_16:    return "i16";  break;
+    case BuiltIn::s_int_32:    return "i32";  break;
+    case BuiltIn::u_int_32:    return "i32";  break;
+    case BuiltIn::s_int_64:    return "i64";  break;
+    case BuiltIn::u_int_64:    return "i64";  break;
+    case BuiltIn::float_32:    return "float";   break;
+    case BuiltIn::double_64:   return "double";  break;
+    case BuiltIn::long_double: return "x86_fp80";  break;
+    case BuiltIn::ptr:         return "ptr";     break;
+    case BuiltIn::void_t:      return "void";     break;
+    default:
+        printf("code gen: type unsupported");
+        exit(-1);
+        break;
+    }
+    return nullptr;
+}
+
+uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type)
+{
+    switch (type)
+    {
+    case BuiltIn::bool_t:      return 1;
+    case BuiltIn::s_char_8:    return 1;
+    case BuiltIn::u_char_8:    return 1;
+    case BuiltIn::s_int_16:    return 2;
+    case BuiltIn::u_int_16:    return 2;
+    case BuiltIn::s_int_32:    return 4; 
+    case BuiltIn::u_int_32:    return 4;
+    case BuiltIn::s_int_64:    return 8;
+    case BuiltIn::u_int_64:    return 8;
+    case BuiltIn::float_32:    return 4;
+    case BuiltIn::double_64:   return 8;
+    case BuiltIn::long_double: return 16;
+    case BuiltIn::ptr:         return 8;
+    case BuiltIn::void_t:      return 0;
+    default:
+        printf("code gen: type unsupported");
+        exit(-1);
+        break;
+    }
+    return 0;
+}
+

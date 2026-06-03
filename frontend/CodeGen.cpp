@@ -113,7 +113,7 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
     if(symType->dType != BuiltIn::struct_t &&
        symType->dType != BuiltIn::union_t)
     {
-        return EmitBuiltInTypename(symType);
+        return EmitBuiltInTypename(GetBuiltInName(symType->dType));
     }
 
     // if anonynous struct emitt name as is
@@ -172,36 +172,9 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
     
 }
 
-void CodeGen::EmitBuiltInTypename(SymbolType *symType)
+void CodeGen::EmitBuiltInTypename(const std::string_view& builInType)
 {
-    std::string_view builInType= GetBuiltInName(symType);
     WriteCharData("%s", builInType.data(), builInType.length());
-}
-
-std::string_view CodeGen::GetBuiltInName(SymbolType *symType)
-{
-    switch (symType->dType)
-    {
-    case BuiltIn::bool_t:      return "i8";   break;
-    case BuiltIn::s_char_8:    return "i8";   break;
-    case BuiltIn::u_char_8:    return "i8";   break;
-    case BuiltIn::s_int_16:    return "i16";  break;
-    case BuiltIn::u_int_16:    return "i16";  break;
-    case BuiltIn::s_int_32:    return "i32";  break;
-    case BuiltIn::u_int_32:    return "i32";  break;
-    case BuiltIn::s_int_64:    return "i64";  break;
-    case BuiltIn::u_int_64:    return "i64";  break;
-    case BuiltIn::float_32:    return "float";   break;
-    case BuiltIn::double_64:   return "double";  break;
-    case BuiltIn::long_double: return "x86_fp80";  break;
-    case BuiltIn::ptr:         return "ptr";     break;
-    case BuiltIn::void_t:      return "void";     break;
-    default:
-        printf("code gen: type unsupported");
-        exit(-1);
-        break;
-    }
-    return nullptr;
 }
 
 bool CodeGen::EmitDeclarator(const AccessArray* acc, const std::string_view* typeName)
@@ -334,7 +307,7 @@ void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
     }
     std::string idx = std::to_string(symVar->varIdx);
 
-    BindLocalVarBuffer();
+    BindFuncBuffer();
 
     WriteCharData("\n\t%%%s = alloca ", idx.data(), idx.length());
     bool isPtr = EmitDeclarator(&symVar->decl.accArr, &symVar->spec.typenameView);
@@ -373,7 +346,7 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
     {
         IssueWarning(nullptr, "Non built in types are not supported in return statement");
     }
-    std::string_view retName = GetBuiltInName(spec->symType);
+    std::string_view retName = GetBuiltInName(spec->symType->dType);
 
     BindFuncBuffer();
     WriteCharData("\ndefine %s %s @%s() #0 {", 
@@ -384,7 +357,7 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
 
 void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *intializer)
 {
-    if(!(spec->symType->dType >= BuiltIn::s_char_8 && spec->symType->dType <= BuiltIn::u_int_64))
+    if(!(spec->symType->dType >= BuiltIn::s_char_8 && spec->symType->dType <= BuiltIn::double_64))
     {
         IssueWarning(nullptr, "Unsupported initializer type by codegen");
     }
@@ -592,6 +565,39 @@ void CodeGen::InitGlobalArray(const AccessArray* accArr, const Ast::Node* initEx
 
 }
 
+void CodeGen::InitLocalArray(const std::string_view& arrName, const AccessArray *accArr, const Ast::Node *initExpr, const DeclSpecs *spec)
+{
+    PushBufferType();
+    BindGlobalVarBuffer();
+
+    WriteCharData("\n@__const.%s.%s = private unnamed_addr constant ",
+        currFn.fnName.data(), currFn.fnName.length(),
+        arrName.data(), arrName.length());
+
+    EmitDeclarator(accArr, &spec->typenameView);
+    InitGlobalArray(accArr, initExpr, spec);
+
+    PopBufferType();
+}
+
+void CodeGen::EmitStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx)
+{
+    PushBufferType();
+    BindLocalVarBuffer();
+
+    std::string dst = std::to_string(destIdx);
+    std::string src = std::to_string(srcIdx);
+    std::string align = std::to_string(alignment);
+
+    WriteCharData("\n\tstore ");
+    EmitBuiltInTypename(GetBuiltInName(type));
+    WriteCharData(" %%%s, ",dst.data(), dst.length());
+    EmitBuiltInTypename(GetBuiltInName(type));
+    WriteCharData(" %%%s, align %s", src.data(), src.length(), align.data(), align.length());
+
+    PopBufferType();
+}
+
 std::string_view CodeGen::GetViewForToken(const Token &token)
 {
     FILE_STATE state;
@@ -664,6 +670,16 @@ int64_t CodeGen::GetIdxForLocalVar()
     return currFn.variableIdx++;
 }
 
+void CodeGen::PushBufferType()
+{
+    buffStack.push(chosenBuffer);
+}
+
+void CodeGen::PopBufferType()
+{
+    chosenBuffer = buffStack.top();
+    buffStack.pop();
+}
 
 void CodeGen::BindTypeBuffer()
 {
