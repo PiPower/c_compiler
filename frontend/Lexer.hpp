@@ -48,8 +48,8 @@ struct Lexer
     bool IsDigit(const char& c);
     bool IsOctalDigit(const char& c);
     bool IsBinDigit(const char& c);
-    bool LexIntegerSuffix();
-    bool LexFloatSuffix();
+    bool LexIntegerSuffix(Token* tok);
+    bool LexFloatSuffix(Token* tok);
     bool IsAlpha(const char& c);
     bool IsHexDigit(const char& c);
     int64_t IsUniversalChar(const char* c, size_t maxPossibleLen);

@@ -12,6 +12,7 @@ constexpr size_t  POINTER_SIZE = 8;
 struct ExprRet
 {
     BuiltIn::Type type;
+    Typed::Number num;
     int64_t id;
 };
 
@@ -49,6 +50,7 @@ struct SemanticAnalyzer
     // expressions
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet CompoundLiteral(const Ast::Node* literal);
+    ExprRet LoadConstant(const Ast::Node* constant);
     // misc
     std::string_view GetViewForToken(const Token &token);
     void WriteCodeToFile(const char* filename);

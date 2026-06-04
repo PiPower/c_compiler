@@ -183,6 +183,24 @@ struct SourceLocation
     int64_t len;
 };
 
+struct IntDesc
+{
+    uint8_t isHex : 1; // is numeric written in hexadecimal notation
+    uint8_t isDec : 1; // is numeric written in decimal notation
+    uint8_t isBin : 1; // is numeric written in binary notation
+    uint8_t isOct : 1; // is numeric written in octal notation
+    uint8_t u : 1;
+    uint8_t l : 2;
+};
+
+struct FloatDesc
+{
+    uint8_t hasE : 1; // does numeric contain E
+    uint8_t hasP : 1; // does numeric contain P
+    uint8_t l : 1;
+    uint8_t f : 1;
+};
+
 struct Token
 {
     TokenType::Type type;
@@ -190,12 +208,18 @@ struct Token
     // hints
     uint16_t skippedHorizWhitespace : 1; // prepended by whitespace
     uint16_t isFloat : 1; // is numeric constant float
-    uint16_t isHex : 1; // is numeric written in hexadecimal notation
-    uint16_t isDec : 1; // is numeric written in decimal notation
-    uint16_t isBin : 1; // is numeric written in binary notation
-    uint16_t isOct : 1; // is numeric written in octal notation
-    uint16_t hasE : 1; // does numeric contain E
-    uint16_t hasP : 1; // does numeric contain P
+    // integer related hints
+    uint8_t isHex : 1; // is numeric written in hexadecimal notation
+    uint8_t isDec : 1; // is numeric written in decimal notation
+    uint8_t isBin : 1; // is numeric written in binary notation
+    uint8_t isOct : 1; // is numeric written in octal notation
+    uint8_t u : 1; // is number unsigned 
+    uint8_t l : 2; // is long == 1 / long long == 2 / if isFloat == 1 then if l == 1 -> long double
+    // float related hints
+    uint8_t hasE : 1; // does numeric contain E
+    uint8_t hasP : 1; // does numeric contain P
+    uint8_t f : 1; // is number float
+    // err related hints
     uint16_t PossiblyErronous : 1; // set when identifier contains forbbiden char. 
 };
 

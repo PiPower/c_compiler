@@ -1285,7 +1285,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
         ExprRet handle = AnalyzeExpr(root->lChild);
         if(handle.id == -1000)
         {
-            return ExprRet{BuiltIn::none, -1000};
+            return ExprRet{BuiltIn::none, {}, -1000};
         }
         return {BuiltIn::ptr, handle.id};
         
@@ -1296,30 +1296,26 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
         ExprRet source = AnalyzeExpr(root->lChild);
         if(source.id == -1000)
         {
-            return ExprRet{BuiltIn::none, -1000};
+            return ExprRet{BuiltIn::none, {}, -1000};
         }
 
         if(destHandle->type != source.type)
         {
-            return ExprRet{BuiltIn::none, -1000};
+            return ExprRet{BuiltIn::none, {}, -1000};
         }
         if(destHandle->type != BuiltIn::struct_t &&
            destHandle->type != BuiltIn::union_t)
         {
-
             codeGen.EmitLocalStorage(destHandle->type, GetBuiltInAlignemnt(destHandle->type), destHandle->id, source.id);
         }
         return ExprRet{BuiltIn::none, -1};
     }break;
-    case Ast::compound_literal:
-    {
-        return CompoundLiteral(root);
-    }break;
-    default:
-        return ExprRet{BuiltIn::none, -1000};
+    case Ast::constant: return LoadConstant(root);  break;
+    case Ast::compound_literal: return CompoundLiteral(root); break;
+    default: return ExprRet{BuiltIn::none, {}, -1000};
     }
 
-    return ExprRet{BuiltIn::none, -1};
+    return ExprRet{BuiltIn::none, {}, -1000};
 }
 
 ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
@@ -1342,4 +1338,9 @@ ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
     InitLocalVariable(&localVar);
 
     return {BuiltIn::struct_t, localVar.varIdx};
+}
+
+ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
+{
+    return ExprRet{BuiltIn::none, {}, -1000};
 }

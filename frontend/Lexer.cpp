@@ -371,7 +371,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
         while (fCurr < fEnd && IsBinDigit(*fCurr)){fCurr++;}
     }
     
-    if(fCurr == fEnd || LexIntegerSuffix() )
+    if(fCurr == fEnd || LexIntegerSuffix(token) )
     {
         goto end_of_constant_lex;
     }
@@ -405,7 +405,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
         if(isFloat)
         {
             token->isFloat = 1;
-            LexFloatSuffix();
+            LexFloatSuffix(token);
         }
     }
     else if(numType.type == dec_type_hex)
@@ -448,7 +448,7 @@ void Lexer::LexConstant(Token *token, const SourceLocation *firstNum)
         if(isFloat)
         {
             token->isFloat = 1;
-            LexFloatSuffix();
+            LexFloatSuffix(token);
         }
     }
 end_of_constant_lex: 
@@ -1140,7 +1140,7 @@ bool Lexer::IsBinDigit(const char &c)
     return '0' <= c  && c <= '1';
 }
 
-bool Lexer::LexIntegerSuffix()
+bool Lexer::LexIntegerSuffix(Token* tok)
 {
     RestoreLexerPointer();
     if(fCurr == fEnd)
@@ -1151,26 +1151,30 @@ bool Lexer::LexIntegerSuffix()
     if( *fCurr == 'U' || *fCurr == 'u')
     {
         fCurr++;
-        if(fCurr < fEnd &&( *fCurr == 'l' || *fCurr == 'L')){fCurr++;} // ul suffix 
-        if(fCurr < fEnd &&( *fCurr == 'l' || *fCurr == 'L')){fCurr++;} // ull suffix
+        tok->u = 1;
+        if(fCurr < fEnd &&( *fCurr == 'l' || *fCurr == 'L')){fCurr++; tok->l = 1;} // ul suffix 
+        if(fCurr < fEnd &&( *fCurr == 'l' || *fCurr == 'L')){fCurr++; tok->l = 2;} // ull suffix
         return true;
     }
     else if(*fCurr == 'L' || *fCurr == 'l')
     {
         fCurr++;
+        tok->l = 1;
+
         if(fCurr < fEnd &&( *fCurr == 'u' || *fCurr == 'U'))
         {
             fCurr++; 
+            tok->u = 1;
             return true; // lu suffix
         } 
-        if(fCurr < fEnd &&( *fCurr == 'l' || *fCurr == 'L')){fCurr++;} // ll suffix 
-        if(fCurr < fEnd &&( *fCurr == 'u' || *fCurr == 'U')){fCurr++;} // llu suffix 
+        if(fCurr < fEnd &&( *fCurr == 'l' || *fCurr == 'L')){fCurr++; tok->l = 2;} // ll suffix 
+        if(fCurr < fEnd &&( *fCurr == 'u' || *fCurr == 'U')){fCurr++; tok->u = 1;} // llu suffix 
         return true;
     }
     return false;
 }
 
-bool Lexer::LexFloatSuffix()
+bool Lexer::LexFloatSuffix(Token* tok)
 {
     RestoreLexerPointer();
     if(fCurr >= fEnd)
@@ -1178,10 +1182,16 @@ bool Lexer::LexFloatSuffix()
         return false;
     }
 
-    if(*fCurr == 'f' || *fCurr == 'F' || 
-       *fCurr == 'l' || *fCurr == 'L' )
+    if(*fCurr == 'f' || *fCurr == 'F')
     {
         fCurr++;
+        tok->f = 1;
+        return true;
+    }
+    else if(*fCurr == 'l' || *fCurr == 'L' )
+    {
+        fCurr++;
+        tok->l = 1;
         return true;
     }
 
