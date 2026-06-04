@@ -1272,7 +1272,7 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
     }
     else
     {
-        codeGen.InitLocalArray(symVar->decl.name, &symVar->decl.accArr, symVar->decl.initExpr, &symVar->spec);
+        //codeGen.InitLocalArray(symVar->decl.name, &symVar->decl.accArr, symVar->decl.initExpr, &symVar->spec);
     }
 }
 
