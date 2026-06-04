@@ -37,6 +37,8 @@ struct SemanticAnalyzer
     bool NamesAType(const std::string_view& identifier);
     void AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl);
     void AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declarator* decl);
+    void InitGlobalVar(const DeclSpecs *spec, const Declarator *decl);
+    void InitGlobalArray(const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
     void AnalyzeLocalVarDecl(const DeclSpecs* spec, const Declarator* decl);
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
@@ -63,6 +65,7 @@ struct SemanticAnalyzer
     // used as local string to avoid constant re allocation
     // it is not guaranted to be valid after call to any SEMA function
     Logger logger;
+    PagedHeap utilHeap;
 };
 
 

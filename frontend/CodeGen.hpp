@@ -37,39 +37,51 @@ struct FunctionContext
 struct CodeGen
 {
     CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne);
-    void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
+    // General, do not change buffer type
     void EmitTypename(SymbolType* symType, const std::string_view& typeName, bool useQueue = true);
     void EmitBuiltInTypename(const std::string_view& builInType);
     bool EmitDeclarator(const AccessArray* acc, const std::string_view* typeName);
     bool EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName);
     void EmitMember(Member* member);
     bool EmitAccessArrayOpened(const AccessArray* accArr, uint64_t* bracket);
-    void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
-    void EmitLocalVariable(const SymbolVariable* symVar);
+    // Type stuff
+    void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
+    // Function stuff
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
-    void EmitInitializer(const DeclSpecs* spec, const Ast::Node* initializer);
     void EmitFunctionClose();
-    void InitGlobalVar(const DeclSpecs* spec, const Declarator* decl, bool isPtr);
+    // Global stuff 
+    void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
+    void EmitGlobalBuiltInInit(const Ast::Node* initExpr, uint32_t alignment);
     void ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl);
-    void InitGlobalArray(const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
+    void EmitGLobalArrayAlignment(bool isPtr, uint32_t alignment);
+    void EmitInitializer(const DeclSpecs* spec, const Ast::Node* initializer, bool isComplexType);
+    // Local stuff
+    void EmitLocalVariable(const SymbolVariable* symVar);
     void InitLocalArray(const std::string_view& arrName, const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
-    void EmitStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx);
+    void EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx);
+
+    // string sutff
     int64_t EmitString(const Ast::Node* string);
+
+    // misc
     std::string_view GetViewForToken(const Token &token);
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
     void FlushTypeQueue();
     void WriteToFile(int fd);
     int64_t GetIdxForLocalVar();
+    void StartArray();
+    void EndArray();
+    void ArgSeparator();
     // expressions
 
     // data writing
     void PushBufferType();
     void PopBufferType();
     void BindTypeBuffer();
-    void BindTmpBuffer();
+    void BindStrBuffer();
     void BindFuncBuffer();
     void BindGlobalVarBuffer();
-    void BindLocalVarBuffer();
+    void BindLocalBuffer();
     void WriteByte(const char* c);
     void WriteByte(char c);
     void WriteCharData(const char* data, ...);
@@ -82,11 +94,10 @@ struct CodeGen
     uint8_t chosenBuffer;
     std::array<std::vector<char*>, 5> writableBufferArr;
     std::array<std::vector<char*>, 5> allocatedBufferHandles;
-    std::array<char*, 4> currPtrArr;
+    std::array<char*, 5> currPtrArr;
     FunctionContext currFn;
     std::stack<uint8_t> buffStack;
 
-    PagedHeap utilHeap;
     PagedHeap typeHeap;
     SymbolTable* symTab;
     FileManager* manager;

@@ -11,8 +11,8 @@
 constexpr uint8_t TYPE_BUFFER = 0;
 constexpr uint8_t FUNC_BUFFER = 1;
 constexpr uint8_t GLOB_VAR_BUFFER = 2;
-constexpr uint8_t LOC_VAR_BUFFER = 3;
-constexpr uint8_t TMP_BUFFER = 4;
+constexpr uint8_t LOCAL_BUFFER = 3;
+constexpr uint8_t STR_BUFFER = 4;
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
@@ -21,7 +21,7 @@ const char* ptrAlignment = "8";
 
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
-chosenBuffer(TYPE_BUFFER), currFn(false, -1, ""), utilHeap(5), typeHeap(nr_of_pages), symTab(symTab),
+chosenBuffer(TYPE_BUFFER), currFn(false, -1, ""), typeHeap(nr_of_pages), symTab(symTab),
 manager(manager), nodeExec(ne), logger(manager, "Code Gen")
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
@@ -272,11 +272,12 @@ bool CodeGen::EmitAccessArrayOpened(const AccessArray *accArr, uint64_t* bracket
 
 void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
 {
+    BindGlobalVarBuffer();
+
     if(decl->name.length() == 0)
     {
         IssueWarning(&decl->token, "Abstract declarator cannot be emitted");
     }
-    BindTmpBuffer();
 
     if(spec->declType.spec.static_ && currFn.inFunction)
     {
@@ -295,10 +296,6 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
     }
 
     bool isPtr = EmitDeclarator(&decl->accArr, &spec->typenameView);
-    InitGlobalVar(spec, decl, isPtr);
-
-    CopyBuffers(GLOB_VAR_BUFFER, TMP_BUFFER);
-    ResetBuffer(TMP_BUFFER);
 }
 
 void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
@@ -358,7 +355,7 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
                     decl->name.data(), decl->name.length());
 }
 
-void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initializer)
+void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initializer, bool isComplexType)
 {
     if(!(spec->symType->dType >= BuiltIn::s_char_8 && spec->symType->dType <= BuiltIn::double_64))
     {
@@ -366,7 +363,14 @@ void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initialize
     }
     if(!initializer)
     {
-        WriteCharData(" 0");
+        if(isComplexType)
+        {
+            WriteCharData(" zeroinitializer");
+        }
+        else
+        {
+            WriteCharData(" 0");
+        }
         return;
     }
     std::string initStr;
@@ -378,76 +382,69 @@ void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initialize
     else
     {
         Typed::Number num = nodeExec->ExecuteNode(initializer);
+        if(num.type == Typed::d_dynamic)
+        {
+            IssueWarning(&initializer->token, "global value may only be initialized by constant expression")
+        }
         initStr = Typed::ToString(num);
     }
-
+    BindGlobalVarBuffer();
     WriteCharData(" %s", initStr.data(), initStr.length());
+}
+
+void CodeGen::EmitGlobalBuiltInInit(const Ast::Node* initExpr, uint32_t alignment)
+{
+    BindGlobalVarBuffer();
+    if(initExpr)
+    {
+        Typed::Number num = nodeExec->ExecuteNode(initExpr);
+        std::string str = Typed::ToString(num);
+        std::string alignmentStr = std::to_string(alignment);
+
+        WriteCharData(" %s, align %s",
+            str.data(), str.length(),
+            alignmentStr.data(), alignmentStr.length());
+    }
+    else
+    {
+        std::string alignmentStr = std::to_string(alignment);
+
+        WriteCharData(" zeroinitializer, align %s",
+               alignmentStr.data(), alignmentStr.length());
+    }
+}
+
+void CodeGen::EmitGLobalArrayAlignment(bool isPtr, uint32_t alignment)
+{
+    BindGlobalVarBuffer();
+    if(isPtr)
+    {
+        WriteCharData(", align 8");
+    }
+    else
+    {
+        std::string alignmentStr = std::to_string(alignment);
+        WriteCharData(", align %s", alignmentStr.data(), alignmentStr.length());
+    }
 }
 
 void CodeGen::EmitFunctionClose()
 {
     BindFuncBuffer(); 
     // copy LOC_VAR_BUFFER buffer to FUNC_BUFFER
-    CopyBuffers(FUNC_BUFFER, LOC_VAR_BUFFER);
+    CopyBuffers(FUNC_BUFFER, LOCAL_BUFFER);
     WriteCharData("\n}\n");
 
     currFn.inFunction = false;
     currFn.variableIdx = -1;
     currFn.fnName = "";
 
-    ResetBuffer(LOC_VAR_BUFFER);
+    ResetBuffer(LOCAL_BUFFER);
 }
-
-void CodeGen::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl, bool isPtr)
-{
-    if(!decl->initExpr)
-    {
-        ZeroInitGlobalVar(spec, decl);
-        return;
-    }
-
-    if(!isPtr && (spec->symType->dType == BuiltIn::struct_t || spec->symType->dType == BuiltIn::union_t ))
-    {
-        IssueWarning(nullptr, "Struct/union initialization is not supported")
-    }
-
-    if(decl->accArr.count == 0)
-    {
-        Typed::Number num = nodeExec->ExecuteNode(decl->initExpr);
-        std::string str = Typed::ToString(num);
-        std::string alignment = std::to_string(spec->symType->alignment);
-
-        WriteCharData(" %s, align %s",
-            str.data(), str.length(),
-            alignment.data(), alignment.length());
-
-        return;
-    }
-
-    if(!decl->initExpr)
-    {
-        std::string alignment = std::to_string(spec->symType->alignment);
-
-        WriteCharData(" zeroinitializer, align %s",
-               alignment.data(), alignment.length());
-
-        return;
-    }
-    // array stuff
-    InitGlobalArray(&decl->accArr, decl->initExpr, spec);
-    if(IsPointer(&decl->accArr))
-    {
-        WriteCharData(", align 8");
-    }
-    else
-    {
-        std::string alignment = std::to_string(spec->symType->alignment);
-        WriteCharData(", align %s", alignment.data(), alignment.length());
-    }
-}   
 
 void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
 {
+    BindGlobalVarBuffer();
     SymbolType* symType = symTab->QueryTypeSymbol(spec->typenameView);
     if(!symType)
     {
@@ -474,69 +471,10 @@ void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
         alignment.data(), alignment.length());
 }
 
-void CodeGen::InitGlobalArray(const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec)
-{
-    if(spec->symType->dType == BuiltIn::struct_t || spec->symType->dType == BuiltIn::union_t )
-    {
-        IssueWarning(nullptr, "Array of non built-in types are not supported")
-    }
-
-    // init arrays
-    const AccessArray nextAcc = {accArr->ptr + 1, accArr->count - 1};
-    bool isNestedArray = nextAcc.count > 0 && IsArray(&nextAcc);
-
-     // here we emit type
-    if(accArr->count == 0 || (accArr->ptr[0].type == ACC_POINTER))
-    {
-        EmitInitializer(spec, initExpr->lChild->lChild);
-        return;
-    }
-
-    std::vector<ArrayInitPair> pairs;
-    if(initExpr)
-    {   
-        pairs = PartitionArrayInitializer(initExpr, &nextAcc, &logger, nodeExec, &utilHeap);
-    }
-
-    
-    uint64_t currentPair = 0;
-    uint64_t arraySize = accArr->ptr->array.size;
-    
-    WriteCharData(" [");
-    for(uint64_t i = 0; i < arraySize; i++)
-    {
-
-        EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
-        ArrayInitPair* initPair = nullptr;
-        if(currentPair < pairs.size() && i == pairs[currentPair].idx)
-        {
-            InitGlobalArray(&nextAcc, pairs[currentPair].initializerList, spec);
-            currentPair++;
-        }
-        else
-        {
-            if(isNestedArray)
-            {
-                WriteCharData(" zeroinitializer");
-            }
-            else
-            {
-                EmitTypename(spec->symType, spec->typenameView, true);
-                EmitInitializer(spec, nullptr);
-            }
-        }
-
-        if(i < arraySize - 1)
-        {
-            WriteCharData(", ");
-        }
-    }
-    WriteByte(']');
-
-}
 
 void CodeGen::InitLocalArray(const std::string_view& arrName, const AccessArray *accArr, const Ast::Node *initExpr, const DeclSpecs *spec)
 {
+    /*
     PushBufferType();
     BindTmpBuffer();
 
@@ -545,17 +483,16 @@ void CodeGen::InitLocalArray(const std::string_view& arrName, const AccessArray 
         arrName.data(), arrName.length());
 
     EmitDeclarator(accArr, &spec->typenameView);
-    InitGlobalArray(accArr, initExpr, spec);
 
     CopyBuffers(GLOB_VAR_BUFFER, TMP_BUFFER);
     ResetBuffer(TMP_BUFFER);
     PopBufferType();
+    */
 }
 
-void CodeGen::EmitStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx)
+void CodeGen::EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx)
 {
-    PushBufferType();
-    BindLocalVarBuffer();
+    BindLocalBuffer();
 
     std::string dst = std::to_string(destIdx);
     std::string src = std::to_string(srcIdx);
@@ -566,8 +503,6 @@ void CodeGen::EmitStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx
     WriteCharData(" %%%s, ",dst.data(), dst.length());
     EmitBuiltInTypename(GetBuiltInName(type));
     WriteCharData(" %%%s, align %s", src.data(), src.length(), align.data(), align.length());
-
-    PopBufferType();
 }
 
 int64_t CodeGen::EmitString(const Ast::Node *string)
@@ -580,13 +515,14 @@ int64_t CodeGen::EmitString(const Ast::Node *string)
     std::string strLen = std::to_string(strLiteral.length());
     
     PushBufferType();
-    BindGlobalVarBuffer(); 
+    BindStrBuffer();
 
     WriteCharData("\n@.str.%s = private unnamed_addr constant [%s x i8] c\"",
     strIdx.data(), strIdx.length(), strLen.data(), strLen.length());
     WriteCharData("\", align 1");
 
     PopBufferType();
+
     return idx;
 }
 
@@ -623,7 +559,7 @@ void CodeGen::FlushTypeQueue()
 
 void CodeGen::WriteToFile(int fd)
 {
-    constexpr std::array<uint8_t, 3> buffOrder = {TYPE_BUFFER, GLOB_VAR_BUFFER, FUNC_BUFFER,};
+    constexpr std::array<uint8_t, 4> buffOrder = {TYPE_BUFFER, STR_BUFFER, GLOB_VAR_BUFFER, FUNC_BUFFER,};
     size_t maxSize = 0;
     for(const auto& arr : writableBufferArr)
     {
@@ -662,6 +598,21 @@ int64_t CodeGen::GetIdxForLocalVar()
     return currFn.variableIdx++;
 }
 
+void CodeGen::StartArray()
+{
+    WriteCharData(" [");
+}
+
+void CodeGen::EndArray()
+{
+    WriteByte(']');
+}
+
+void CodeGen::ArgSeparator()
+{
+    WriteCharData(", ");
+}
+
 void CodeGen::PushBufferType()
 {
     buffStack.push(chosenBuffer);
@@ -678,9 +629,9 @@ void CodeGen::BindTypeBuffer()
     chosenBuffer = TYPE_BUFFER;
 }
 
-void CodeGen::BindTmpBuffer()
+void CodeGen::BindStrBuffer()
 {
-    chosenBuffer = TMP_BUFFER;
+    chosenBuffer = STR_BUFFER;
 }
 
 void CodeGen::BindFuncBuffer()
@@ -693,9 +644,9 @@ void CodeGen::BindGlobalVarBuffer()
     chosenBuffer = GLOB_VAR_BUFFER;
 }
 
-void CodeGen::BindLocalVarBuffer()
+void CodeGen::BindLocalBuffer()
 {
-    chosenBuffer = LOC_VAR_BUFFER;
+    chosenBuffer = LOCAL_BUFFER;
 }
 
 void CodeGen::WriteByte( const char *c)

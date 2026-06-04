@@ -43,7 +43,9 @@ static const char* kTypeNames[] = {
 };
 SemanticAnalyzer::SemanticAnalyzer(FileManager* manager, SymbolTable* symTab)
 :
-symTab(symTab), manager(manager), ne(manager, this), codeGen(symTab, manager, &ne), logger(manager, "Semantic Analysis")
+symTab(symTab), manager(manager), ne(manager, this), 
+codeGen(symTab, manager, &ne), logger(manager, "Semantic Analysis"),
+utilHeap(5)
 {
     // each simple built in typename is stored in read section during program lifetime
     // so each std::string_view will be valid
@@ -879,6 +881,7 @@ void SemanticAnalyzer::EmitUninitializedGlobals()
     {
         symVar->opts.isEmitted = 1;
         codeGen.EmitGlobalVariable(&symVar->spec, &symVar->decl);
+        InitGlobalVar(&symVar->spec, &symVar->decl);
     }
 }
 
@@ -926,11 +929,88 @@ void SemanticAnalyzer::AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declara
         }
         symVar->opts.isEmitted = 1;
         codeGen.EmitGlobalVariable(spec, decl);
+        InitGlobalVar(spec, decl);
+
         if(uninitGlobals.find(symVar) != uninitGlobals.end())
         {
             uninitGlobals.erase(symVar);
         }
     }
+}
+
+void SemanticAnalyzer::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl)
+{
+    if(!decl->initExpr)
+    {
+        codeGen.ZeroInitGlobalVar(spec, decl);
+        return;
+    }
+
+    if(!IsPointer(&decl->accArr) && (spec->symType->dType == BuiltIn::struct_t || spec->symType->dType == BuiltIn::union_t ))
+    {
+        IssueWarning(nullptr, "Struct/union initialization is not supported")
+    }
+
+    if(decl->accArr.count == 0 || (decl->accArr.count > 0 && decl->accArr.ptr[0].type == ACC_POINTER))
+    {
+        codeGen.EmitGlobalBuiltInInit(decl->initExpr, spec->symType->alignment);
+        return;
+    }
+    // array stuff
+    InitGlobalArray(&decl->accArr, decl->initExpr, spec);
+
+    codeGen.EmitGLobalArrayAlignment(IsPointer(&decl->accArr), spec->symType->alignment);
+}
+
+void SemanticAnalyzer::InitGlobalArray(const AccessArray *accArr, const Ast::Node *initExpr, const DeclSpecs *spec)
+{
+    if(spec->symType->dType == BuiltIn::struct_t || spec->symType->dType == BuiltIn::union_t )
+    {
+        IssueWarning(nullptr, "Array of non built-in types are not supported")
+    }
+
+    // init arrays
+    const AccessArray nextAcc = {accArr->ptr + 1, accArr->count - 1};
+    bool isNestedArray = nextAcc.count > 0 && IsArray(&nextAcc);
+
+     // here we emit type
+    if(accArr->count == 0 || (accArr->ptr[0].type == ACC_POINTER))
+    {
+        codeGen.EmitInitializer(spec, initExpr->lChild->lChild, false);
+        return;
+    }
+
+    std::vector<ArrayInitPair> pairs;
+    if(initExpr)
+    {   
+        pairs = PartitionArrayInitializer(initExpr, &nextAcc, &logger, &ne, &utilHeap);
+    }
+
+    uint64_t currentPair = 0;
+    uint64_t arraySize = accArr->ptr->array.size;
+    
+    codeGen.StartArray();
+    for(uint64_t i = 0; i < arraySize; i++)
+    {
+
+        codeGen.EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
+        ArrayInitPair* initPair = nullptr;
+        if(currentPair < pairs.size() && i == pairs[currentPair].idx)
+        {
+            InitGlobalArray(&nextAcc, pairs[currentPair].initializerList, spec);
+            currentPair++;
+        }
+        else
+        {
+            codeGen.EmitInitializer(spec, nullptr, isNestedArray);
+        }
+
+        if(i < arraySize - 1)
+        {
+            codeGen.ArgSeparator();
+        }
+    }
+    codeGen.EndArray();
 }
 
 void SemanticAnalyzer::AnalyzeLocalVarDecl(const DeclSpecs *spec, const Declarator *decl)
@@ -1227,7 +1307,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
            destHandle->type != BuiltIn::union_t)
         {
 
-            codeGen.EmitStorage(destHandle->type, GetBuiltInAlignemnt(destHandle->type), destHandle->id, source.id);
+            codeGen.EmitLocalStorage(destHandle->type, GetBuiltInAlignemnt(destHandle->type), destHandle->id, source.id);
         }
         return ExprRet{BuiltIn::none, -1};
     }break;

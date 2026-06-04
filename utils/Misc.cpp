@@ -146,9 +146,9 @@ std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designator
                 {
                     // designator must be removed so allocate new node in place
                     Ast::Node* replacement = allocator->allocate<Ast::Node>();
-                    replacement->type = item->type;
-                    replacement->token = item->token;
-                    replacement->lChild = item->lChild;
+                    replacement->type = expr->type;
+                    replacement->token = expr->token;
+                    replacement->lChild = expr->lChild;
                     expr = replacement;
                 }
                 arrayExprs.push_back(*expr);
