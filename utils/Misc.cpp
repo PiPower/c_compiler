@@ -21,7 +21,7 @@ ArraySize GetArrayElemCount(const AccessArray *accArray, Logger *logger, NodeExe
 {
     bool hitPointer = false;
     bool hitArray = false;
-    int64_t arrayCount = 1;
+    uint64_t arrayCount = 1;
 
     AccessType* accType = accArray->ptr;
     for(size_t i = 0; i < accArray->count; i++)
@@ -98,7 +98,6 @@ std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designator
     std::vector<ArrayInitPair> pairs;
     std::vector<Ast::Node> arrayExprs;
     uint64_t linearSize = 0;
-    const Ast::Node* nextItem = designatorList->rChild;
     size_t i = 0;
     while(i < astPtrToLen(designatorList->rChild))
     {
@@ -284,7 +283,7 @@ std::string_view GetBuiltInName(const BuiltIn::Type type)
         exit(-1);
         break;
     }
-    return nullptr;
+    return "";
 }
 
 uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type)

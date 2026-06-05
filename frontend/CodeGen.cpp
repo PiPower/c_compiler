@@ -69,7 +69,6 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
     {
         size_t maxSize = 0;
         size_t maxAlignment = 1;
-        size_t maxSizeMember = 0;
         size_t maxAlignmentMember = 0;
 
         for(size_t i =0; i < symType->str.argCount; i++)
@@ -77,7 +76,6 @@ void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name,
             if(symType->str.memberList[i].size > maxSize)
             {
                 maxSize = symType->str.memberList[i].size;
-                maxSizeMember = i;
             }
 
             if(symType->str.memberList[i].alignment > maxAlignment)
@@ -295,7 +293,7 @@ void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
                     vis.data(), vis.length() );
     }
 
-    bool isPtr = EmitDeclarator(&decl->accArr, &spec->typenameView);
+    EmitDeclarator(&decl->accArr, &spec->typenameView);
 }
 
 void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)

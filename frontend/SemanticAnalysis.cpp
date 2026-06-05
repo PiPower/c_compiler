@@ -994,7 +994,6 @@ void SemanticAnalyzer::InitGlobalArray(const AccessArray *accArr, const Ast::Nod
     {
 
         codeGen.EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
-        ArrayInitPair* initPair = nullptr;
         if(currentPair < pairs.size() && i == pairs[currentPair].idx)
         {
             InitGlobalArray(&nextAcc, pairs[currentPair].initializerList, spec);
@@ -1287,7 +1286,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
         {
             return ExprRet{BuiltIn::none, {}, -1000};
         }
-        return {BuiltIn::ptr, handle.id};
+        return {BuiltIn::ptr, {}, handle.id};
         
     }break;
     case Ast::init_expr:
@@ -1337,7 +1336,7 @@ ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
     codeGen.EmitLocalVariable(&localVar);
     InitLocalVariable(&localVar);
 
-    return {BuiltIn::struct_t, localVar.varIdx};
+    return {BuiltIn::struct_t, {}, localVar.varIdx};
 }
 
 ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
