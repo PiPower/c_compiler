@@ -5,6 +5,7 @@
 #include "Preprocessor.hpp"
 #include "CodeGen.hpp"
 constexpr size_t  POINTER_SIZE = 8;
+constexpr int64_t EXPR_ID_CONST = -1000;
 /*
     sema supports anonymous struct members
 */

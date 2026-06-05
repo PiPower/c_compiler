@@ -1342,5 +1342,60 @@ ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
 
 ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
 {
-    return ExprRet{BuiltIn::none, {}, -1000};
+    // system here is bit simplified as only 32 and 64 bit values in
+    //  linux style convention are considered
+    Typed::Number num;
+    std::string_view str = GetViewForToken(constant->token);
+    if(constant->token.isFloat)
+    {
+        long double value = stringToLongDouble(str.data(), (int32_t) str.length(), MODE_DEC);
+        if(constant->token.f)
+        {
+            num.type = Typed::d_float;
+            num.float32 = (float)value;
+        }
+        else if(constant->token.l)
+        {
+            num.type = Typed::d_l_double;
+            num.lFloat = (long double)value;
+        }
+        else
+        {
+            num.type = Typed::d_double;
+            num.float64 = (double)value;
+        }
+    }
+    else if(constant->token.u)
+    {
+        uint64_t value = stringToUint64(str.data(), str.length(), MODE_DEC); 
+        if(constant->token.l == 0 && value <= UINT32_MAX)
+        {
+            num.type = Typed::d_uint32_t;
+            num.uint32 = (uint32_t)value;
+        }
+        else
+        {
+            num.type = Typed::d_uint64_t;
+            num.uint64 = (uint64_t)value;
+        }
+    }
+    else
+    {
+        int64_t value = stringToInt64(str, MODE_DEC);
+
+        if (constant->token.l == 0 &&
+            value >= INT32_MIN &&
+            value <= INT32_MAX)
+        {
+            num.type = Typed::d_int32_t;
+            num.int32 = static_cast<int32_t>(value);
+        }
+        else
+        {
+            num.type = Typed::d_int64_t;
+            num.int64 = value;
+        }
+    }
+
+    return ExprRet{BuiltIn::none, num, EXPR_ID_CONST};
 }
