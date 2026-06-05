@@ -47,3 +47,53 @@ bool DecaysToPointer(const AccessArray *accArray, size_t startIdx = 0);
 bool IsArray(const AccessArray *accArray);
 std::string_view GetBuiltInName(const BuiltIn::Type type);
 uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type);
+
+inline Typed::Number CastToBuiltIn(BuiltIn::Type type, const Typed::Number& num)
+{
+    Typed::Number out{};
+    switch (type)
+    {
+    case BuiltIn::Type::s_char_8:
+        out.int8 = (int8_t)CastTo<int64_t>(num);
+        out.type = Typed::DType::d_int8_t;
+        return out;
+    case BuiltIn::Type::u_char_8:
+        out.uint8 = (uint8_t)CastTo<uint64_t>(num);
+        out.type = Typed::DType::d_uint8_t;
+        return out;
+    case BuiltIn::Type::s_int_16:
+        out.int16 = (int16_t)CastTo<int64_t>(num);
+        out.type = Typed::DType::d_int16_t;
+        return out;
+    case BuiltIn::Type::u_int_16:
+        out.uint16 = (uint16_t)CastTo<uint64_t>(num);
+        out.type = Typed::DType::d_uint16_t;
+        return out;
+    case BuiltIn::Type::s_int_32:
+        out.int32 = (int32_t)CastTo<int64_t>(num);
+        out.type = Typed::DType::d_int32_t;
+        return out;
+    case BuiltIn::Type::u_int_32:
+        out.uint32 = (uint32_t)CastTo<uint64_t>(num);
+        out.type = Typed::DType::d_uint32_t;
+        return out;
+    case BuiltIn::Type::s_int_64:
+        out.int64 = CastTo<int64_t>(num);
+        out.type = Typed::DType::d_int64_t;
+        return out;
+    case BuiltIn::Type::u_int_64:
+        out.uint64 = CastTo<uint64_t>(num);
+        out.type = Typed::DType::d_uint64_t;
+        return out;
+    case BuiltIn::Type::float_32:
+        out.float32 = (float)CastTo<double>(num);
+        out.type = Typed::DType::d_float;
+        return out;
+    case BuiltIn::Type::double_64:
+        out.float64 = CastTo<double>(num);
+        out.type = Typed::DType::d_double;
+        return out;
+    default:
+        return {0, Typed::DType::d_none};
+    }
+}

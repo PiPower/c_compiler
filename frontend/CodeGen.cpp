@@ -368,6 +368,10 @@ void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initialize
         else
         {
             WriteCharData(" 0");
+            if(isFloat(spec->symType->dType))
+            {
+                WriteCharData(".0e+00");
+            }
         }
         return;
     }
@@ -384,7 +388,13 @@ void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initialize
         {
             IssueWarning(&initializer->token, "global value may only be initialized by constant expression")
         }
-        initStr = Typed::ToString(num);
+
+        initStr = Typed::ToString(CastToBuiltIn(spec->symType->dType, num));
+    }
+
+    if(isFloat(spec->symType->dType))
+    {
+        initStr += "e+00";
     }
     BindGlobalVarBuffer();
     WriteCharData(" %s", initStr.data(), initStr.length());
@@ -464,9 +474,19 @@ void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
         alignment = ptrAlignment;
     }
 
-    WriteCharData("%s, align %s", 
-        zero_init.data(), zero_init.length(),
-        alignment.data(), alignment.length());
+    if(!IsPointer(&decl->accArr) && 
+        (spec->symType->dType == BuiltIn::float_32 || spec->symType->dType == BuiltIn::double_64))
+    {
+        WriteCharData("%se+00, align %s", 
+            zero_init.data(), zero_init.length(),
+            alignment.data(), alignment.length());
+    }
+    else
+    {
+        WriteCharData("%s, align %s", 
+            zero_init.data(), zero_init.length(),
+            alignment.data(), alignment.length());
+    }
 }
 
 
@@ -501,6 +521,108 @@ void CodeGen::EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t de
     WriteCharData(" %%%s, ",dst.data(), dst.length());
     EmitBuiltInTypename(GetBuiltInName(type));
     WriteCharData(" %%%s, align %s", src.data(), src.length(), align.data(), align.length());
+}
+
+void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num)
+{
+    BindLocalBuffer();
+    std::string strIdx = std::to_string(destIdx);
+    std::string strAlign = std::to_string(alignment);
+    switch (type)
+    {
+    case BuiltIn::Type::s_char_8:
+    {
+        std::string value = std::to_string(Typed::CastTo<int8_t>(num));
+        WriteCharData("\n\tstore i8 %s, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+
+    case BuiltIn::Type::u_char_8:
+    {
+        std::string value = std::to_string(Typed::CastTo<uint8_t>(num));
+        WriteCharData("\n\tstore i8 %s, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+
+    case BuiltIn::Type::s_int_16:
+    {
+        std::string value = std::to_string(Typed::CastTo<int16_t>(num));
+        WriteCharData("\n\tstore i16 %s, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+
+    case BuiltIn::Type::u_int_16:
+    {
+        std::string value = std::to_string(Typed::CastTo<uint16_t>(num));
+        WriteCharData("\n\tstore i16 %s, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+
+    case BuiltIn::Type::s_int_32:
+    {
+        std::string value = std::to_string(Typed::CastTo<int32_t>(num));
+        WriteCharData("\n\tstore i32 %s, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+
+    case BuiltIn::Type::u_int_32:
+    {
+        std::string value = std::to_string(Typed::CastTo<uint32_t>(num));
+        WriteCharData("\n\tstore i32 %s, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+
+    case BuiltIn::Type::s_int_64:
+    {
+        std::string value = std::to_string(Typed::CastTo<int64_t>(num));
+        WriteCharData("\n\tstore i64 %s, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+
+    case BuiltIn::Type::u_int_64:
+    {
+        std::string value = std::to_string(Typed::CastTo<uint64_t>(num));
+        WriteCharData("\n\tstore i64 %s, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+
+    case BuiltIn::Type::float_32:
+    {
+        std::string value = std::to_string(Typed::CastTo<float>(num));
+        WriteCharData("\n\tstore float %se+00, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+
+    case BuiltIn::Type::double_64:
+    {
+        std::string value = std::to_string(Typed::CastTo<double>(num));
+        WriteCharData("\n\tstore double %se+00, ptr %%%s, align %s",
+            value.data(), value.length(),
+            strIdx.data(), strIdx.length(),
+            strAlign.data(), strAlign.length());
+    } break;
+    default:
+        //IssueWarning(nullptr, "Type assignment is not supported")
+        break;
+    }
 }
 
 int64_t CodeGen::EmitString(const Ast::Node *string)

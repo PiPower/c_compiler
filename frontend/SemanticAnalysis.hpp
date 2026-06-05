@@ -6,6 +6,7 @@
 #include "CodeGen.hpp"
 constexpr size_t  POINTER_SIZE = 8;
 constexpr int64_t EXPR_ID_CONST = -1000;
+constexpr int64_t EXPR_ID_IGNORE = -10000;
 /*
     sema supports anonymous struct members
 */
@@ -52,6 +53,7 @@ struct SemanticAnalyzer
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet CompoundLiteral(const Ast::Node* literal);
     ExprRet LoadConstant(const Ast::Node* constant);
+    ExprRet HandleInitExpr(const Ast::Node* root);
     // misc
     std::string_view GetViewForToken(const Token &token);
     void WriteCodeToFile(const char* filename);

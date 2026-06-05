@@ -6,7 +6,6 @@
 #include "../utils/DataEncoder.hpp"
 #include "../utils/Logger.hpp"
 #include "../utils/Misc.hpp"
-
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 constexpr StructDesc emptyDesc = {NOT_EMITTED, 0, nullptr, nullptr, nullptr};
@@ -1282,36 +1281,17 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     case Ast::get_addr:
     {
         ExprRet handle = AnalyzeExpr(root->lChild);
-        if(handle.id == -1000)
+        if(handle.id == EXPR_ID_IGNORE)
         {
-            return ExprRet{BuiltIn::none, {}, -1000};
+            return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
         }
         return {BuiltIn::ptr, {}, handle.id};
         
     }break;
-    case Ast::init_expr:
-    {
-        ExprRet* destHandle = (ExprRet*)root->rChild;
-        ExprRet source = AnalyzeExpr(root->lChild);
-        if(source.id == -1000)
-        {
-            return ExprRet{BuiltIn::none, {}, -1000};
-        }
-
-        if(destHandle->type != source.type)
-        {
-            return ExprRet{BuiltIn::none, {}, -1000};
-        }
-        if(destHandle->type != BuiltIn::struct_t &&
-           destHandle->type != BuiltIn::union_t)
-        {
-            codeGen.EmitLocalStorage(destHandle->type, GetBuiltInAlignemnt(destHandle->type), destHandle->id, source.id);
-        }
-        return ExprRet{BuiltIn::none, -1};
-    }break;
-    case Ast::constant: return LoadConstant(root);  break;
-    case Ast::compound_literal: return CompoundLiteral(root); break;
-    default: return ExprRet{BuiltIn::none, {}, -1000};
+    case Ast::init_expr: return HandleInitExpr(root);        
+    case Ast::constant: return LoadConstant(root);            
+    case Ast::compound_literal: return CompoundLiteral(root); 
+    default: return ExprRet{BuiltIn::none, {}, -1000};  break;
     }
 
     return ExprRet{BuiltIn::none, {}, -1000};
@@ -1347,7 +1327,7 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
     std::string_view str = GetViewForToken(constant->token);
     if(constant->token.isFloat)
     {
-        long double value = stringToLongDouble(str.data(), (int32_t) str.length(), MODE_DEC);
+        long double value = stringToLongDouble(str.data(), str.length(), MODE_DEC);
         if(constant->token.f)
         {
             num.type = Typed::d_float;
@@ -1397,4 +1377,30 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
     }
 
     return ExprRet{BuiltIn::none, num, EXPR_ID_CONST};
+}
+
+ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
+{
+    ExprRet* destHandle = (ExprRet*)root->rChild;
+    ExprRet source = AnalyzeExpr(root->lChild);
+    if(source.id == EXPR_ID_IGNORE)
+    {
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+    }
+
+    if(destHandle->type == BuiltIn::struct_t ||
+        destHandle->type == BuiltIn::union_t)
+    {
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+    }
+    uint32_t alignment = GetBuiltInAlignemnt(destHandle->type);
+    if(source.id == EXPR_ID_CONST)
+    {
+        codeGen.EmitLocalConstAsm(destHandle->type, alignment, destHandle->id, source.num);
+    }
+    else
+    {
+        codeGen.EmitLocalStorage(destHandle->type, alignment, destHandle->id, source.id);
+    }
+    return ExprRet{BuiltIn::none, -1};
 }

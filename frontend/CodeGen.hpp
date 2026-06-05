@@ -59,7 +59,7 @@ struct CodeGen
     void EmitLocalVariable(const SymbolVariable* symVar);
     void InitLocalArray(const std::string_view& arrName, const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
     void EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx);
-
+    void EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num);
     // string sutff
     int64_t EmitString(const Ast::Node* string);
 

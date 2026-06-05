@@ -58,6 +58,12 @@ enum Type : uint16_t
     special,
 };
 
+    inline bool isFloat(Type type)
+    {
+        return type ==float_32 || type == double_64;
+    }
+
+
 }
 
 namespace Scope

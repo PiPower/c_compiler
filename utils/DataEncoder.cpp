@@ -15,6 +15,7 @@ static long double decStringToLongDouble(const char *data, int32_t len)
     }
     if(i < len && data[i] == '.')
     {
+        i++;
         long double frac = 0.1;
         while (data[i] >= '0' && data[i] <= '9' && i < len)
         {   
@@ -31,9 +32,9 @@ static long double decStringToLongDouble(const char *data, int32_t len)
 static uint64_t decStringToUint64(const char *data, int32_t len)
 {
     uint64_t x = 0;
-    uint64_t i = 0;
+    int32_t i = 0;
     
-    while (data[i] >= '0' && data[i] <= '9' && i < len)
+    while (i < len && data[i] >= '0' && data[i] <= '9')
     {   
         uint64_t v = data[i] - '0'; 
         x *= 10;

@@ -5,7 +5,6 @@
 #include <stdarg.h>
 #include <future>
 #include "../utils/Misc.hpp"
-
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 static_assert(sizeof(size_t) <= sizeof(Ast::Node*));
