@@ -38,6 +38,7 @@ struct Lexer
     void ConsumeChar();
     bool SkipHorizontalWhiteSpace();
     void RestoreLexerPointer();
+    void LexChar(Token* token);
     void LexConstant(Token* token, const SourceLocation* firstNum);
     void LexIdentifier(Token* token, const SourceLocation* firstChar);
     void LexCharSequence(Token* token, const char separator);

@@ -1289,6 +1289,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
         
     }break;
     case Ast::init_expr: return HandleInitExpr(root);        
+    case Ast::character: return LoadCharacter(root);
     case Ast::constant: return LoadConstant(root);            
     case Ast::compound_literal: return CompoundLiteral(root); 
     default: return ExprRet{BuiltIn::none, {}, -1000};  break;
@@ -1317,6 +1318,15 @@ ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
     InitLocalVariable(&localVar);
 
     return {BuiltIn::struct_t, {}, localVar.varIdx};
+}
+
+ExprRet SemanticAnalyzer::LoadCharacter(const Ast::Node *constant)
+{
+    std::string_view str = GetViewForToken(constant->token);
+    Typed::Number num;
+    num.type = Typed::d_int8_t;
+    num.int8 = str[1];
+    return ExprRet{BuiltIn::none, num, EXPR_ID_CONST};
 }
 
 ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)

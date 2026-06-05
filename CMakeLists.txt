@@ -13,6 +13,7 @@ target_compile_options(frontend PRIVATE -Wno-psabi)
 add_library(utils STATIC ${utils})
 target_compile_options(utils PRIVATE -Wno-psabi)
 add_executable(c_compiler main.cpp Compiler.cpp SymbolTable.cpp)
+target_compile_options(c_compiler PRIVATE -Wno-psabi)
 
 target_link_libraries(c_compiler PUBLIC frontend)
 target_link_libraries(c_compiler PUBLIC utils)

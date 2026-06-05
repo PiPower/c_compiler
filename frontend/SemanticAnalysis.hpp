@@ -52,6 +52,7 @@ struct SemanticAnalyzer
     // expressions
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet CompoundLiteral(const Ast::Node* literal);
+    ExprRet LoadCharacter(const Ast::Node* constant);
     ExprRet LoadConstant(const Ast::Node* constant);
     ExprRet HandleInitExpr(const Ast::Node* root);
     // misc
