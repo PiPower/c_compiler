@@ -1314,8 +1314,9 @@ Ast::Node *Parser::StructDeclarator()
         Typed::Number bitCount = PP.ExecuteNode(constantExpr);
         constantExpr = AllocateAstNodes();
         constantExpr->type = Ast::constant_expr_res;
-        static_assert(sizeof(Typed::Number) <= 2 * sizeof(Ast::Node*));
-        memcpy(&constantExpr->lChild, &bitCount, sizeof(Typed::Number));
+        // lChild servers as holder for parser allocated pointer
+        constantExpr->lChild = (Ast::Node*)nodeHeap.allocate<Typed::Number>();
+        memcpy(constantExpr->lChild, &bitCount, sizeof(Typed::Number));
     }
 
     Ast::Node* structDecl = AllocateAstNodes();

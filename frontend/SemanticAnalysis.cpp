@@ -361,7 +361,7 @@ StructDeclaration SemanticAnalyzer::AnalyzeStructDeclaration(const Ast::Node *de
         if(structDeclarator->rChild)
         {
             Typed::Number constExpr;
-            memcpy(&constExpr, &structDeclarator->rChild->lChild, sizeof(Typed::Number));
+            memcpy(&constExpr, structDeclarator->rChild->lChild, sizeof(Typed::Number));
             if(constExpr.type != Typed::d_int64_t){printf("constant expr has not allowed type \n"); exit(-1);}
             bitCount = constExpr.int64;
         }

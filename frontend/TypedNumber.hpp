@@ -18,7 +18,8 @@ namespace Typed
         d_uint64_t,
 
         d_float,      
-        d_double,   
+        d_double, 
+        d_l_double,
         d_dynamic
     };
 
@@ -40,6 +41,7 @@ namespace Typed
         // floats
         float       float32;
         double      float64;
+        long double lFloat;
         };
 
         Typed::DType type;
@@ -68,7 +70,7 @@ namespace Typed
 
             case DType::d_float:  return lhs.float32 != rhs.float32;
             case DType::d_double: return lhs.float64 != rhs.float64;
-
+            case DType::d_l_double: return lhs.lFloat != rhs.lFloat;
             default:
                 return true;
         }
@@ -92,6 +94,7 @@ namespace Typed
 
             case DType::d_float:  return num.float32;
             case DType::d_double: return num.float64;
+            case DType::d_l_double: return num.lFloat;
             default: return 0;
         }
 
@@ -113,6 +116,7 @@ namespace Typed
 
             case DType::d_float:  return std::to_string(num.float32);
             case DType::d_double: return std::to_string(num.float64);
+            case DType::d_l_double: return std::to_string(num.lFloat);
             default: return "";
         }
 
