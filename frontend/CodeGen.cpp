@@ -6,6 +6,7 @@
 #include "SemanticAnalysis.hpp"
 #include <string.h>
 #include "Parser.hpp"
+#define VIEW(x) std::string_view(x)
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 constexpr uint8_t TYPE_BUFFER = 0;
@@ -533,91 +534,62 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
     case BuiltIn::Type::s_char_8:
     {
         std::string value = std::to_string(Typed::CastTo<int8_t>(num));
-        WriteCharData("\n\tstore i8 %s, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore i8 %v, ptr %%%v, align %v",
+                        VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-
     case BuiltIn::Type::u_char_8:
     {
         std::string value = std::to_string(Typed::CastTo<uint8_t>(num));
-        WriteCharData("\n\tstore i8 %s, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore i8 %v, ptr %%%v, align %v",
+            VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-
     case BuiltIn::Type::s_int_16:
     {
         std::string value = std::to_string(Typed::CastTo<int16_t>(num));
-        WriteCharData("\n\tstore i16 %s, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore i16 %v, ptr %%%v, align %v",
+            VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-
     case BuiltIn::Type::u_int_16:
     {
         std::string value = std::to_string(Typed::CastTo<uint16_t>(num));
-        WriteCharData("\n\tstore i16 %s, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore i16 %v, ptr %%%v, align %v",
+            VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-
     case BuiltIn::Type::s_int_32:
     {
         std::string value = std::to_string(Typed::CastTo<int32_t>(num));
-        WriteCharData("\n\tstore i32 %s, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore i32 %v, ptr %%%v, align %v",
+            VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-
     case BuiltIn::Type::u_int_32:
     {
         std::string value = std::to_string(Typed::CastTo<uint32_t>(num));
-        WriteCharData("\n\tstore i32 %s, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore i32 %v, ptr %%%v, align %v",
+            VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-
     case BuiltIn::Type::s_int_64:
     {
         std::string value = std::to_string(Typed::CastTo<int64_t>(num));
-        WriteCharData("\n\tstore i64 %s, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore i64 %v, ptr %%%v, align %v",
+            VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-
     case BuiltIn::Type::u_int_64:
     {
         std::string value = std::to_string(Typed::CastTo<uint64_t>(num));
-        WriteCharData("\n\tstore i64 %s, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore i64 %v, ptr %%%v, align %v",
+            VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-
     case BuiltIn::Type::float_32:
     {
         std::string value = std::to_string(Typed::CastTo<float>(num));
-        WriteCharData("\n\tstore float %se+00, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore float %ve+00, ptr %%%v, align %v",
+            VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-
     case BuiltIn::Type::double_64:
     {
         std::string value = std::to_string(Typed::CastTo<double>(num));
-        WriteCharData("\n\tstore double %se+00, ptr %%%s, align %s",
-            value.data(), value.length(),
-            strIdx.data(), strIdx.length(),
-            strAlign.data(), strAlign.length());
+        WriteCharData("\n\tstore double %ve+00, ptr %%%v, align %v",
+            VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
     default:
         //IssueWarning(nullptr, "Type assignment is not supported")
@@ -842,6 +814,17 @@ void CodeGen::WriteCharData(const char* data, ...)
             while (num[i] != '\0')
             {
                 WriteByte(num.data() + i);
+                i++;
+            }
+        }break;
+        case 'v':
+        {
+            curr++;
+            std::string_view view = va_arg(args, std::string_view);
+            size_t i = 0;
+            while (i < view.size())
+            {
+                WriteByte(view[i]);
                 i++;
             }
         }break;
