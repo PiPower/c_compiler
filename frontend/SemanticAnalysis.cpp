@@ -1288,6 +1288,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
         return {BuiltIn::ptr, {}, handle.id};
         
     }break;
+    case Ast::op_minus: return HandleOpMinus(root);
     case Ast::init_expr: return HandleInitExpr(root);        
     case Ast::character: return LoadCharacter(root);
     case Ast::constant: return LoadConstant(root);            
@@ -1412,5 +1413,34 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
     {
         codeGen.EmitLocalStorage(destHandle->type, alignment, destHandle->id, source.id);
     }
-    return ExprRet{BuiltIn::none, -1};
+    return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+}
+
+ExprRet SemanticAnalyzer::HandleOpMinus(const Ast::Node *root)
+{
+    ExprRet expr = AnalyzeExpr(root->lChild);
+    if (expr.id == EXPR_ID_CONST)
+    {
+        Typed::Number neg;
+        neg.type = expr.num.type;
+        switch (neg.type)
+        {
+            case Typed::d_int8_t:   neg.int8   = -1; break;
+            case Typed::d_int16_t:  neg.int16  = -1; break;
+            case Typed::d_int32_t:  neg.int32  = -1; break;
+            case Typed::d_int64_t:  neg.int64  = -1; break;
+            case Typed::d_uint8_t:  neg.uint8  = -1; break;
+            case Typed::d_uint16_t: neg.uint16 = -1; break;
+            case Typed::d_uint32_t: neg.uint32 = -1; break;
+            case Typed::d_uint64_t: neg.uint64 = -1; break;
+            case Typed::d_float:    neg.float32 = -1; break;
+            case Typed::d_double:   neg.float64 = -1; break;
+            case Typed::d_l_double: neg.lFloat  = -1;  break;
+            default: break;
+        }
+        expr.num = Typed::TypedBinOp<std::multiplies>(neg, expr.num);
+        return expr;
+    }
+    
+    return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
 }

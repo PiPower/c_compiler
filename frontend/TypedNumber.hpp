@@ -43,7 +43,6 @@ namespace Typed
         double      float64;
         long double lFloat;
         };
-
         Typed::DType type;
     };
 
@@ -121,6 +120,36 @@ namespace Typed
         }
 
     }
+    template<template<typename> class OP>
+    Typed::Number TypedBinOp(const Number& l, const Number& r)
+    {
+        Typed::Number out = {};
+        if(l.type != r.type)
+        {
+            return out;
+        }
+        out.type = l.type;
+        switch (out.type)
+        {
+            case DType::d_int8_t:   out.int8   = OP<uint8_t>{}(l.int8,   r.int8);   break;
+            case DType::d_int16_t:  out.int16  = OP<uint16_t>{}(l.int16,  r.int16);  break;
+            case DType::d_int32_t:  out.int32  = OP<uint32_t>{}(l.int32,  r.int32);  break;
+            case DType::d_int64_t:  out.int64  = OP<uint64_t>{}(l.int64,  r.int64);  break;
+
+            case DType::d_uint8_t:  out.uint8  = OP<int8_t>{}(l.uint8,  r.uint8);  break;
+            case DType::d_uint16_t: out.uint16 = OP<int16_t>{}(l.uint16, r.uint16); break;
+            case DType::d_uint32_t: out.uint32 = OP<int32_t>{}(l.uint32, r.uint32); break;
+            case DType::d_uint64_t: out.uint64 = OP<int64_t>{}(l.uint64, r.uint64); break;
+
+            case DType::d_float:    out.float32 = OP<float>{}(l.float32, r.float32); break;
+            case DType::d_double:   out.float64 = OP<double>{}(l.float64, r.float64); break;
+            case DType::d_l_double: out.lFloat  = OP<long double>{}(l.lFloat,  r.lFloat);  break;
+            default: break;
+        }
+
+        return out;
+    }
+
 }
 
 
