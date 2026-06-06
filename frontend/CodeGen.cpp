@@ -533,50 +533,30 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
     switch (type)
     {
     case BuiltIn::Type::s_char_8:
-    {
-        std::string value = std::to_string(Typed::CastTo<int8_t>(num));
-        WriteCharData("\n\tstore i8 %v, ptr %%%v, align %v",
-                        VIEW(value), VIEW(strIdx), VIEW(strAlign));
-    } break;
     case BuiltIn::Type::u_char_8:
     {
-        std::string value = std::to_string(Typed::CastTo<uint8_t>(num));
+        std::string value = std::to_string(Typed::CastTo<int8_t>(num));
         WriteCharData("\n\tstore i8 %v, ptr %%%v, align %v",
             VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
     case BuiltIn::Type::s_int_16:
+    case BuiltIn::Type::u_int_16:
     {
         std::string value = std::to_string(Typed::CastTo<int16_t>(num));
         WriteCharData("\n\tstore i16 %v, ptr %%%v, align %v",
             VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-    case BuiltIn::Type::u_int_16:
-    {
-        std::string value = std::to_string(Typed::CastTo<uint16_t>(num));
-        WriteCharData("\n\tstore i16 %v, ptr %%%v, align %v",
-            VIEW(value), VIEW(strIdx), VIEW(strAlign));
-    } break;
     case BuiltIn::Type::s_int_32:
+    case BuiltIn::Type::u_int_32:
     {
         std::string value = std::to_string(Typed::CastTo<int32_t>(num));
         WriteCharData("\n\tstore i32 %v, ptr %%%v, align %v",
             VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
-    case BuiltIn::Type::u_int_32:
-    {
-        std::string value = std::to_string(Typed::CastTo<uint32_t>(num));
-        WriteCharData("\n\tstore i32 %v, ptr %%%v, align %v",
-            VIEW(value), VIEW(strIdx), VIEW(strAlign));
-    } break;
     case BuiltIn::Type::s_int_64:
-    {
-        std::string value = std::to_string(Typed::CastTo<int64_t>(num));
-        WriteCharData("\n\tstore i64 %v, ptr %%%v, align %v",
-            VIEW(value), VIEW(strIdx), VIEW(strAlign));
-    } break;
     case BuiltIn::Type::u_int_64:
     {
-        std::string value = std::to_string(Typed::CastTo<uint64_t>(num));
+        std::string value = std::to_string(Typed::CastTo<int64_t>(num));
         WriteCharData("\n\tstore i64 %v, ptr %%%v, align %v",
             VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
