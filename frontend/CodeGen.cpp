@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "SemanticAnalysis.hpp"
 #include <string.h>
+#include <bit>
 #include "Parser.hpp"
 #define VIEW(x) std::string_view(x)
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
@@ -591,6 +592,27 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
         WriteCharData("\n\tstore double %ve+00, ptr %%%v, align %v",
             VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
+    case BuiltIn::Type::long_double:
+    {
+        long double value = Typed::CastTo<long double>(num);
+        const unsigned char* bytes  = reinterpret_cast<const unsigned char*>(&value);
+        WriteCharData("\n\tstore x86_fp80 f0x");
+        if constexpr (std::endian::native == std::endian::big)
+        {
+            for (int i = 0; i <= 9; i++)
+            {
+                WriteByteInHex(bytes[i + 6]);
+            }
+        }
+        else
+        {
+            for (int i = 9; i >= 0; i--)
+            {
+                WriteByteInHex(bytes[i]);
+            }
+        }
+        WriteCharData(", ptr %%%v, align %v", VIEW(strIdx), VIEW(strAlign));
+    } break;
     default:
         //IssueWarning(nullptr, "Type assignment is not supported")
         break;
@@ -741,7 +763,7 @@ void CodeGen::BindLocalBuffer()
     chosenBuffer = LOCAL_BUFFER;
 }
 
-void CodeGen::WriteByte( const char *c)
+void CodeGen::WriteByte(const char *c)
 {
     WriteByte(*c);
 }
@@ -769,6 +791,14 @@ void CodeGen::WriteByte(char c)
     currPtrArr[chosenBuffer]++;
 }
 
+void CodeGen::WriteByteInHex(char c)
+{
+    static const char* cTable = "0123456789ABCDEF";
+    int lIdx = (c >> 4) & 0x0f;
+    int rIdx = c & 0x0f;
+    WriteByte(cTable[lIdx]);
+    WriteByte(cTable[rIdx]);
+}
 
 void CodeGen::WriteCharData(const char* data, ...)
 {

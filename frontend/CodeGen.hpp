@@ -84,6 +84,7 @@ struct CodeGen
     void BindLocalBuffer();
     void WriteByte(const char* c);
     void WriteByte(char c);
+    void WriteByteInHex(char c);
     void WriteCharData(const char* data, ...);
     void CopyBuffers(uint8_t dest, uint8_t src);
     void ResetBuffer(uint8_t buff);
