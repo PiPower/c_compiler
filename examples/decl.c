@@ -110,7 +110,7 @@ void test_arrays(int n) {
     int matrix[3][3] = {{1,0,0},{0,1,0},{0,0,1}};
 
     int (*pa)[4] = &(int[4]){1,2,3,4};
-
+    
     const char *words[] = {"foo", "bar", "baz"};
 }
 

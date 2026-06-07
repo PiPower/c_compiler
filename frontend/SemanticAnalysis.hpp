@@ -56,6 +56,9 @@ struct SemanticAnalyzer
     ExprRet LoadConstant(const Ast::Node* constant);
     ExprRet HandleInitExpr(const Ast::Node* root);
     ExprRet HandleOpMinus(const Ast::Node* root);
+    ExprRet HandleAssignment(const Ast::Node* root);
+    ExprRet HandleAddition(const Ast::Node* root);
+    ExprRet HandleIdentifier(const Ast::Node* root);
     // misc
     std::string_view GetViewForToken(const Token &token);
     void WriteCodeToFile(const char* filename);

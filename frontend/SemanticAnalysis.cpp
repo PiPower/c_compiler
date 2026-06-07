@@ -113,6 +113,15 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         AnalyzeFunctionDef(root->lChild, root->rChild);
     }
+    else if (root->type == Ast::expression)
+    {
+        const Ast::Node* expr = root->rChild;
+        while (expr)
+        {
+            AnalyzeExpr(expr->lChild);
+            expr = expr->rChild;
+        }
+    }
 }
 
 void SemanticAnalyzer::AnalyzeDeclaration(const Ast::Node *declSpecs, const Ast::Node *initDeclList)
@@ -1288,6 +1297,9 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
         return {BuiltIn::ptr, {}, handle.id};
         
     }break;
+    case Ast::assignment: return HandleAssignment(root);
+    case Ast::identifier: return HandleIdentifier(root);
+    case Ast::op_add: return HandleAddition(root);
     case Ast::op_minus: return HandleOpMinus(root);
     case Ast::init_expr: return HandleInitExpr(root);        
     case Ast::character: return LoadCharacter(root);
@@ -1443,4 +1455,33 @@ ExprRet SemanticAnalyzer::HandleOpMinus(const Ast::Node *root)
     }
     
     return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+}
+
+ExprRet SemanticAnalyzer::HandleAssignment(const Ast::Node *root)
+{
+    ExprRet ret = AnalyzeExpr(root->lChild);
+    return ExprRet();
+}
+
+ExprRet SemanticAnalyzer::HandleAddition(const Ast::Node *root)
+{
+    ExprRet left = AnalyzeExpr(root->lChild);
+    ExprRet right = AnalyzeExpr(root->rChild);
+    return ExprRet();
+}
+
+ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
+{
+    std::string_view varName = GetViewForToken(root->token);
+    const SymbolVariable* symVar = symTab->QueryVarSymbol(varName);
+    ExprRet out = {};
+    out.type = symVar->spec.symType->dType;
+    out.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
+
+    if(symVar->spec.symType->dType >=  BuiltIn::s_char_8 &&
+       symVar->spec.symType->dType >=  BuiltIn::u_int_16 )
+    {
+        out.type = BuiltIn::s_int_32;
+    }
+    return out;
 }

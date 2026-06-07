@@ -599,6 +599,61 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
     }
 }
 
+int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx)
+{
+    BindLocalBuffer();
+    std::string strLoadIdx = std::to_string(loadIdx);
+    std::string strAlign = std::to_string(alignment);
+    int64_t targetIdx = GetIdxForLocalVar();
+    std::string strTargetIdx = std::to_string(targetIdx);
+    switch (type)
+    {
+    case BuiltIn::Type::s_char_8:
+    case BuiltIn::Type::u_char_8:
+    {
+        WriteCharData("\n\t%%%v = load i8, ptr %%%v, align %v",
+            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
+    } break;
+    case BuiltIn::Type::s_int_16:
+    case BuiltIn::Type::u_int_16:
+    {
+        WriteCharData("\n\t%%%v = load i16, ptr %%%v, align %v",
+            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
+    } break;
+    case BuiltIn::Type::s_int_32:
+    case BuiltIn::Type::u_int_32:
+    {
+        WriteCharData("\n\t%%%v = load i32, ptr %%%v, align %v",
+            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
+    } break;
+    case BuiltIn::Type::s_int_64:
+    case BuiltIn::Type::u_int_64:
+    {
+        WriteCharData("\n\t%%%v = load i64, ptr %%%v, align %v",
+            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
+    } break;
+    case BuiltIn::Type::float_32:
+    {
+        WriteCharData("\n\t%%%v = load float, ptr %%%v, align %v",
+            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
+    } break;
+    case BuiltIn::Type::double_64:
+    {
+        WriteCharData("\n\t%%%v = load double, ptr %%%v, align %v",
+            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
+    } break;
+    case BuiltIn::Type::long_double:
+    {
+        // LLVM IR uses platform-dependent extended types:
+        // x86: x86_fp80, others: fp128 or ppc_fp128
+        WriteCharData("\n\t%%%v = load x86_fp80, ptr %%%v, align %v",
+            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
+    } break;
+    default: break;
+    }
+    return targetIdx;
+}
+
 int64_t CodeGen::EmitString(const Ast::Node *string)
 {
     static int64_t stringIdx= 1;
