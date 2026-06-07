@@ -59,6 +59,9 @@ struct SemanticAnalyzer
     ExprRet HandleAssignment(const Ast::Node* root);
     ExprRet HandleAddition(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
+    void HandleTypePromotion(ExprRet* left, ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
+    ExprRet HandleTypeExtension(ExprRet* src, BuiltIn::Type newType);
+
     // misc
     std::string_view GetViewForToken(const Token &token);
     void WriteCodeToFile(const char* filename);
@@ -66,7 +69,8 @@ struct SemanticAnalyzer
     bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);
     bool CompareDeclarators(const Declarator* d1, const Declarator* d2);
     void EmitUninitializedGlobals();
-
+    void ResolveIntegralPromotion(ExprRet* left, ExprRet* right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight);
+    int GetIntRank(BuiltIn::Type type);
     SymbolTable* symTab;
     FileManager* manager;
     NodeExecutor ne;

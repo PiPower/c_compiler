@@ -37,6 +37,28 @@ constexpr inline bool nodeIsNotCompoundLiteral(const Ast::Node* root)
             (root->type == Ast::get_addr && root->lChild && root->lChild->type == Ast::cast));
 }
 
+constexpr inline bool isSmallInteger(BuiltIn::Type type)
+{
+    return type >=  BuiltIn::s_char_8 && type <=  BuiltIn::u_int_16;
+}
+
+constexpr inline bool isInteger(BuiltIn::Type type)
+{
+    return type >=  BuiltIn::s_char_8 && type <=  BuiltIn::u_int_64;
+}
+
+constexpr inline bool isUnsigned(BuiltIn::Type type)
+{
+    return type == BuiltIn::u_char_8 || type == BuiltIn::u_int_16 ||
+           type == BuiltIn::u_int_32|| type == BuiltIn::u_int_64;
+}
+
+constexpr inline bool isSigned(BuiltIn::Type type)
+{
+    return type == BuiltIn::s_char_8 || type == BuiltIn::s_int_16 ||
+           type == BuiltIn::s_int_32|| type == BuiltIn::s_int_64;
+}
+
 Ast::Node* BuildInitializerList(const std::vector<Ast::Node>& initItems, PagedHeap* allocator);
 ArraySize GetArrayElemCount(const AccessArray *accArray, Logger* logger, NodeExecutor* ne);
 MemoryDesc GetMemoryDesc(const AccessArray *accArray, SymbolType* type, Logger* logger, NodeExecutor* ne);

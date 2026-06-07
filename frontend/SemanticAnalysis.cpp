@@ -893,6 +893,72 @@ void SemanticAnalyzer::EmitUninitializedGlobals()
     }
 }
 
+void SemanticAnalyzer::ResolveIntegralPromotion(ExprRet *left, ExprRet *right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight)
+{
+    if(isSmallInteger(left->type) && (isSmallInteger(right->type)))
+    {
+        *outLeft = BuiltIn::s_int_32;
+        *outRight = BuiltIn::s_int_32;
+        return;
+    }
+
+    if(left->type == right->type)
+    {
+        *outLeft = left->type;
+        *outRight= right->type;
+        return;
+    }
+
+    int rankLeft = GetIntRank(left->type);
+    int rankRight = GetIntRank(right->type);
+    int maxRank = std::max(rankLeft, rankRight);
+    // signed values are even and unsigned are odd
+    if(left->type %2 == right->type%2)
+    {
+        if(rankLeft > rankRight)
+        {
+            *outLeft = left->type;
+            *outRight= left->type;
+        }
+        else
+        {
+            *outLeft = right->type;
+            *outRight= right->type;
+        }
+        return;
+    }
+    // here we know that we have mixed types
+    const ExprRet* unsignedType = isUnsigned(left->type) ? left : nullptr;
+    unsignedType = unsignedType == nullptr ? right : unsignedType;
+    const ExprRet* signedType = isSigned(left->type) ? left : nullptr;
+    signedType = signedType == nullptr? right : signedType;
+
+    if(GetIntRank(unsignedType->type) == maxRank)
+    {
+        *outLeft = unsignedType->type;
+        *outRight= unsignedType->type;
+        return;
+    }
+    else
+    {
+        *outLeft = signedType->type;
+        *outRight= signedType->type;
+        return;
+    }
+
+}
+
+int SemanticAnalyzer::GetIntRank(BuiltIn::Type type)
+{
+    static const int intRanks[] = {1, 1, 2, 2, 3, 3, 4, 4}; // i8, ui8, i16, ui16, i32, ui32, i64, ui64
+    if(type < BuiltIn::s_char_8 || type > BuiltIn::u_int_64)
+    {
+        return -1;
+    }
+
+    return  intRanks[type - BuiltIn::s_char_8];
+}
+
 bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 {
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
@@ -1459,7 +1525,7 @@ ExprRet SemanticAnalyzer::HandleOpMinus(const Ast::Node *root)
 
 ExprRet SemanticAnalyzer::HandleAssignment(const Ast::Node *root)
 {
-    ExprRet ret = AnalyzeExpr(root->lChild);
+    ExprRet exprRes = AnalyzeExpr(root->rChild);
     return ExprRet();
 }
 
@@ -1467,6 +1533,9 @@ ExprRet SemanticAnalyzer::HandleAddition(const Ast::Node *root)
 {
     ExprRet left = AnalyzeExpr(root->lChild);
     ExprRet right = AnalyzeExpr(root->rChild);
+    ExprRet newLeft, newRight;
+    HandleTypePromotion(&left, &right, &newLeft, &newRight);
+
     return ExprRet();
 }
 
@@ -1478,10 +1547,45 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     out.type = symVar->spec.symType->dType;
     out.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
 
-    if(symVar->spec.symType->dType >=  BuiltIn::s_char_8 &&
-       symVar->spec.symType->dType >=  BuiltIn::u_int_16 )
+    return out;
+}
+
+void SemanticAnalyzer::HandleTypePromotion(ExprRet *left, ExprRet *right, ExprRet *outLeft, ExprRet *outRight)
+{
+    if(isInteger(left->type) && isInteger(right->type))
     {
-        out.type = BuiltIn::s_int_32;
+        BuiltIn::Type newLeft, newRight;
+        ResolveIntegralPromotion(left, right, &newLeft, &newRight);
+        *outLeft = HandleTypeExtension(left, newLeft);
+        *right = HandleTypeExtension(right, newRight);
+        return;
     }
+}
+
+ExprRet SemanticAnalyzer::HandleTypeExtension(ExprRet *src, BuiltIn::Type newType)
+{
+    if(src->type == newType)
+    {
+        return *src;
+    }
+    
+    ExprRet out = {};
+    out.type = newType;
+
+    // if values have the same rank then they signed/unsigned with the same bit lengths,
+    // in this case no extension code is to be generated
+    if(GetIntRank(src->type) == GetIntRank(newType))
+    {
+        out.id = src->id;
+    }
+    else if(isSigned(src->type))
+    {
+        out.id = codeGen.EmitLocalSignExt(newType, src->type, src->id);
+    }
+    else
+    {
+        out.id = codeGen.EmitLocalZeroExt(newType, src->type, src->id);
+    }
+
     return out;
 }

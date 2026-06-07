@@ -607,9 +607,39 @@ int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t lo
     int64_t targetIdx = GetIdxForLocalVar();
     std::string strTargetIdx = std::to_string(targetIdx);
     std::string_view srcType = MapBuiltInToLlvm(type);
-    
+
     WriteCharData("\n\t%%%v = load %v, ptr %%%v, align %v",
             VIEW(strTargetIdx), srcType, VIEW(strLoadIdx), VIEW(strAlign));
+
+    return targetIdx;
+}
+
+int64_t CodeGen::EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx)
+{
+    BindLocalBuffer();
+    std::string_view srcTypeView = MapBuiltInToLlvm(srcType);
+    std::string_view dstTypeView = MapBuiltInToLlvm(dstType);
+    int64_t targetIdx = GetIdxForLocalVar();
+    std::string strTargetIdx = std::to_string(targetIdx);
+    std::string strLoadIdx = std::to_string(loadIdx);
+
+    WriteCharData("\n\t%%%v = sext %v %%%v, to %v",
+            VIEW(strTargetIdx), srcTypeView, VIEW(strLoadIdx), dstTypeView);
+
+    return targetIdx;
+}
+
+int64_t CodeGen::EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx)
+{
+    BindLocalBuffer();
+    std::string_view srcTypeView = MapBuiltInToLlvm(srcType);
+    std::string_view dstTypeView = MapBuiltInToLlvm(dstType);
+    int64_t targetIdx = GetIdxForLocalVar();
+    std::string strTargetIdx = std::to_string(targetIdx);
+    std::string strLoadIdx = std::to_string(loadIdx);
+
+    WriteCharData("\n\t%%%v = zext %v %%%v, to %v",
+            VIEW(strTargetIdx), srcTypeView, VIEW(strLoadIdx), dstTypeView);
 
     return targetIdx;
 }
