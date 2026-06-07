@@ -6,6 +6,7 @@
 /* =========================================================
  * 1. BASIC PRIMITIVE TYPES
  * ========================================================= */
+const char* word[] = {"xd", "pt\tro"};
 typedef int (*(*func_table[4][14])(char, ...))(double);
 typedef int *func_table1;
 
@@ -16,7 +17,7 @@ struct XD{
 
 func_table ptr;
 int* test_array666[12];
-int test_array333[3][4] = { 2, 3, [2] = 4, {{2}, 7}};
+float test_array333[3][4] = { 2, 3, [2] = 4, {{2}, 7}};
 int test_array[][3][2] = { [5] = {1, 2, 3}, [2] = {3, 4, 5}, 100, 1000, 100, [7] = {1 , 2 ,3} };
 long int test_array999[11][7][3][2] = { [5] = {1, 2, 3}, [2] = {3, 4, 5}, 100, 1000, 100, [7] = {1 , 2 ,3} };
 
