@@ -61,9 +61,9 @@ struct CodeGen
     void EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx);
     void EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num);
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
+    int64_t EmitLocalSignExt(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx);
     // string sutff
     int64_t EmitString(const Ast::Node* string);
-
     // misc
     std::string_view GetViewForToken(const Token &token);
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
@@ -73,6 +73,7 @@ struct CodeGen
     void StartArray();
     void EndArray();
     void ArgSeparator();
+    std::string_view MapBuiltInToLlvm(BuiltIn::Type srcType);
     // expressions
 
     // data writing

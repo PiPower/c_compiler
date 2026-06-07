@@ -606,51 +606,11 @@ int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t lo
     std::string strAlign = std::to_string(alignment);
     int64_t targetIdx = GetIdxForLocalVar();
     std::string strTargetIdx = std::to_string(targetIdx);
-    switch (type)
-    {
-    case BuiltIn::Type::s_char_8:
-    case BuiltIn::Type::u_char_8:
-    {
-        WriteCharData("\n\t%%%v = load i8, ptr %%%v, align %v",
-            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
-    } break;
-    case BuiltIn::Type::s_int_16:
-    case BuiltIn::Type::u_int_16:
-    {
-        WriteCharData("\n\t%%%v = load i16, ptr %%%v, align %v",
-            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
-    } break;
-    case BuiltIn::Type::s_int_32:
-    case BuiltIn::Type::u_int_32:
-    {
-        WriteCharData("\n\t%%%v = load i32, ptr %%%v, align %v",
-            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
-    } break;
-    case BuiltIn::Type::s_int_64:
-    case BuiltIn::Type::u_int_64:
-    {
-        WriteCharData("\n\t%%%v = load i64, ptr %%%v, align %v",
-            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
-    } break;
-    case BuiltIn::Type::float_32:
-    {
-        WriteCharData("\n\t%%%v = load float, ptr %%%v, align %v",
-            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
-    } break;
-    case BuiltIn::Type::double_64:
-    {
-        WriteCharData("\n\t%%%v = load double, ptr %%%v, align %v",
-            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
-    } break;
-    case BuiltIn::Type::long_double:
-    {
-        // LLVM IR uses platform-dependent extended types:
-        // x86: x86_fp80, others: fp128 or ppc_fp128
-        WriteCharData("\n\t%%%v = load x86_fp80, ptr %%%v, align %v",
-            VIEW(strTargetIdx), VIEW(strLoadIdx), VIEW(strAlign));
-    } break;
-    default: break;
-    }
+    std::string_view srcType = MapBuiltInToLlvm(type);
+    
+    WriteCharData("\n\t%%%v = load %v, ptr %%%v, align %v",
+            VIEW(strTargetIdx), srcType, VIEW(strLoadIdx), VIEW(strAlign));
+
     return targetIdx;
 }
 
@@ -760,6 +720,36 @@ void CodeGen::EndArray()
 void CodeGen::ArgSeparator()
 {
     WriteCharData(", ");
+}
+
+std::string_view CodeGen::MapBuiltInToLlvm(BuiltIn::Type srcType)
+{
+    switch (srcType)
+    {
+    case BuiltIn::Type::s_char_8:
+    case BuiltIn::Type::u_char_8:
+        return "i8";
+    case BuiltIn::Type::s_int_16:
+    case BuiltIn::Type::u_int_16:
+        return "i16";
+    case BuiltIn::Type::s_int_32:
+    case BuiltIn::Type::u_int_32:
+        return "i32";
+    case BuiltIn::Type::s_int_64:
+    case BuiltIn::Type::u_int_64:
+        return "i64";
+    case BuiltIn::Type::float_32:
+        return "float";
+    case BuiltIn::Type::double_64:
+        return "double";
+    case BuiltIn::Type::long_double:
+        // NOTE: platform-dependent in LLVM IR
+        // x86: x86_fp80, ARM: fp128, PPC: ppc_fp128
+        return "x86_fp80";
+
+    default:
+        return "void";
+    }
 }
 
 void CodeGen::PushBufferType()
