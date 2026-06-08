@@ -42,4 +42,24 @@ struct BinarySubtraction
     }
 };
 
+struct BinaryMultiplication
+{
+    template<typename T>
+    using op = std::multiplies<T>;
 
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalMultiplication(opType, left, right);
+    }
+};
+
+struct BinaryDivision
+{
+    template<typename T>
+    using op = std::divides<T>;
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalDivision(opType, left, right);
+    }
+};

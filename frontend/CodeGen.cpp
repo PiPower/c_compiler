@@ -646,15 +646,32 @@ int64_t CodeGen::EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, 
 
 int64_t CodeGen::EmitLocalAddition(BuiltIn::Type opType, Operator left, Operator right)
 {
-    return EmitLocalBinaryOp(opType, left, right, "add", "fadd", true);
+    return EmitLocalBinaryOp(opType, left, right, "add", "add", "fadd", true);
 }
 
 int64_t CodeGen::EmitLocalSubtraction(BuiltIn::Type opType, Operator left, Operator right)
 {
-    return EmitLocalBinaryOp(opType, left, right, "sub", "fsub", true);
+    return EmitLocalBinaryOp(opType, left, right, "sub", "sub", "fsub", true);
 }
 
-int64_t CodeGen::EmitLocalBinaryOp(BuiltIn::Type opType, Operator left, Operator right, std::string_view opInt, std::string_view opFloat, bool usePoison)
+int64_t CodeGen::EmitLocalMultiplication(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "mul", "mul", "fmul", true);
+}
+
+int64_t CodeGen::EmitLocalDivision(BuiltIn::Type opType, Operator left, Operator right)
+{
+        return EmitLocalBinaryOp(opType, left, right, "sdiv", "udiv", "fmul", false);
+}
+
+int64_t CodeGen::EmitLocalBinaryOp(
+        BuiltIn::Type opType, 
+        Operator left, 
+        Operator right,
+        std::string_view opSigned,
+        std::string_view opUnsigned,
+        std::string_view opFloat,
+        bool usePoison)
 {
     BindLocalBuffer();
     int64_t targetIdx = GetIdxForLocalVar();
@@ -664,14 +681,22 @@ int64_t CodeGen::EmitLocalBinaryOp(BuiltIn::Type opType, Operator left, Operator
     std::string_view strLeftConst = left.idx == EXPR_ID_CONST ? "" : "%";
     std::string_view strRightConst = right.idx == EXPR_ID_CONST ? "" : "%";
     std::string_view opTypeView = MapBuiltInToLlvm(opType);
-    std::string_view opStr = isFloat(opType) ? opFloat : opInt;
+    std::string_view opStr;
     std::string_view poisonVal = "";
 
+    if(isFloat(opType))
+    {
+        opStr = opFloat;
+    }
+    else
+    {
+        opStr = isSigned(opType) ? opSigned : opUnsigned;
+    }
     if(usePoison && isSigned(opType))
     {
-        poisonVal = "nsw";
+        poisonVal = " nsw";
     }
-     WriteCharData("\n\t%%%v = %v %v %v %v%v, %v%v",
+     WriteCharData("\n\t%%%v = %v%v %v %v%v, %v%v",
             VIEW(strTargetIdx), opStr, poisonVal, opTypeView, strLeftConst, VIEW(strLeft), strRightConst, VIEW(strRight));
     return targetIdx;
 }
