@@ -661,7 +661,7 @@ int64_t CodeGen::EmitLocalMultiplication(BuiltIn::Type opType, Operator left, Op
 
 int64_t CodeGen::EmitLocalDivision(BuiltIn::Type opType, Operator left, Operator right)
 {
-    return EmitLocalBinaryOp(opType, left, right, "sdiv", "udiv", "fmul", false);
+    return EmitLocalBinaryOp(opType, left, right, "sdiv", "udiv", "fdiv", false);
 }
 
 int64_t CodeGen::EmitLocalModulus(BuiltIn::Type opType, Operator left, Operator right)

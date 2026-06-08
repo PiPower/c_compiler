@@ -1612,6 +1612,14 @@ void SemanticAnalyzer::HandleTypePromotion(ExprRet *left, ExprRet *right, ExprRe
         *outRight = HandleTypeExtension(right, newRight);
         return;
     }
+    else if(isFloat(left->type) && isFloat(right->type))
+    {
+        if(left->type == right->type)
+        {
+            *outLeft = HandleTypeExtension(left, left->type);
+            *outRight = HandleTypeExtension(right, left->type);
+        }
+    }
 }
 
 ExprRet SemanticAnalyzer::HandleTypeExtension(ExprRet *src, BuiltIn::Type newType)
@@ -1626,7 +1634,14 @@ ExprRet SemanticAnalyzer::HandleTypeExtension(ExprRet *src, BuiltIn::Type newTyp
 
     // if values have the same rank then they signed/unsigned with the same bit lengths,
     // in this case no extension code is to be generated
-    if(src->id != EXPR_ID_CONST)
+    if(src->id != EXPR_ID_CONST && isFloat(newType))
+    {
+        if(src->type == newType)
+        {
+            out.id = src->id;
+        }
+    }
+    else if(src->id != EXPR_ID_CONST)
     {
         if(GetIntRank(src->type) == GetIntRank(newType))
         {
@@ -1677,6 +1692,18 @@ ExprRet SemanticAnalyzer::HandleTypeExtension(ExprRet *src, BuiltIn::Type newTyp
         case BuiltIn::Type::u_int_64: 
             out.num.type = Typed::d_uint64_t;
             out.num.uint64 = Typed::CastTo<uint64_t>(src->num); 
+            break;
+        case BuiltIn::Type::float_32: 
+            out.num.type = Typed::d_float;
+            out.num.float32 = Typed::CastTo<float>(src->num); 
+            break;
+        case BuiltIn::Type::double_64: 
+            out.num.type = Typed::d_double;
+            out.num.float64 = Typed::CastTo<double>(src->num); 
+            break;        
+        case BuiltIn::Type::long_double: 
+            out.num.type = Typed::d_l_double;
+            out.num.lFloat = Typed::CastTo<long double>(src->num); 
             break;
         default: break;
         }
