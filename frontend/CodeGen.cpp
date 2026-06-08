@@ -644,6 +644,30 @@ int64_t CodeGen::EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, 
     return targetIdx;
 }
 
+int64_t CodeGen::EmitLocalAddition(BuiltIn::Type opType, Operator left, Operator right)
+{
+    BindLocalBuffer();
+    int64_t targetIdx = GetIdxForLocalVar();
+    std::string strTargetIdx = std::to_string(targetIdx);
+    std::string strLeft = left.idx == EXPR_ID_CONST ? Typed::ToString(left.num) : std::to_string(left.idx);
+    std::string strRight = right.idx == EXPR_ID_CONST ? Typed::ToString(right.num) : std::to_string(right.idx);
+    std::string_view strLeftConst = left.idx == EXPR_ID_CONST ? "" : "%";
+    std::string_view strRightConst = right.idx == EXPR_ID_CONST ? "" : "%";
+    std::string_view opTypeView = MapBuiltInToLlvm(opType);
+    std::string_view addType = isFloat(opType) ? "fadd" : "add";
+    std::string_view poisonVal = "";
+
+    if(isSigned(opType))
+    {
+        poisonVal = "nsw";
+    }
+    WriteCharData("\n\t%%%v = %v %v %v %v%v, %v%v",
+            VIEW(strTargetIdx), addType, poisonVal, opTypeView, strLeftConst, VIEW(strLeft), strRightConst, VIEW(strRight));
+ 
+
+    return targetIdx;
+}
+
 int64_t CodeGen::EmitString(const Ast::Node *string)
 {
     static int64_t stringIdx= 1;

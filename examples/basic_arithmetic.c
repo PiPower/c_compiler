@@ -5,8 +5,8 @@ signed char test_signed_char(void)
     signed char r = 100;
     signed char b = 7;
 
-    r = r + b;
-    r = r - b;
+    r = r + b + 2 + 4;
+    r = r - b - (10 + 16);;
     r = r * b;
     r = r / b;
     r = r % b;

@@ -4,19 +4,9 @@
 #include <unordered_map>
 #include "Preprocessor.hpp"
 #include "CodeGen.hpp"
+#include "Expression.hpp"
 constexpr size_t  POINTER_SIZE = 8;
-constexpr int64_t EXPR_ID_CONST = -1000;
-constexpr int64_t EXPR_ID_IGNORE = -10000;
-/*
-    sema supports anonymous struct members
-*/
 
-struct ExprRet
-{
-    BuiltIn::Type type;
-    Typed::Number num;
-    int64_t id;
-};
 
 struct SemanticAnalyzer
 {

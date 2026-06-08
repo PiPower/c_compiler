@@ -1413,22 +1413,26 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
     // system here is bit simplified as only 32 and 64 bit values in
     //  linux style convention are considered
     Typed::Number num;
+    BuiltIn::Type type;
     std::string_view str = GetViewForToken(constant->token);
     if(constant->token.isFloat)
     {
         long double value = stringToLongDouble(str.data(), str.length(), MODE_DEC);
         if(constant->token.f)
         {
+            type = BuiltIn::float_32;
             num.type = Typed::d_float;
             num.float32 = (float)value;
         }
         else if(constant->token.l)
         {
+            type = BuiltIn::long_double;
             num.type = Typed::d_l_double;
             num.lFloat = (long double)value;
         }
         else
         {
+            type = BuiltIn::double_64;
             num.type = Typed::d_double;
             num.float64 = (double)value;
         }
@@ -1438,11 +1442,13 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
         uint64_t value = stringToUint64(str.data(), str.length(), MODE_DEC); 
         if(constant->token.l == 0 && value <= UINT32_MAX)
         {
+            type = BuiltIn::u_int_32;
             num.type = Typed::d_uint32_t;
             num.uint32 = (uint32_t)value;
         }
         else
         {
+            type = BuiltIn::u_int_64;
             num.type = Typed::d_uint64_t;
             num.uint64 = (uint64_t)value;
         }
@@ -1455,17 +1461,19 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
             value >= INT32_MIN &&
             value <= INT32_MAX)
         {
+            type = BuiltIn::s_int_32;
             num.type = Typed::d_int32_t;
             num.int32 = static_cast<int32_t>(value);
         }
         else
         {
+            type = BuiltIn::s_int_64;
             num.type = Typed::d_int64_t;
             num.int64 = value;
         }
     }
 
-    return ExprRet{BuiltIn::none, num, EXPR_ID_CONST};
+    return ExprRet{type, num, EXPR_ID_CONST};
 }
 
 ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
@@ -1535,8 +1543,19 @@ ExprRet SemanticAnalyzer::HandleAddition(const Ast::Node *root)
     ExprRet right = AnalyzeExpr(root->rChild);
     ExprRet newLeft, newRight;
     HandleTypePromotion(&left, &right, &newLeft, &newRight);
+    ExprRet out;
 
-    return ExprRet();
+    out.type = newLeft.type;
+    if(newLeft.id == EXPR_ID_CONST && newRight.id == EXPR_ID_CONST)
+    {
+        out.id = EXPR_ID_CONST;
+        out.num = Typed::TypedBinOp<std::plus>(newLeft.num, newRight.num);
+    }
+    {
+
+        out.id = codeGen.EmitLocalAddition(newLeft.type, {newLeft.id, newLeft.num}, {newRight.id, newRight.num});
+    }
+    return out;
 }
 
 ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
@@ -1557,7 +1576,7 @@ void SemanticAnalyzer::HandleTypePromotion(ExprRet *left, ExprRet *right, ExprRe
         BuiltIn::Type newLeft, newRight;
         ResolveIntegralPromotion(left, right, &newLeft, &newRight);
         *outLeft = HandleTypeExtension(left, newLeft);
-        *right = HandleTypeExtension(right, newRight);
+        *outRight = HandleTypeExtension(right, newRight);
         return;
     }
 }
@@ -1574,17 +1593,60 @@ ExprRet SemanticAnalyzer::HandleTypeExtension(ExprRet *src, BuiltIn::Type newTyp
 
     // if values have the same rank then they signed/unsigned with the same bit lengths,
     // in this case no extension code is to be generated
-    if(GetIntRank(src->type) == GetIntRank(newType))
+    if(src->id != EXPR_ID_CONST)
     {
-        out.id = src->id;
-    }
-    else if(isSigned(src->type))
-    {
-        out.id = codeGen.EmitLocalSignExt(newType, src->type, src->id);
+        if(GetIntRank(src->type) == GetIntRank(newType))
+        {
+            out.id = src->id;
+        }
+        else if(isSigned(src->type))
+        {
+            out.id = codeGen.EmitLocalSignExt(newType, src->type, src->id);
+        }
+        else
+        {
+            out.id = codeGen.EmitLocalZeroExt(newType, src->type, src->id);
+        }
     }
     else
     {
-        out.id = codeGen.EmitLocalZeroExt(newType, src->type, src->id);
+        out.id = EXPR_ID_CONST;
+        switch (newType)
+        {
+        case BuiltIn::Type::s_char_8:
+            out.num.type = Typed::d_int8_t;
+            out.num.int8 = Typed::CastTo<int8_t>(src->num); 
+            break;
+        case BuiltIn::Type::u_char_8:
+            out.num.type = Typed::d_uint8_t;
+            out.num.uint8 = Typed::CastTo<uint8_t>(src->num); 
+            break;
+        case BuiltIn::Type::s_int_16:
+            out.num.type = Typed::d_int16_t;
+            out.num.int16 = Typed::CastTo<int16_t>(src->num); 
+            break;
+        case BuiltIn::Type::u_int_16:
+            out.num.type = Typed::d_uint16_t;
+            out.num.uint16 = Typed::CastTo<uint16_t>(src->num); 
+            break;
+        case BuiltIn::Type::s_int_32: 
+            out.num.type = Typed::d_int32_t;
+            out.num.int32 = Typed::CastTo<int32_t>(src->num); 
+            break;
+        case BuiltIn::Type::u_int_32: 
+            out.num.type = Typed::d_uint32_t;
+            out.num.uint32 = Typed::CastTo<uint32_t>(src->num); 
+            break;
+        case BuiltIn::Type::s_int_64: 
+            out.num.type = Typed::d_int64_t;
+            out.num.int64 = Typed::CastTo<int64_t>(src->num); 
+            break;
+        case BuiltIn::Type::u_int_64: 
+            out.num.type = Typed::d_uint64_t;
+            out.num.uint64 = Typed::CastTo<uint64_t>(src->num); 
+            break;
+        default: break;
+        }
     }
 
     return out;

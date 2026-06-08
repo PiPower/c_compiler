@@ -9,12 +9,13 @@
 #include "NodeExecutor.hpp"
 #include <stdarg.h>
 #include "../utils/Misc.hpp"
+#include "Expression.hpp"
 constexpr uint64_t CG_EMPTY_ARRAY = 0x0;
 constexpr uint64_t CG_ZERO_SIZED_ARRAY = 0xFFFFFFFFFFFFFFFF;
 // special variable idx values
 constexpr int64_t NOT_EMITTED = -2;
 constexpr int64_t ANON_EMITTED = -3;
-
+constexpr int64_t INDEX_INVALID = -1;
 struct LlvmType
 {
     int symbolSaveCounter;
@@ -32,6 +33,12 @@ struct FunctionContext
     bool inFunction;
     int64_t variableIdx;
     std::string_view fnName;
+};
+
+struct Operator
+{
+    int64_t idx;
+    Typed::Number num;
 };
 
 struct CodeGen
@@ -63,6 +70,7 @@ struct CodeGen
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
+    int64_t EmitLocalAddition(BuiltIn::Type opType, Operator left, Operator right);
 
     // string sutff
     int64_t EmitString(const Ast::Node* string);

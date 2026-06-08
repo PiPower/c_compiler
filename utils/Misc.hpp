@@ -47,6 +47,11 @@ constexpr inline bool isInteger(BuiltIn::Type type)
     return type >=  BuiltIn::s_char_8 && type <=  BuiltIn::u_int_64;
 }
 
+constexpr inline bool isFloat(BuiltIn::Type type)
+{
+    return type >=  BuiltIn::float_32 && type <=  BuiltIn::long_double;
+}
+
 constexpr inline bool isUnsigned(BuiltIn::Type type)
 {
     return type == BuiltIn::u_char_8 || type == BuiltIn::u_int_16 ||
