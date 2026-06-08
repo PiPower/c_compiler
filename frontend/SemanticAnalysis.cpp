@@ -6,6 +6,7 @@
 #include "../utils/DataEncoder.hpp"
 #include "../utils/Logger.hpp"
 #include "../utils/Misc.hpp"
+#include "ExpressionTypes.hpp"
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 constexpr StructDesc emptyDesc = {NOT_EMITTED, 0, nullptr, nullptr, nullptr};
@@ -1372,16 +1373,32 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     }break;
     case Ast::assignment: return HandleAssignment(root);
     case Ast::identifier: return HandleIdentifier(root);
-    case Ast::op_add: return HandleAddition(root);
+    case Ast::op_add: return BinaryOp<BinaryAddition>(this, &codeGen, root);
+    case Ast::op_subtract: return BinaryOp<BinarySubtraction>(this, &codeGen, root);
     case Ast::op_minus: return HandleOpMinus(root);
     case Ast::init_expr: return HandleInitExpr(root);        
     case Ast::character: return LoadCharacter(root);
     case Ast::constant: return LoadConstant(root);            
     case Ast::compound_literal: return CompoundLiteral(root); 
-    default: return ExprRet{BuiltIn::none, {}, -1000};  break;
+    case Ast::expression: 
+    {
+        // if there is only one expr the result might be used, otherwise it cannot
+        const Ast::Node* expr = root->rChild;
+        if(!expr->rChild)
+        {
+            return AnalyzeExpr(expr->lChild);
+        }
+        while (expr)
+        {
+            AnalyzeExpr(expr->lChild);
+            expr = expr->rChild;
+        }
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};  break;
+    }break;
+    default: return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};  break;
     }
 
-    return ExprRet{BuiltIn::none, {}, -1000};
+    return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
 }
 
 ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
@@ -1546,6 +1563,11 @@ ExprRet SemanticAnalyzer::HandleAssignment(const Ast::Node *root)
 
 ExprRet SemanticAnalyzer::HandleAddition(const Ast::Node *root)
 {
+    return BinaryOp<BinaryAddition>(this, &codeGen, root);
+}
+
+ExprRet SemanticAnalyzer::HandleSubtraction(const Ast::Node *root)
+{
     ExprRet left = {}, right = {}, out = {};
     BinaryExprProlog(&left, &right, root->lChild, root->rChild);
 
@@ -1553,10 +1575,10 @@ ExprRet SemanticAnalyzer::HandleAddition(const Ast::Node *root)
     if(left.id == EXPR_ID_CONST && right.id == EXPR_ID_CONST)
     {
         out.id = EXPR_ID_CONST;
-        out.num = Typed::TypedBinOp<std::plus>(left.num, right.num);
+        out.num = Typed::TypedBinOp<std::minus>(left.num, right.num);
     }
     {
-        out.id = codeGen.EmitLocalAddition(left.type, {left.id, left.num}, {right.id, right.num});
+        out.id = codeGen.EmitLocalSubtraction(left.type, {left.id, left.num}, {right.id, right.num});
     }
     return out;
 }

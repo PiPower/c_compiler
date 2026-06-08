@@ -646,6 +646,16 @@ int64_t CodeGen::EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, 
 
 int64_t CodeGen::EmitLocalAddition(BuiltIn::Type opType, Operator left, Operator right)
 {
+    return EmitLocalBinaryOp(opType, left, right, "add", "fadd", true);
+}
+
+int64_t CodeGen::EmitLocalSubtraction(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "sub", "fsub", true);
+}
+
+int64_t CodeGen::EmitLocalBinaryOp(BuiltIn::Type opType, Operator left, Operator right, std::string_view opInt, std::string_view opFloat, bool usePoison)
+{
     BindLocalBuffer();
     int64_t targetIdx = GetIdxForLocalVar();
     std::string strTargetIdx = std::to_string(targetIdx);
@@ -654,17 +664,15 @@ int64_t CodeGen::EmitLocalAddition(BuiltIn::Type opType, Operator left, Operator
     std::string_view strLeftConst = left.idx == EXPR_ID_CONST ? "" : "%";
     std::string_view strRightConst = right.idx == EXPR_ID_CONST ? "" : "%";
     std::string_view opTypeView = MapBuiltInToLlvm(opType);
-    std::string_view addType = isFloat(opType) ? "fadd" : "add";
+    std::string_view opStr = isFloat(opType) ? opFloat : opInt;
     std::string_view poisonVal = "";
 
-    if(isSigned(opType))
+    if(usePoison && isSigned(opType))
     {
         poisonVal = "nsw";
     }
-    WriteCharData("\n\t%%%v = %v %v %v %v%v, %v%v",
-            VIEW(strTargetIdx), addType, poisonVal, opTypeView, strLeftConst, VIEW(strLeft), strRightConst, VIEW(strRight));
- 
-
+     WriteCharData("\n\t%%%v = %v %v %v %v%v, %v%v",
+            VIEW(strTargetIdx), opStr, poisonVal, opTypeView, strLeftConst, VIEW(strLeft), strRightConst, VIEW(strRight));
     return targetIdx;
 }
 

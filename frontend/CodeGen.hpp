@@ -71,7 +71,8 @@ struct CodeGen
     int64_t EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalAddition(BuiltIn::Type opType, Operator left, Operator right);
-
+    int64_t EmitLocalSubtraction(BuiltIn::Type opType, Operator left, Operator right);
+    int64_t EmitLocalBinaryOp(BuiltIn::Type opType, Operator left, Operator right, std::string_view opInt, std::string_view opFloat, bool usePoison);
     // string sutff
     int64_t EmitString(const Ast::Node* string);
     // misc
