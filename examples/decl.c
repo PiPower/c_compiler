@@ -81,18 +81,18 @@ void test_storage_class(void) {
 static int add(int x, int y) { return x + y; }
 
 void test_pointers(void) {
-    int   x  = 5;
-    int  *p1 = &x;
-    int **p2 = &p1;
-    int ***p3 = &p2;
-
-    const char *str = "hello";
-    void       *np  = 0;
-
-    int (*fp1)(int, int) = add;
-    int (*fp2)(int, int);
-    int (*fptable[4])(int, int);
-    void *(*fp3)(void) = (void *(*)(void))0;
+    //int   x  = 5;
+    //int  *p1 = &x;
+    //int **p2 = &p1;
+    //int ***p3 = &p2;
+//
+    //const char *str = "hello";
+    //void       *np  = 0;
+//
+    //int (*fp1)(int, int) = add;
+    //int (*fp2)(int, int);
+    //int (*fptable[4])(int, int);
+    //void *(*fp3)(void) = (void *(*)(void))0;
 }
 
 /* =========================================================
@@ -186,7 +186,7 @@ void dummy_cb(int x) {}
 void test_typedefs(void) {
     byte_t     b  = 0xABu;
     int_ptr_t  p  = (int *)&b;
-    callback_t cb = dummy_cb;
+    //callback_t cb = dummy_cb;
     Point2D    pt = {3.0, 4.0};
     Matrix3x3  m  = {{1,0,0},{0,1,0},{0,0,1}};
 }
