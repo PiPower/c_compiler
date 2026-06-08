@@ -670,6 +670,30 @@ int64_t CodeGen::EmitLocalModulus(BuiltIn::Type opType, Operator left, Operator 
 
 }
 
+int64_t CodeGen::EmitLocalBitAnd(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "and", "and", "", false);
+}
+
+int64_t CodeGen::EmitLocalBitOr(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "or", "or", "", false);
+}
+
+int64_t CodeGen::EmitLocalBitXor(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "xor", "xor", "", false);
+}
+
+int64_t CodeGen::EmitLocalShiftLeft(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "shl", "shl", "", false);
+}
+
+int64_t CodeGen::EmitLocalShiftRight(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "ashr", "lshr", "", false);
+}
 int64_t CodeGen::EmitLocalBinaryOp(
         BuiltIn::Type opType, 
         Operator left, 

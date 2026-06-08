@@ -74,3 +74,70 @@ struct BinaryModulus
         return cg->EmitLocalModulus(opType, left, right);
     }
 };
+
+struct BinaryBitAnd
+{
+    template<std::integral T>
+    using op = std::bit_and<T>;
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalBitAnd(opType, left, right);
+    }
+};
+
+struct BinaryBitOr
+{
+    template<std::integral T>
+    using op = std::bit_or<T>;
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalBitOr(opType, left, right);
+    }
+};
+
+struct BinaryBitXor
+{
+    template<std::integral T>
+    using op = std::bit_xor<T>;
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalBitXor(opType, left, right);
+    }
+};
+
+struct BinaryShiftLeft
+{
+    template<std::integral T>
+    struct op
+    {
+        constexpr T operator()(T lhs, T rhs) const
+        {
+            return lhs << rhs;
+        }
+    };
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalShiftLeft(opType, left, right);
+    }
+};
+
+struct BinaryShiftRight
+{
+    template<std::integral T>
+    struct op
+    {
+        constexpr T operator()(T lhs, T rhs) const
+        {
+            return lhs >> rhs;
+        }
+    };
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalShiftRight(opType, left, right);
+    }
+};
