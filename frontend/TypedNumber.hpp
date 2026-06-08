@@ -120,6 +120,42 @@ namespace Typed
         }
 
     }
+    
+    template<template<typename> class OP, typename T>
+    concept HasOp = requires
+    {
+        typename OP<T>;
+    };
+
+    // checks if op can be perfomed on give data type
+    // if not return 0 
+    template<template<typename> class OP, typename T>
+    constexpr T ApplyOp(const T& l, const T& r)
+    {
+        if constexpr (HasOp<OP, T>)
+        {
+            return OP<T>{}(l, r);
+        }
+        else
+        {
+            return T{};
+        }
+    }
+    // checks if op can be perfomed on give data type
+    // if not return d_none, else default type
+    template<template<typename> class OP, typename T>
+    constexpr DType ValidateType(DType type)
+    {
+        if constexpr (HasOp<OP, T>)
+        {
+            return type;
+        }
+        else
+        {
+            return d_none;
+        }
+    }
+
     template<template<typename> class OP>
     Typed::Number TypedBinOp(const Number& l, const Number& r)
     {
@@ -131,20 +167,63 @@ namespace Typed
         out.type = l.type;
         switch (out.type)
         {
-            case DType::d_int8_t:   out.int8   = OP<uint8_t>{}(l.int8,   r.int8);   break;
-            case DType::d_int16_t:  out.int16  = OP<uint16_t>{}(l.int16,  r.int16);  break;
-            case DType::d_int32_t:  out.int32  = OP<uint32_t>{}(l.int32,  r.int32);  break;
-            case DType::d_int64_t:  out.int64  = OP<uint64_t>{}(l.int64,  r.int64);  break;
+            case DType::d_int8_t:
+                out.int8 = ApplyOp<OP, int8_t>(l.int8, r.int8);
+                out.type = ValidateType<OP, int8_t>(out.type);
+                break;
 
-            case DType::d_uint8_t:  out.uint8  = OP<int8_t>{}(l.uint8,  r.uint8);  break;
-            case DType::d_uint16_t: out.uint16 = OP<int16_t>{}(l.uint16, r.uint16); break;
-            case DType::d_uint32_t: out.uint32 = OP<int32_t>{}(l.uint32, r.uint32); break;
-            case DType::d_uint64_t: out.uint64 = OP<int64_t>{}(l.uint64, r.uint64); break;
+            case DType::d_int16_t:
+                out.int16 = ApplyOp<OP, int16_t>(l.int16, r.int16);
+                out.type = ValidateType<OP, int16_t>(out.type);
+                break;
 
-            case DType::d_float:    out.float32 = OP<float>{}(l.float32, r.float32); break;
-            case DType::d_double:   out.float64 = OP<double>{}(l.float64, r.float64); break;
-            case DType::d_l_double: out.lFloat  = OP<long double>{}(l.lFloat,  r.lFloat);  break;
-            default: break;
+            case DType::d_int32_t:
+                out.int32 = ApplyOp<OP, int32_t>(l.int32, r.int32);
+                out.type = ValidateType<OP, int32_t>(out.type);
+                break;
+
+            case DType::d_int64_t:
+                out.int64 = ApplyOp<OP, int64_t>(l.int64, r.int64);
+                out.type = ValidateType<OP, int64_t>(out.type);
+                break;
+
+            case DType::d_uint8_t:
+                out.uint8 = ApplyOp<OP, uint8_t>(l.uint8, r.uint8);
+                out.type = ValidateType<OP, uint8_t>(out.type);
+                break;
+
+            case DType::d_uint16_t:
+                out.uint16 = ApplyOp<OP, uint16_t>(l.uint16, r.uint16);
+                out.type = ValidateType<OP, uint16_t>(out.type);
+                break;
+
+            case DType::d_uint32_t:
+                out.uint32 = ApplyOp<OP, uint32_t>(l.uint32, r.uint32);
+                out.type = ValidateType<OP, uint32_t>(out.type);
+                break;
+
+            case DType::d_uint64_t:
+                out.uint64 = ApplyOp<OP, uint64_t>(l.uint64, r.uint64);
+                out.type = ValidateType<OP, uint64_t>(out.type);
+                break;
+
+            case DType::d_float:
+                out.float32 = ApplyOp<OP, float>(l.float32, r.float32);
+                out.type = ValidateType<OP, float>(out.type);
+                break;
+
+            case DType::d_double:
+                out.float64 = ApplyOp<OP, double>(l.float64, r.float64);
+                out.type = ValidateType<OP, double>(out.type);
+                break;
+
+            case DType::d_l_double:
+                out.lFloat = ApplyOp<OP, long double>(l.lFloat, r.lFloat);
+                out.type = ValidateType<OP, long double>(out.type);
+                break;
+
+            default:
+                break;
         }
 
         return out;

@@ -1,6 +1,6 @@
 #pragma once 
 #include "SemanticAnalysis.hpp"
-
+//dodać koncept
 template<typename OP>
 ExprRet BinaryOp(SemanticAnalyzer* sema, CodeGen* cg, const Ast::Node* root)
 {
@@ -61,5 +61,16 @@ struct BinaryDivision
     static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
     {
         return cg->EmitLocalDivision(opType, left, right);
+    }
+};
+
+struct BinaryModulus
+{
+    template<std::integral T>
+    using op = std::modulus<T>;
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalModulus(opType, left, right);
     }
 };

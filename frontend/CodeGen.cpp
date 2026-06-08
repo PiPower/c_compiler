@@ -661,7 +661,13 @@ int64_t CodeGen::EmitLocalMultiplication(BuiltIn::Type opType, Operator left, Op
 
 int64_t CodeGen::EmitLocalDivision(BuiltIn::Type opType, Operator left, Operator right)
 {
-        return EmitLocalBinaryOp(opType, left, right, "sdiv", "udiv", "fmul", false);
+    return EmitLocalBinaryOp(opType, left, right, "sdiv", "udiv", "fmul", false);
+}
+
+int64_t CodeGen::EmitLocalModulus(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "srem", "urem", "", false);
+
 }
 
 int64_t CodeGen::EmitLocalBinaryOp(
@@ -696,7 +702,13 @@ int64_t CodeGen::EmitLocalBinaryOp(
     {
         poisonVal = " nsw";
     }
-     WriteCharData("\n\t%%%v = %v%v %v %v%v, %v%v",
+
+    if(opStr == "")
+    {
+        return EXPR_ID_IGNORE;
+    }
+
+    WriteCharData("\n\t%%%v = %v%v %v %v%v, %v%v",
             VIEW(strTargetIdx), opStr, poisonVal, opTypeView, strLeftConst, VIEW(strLeft), strRightConst, VIEW(strRight));
     return targetIdx;
 }

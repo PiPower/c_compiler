@@ -74,6 +74,7 @@ struct CodeGen
     int64_t EmitLocalSubtraction(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalMultiplication(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalDivision(BuiltIn::Type opType, Operator left, Operator right);
+    int64_t EmitLocalModulus(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalBinaryOp(
         BuiltIn::Type opType, 
         Operator left, 

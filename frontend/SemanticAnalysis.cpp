@@ -1377,6 +1377,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     case Ast::op_subtract: return BinaryOp<BinarySubtraction>(this, &codeGen, root);
     case Ast::op_multiply: return BinaryOp<BinaryMultiplication>(this, &codeGen, root);
     case Ast::op_divide: return BinaryOp<BinaryDivision>(this, &codeGen, root);
+    case Ast::op_divide_modulo: return BinaryOp<BinaryModulus>(this, &codeGen, root);
     case Ast::op_minus: return HandleOpMinus(root);
     case Ast::init_expr: return HandleInitExpr(root);        
     case Ast::character: return LoadCharacter(root);
