@@ -959,6 +959,13 @@ int SemanticAnalyzer::GetIntRank(BuiltIn::Type type)
     return  intRanks[type - BuiltIn::s_char_8];
 }
 
+void SemanticAnalyzer::BinaryExprProlog(ExprRet *left, ExprRet *right, const Ast::Node *leftTerm, const Ast::Node *rightTerm)
+{
+    ExprRet oldLeft = AnalyzeExpr(leftTerm);
+    ExprRet oldRight = AnalyzeExpr(rightTerm);
+    HandleTypePromotion(&oldLeft, &oldRight, left, right);
+}
+
 bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 {
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
@@ -1539,21 +1546,17 @@ ExprRet SemanticAnalyzer::HandleAssignment(const Ast::Node *root)
 
 ExprRet SemanticAnalyzer::HandleAddition(const Ast::Node *root)
 {
-    ExprRet left = AnalyzeExpr(root->lChild);
-    ExprRet right = AnalyzeExpr(root->rChild);
-    ExprRet newLeft, newRight;
-    HandleTypePromotion(&left, &right, &newLeft, &newRight);
-    ExprRet out;
+    ExprRet left = {}, right = {}, out = {};
+    BinaryExprProlog(&left, &right, root->lChild, root->rChild);
 
-    out.type = newLeft.type;
-    if(newLeft.id == EXPR_ID_CONST && newRight.id == EXPR_ID_CONST)
+    out.type = left.type;
+    if(left.id == EXPR_ID_CONST && right.id == EXPR_ID_CONST)
     {
         out.id = EXPR_ID_CONST;
-        out.num = Typed::TypedBinOp<std::plus>(newLeft.num, newRight.num);
+        out.num = Typed::TypedBinOp<std::plus>(left.num, right.num);
     }
     {
-
-        out.id = codeGen.EmitLocalAddition(newLeft.type, {newLeft.id, newLeft.num}, {newRight.id, newRight.num});
+        out.id = codeGen.EmitLocalAddition(left.type, {left.id, left.num}, {right.id, right.num});
     }
     return out;
 }

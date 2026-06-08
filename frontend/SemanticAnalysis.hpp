@@ -48,6 +48,7 @@ struct SemanticAnalyzer
     ExprRet HandleOpMinus(const Ast::Node* root);
     ExprRet HandleAssignment(const Ast::Node* root);
     ExprRet HandleAddition(const Ast::Node* root);
+    ExprRet HandleSubtraction(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
     void HandleTypePromotion(ExprRet* left, ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
     ExprRet HandleTypeExtension(ExprRet* src, BuiltIn::Type newType);
@@ -61,6 +62,8 @@ struct SemanticAnalyzer
     void EmitUninitializedGlobals();
     void ResolveIntegralPromotion(ExprRet* left, ExprRet* right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight);
     int GetIntRank(BuiltIn::Type type);
+    void BinaryExprProlog(ExprRet* left, ExprRet* right, const Ast::Node* leftTerm, const Ast::Node* rightTerm);
+
     SymbolTable* symTab;
     FileManager* manager;
     NodeExecutor ne;
