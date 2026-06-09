@@ -964,6 +964,21 @@ void SemanticAnalyzer::BinaryExprProlog(ExprRet *left, ExprRet *right, const Ast
 {
     ExprRet oldLeft = AnalyzeExpr(leftTerm);
     ExprRet oldRight = AnalyzeExpr(rightTerm);
+
+    if(oldLeft.id == EXPR_ID_VAR)
+    {
+        const SymbolVariable* symVar = oldLeft.var;
+        oldLeft.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
+        oldLeft.var = nullptr;
+    }
+
+    if(oldRight.id == EXPR_ID_VAR)
+    {
+        const SymbolVariable* symVar = oldRight.var;
+        oldRight.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
+        oldRight.var = nullptr;
+    }
+
     HandleTypePromotion(&oldLeft, &oldRight, left, right);
 }
 
@@ -1597,8 +1612,9 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     const SymbolVariable* symVar = symTab->QueryVarSymbol(varName);
     ExprRet out = {};
     out.type = symVar->spec.symType->dType;
-    out.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
-
+    out.id = EXPR_ID_VAR;
+    out.var = symVar;
+    
     return out;
 }
 
