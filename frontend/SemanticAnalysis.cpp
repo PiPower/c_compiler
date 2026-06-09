@@ -1345,6 +1345,7 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
     ExprRet initInfo;
     initInfo.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType; 
     initInfo.id = symVar->varIdx;
+    initInfo.var = symVar;
     node.rChild = (Ast::Node*)&initInfo;
     if(!IsArray(&symVar->decl.accArr))
     {
@@ -1360,16 +1361,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
 {
     switch (root->type)
     {
-    case Ast::get_addr:
-    {
-        ExprRet handle = AnalyzeExpr(root->lChild);
-        if(handle.id == EXPR_ID_IGNORE)
-        {
-            return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
-        }
-        return {BuiltIn::ptr, {}, handle.id};
-        
-    }break;
+    case Ast::get_addr: return HandleGetAddr(root);
     case Ast::assignment: return HandleAssignment(root);
     case Ast::identifier: return HandleIdentifier(root);
     case Ast::op_add: return BinaryOp<BinaryAddition>(this, &codeGen, root);
@@ -1385,6 +1377,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     case Ast::op_minus: return HandleOpMinus(root);
     case Ast::init_expr: return HandleInitExpr(root);        
     case Ast::character: return LoadCharacter(root);
+    case Ast::string_literal: return LoadStringLiteral(root);
     case Ast::constant: return LoadConstant(root);            
     case Ast::compound_literal: return CompoundLiteral(root); 
     case Ast::expression: 
@@ -1430,9 +1423,9 @@ ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
     return {BuiltIn::struct_t, {}, localVar.varIdx};
 }
 
-ExprRet SemanticAnalyzer::LoadCharacter(const Ast::Node *constant)
+ExprRet SemanticAnalyzer::LoadCharacter(const Ast::Node *character)
 {
-    std::string_view str = GetViewForToken(constant->token);
+    std::string_view str = GetViewForToken(character->token, manager);
     Typed::Number num;
     num.type = Typed::d_int8_t;
     num.int8 = str[1];
@@ -1445,7 +1438,7 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
     //  linux style convention are considered
     Typed::Number num;
     BuiltIn::Type type;
-    std::string_view str = GetViewForToken(constant->token);
+    std::string_view str = GetViewForToken(constant->token, manager);
     if(constant->token.isFloat)
     {
         long double value = stringToLongDouble(str.data(), str.length(), MODE_DEC);
@@ -1507,6 +1500,15 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
     return ExprRet{type, num, EXPR_ID_CONST};
 }
 
+ExprRet SemanticAnalyzer::LoadStringLiteral(const Ast::Node *string)
+{
+    ExprRet out;
+    out.type = BuiltIn::string;
+    out.id = codeGen.EmitString(string);
+
+    return out;
+}
+
 ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
 {
     ExprRet* destHandle = (ExprRet*)root->rChild;
@@ -1521,15 +1523,16 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
     {
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
-    uint32_t alignment = GetBuiltInAlignemnt(destHandle->type);
-    if(source.id == EXPR_ID_CONST)
+
+    if(destHandle->type != BuiltIn::ptr)
     {
-        codeGen.EmitLocalConstAsm(destHandle->type, alignment, destHandle->id, source.num);
+        return HandleSimpleAssignment(destHandle, &source);
     }
     else
     {
-        codeGen.EmitLocalStorage(destHandle->type, alignment, destHandle->id, source.id);
+        return HandlePointerAssignment(destHandle, &source);
     }
+
     return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
 }
 
@@ -1575,12 +1578,22 @@ ExprRet SemanticAnalyzer::HandleAssignment(const Ast::Node *root)
             dst.var = nullptr;
             return HandleSimpleAssignment(&dst, &exprRes);
         }
+        else
+        {
+            return HandlePointerAssignment(&dst, &exprRes);
+        }
     }
     return ExprRet();
 }
 
 ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprRet *src)
 {
+    if(src->id == EXPR_ID_CONST)
+    {
+        codeGen.EmitLocalConstAsm(dst->type, GetBuiltInAlignemnt(dst->type), dst->id, src->num);
+        return *src;
+    }
+
     if(isInteger(dst->type) && isInteger(src->type))
     {
         int dstRank = GetIntRank(dst->type);
@@ -1592,35 +1605,60 @@ ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprR
             // here we can use HandleTypePromotion becasue src needs to be upgraded
             HandleTypePromotion(dst, src, &localDst, &localSrc);
         }
-        else if(dstRank < srcRank)
+        else if(dstRank < srcRank )
         {   
             localSrc.id = codeGen.EmitLocalIntTruncate(dst->type, src->type, {src->id, src->num});
         }
+
+        codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignemnt(localDst.type), localDst.id, localSrc.id);
+    }
+    else if(isFloat(dst->type) && isFloat(src->type))
+    {
+        ExprRet localDst = *dst, localSrc = *src;
+
+        // TODO add float conversion code
         codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignemnt(localDst.type), localDst.id, localSrc.id);
     }
     return *src;
 }
 
-ExprRet SemanticAnalyzer::HandleAddition(const Ast::Node *root)
+ExprRet SemanticAnalyzer::HandlePointerAssignment(const ExprRet *dst, const ExprRet *src)
 {
-    return BinaryOp<BinaryAddition>(this, &codeGen, root);
+    if(src->id == EXPR_ID_CONST && src->num.uint64 == 0)
+    {
+        codeGen.EmitLocalNullStorage(dst->id);
+    }
+    else if(src->type == BuiltIn::string)
+    {
+        codeGen.EmitLocalStrStorage(dst->id, src->id);
+    }
+    else
+    {
+       codeGen.EmitLocalStorage(dst->type, GetBuiltInAlignemnt(dst->type), dst->id, src->id); 
+    }
+    return *src;
 }
 
-ExprRet SemanticAnalyzer::HandleSubtraction(const Ast::Node *root)
+ExprRet SemanticAnalyzer::HandleGetAddr(const Ast::Node *root)
 {
-    ExprRet left = {}, right = {}, out = {};
-    BinaryExprProlog(&left, &right, root->lChild, root->rChild);
+    ExprRet handle = AnalyzeExpr(root->lChild);
+    if(handle.id == EXPR_ID_IGNORE)
+    {
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+    }
 
-    out.type = left.type;
-    if(left.id == EXPR_ID_CONST && right.id == EXPR_ID_CONST)
+    if(handle.id == EXPR_ID_VAR)
     {
-        out.id = EXPR_ID_CONST;
-        out.num = Typed::TypedBinOp<std::minus>(left.num, right.num);
+        return {BuiltIn::ptr, {}, handle.var->varIdx};
     }
+
+
+    if(handle.type == BuiltIn::ptr)
     {
-        out.id = codeGen.EmitLocalSubtraction(left.type, {left.id, left.num}, {right.id, right.num});
+
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
-    return out;
+    return {BuiltIn::ptr, {}, EXPR_ID_IGNORE};
 }
 
 ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)

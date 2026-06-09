@@ -525,6 +525,21 @@ void CodeGen::EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t de
     WriteCharData(" %%%s, align %s", dst.data(), dst.length(), align.data(), align.length());
 }
 
+void CodeGen::EmitLocalStrStorage(int64_t destIdx, int64_t strIdx)
+{
+    BindLocalBuffer();
+    std::string strDest = std::to_string(destIdx);
+    std::string strIdxStr = std::to_string(strIdx);
+    WriteCharData("\n\tstore ptr @.str.%v, ptr %%%v, align 8", VIEW(strIdxStr), VIEW(strDest));
+}
+
+void CodeGen::EmitLocalNullStorage(int64_t destIdx)
+{
+    BindLocalBuffer();
+    std::string strDest = std::to_string(destIdx);
+    WriteCharData("\n\tstore ptr null, ptr %%%v, align 8", VIEW(strDest));
+}
+
 void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num)
 {
     BindLocalBuffer();
@@ -756,6 +771,7 @@ int64_t CodeGen::EmitLocalBinaryOp(
 
 int64_t CodeGen::EmitString(const Ast::Node *string)
 {
+    BindStrBuffer();
     static int64_t stringIdx= 1;
     int64_t idx = stringIdx++;
 
@@ -763,15 +779,24 @@ int64_t CodeGen::EmitString(const Ast::Node *string)
     std::string_view strLiteral = GetViewForToken(string->token, manager);
     std::string strLen = std::to_string(strLiteral.length());
     
-    PushBufferType();
-    BindStrBuffer();
-
     WriteCharData("\n@.str.%s = private unnamed_addr constant [%s x i8] c\"",
     strIdx.data(), strIdx.length(), strLen.data(), strLen.length());
-    WriteCharData("\", align 1");
 
-    PopBufferType();
+    for(size_t i =0; i < strLiteral.length(); i++)
+    {
+        switch (strLiteral[i])
+        {
+        case '\0': WriteCharData("\\00"); break;
+        case '\n': WriteCharData("\\0A"); break;
+        case '\r': WriteCharData("\\0D"); break;
+        case '\t': WriteCharData("\\09"); break;
+        case '\"': WriteCharData("\\22"); break;
+        case '\\': WriteCharData("\\5C"); break;
+        default: WriteByte(strLiteral[i]); break;
+        }
+    }
 
+    WriteCharData("\\00\", align 1");
     return idx;
 }
 

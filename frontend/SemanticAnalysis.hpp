@@ -42,20 +42,20 @@ struct SemanticAnalyzer
     // expressions
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet CompoundLiteral(const Ast::Node* literal);
-    ExprRet LoadCharacter(const Ast::Node* constant);
+    ExprRet LoadCharacter(const Ast::Node* character);
     ExprRet LoadConstant(const Ast::Node* constant);
+    ExprRet LoadStringLiteral(const Ast::Node* string);
     ExprRet HandleInitExpr(const Ast::Node* root);
     ExprRet HandleOpMinus(const Ast::Node* root);
     ExprRet HandleAssignment(const Ast::Node* root);
     ExprRet HandleSimpleAssignment(const ExprRet* dst, const ExprRet* src);
-    ExprRet HandleAddition(const Ast::Node* root);
-    ExprRet HandleSubtraction(const Ast::Node* root);
+    ExprRet HandlePointerAssignment(const ExprRet* dst, const ExprRet* src);
+    ExprRet HandleGetAddr(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
     void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
     ExprRet HandleTypeExtension(const ExprRet* src, BuiltIn::Type newType);
 
     // misc
-    std::string_view GetViewForToken(const Token &token);
     void WriteCodeToFile(const char* filename);
     bool CompareParams(size_t paramCount, const FunctionParams* p1, const FunctionParams* p2);
     bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);

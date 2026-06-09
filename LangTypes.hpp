@@ -333,7 +333,7 @@ struct SymbolVariable
         const DeclSpecs* spec,
         const Declarator* decl, 
         const VariableOpts* opts,
-        int64_t idx = -1) 
+        int64_t idx) 
     :
     kind(kind), scope(scope), spec(*spec), decl(*decl), opts(*opts), varIdx(idx) {}
 };
