@@ -221,22 +221,6 @@ void Parser::ConsumeToken()
     }
 }
 
-std::string_view Parser::GetViewForToken(const Token &token)
-{
-    FILE_STATE state;
-    if(manager->GetFileState(&token.location.id, &state) != 0)
-    {
-        printf("Parser critical error: Requested file does not exit\n");
-        exit(-1);
-    }
-
-    // removes \" from both start and end 
-    uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
-    std::string_view tokenView(state.fileData + token.location.offset + offset,
-                                token.location.len - offset);
-    return tokenView;
-}
-
 void Parser::ConsumeExpectedToken(TokenType::Type type)
 {
     Token token = GetCurrToken();
@@ -1073,7 +1057,7 @@ Ast::Node *Parser::TypeSpecifier()
     
     if(IsTokenOneOf(&token, TokenType::identifier))
     {
-        if(analyzer->NamesAType(GetViewForToken(token)))
+        if(analyzer->NamesAType(GetViewForToken(token, manager)))
         {
             ConsumeToken();
             Ast::Node* type = AllocateAstNodes();

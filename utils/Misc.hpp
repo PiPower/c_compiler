@@ -21,6 +21,18 @@ struct MemoryDesc
     uint32_t alignment;
 };
 
+Ast::Node* BuildInitializerList(const std::vector<Ast::Node>& initItems, PagedHeap* allocator);
+ArraySize GetArrayElemCount(const AccessArray *accArray, Logger* logger, NodeExecutor* ne);
+MemoryDesc GetMemoryDesc(const AccessArray *accArray, SymbolType* type, Logger* logger, NodeExecutor* ne);
+const Ast::Node* GetFirstNestedValue(const Ast::Node* designatorList, Logger *logger);
+std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designatorList, const AccessArray* nextAcc, Logger* logger, NodeExecutor* nodeExec, PagedHeap* allocator);
+bool IsPointer(const AccessArray *accArray, size_t startIdx = 0);
+bool DecaysToPointer(const AccessArray *accArray, size_t startIdx = 0);
+bool IsArray(const AccessArray *accArray);
+std::string_view GetBuiltInName(const BuiltIn::Type type);
+uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type);
+std::string_view GetViewForToken(const Token &token, FileManager* fm);
+
 constexpr inline Ast::Node* lenToAstPtr(size_t len)
 {
     return reinterpret_cast<Ast::Node*>(static_cast<uintptr_t>(len));
@@ -63,17 +75,6 @@ constexpr inline bool isSigned(BuiltIn::Type type)
     return type == BuiltIn::s_char_8 || type == BuiltIn::s_int_16 ||
            type == BuiltIn::s_int_32|| type == BuiltIn::s_int_64;
 }
-
-Ast::Node* BuildInitializerList(const std::vector<Ast::Node>& initItems, PagedHeap* allocator);
-ArraySize GetArrayElemCount(const AccessArray *accArray, Logger* logger, NodeExecutor* ne);
-MemoryDesc GetMemoryDesc(const AccessArray *accArray, SymbolType* type, Logger* logger, NodeExecutor* ne);
-const Ast::Node* GetFirstNestedValue(const Ast::Node* designatorList, Logger *logger);
-std::vector<ArrayInitPair> PartitionArrayInitializer(const Ast::Node *designatorList, const AccessArray* nextAcc, Logger* logger, NodeExecutor* nodeExec, PagedHeap* allocator);
-bool IsPointer(const AccessArray *accArray, size_t startIdx = 0);
-bool DecaysToPointer(const AccessArray *accArray, size_t startIdx = 0);
-bool IsArray(const AccessArray *accArray);
-std::string_view GetBuiltInName(const BuiltIn::Type type);
-uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type);
 
 inline Typed::Number CastToBuiltIn(BuiltIn::Type type, const Typed::Number& num)
 {

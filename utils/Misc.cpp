@@ -312,3 +312,18 @@ uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type)
     return 0;
 }
 
+std::string_view GetViewForToken(const Token &token, FileManager* fm)
+{
+    FILE_STATE state;
+    if(fm->GetFileState(&token.location.id, &state) != 0)
+    {
+        printf("Preprocessor critical error: Requested file does not exit\n");
+        exit(-1);
+    }
+
+    // removes \" from both start and end 
+    uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
+    std::string_view tokenView(state.fileData + token.location.offset + offset,
+                                token.location.len - offset * 2);
+    return tokenView;
+}

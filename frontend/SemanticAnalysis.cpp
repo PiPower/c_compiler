@@ -216,7 +216,7 @@ Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack
     decl.token = declarator->token;
     if(!isAbstract)
     {
-        decl.name = GetViewForToken(accessTypes->top()->token);
+        decl.name = GetViewForToken(accessTypes->top()->token, manager);
         accessTypes->pop();
     }
 
@@ -456,7 +456,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
 {
     if(structTree->lChild)
     {
-        spec->typenameView = GetViewForToken(structTree->lChild->token);
+        spec->typenameView = GetViewForToken(structTree->lChild->token, manager);
     }
     else
     {
@@ -667,7 +667,7 @@ void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
     if(enumTree->token.type == TokenType::identifier)
     {
         // reserve name for non anonymous enum
-        symTab->AddSymbol<SymbolType>(GetViewForToken(enumTree->token), BuiltIn::enum_t, true, 4, 4, emptyDesc);
+        symTab->AddSymbol<SymbolType>(GetViewForToken(enumTree->token, manager), BuiltIn::enum_t, true, 4, 4, emptyDesc);
     }
     // enums are to be treated as i32 by type system
     spec->symType = symTab->QueryTypeSymbol(std::string_view(kTypeNames[12]));
@@ -692,7 +692,7 @@ void SemanticAnalyzer::AnalyzeEnum(const Ast::Node *enumTree, DeclSpecs *spec)
             }
         }
         VariableOpts opts = {.isEnumerator = 1, .isConst = 0};
-        std::string_view enumName = GetViewForToken(enumerator->token);
+        std::string_view enumName = GetViewForToken(enumerator->token, manager);
         Declarator decl = {enumerator->token, {}, enumName, nullptr};
         symTab->AddSymbol<SymbolVariable>(enumName, symTab->currentTable->scopeType, spec, &decl, &opts, value);
         
@@ -769,7 +769,7 @@ void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpec
     Node* currChild = typeSequence;
     do
     {
-        handyString += GetViewForToken(currChild->token);
+        handyString += GetViewForToken(currChild->token, manager);
         currChild = currChild->lChild;
         if(currChild)
         {
@@ -794,22 +794,6 @@ void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpec
         exit(-1);
     }
     spec->typenameView = std::string_view(kTypeNames[idx]);
-}
-
-std::string_view SemanticAnalyzer::GetViewForToken(const Token &token)
-{
-    FILE_STATE state;
-    if(manager->GetFileState(&token.location.id, &state) != 0)
-    {
-        printf("Parser critical error: Requested file does not exit\n");
-        exit(-1);
-    }
-
-    // removes \" from both start and end 
-    uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
-    std::string_view tokenView(state.fileData + token.location.offset + offset,
-                                token.location.len - offset);
-    return tokenView;
 }
 
 void SemanticAnalyzer::WriteCodeToFile(const char *filename)
@@ -1006,7 +990,7 @@ void SemanticAnalyzer::AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declara
     if(symVar == nullptr)
     {
         VariableOpts opts = {.isEnumerator = 0, .isConst = 0, .isEmitted = 0};
-        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts);
+        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, EXPR_ID_GLOBAL);
         symVar = symTab->QueryVarSymbol(decl->name);
     }
 
@@ -1267,9 +1251,9 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
         
         else if(currNode->type == Ast::type_specifier)
         {
-            if( (symTab->QuerySymKinds(GetViewForToken(currNode->token)) & Sym::TYPEDEF)  > 0)
+            if( (symTab->QuerySymKinds(GetViewForToken(currNode->token, manager)) & Sym::TYPEDEF)  > 0)
             {
-                SymbolTypedef* symTypedef = symTab->QueryTypedefSymbol(GetViewForToken(currNode->token));
+                SymbolTypedef* symTypedef = symTab->QueryTypedefSymbol(GetViewForToken(currNode->token, manager));
                 if(!symTypedef)
                 {
                     IssueWarning(&currNode->token, "typedef name did not resolve to a typedef symbol");
@@ -1300,7 +1284,7 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                 // data that std::string_view encapsulates has lifetime of file manager.
                 // File manager is kept alive over whole duration of program so 
                 // it is safe to fetch typename from token
-                spec.typenameView = GetViewForToken(currNode->token);
+                spec.typenameView = GetViewForToken(currNode->token, manager);
                 spec.symType = symTab->QueryTypeSymbol(spec.typenameView);
                 if(spec.symType->dType != BuiltIn::ptr)
                 {
@@ -1641,7 +1625,7 @@ ExprRet SemanticAnalyzer::HandleSubtraction(const Ast::Node *root)
 
 ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
 {
-    std::string_view varName = GetViewForToken(root->token);
+    std::string_view varName = GetViewForToken(root->token, manager);
     const SymbolVariable* symVar = symTab->QueryVarSymbol(varName);
     ExprRet out = {};
     if(IsArray(&symVar->decl.accArr) || IsPointer(&symVar->decl.accArr) )

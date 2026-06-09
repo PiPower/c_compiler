@@ -19,7 +19,6 @@ struct Parser
     Token GetCurrTokenInternal();
     void PutBackAtFront(Token token);
     void ConsumeToken();
-    std::string_view GetViewForToken(const Token &token);
     void ConsumeExpectedToken(TokenType::Type type);
     // node management
     Ast::Node* AllocateAstNodes(uint16_t count = 1);

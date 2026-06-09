@@ -5,6 +5,7 @@
 #include "../utils/DataEncoder.hpp"
 #include <functional>
 #include <iostream>
+#include "../utils/Misc.hpp"
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 #define IssueWarningNoneTerminal(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__);
 
@@ -42,8 +43,7 @@ blockResult(EXPR_RESULT_NONE), fileOffset(0), ex(manager), logger(manager, "Prep
     assert(opts != nullptr);
     constexpr size_t initiialBufferSize = 500;
     constantNodes.reserve(initiialBufferSize);
-    manager->CreateInternalFile(PreprocessorFlename, 
-        strlen(PreprocessorFlename), 4096 * 4, &preprocessorFile);
+    manager->CreateInternalFile(PreprocessorFlename, strlen(PreprocessorFlename), 4096 * 4, &preprocessorFile);
     WriteToPreprocessorFile(InsertableValues, 2);
 
     lexer.PushFile(mainFileId, -1, -1);
@@ -112,11 +112,11 @@ fetch_token:
     {
         if(token->PossiblyErronous)
         {
-            std::string_view view = GetViewForToken(*token);
+            std::string_view view = GetViewForToken(*token, manager);
             IssueWarning(token, "Errounsous identifier [%.*s]", (int)view.length(), view.data());
         }
         Macro *macro;
-        std::string_view macroView = GetViewForToken(*token);
+        std::string_view macroView = GetViewForToken(*token, manager);
         bool hasEntry = FetchMacro(&macroView, &macro);
         if(!hasEntry && stages.ConstantExpr == 0)
         {
@@ -169,7 +169,7 @@ Token Preprocessor::StringifyParam(const std::vector<Token> &macroParam)
     {
         if(!IsTokenOneOf(&tok, TokenType::new_line, TokenType::comment))
         {
-            stringify += GetViewForToken(tok);
+            stringify += GetViewForToken(tok, manager);
         }
     }
 
@@ -338,22 +338,6 @@ int32_t Preprocessor::ExecuteDirective(Token *token)
     return 0;
 }
 
-std::string_view Preprocessor::GetViewForToken(const Token &token)
-{
-    FILE_STATE state;
-    if(manager->GetFileState(&token.location.id, &state) != 0)
-    {
-        printf("Preprocessor critical error: Requested file does not exit\n");
-        exit(-1);
-    }
-
-    // removes \" from both start and end 
-    uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
-    std::string_view tokenView(state.fileData + token.location.offset + offset,
-                                token.location.len - offset * 2);
-    return tokenView;
-}
-
 Token Preprocessor::GetCurrToken()
 {
 get_token:
@@ -399,7 +383,7 @@ void Preprocessor::ConsumeToken()
 
 TokenType::Type Preprocessor::GetPreprocessorType(const Token *token)
 {
-    std::string_view tokenName = GetViewForToken(*token);
+    std::string_view tokenName = GetViewForToken(*token, manager);
     if(tokenName == "include") { return TokenType::pp_include; }
     if(tokenName == "define") { return TokenType::pp_define; }
     if(tokenName == "ifdef") { return TokenType::pp_ifdef; }
@@ -678,7 +662,7 @@ int32_t Preprocessor::HandleDefine()
     ConsumeExpectedToken(TokenType::identifier);
 
     Macro macro = {};
-    std::string_view macroName = GetViewForToken(defineIdentifier);
+    std::string_view macroName = GetViewForToken(defineIdentifier, manager);
     Token macroExpansion = GetCurrToken();
     // key - argname ; value - argument number
     std::unordered_map<std::string_view, uint16_t> argNames;
@@ -694,7 +678,7 @@ int32_t Preprocessor::HandleDefine()
         while (token.type == TokenType::identifier)
         {
             ConsumeToken();
-            std::string_view argName(GetViewForToken(token));
+            std::string_view argName(GetViewForToken(token, manager));
             // insert arg into map
             auto nameIter = argNames.find(argName);
             if(nameIter != argNames.end()) 
@@ -729,7 +713,7 @@ int32_t Preprocessor::HandleDefine()
     {
         if(macroExpansion.type == TokenType::identifier)
         {
-            std::string_view tokenName(GetViewForToken(macroExpansion));
+            std::string_view tokenName(GetViewForToken(macroExpansion, manager));
             // insert arg into map
             auto nameIter = argNames.find(tokenName);
             if(nameIter != argNames.end()) 
@@ -755,7 +739,7 @@ int32_t Preprocessor::HandleIfdef()
     Token identifier = GetCurrToken();
     ConsumeExpectedToken(TokenType::identifier);
     ConsumeExpectedToken(TokenType::new_line);
-    std::string_view macroView = GetViewForToken(identifier);
+    std::string_view macroView = GetViewForToken(identifier, manager);
 
     auto macroIter = macros.find(macroView);
     ConditionalBlock block = CreateBlock(); 
@@ -775,7 +759,7 @@ int32_t Preprocessor::HandleIfndef()
     Token identifier = GetCurrToken();
     ConsumeExpectedToken(TokenType::identifier);
     ConsumeExpectedToken(TokenType::new_line);
-    std::string_view macroView = GetViewForToken(identifier);
+    std::string_view macroView = GetViewForToken(identifier, manager);
 
     auto macroIter = macros.find(macroView);
     ConditionalBlock block = CreateBlock(); 
@@ -852,18 +836,18 @@ int32_t Preprocessor::HandlePragma()
         printf("Empty pragma\n");
     }
 
-    std::string_view command = GetViewForToken(pragmaType);
+    std::string_view command = GetViewForToken(pragmaType, manager);
     if(command == "GCC")
     {
         Token pragmaSubType = GetCurrToken();
         ConsumeToken();
 
-        std::string_view subCommand = GetViewForToken(pragmaSubType);
+        std::string_view subCommand = GetViewForToken(pragmaSubType, manager);
         if(subCommand == "warning")
         {
             Token tokenWarning = GetCurrToken();
             ConsumeToken();
-            std::string_view subCommand = GetViewForToken(tokenWarning);
+            std::string_view subCommand = GetViewForToken(tokenWarning, manager);
             char* msg = (char*) alloca(subCommand.length() + 1);
             memcpy(msg, subCommand.data(), subCommand.length());
             msg[subCommand.length()] = '\0';
@@ -889,7 +873,7 @@ int32_t Preprocessor::HandleUndef()
     ConsumeExpectedToken(TokenType::identifier);
     ConsumeExpectedToken(TokenType::new_line);
 
-    std::string_view macroName = GetViewForToken(defineIdentifier);
+    std::string_view macroName = GetViewForToken(defineIdentifier, manager);
     macros.erase(macroName);
 
     return 0;
@@ -983,8 +967,8 @@ SourceLocation Preprocessor::GetOneLocation()
 
 std::vector<Token> Preprocessor::MergeTokensInLexer(const Token *left, const Token *right)
 {
-    std::string_view leftToken = GetViewForToken(*left);
-    std::string_view rightToken = GetViewForToken(*right);
+    std::string_view leftToken = GetViewForToken(*left, manager);
+    std::string_view rightToken = GetViewForToken(*right, manager);
     int64_t tokenStringStart = fileOffset;
     WriteToPreprocessorFile(leftToken.data(), leftToken.length());
     WriteToPreprocessorFile(rightToken.data(), rightToken.length());
@@ -1007,7 +991,7 @@ bool Preprocessor::ProcessDefined()
 
     ConsumeExpectedToken(TokenType::identifier);
 
-    auto hashEntry = macros.find(GetViewForToken(token));
+    auto hashEntry = macros.find(GetViewForToken(token, manager));
     if(hashEntry == macros.end()){isDefined = false;}
     else {isDefined = true;}
 

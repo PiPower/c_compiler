@@ -760,7 +760,7 @@ int64_t CodeGen::EmitString(const Ast::Node *string)
     int64_t idx = stringIdx++;
 
     std::string strIdx = std::to_string(idx);
-    std::string_view strLiteral = GetViewForToken(string->token);
+    std::string_view strLiteral = GetViewForToken(string->token, manager);
     std::string strLen = std::to_string(strLiteral.length());
     
     PushBufferType();
@@ -773,21 +773,6 @@ int64_t CodeGen::EmitString(const Ast::Node *string)
     PopBufferType();
 
     return idx;
-}
-
-std::string_view CodeGen::GetViewForToken(const Token &token)
-{
-    FILE_STATE state;
-    if(manager->GetFileState(&token.location.id, &state) != 0)
-    {
-        IssueWarning(&token, "CodeGen: could not resolve file state for token view");
-    }
-
-    // removes \" from both start and end 
-    uint8_t offset = token.type == TokenType::string_literal ? 1 : 0;
-    std::string_view tokenView(state.fileData + token.location.offset + offset,
-                                token.location.len - offset);
-    return tokenView;
 }
 
 void CodeGen::AddSymbolToEmitQueue(SymbolType *symType, const std::string_view &name)

@@ -52,7 +52,6 @@ private:
     uint8_t GetTokenMode(const Token& token);
     const char* GetDataPtr(const Token* token);
     int32_t ExecuteDirective(Token* token);
-    std::string_view GetViewForToken(const Token& token);
     Token GetCurrToken();
     void PutBackAtFront(Token token);
     void ConsumeToken();

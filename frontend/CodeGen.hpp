@@ -92,7 +92,6 @@ struct CodeGen
     // string sutff
     int64_t EmitString(const Ast::Node* string);
     // misc
-    std::string_view GetViewForToken(const Token &token);
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
     void FlushTypeQueue();
     void WriteToFile(int fd);
