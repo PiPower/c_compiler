@@ -47,11 +47,12 @@ struct SemanticAnalyzer
     ExprRet HandleInitExpr(const Ast::Node* root);
     ExprRet HandleOpMinus(const Ast::Node* root);
     ExprRet HandleAssignment(const Ast::Node* root);
+    ExprRet HandleSimpleAssignment(const ExprRet* dst, const ExprRet* src);
     ExprRet HandleAddition(const Ast::Node* root);
     ExprRet HandleSubtraction(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
-    void HandleTypePromotion(ExprRet* left, ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
-    ExprRet HandleTypeExtension(ExprRet* src, BuiltIn::Type newType);
+    void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
+    ExprRet HandleTypeExtension(const ExprRet* src, BuiltIn::Type newType);
 
     // misc
     std::string_view GetViewForToken(const Token &token);
@@ -60,7 +61,7 @@ struct SemanticAnalyzer
     bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);
     bool CompareDeclarators(const Declarator* d1, const Declarator* d2);
     void EmitUninitializedGlobals();
-    void ResolveIntegralPromotion(ExprRet* left, ExprRet* right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight);
+    void ResolveIntegralPromotion(const ExprRet* left, const ExprRet* right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight);
     int GetIntRank(BuiltIn::Type type);
     void BinaryExprProlog(ExprRet* left, ExprRet* right, const Ast::Node* leftTerm, const Ast::Node* rightTerm);
 

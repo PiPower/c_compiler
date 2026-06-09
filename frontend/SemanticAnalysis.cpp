@@ -894,7 +894,7 @@ void SemanticAnalyzer::EmitUninitializedGlobals()
     }
 }
 
-void SemanticAnalyzer::ResolveIntegralPromotion(ExprRet *left, ExprRet *right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight)
+void SemanticAnalyzer::ResolveIntegralPromotion(const ExprRet *left, const ExprRet *right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight)
 {
     if(isSmallInteger(left->type) && (isSmallInteger(right->type)))
     {
@@ -1581,7 +1581,40 @@ ExprRet SemanticAnalyzer::HandleOpMinus(const Ast::Node *root)
 ExprRet SemanticAnalyzer::HandleAssignment(const Ast::Node *root)
 {
     ExprRet exprRes = AnalyzeExpr(root->rChild);
+    ExprRet dst = AnalyzeExpr(root->lChild);
+
+    if(dst.id == EXPR_ID_VAR)
+    {
+        if(dst.type != BuiltIn::ptr)
+        {
+            dst.id = dst.var->varIdx;
+            dst.var = nullptr;
+            return HandleSimpleAssignment(&dst, &exprRes);
+        }
+    }
     return ExprRet();
+}
+
+ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprRet *src)
+{
+    if(isInteger(dst->type) && isInteger(src->type))
+    {
+        int dstRank = GetIntRank(dst->type);
+        int srcRank = GetIntRank(src->type);
+
+        ExprRet localDst = *dst, localSrc = *src;
+        if(dstRank > srcRank)
+        {
+            // here we can use HandleTypePromotion becasue src needs to be upgraded
+            HandleTypePromotion(dst, src, &localDst, &localSrc);
+        }
+        else if(dstRank < srcRank)
+        {   
+            localSrc.id = codeGen.EmitLocalIntTruncate(dst->type, src->type, {src->id, src->num});
+        }
+        codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignemnt(localDst.type), localDst.id, localSrc.id);
+    }
+    return *src;
 }
 
 ExprRet SemanticAnalyzer::HandleAddition(const Ast::Node *root)
@@ -1611,14 +1644,21 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     std::string_view varName = GetViewForToken(root->token);
     const SymbolVariable* symVar = symTab->QueryVarSymbol(varName);
     ExprRet out = {};
-    out.type = symVar->spec.symType->dType;
+    if(IsArray(&symVar->decl.accArr) || IsPointer(&symVar->decl.accArr) )
+    {
+        out.type = BuiltIn::ptr;
+    }
+    else
+    {
+        out.type = symVar->spec.symType->dType;
+    }
     out.id = EXPR_ID_VAR;
     out.var = symVar;
     
     return out;
 }
 
-void SemanticAnalyzer::HandleTypePromotion(ExprRet *left, ExprRet *right, ExprRet *outLeft, ExprRet *outRight)
+void SemanticAnalyzer::HandleTypePromotion(const ExprRet *left, const ExprRet *right, ExprRet *outLeft, ExprRet *outRight)
 {
     if(isInteger(left->type) && isInteger(right->type))
     {
@@ -1638,7 +1678,7 @@ void SemanticAnalyzer::HandleTypePromotion(ExprRet *left, ExprRet *right, ExprRe
     }
 }
 
-ExprRet SemanticAnalyzer::HandleTypeExtension(ExprRet *src, BuiltIn::Type newType)
+ExprRet SemanticAnalyzer::HandleTypeExtension(const ExprRet *src, BuiltIn::Type newType)
 {
     if(src->type == newType)
     {

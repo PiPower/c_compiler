@@ -80,6 +80,7 @@ struct CodeGen
     int64_t EmitLocalBitXor(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalShiftLeft(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalShiftRight(BuiltIn::Type opType, Operator left, Operator right);
+    int64_t EmitLocalIntTruncate(BuiltIn::Type dstType, BuiltIn::Type srcType, Operator src);
     int64_t EmitLocalBinaryOp(
         BuiltIn::Type opType, 
         Operator left, 

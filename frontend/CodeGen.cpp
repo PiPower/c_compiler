@@ -520,9 +520,9 @@ void CodeGen::EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t de
 
     WriteCharData("\n\tstore ");
     EmitBuiltInTypename(GetBuiltInName(type));
-    WriteCharData(" %%%s, ",dst.data(), dst.length());
+    WriteCharData(" %%%s, ", src.data(), src.length());
     EmitBuiltInTypename(GetBuiltInName(type));
-    WriteCharData(" %%%s, align %s", src.data(), src.length(), align.data(), align.length());
+    WriteCharData(" %%%s, align %s", dst.data(), dst.length(), align.data(), align.length());
 }
 
 void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num)
@@ -694,14 +694,31 @@ int64_t CodeGen::EmitLocalShiftRight(BuiltIn::Type opType, Operator left, Operat
 {
     return EmitLocalBinaryOp(opType, left, right, "ashr", "lshr", "", false);
 }
+int64_t CodeGen::EmitLocalIntTruncate(BuiltIn::Type dstType, BuiltIn::Type srcType, Operator src)
+{
+    if(!isInteger(dstType) || !isInteger(srcType) || src.idx == EXPR_ID_CONST)
+    {
+        return EXPR_ID_IGNORE;
+    }
+
+    std::string_view dstView = MapBuiltInToLlvm(dstType);
+    std::string_view srcView = MapBuiltInToLlvm(srcType);
+    int64_t targetIdx = GetIdxForLocalVar();
+    std::string strTargetIdx = std::to_string(targetIdx);
+    std::string operandIdx = std::to_string(src.idx);
+
+    WriteCharData("\n\t%%%v = trunc %v %%%v to %v",
+            VIEW(strTargetIdx), srcView, VIEW(operandIdx), dstView);
+    return targetIdx;
+}
 int64_t CodeGen::EmitLocalBinaryOp(
-        BuiltIn::Type opType, 
-        Operator left, 
-        Operator right,
-        std::string_view opSigned,
-        std::string_view opUnsigned,
-        std::string_view opFloat,
-        bool usePoison)
+    BuiltIn::Type opType,
+    Operator left,
+    Operator right,
+    std::string_view opSigned,
+    std::string_view opUnsigned,
+    std::string_view opFloat,
+    bool usePoison)
 {
     BindLocalBuffer();
     int64_t targetIdx = GetIdxForLocalVar();
