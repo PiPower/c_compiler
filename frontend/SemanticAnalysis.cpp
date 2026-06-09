@@ -1344,7 +1344,7 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
     };
     ExprRet initInfo;
     initInfo.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType; 
-    initInfo.id = symVar->varIdx;
+    initInfo.id = EXPR_ID_VAR;
     initInfo.var = symVar;
     node.rChild = (Ast::Node*)&initInfo;
     if(!IsArray(&symVar->decl.accArr))
@@ -1526,6 +1526,8 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
 
     if(destHandle->type != BuiltIn::ptr)
     {
+        destHandle->id = destHandle->var->varIdx;
+        destHandle->var = nullptr;
         return HandleSimpleAssignment(destHandle, &source);
     }
     else
