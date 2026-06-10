@@ -46,6 +46,7 @@ struct SemanticAnalyzer
     ExprRet LoadConstant(const Ast::Node* constant);
     ExprRet LoadStringLiteral(const Ast::Node* string);
     ExprRet HandleInitExpr(const Ast::Node* root);
+    ExprRet HandleCast(const Ast::Node* root);
     ExprRet HandleOpMinus(const Ast::Node* root);
     ExprRet HandleAssignment(const Ast::Node* root);
     ExprRet HandleSimpleAssignment(const ExprRet* dst, const ExprRet* src);

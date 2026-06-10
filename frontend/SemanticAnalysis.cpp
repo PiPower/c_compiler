@@ -206,7 +206,7 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
     }
     else
     {
-        symTab->AddSymbol<SymbolFunction>(decl->name, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, false);
+        symTab->AddSymbol<SymbolFunction>(decl->name, *spec, *decl, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, false);
     }
 }
 
@@ -637,7 +637,10 @@ Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, cons
         if(currDecl->rChild) {accessTypes.push(currDecl->rChild);}
         if(!currDecl->lChild)
         {
-            if(currDecl->type == Ast::direct_declarator) {accessTypes.push(currDecl);}
+            if(currDecl->type == Ast::direct_declarator || currDecl->type == Ast::abstact_declarator)
+            {
+                accessTypes.push(currDecl);
+            }
             break;
         }
         currDecl = currDecl->lChild;
@@ -1364,6 +1367,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     case Ast::get_addr: return HandleGetAddr(root);
     case Ast::assignment: return HandleAssignment(root);
     case Ast::identifier: return HandleIdentifier(root);
+    case Ast::cast: return HandleCast(root);
     case Ast::op_add: return BinaryOp<BinaryAddition>(this, &codeGen, root);
     case Ast::op_subtract: return BinaryOp<BinarySubtraction>(this, &codeGen, root);
     case Ast::op_multiply: return BinaryOp<BinaryMultiplication>(this, &codeGen, root);
@@ -1538,6 +1542,20 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
     return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
 }
 
+ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
+{
+    ExprRet value = AnalyzeExpr(root->lChild);
+    const Ast::Node* castNode = root->rChild;
+    while (castNode)
+    {
+        DeclSpecs spec = AnalyzeDeclSpec(castNode->lChild->rChild);
+        Declarator decl = AnalyzeDeclarator(castNode->lChild->lChild, spec.accArr, nullptr);
+        castNode = root->rChild;
+    }
+    
+    return ExprRet();
+}
+
 ExprRet SemanticAnalyzer::HandleOpMinus(const Ast::Node *root)
 {
     ExprRet expr = AnalyzeExpr(root->lChild);
@@ -1626,17 +1644,28 @@ ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprR
 
 ExprRet SemanticAnalyzer::HandlePointerAssignment(const ExprRet *dst, const ExprRet *src)
 {
-    if(src->id == EXPR_ID_CONST && src->num.uint64 == 0)
+    int64_t dstId = dst->id;
+    if(dst->id == EXPR_ID_GLOBAL || dst->id == EXPR_ID_VAR)
     {
-        codeGen.EmitLocalNullStorage(dst->id);
+        dstId = dst->var->varIdx;
+    }
+
+    if( src->id == EXPR_ID_VAR || src->id == EXPR_ID_GLOBAL || src->id == EXPR_ID_FN)
+    {
+        const Declarator* decl = src->id == EXPR_ID_FN ? &src->fn->decl :  &src->var->decl;
+        codeGen.EmitLocalNamedStore(src->type, GetBuiltInAlignemnt(src->type), dstId, decl->name);
+    }
+    else if(src->id == EXPR_ID_CONST && src->num.uint64 == 0)
+    {
+        codeGen.EmitLocalNullStorage(dstId);
     }
     else if(src->type == BuiltIn::string)
     {
-        codeGen.EmitLocalStrStorage(dst->id, src->id);
+        codeGen.EmitLocalStrStorage(dstId, src->id);
     }
     else
     {
-       codeGen.EmitLocalStorage(dst->type, GetBuiltInAlignemnt(dst->type), dst->id, src->id); 
+       codeGen.EmitLocalStorage(dst->type, GetBuiltInAlignemnt(dst->type), dstId, src->id); 
     }
     return *src;
 }
@@ -1668,18 +1697,30 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     std::string_view varName = GetViewForToken(root->token, manager);
     const SymbolVariable* symVar = symTab->QueryVarSymbol(varName);
     ExprRet out = {};
-    if(IsArray(&symVar->decl.accArr) || IsPointer(&symVar->decl.accArr) )
+    if(symVar)
     {
-        out.type = BuiltIn::ptr;
+        if(IsArray(&symVar->decl.accArr) || IsPointer(&symVar->decl.accArr) )
+        {
+            out.type = BuiltIn::ptr;
+        }
+        else
+        {
+            out.type = symVar->spec.symType->dType;
+        }
+        out.id = EXPR_ID_VAR;
+        out.var = symVar;
+        
+        return out;
     }
     else
     {
-        out.type = symVar->spec.symType->dType;
+        const SymbolFunction* symFn = symTab->QueryFunctionSymbol(varName);
+        out.id = EXPR_ID_FN;
+        out.fn = symFn;
+        out.type = BuiltIn::ptr;
+
+        return out;
     }
-    out.id = EXPR_ID_VAR;
-    out.var = symVar;
-    
-    return out;
 }
 
 void SemanticAnalyzer::HandleTypePromotion(const ExprRet *left, const ExprRet *right, ExprRet *outLeft, ExprRet *outRight)

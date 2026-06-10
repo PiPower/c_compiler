@@ -302,6 +302,8 @@ struct SymbolType
 struct SymbolFunction
 {
     Sym::Kind kind;
+    DeclSpecs spec;
+    Declarator decl;
     uint32_t paramCount;
     uint32_t retPtrOrder; // if pointer is to be returned, gives pointer order
     FunctionParams* params;

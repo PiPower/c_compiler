@@ -39,7 +39,6 @@ void test_expression_statements(void)
     ++x;
     x--;
     --x;
- 
     /* comma operator as expression statement */
     x = (1, 2, 3);
  

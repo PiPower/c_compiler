@@ -540,6 +540,14 @@ void CodeGen::EmitLocalNullStorage(int64_t destIdx)
     WriteCharData("\n\tstore ptr null, ptr %%%v, align 8", VIEW(strDest));
 }
 
+void CodeGen::EmitLocalNamedStore(BuiltIn::Type type, int32_t alignment, int64_t dstIdx, const std::string_view name)
+{
+    BindLocalBuffer();
+    std::string strDest = std::to_string(dstIdx);
+    std::string_view typeView = GetBuiltInName(type);
+    WriteCharData("\n\tstore %v @%v, ptr %%%v, align 8", typeView, name, VIEW(strDest));
+}
+
 void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num)
 {
     BindLocalBuffer();
