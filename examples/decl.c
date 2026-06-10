@@ -81,18 +81,18 @@ void test_storage_class(void) {
 static int add(int x, int y) { return x + y; }
 
 void test_pointers(void) {
-    //int   x  = 5;
-    //int  *p1 = &x;
-    //int **p2 = &p1;
-    //int ***p3 = &p2;
-//
-    //const char *str = "hello";
-    //void       *np  = 0;
-//
-    //int (*fp1)(int, int) = add;
-    //int (*fp2)(int, int);
-    //int (*fptable[4])(int, int);
-    //void *(*fp3)(void) = (void *(*)(void))0;
+    int   x  = 5;
+    int  *p1 = &x;
+    int **p2 = &p1;
+    int ***p3 = &p2;
+    
+    const char *str = "hello";
+    void       *np  = 0;
+    
+    int (*fp1)(int, int) = add;
+    int (*fp2)(int, int);
+    int (*fptable[4])(int, int);
+    void *(*fp3)(void) = (void *(*)(void))0;
 }
 
 /* =========================================================
