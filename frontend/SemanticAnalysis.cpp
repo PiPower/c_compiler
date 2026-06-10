@@ -1717,17 +1717,26 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     ExprRet out = {};
     if(symVar)
     {
-        if(IsArray(&symVar->decl.accArr) || IsPointer(&symVar->decl.accArr) )
+        if(symVar->opts.isEnumerator == 0)
         {
-            out.type = BuiltIn::ptr;
+            if(IsArray(&symVar->decl.accArr) || IsPointer(&symVar->decl.accArr) )
+            {
+                out.type = BuiltIn::ptr;
+            }
+            else
+            {
+                out.type = symVar->spec.symType->dType;
+            }
+            out.id = EXPR_ID_VAR;
+            out.var = symVar;
         }
         else
         {
-            out.type = symVar->spec.symType->dType;
+            out.id = EXPR_ID_CONST;
+            out.type = BuiltIn::s_int_32;
+            out.num.type = Typed::d_int32_t;
+            out.num.int32 = symVar->varIdx;
         }
-        out.id = EXPR_ID_VAR;
-        out.var = symVar;
-        
         return out;
     }
     else
