@@ -229,6 +229,13 @@ Declarator SemanticAnalyzer::ProcessDecl(const Ast::Node *declarator, std::stack
     {
         const Ast::Node* accessType = accessTypes->top();
         accessTypes->pop();
+
+        if(accessType->type == Ast::direct_declarator || 
+           accessType->type == Ast::direct_abstract_declarator)
+        {
+            accessType = accessType->rChild;
+        }
+
         while (accessType)
         {
             typeBuffer.level = level;
@@ -637,7 +644,7 @@ Declarator SemanticAnalyzer::AnalyzeDeclarator(const Ast::Node *declarator, cons
         if(currDecl->rChild) {accessTypes.push(currDecl->rChild);}
         if(!currDecl->lChild)
         {
-            if(currDecl->type == Ast::direct_declarator || currDecl->type == Ast::abstact_declarator)
+            if(currDecl->type == Ast::direct_declarator)
             {
                 accessTypes.push(currDecl);
             }
@@ -1545,15 +1552,26 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
 ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
 {
     ExprRet value = AnalyzeExpr(root->lChild);
+    
     const Ast::Node* castNode = root->rChild;
     while (castNode)
     {
         DeclSpecs spec = AnalyzeDeclSpec(castNode->lChild->rChild);
         Declarator decl = AnalyzeDeclarator(castNode->lChild->lChild, spec.accArr, nullptr);
-        castNode = root->rChild;
+        if(IsPointer(&decl.accArr) || IsArray(&decl.accArr) )
+        {
+            if(value.id == EXPR_ID_CONST)
+            {
+                value.type = BuiltIn::ptr;
+                value.num.uint64 = Typed::CastTo<uint64_t>(value.num);
+                value.num.type = Typed::d_uint64_t;
+            }
+        }
+
+        castNode = castNode->rChild;
     }
     
-    return ExprRet();
+    return value;
 }
 
 ExprRet SemanticAnalyzer::HandleOpMinus(const Ast::Node *root)

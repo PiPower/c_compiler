@@ -1385,14 +1385,14 @@ Ast::Node *Parser::ParseDirectAbstractDeclarator()
             if(IsTokenOneOf(&nextToken, TokenType::l_bracket, TokenType::l_parentheses, TokenType::star))
             {
                 abst = AbstractDeclarator();
+                bottomChild->lChild = abst;
             }
             else
             {
                 abst = ParameterTypeList();
+                bottomChild = GlueNodes(abst, bottomChild);
             }
             ConsumeExpectedToken(TokenType::r_parentheses);
-
-            bottomChild = GlueNodes(abst, bottomChild);
         }
         else
         {

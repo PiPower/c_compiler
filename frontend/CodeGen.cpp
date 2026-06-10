@@ -792,15 +792,23 @@ int64_t CodeGen::EmitString(const Ast::Node *string)
 
     for(size_t i =0; i < strLiteral.length(); i++)
     {
-        switch (strLiteral[i])
+        if(strLiteral[i] == '\\' && strLiteral.length() >= i + 1)
         {
-        case '\0': WriteCharData("\\00"); break;
-        case '\n': WriteCharData("\\0A"); break;
-        case '\r': WriteCharData("\\0D"); break;
-        case '\t': WriteCharData("\\09"); break;
-        case '\"': WriteCharData("\\22"); break;
-        case '\\': WriteCharData("\\5C"); break;
-        default: WriteByte(strLiteral[i]); break;
+            i++;
+            switch (strLiteral[i])
+            {
+            case '0': WriteCharData("\\00"); break;
+            case 'n': WriteCharData("\\0A"); break;
+            case 'r': WriteCharData("\\0D"); break;
+            case 't': WriteCharData("\\09"); break;
+            case '"': WriteCharData("\\22"); break;
+            case '\\': WriteCharData("\\5C"); break;
+            default: WriteByte(strLiteral[i]); break;
+            }
+        }
+        else
+        {
+            WriteByte(strLiteral[i]);
         }
     }
 
