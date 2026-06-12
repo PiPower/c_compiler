@@ -70,6 +70,7 @@ struct CodeGen
     void EmitLocalNullStorage(int64_t destIdx);
     void EmitLocalNamedStore(BuiltIn::Type type, int32_t alignment, int64_t dstIdx, const std::string_view name);
     void EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num);
+    int64_t EmitLocalArrGetElemPtr(const AccessArray* acc, const std::string_view* typeName, int64_t arrayIdx, const std::vector<uint64_t>* indicies);
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);

@@ -16,6 +16,7 @@ SymbolTable::SymbolTable()
 {
     tableBufferHandle.push_back({});
     globalTable = &tableBufferHandle.back();
+    globalTable->id = 0;
     currentTable = &tableBufferHandle.back();
     currentTable->scopeType = Scope::GLOBAL;
 
@@ -111,6 +112,7 @@ void SymbolTable::AddSymbolImpl(const std::string_view& name, Symbol *sym)
 Symbol* SymbolTable::QuerySymbolGeneric(
     const std::string_view &name,
     uint8_t tableIdx,
+    int64_t* scopeId,
     uint8_t* scopeType,
     uint8_t* prevScope)
 {
@@ -137,7 +139,7 @@ SymbolType* SymbolTable::QueryTypeSymbol(
     uint8_t* scopeType,
     uint8_t* prevScope)
 {
-    return (SymbolType*)QuerySymbolGeneric(name, type, scopeType, prevScope);
+    return (SymbolType*)QuerySymbolGeneric(name, type, nullptr, scopeType, prevScope);
 }
 
 SymbolTypedef* SymbolTable::QueryTypedefSymbol(
@@ -145,7 +147,7 @@ SymbolTypedef* SymbolTable::QueryTypedefSymbol(
     uint8_t *scopeType,
     uint8_t *prevScope)
 {
-    return (SymbolTypedef*)QuerySymbolGeneric(name, typeDef, scopeType, prevScope);
+    return (SymbolTypedef*)QuerySymbolGeneric(name, typeDef, nullptr, scopeType, prevScope);
 
 }
 
@@ -173,9 +175,9 @@ bool SymbolTable::IsCurrentScopeGlobal()
     return currentTable == globalTable;
 }
 
-SymbolVariable *SymbolTable::QueryVarSymbol(const std::string_view &name, uint8_t *scopeType, uint8_t *prevScope)
+SymbolVariable *SymbolTable::QueryVarSymbol(const std::string_view &name, int64_t* scopeId, uint8_t *scopeType, uint8_t *prevScope)
 {
-    return (SymbolVariable*)QuerySymbolGeneric(name, var, scopeType, prevScope);
+    return (SymbolVariable*)QuerySymbolGeneric(name, var, scopeId, scopeType, prevScope);
 }
 
 SymbolFunction *SymbolTable::QueryFunctionSymbol(const std::string_view &name)
@@ -185,10 +187,12 @@ SymbolFunction *SymbolTable::QueryFunctionSymbol(const std::string_view &name)
 
 void SymbolTable::CreateNewScope(Scope::Type scopeType)
 {
+    static int64_t tableId = 1;
     tableBufferHandle.push_back({});
     tableBufferHandle.back().parent = currentTable;
     currentTable = &tableBufferHandle.back();
     currentTable->scopeType = scopeType;
+    currentTable->id = tableId++;
 }
 
 void SymbolTable::PopScope()

@@ -21,6 +21,14 @@ float test_array333[3][4] = { 2 * 3 * 10000, 3, [2] = 4, {{2}, 7}};
 int test_array[][3][2] = { [5] = {1, 2, 3}, [2] = {3, 4, 5}, 100, 1000, 100, [7] = {1 , 2 ,3} };
 long int test_array999[11][7][3][2] = { [5] = {1, 2, 3}, [2] = {3, 4, 5}, 100, 1000, 100, [7] = {1 , 2 ,3} };
 
+void test_big_array()
+{
+    int x =23;
+    long p = 223412;
+    long int test_array999[11][7][3][2] = { [5] = {p, 2, p*x}, [2] = {3, 4, 5}, x * x *x, 1000, p+ x, [7] = {1 , 2 ,3} };
+
+}
+
 void test_basic_primitives(void) {
     char                a1 = 'A';
     char p;

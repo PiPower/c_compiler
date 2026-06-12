@@ -622,6 +622,21 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
     }
 }
 
+int64_t CodeGen::EmitLocalArrGetElemPtr(const AccessArray *acc, const std::string_view *typeName, int64_t arrayIdx, const std::vector<uint64_t> *indicies)
+{
+    BindLocalBuffer();
+    int64_t result = GetIdxForLocalVar();
+    WriteCharData("\n\t%%%l = getelementptr inbounds ", result);
+    EmitDeclarator(acc, typeName);
+    WriteCharData(", ptr %%%l i64 0", arrayIdx);
+    for(uint64_t idx : *indicies)
+    {
+        WriteCharData(", i64 %lu", idx);
+    }
+
+    return result;
+}
+
 int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx)
 {
     BindLocalBuffer();
@@ -1071,6 +1086,7 @@ void CodeGen::WriteCharData(const char* data, ...)
         }
 
         curr++;
+        if(*curr == '\0'){ return;}
         switch (*curr)
         {
         case '%':
@@ -1105,6 +1121,29 @@ void CodeGen::WriteCharData(const char* data, ...)
         {
             curr++;
             std::string_view view = va_arg(args, std::string_view);
+            size_t i = 0;
+            while (i < view.size())
+            {
+                WriteByte(view[i]);
+                i++;
+            }
+        }break;
+        case 'l':
+        {
+            curr++;
+            std::string view;
+            if(*curr != '0' && *curr == 'u')
+            {
+                uint64_t data =  va_arg(args, uint64_t);
+                view = std::to_string(data);
+                curr++;
+            }
+            else
+            {
+                int64_t data = va_arg(args, int64_t);
+                view = std::to_string(data);
+            }
+
             size_t i = 0;
             while (i < view.size())
             {

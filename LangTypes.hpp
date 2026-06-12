@@ -343,6 +343,7 @@ struct SymbolVariable
 struct ScopedSymbolTable
 {
     ScopedSymbolTable* parent;
+    int64_t id;
     std::array<std::unordered_map<std::string_view, Symbol*>, 4> tables;
     Scope::Type scopeType;
 };

@@ -30,8 +30,13 @@ struct SemanticAnalyzer
     bool NamesAType(const std::string_view& identifier);
     void AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl);
     void AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declarator* decl);
-    void InitGlobalVar(const DeclSpecs *spec, const Declarator *decl);
-    void InitGlobalArray(const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
+    void InitGlobalVar(const SymbolVariable* symVar);
+    void InitArray(
+        const AccessArray* accArr, 
+        const Ast::Node* initExpr, 
+        const SymbolVariable* symVar, 
+        std::vector<uint64_t>* parentPosition);
+
     void AnalyzeLocalVarDecl(const DeclSpecs* spec, const Declarator* decl);
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
@@ -39,8 +44,9 @@ struct SemanticAnalyzer
     std::string_view SimpleTypeToString(BuiltIn::Type type);
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     void InitLocalVariable(const SymbolVariable* symVar);
+    ExprRet ResolveAssignment(ExprRet dst, const ExprRet& src);
     // expressions
-    void AnalyzeInitializer(const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType);
+    ExprRet AnalyzeInitializer(bool isGlobal, const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType);
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet CompoundLiteral(const Ast::Node* literal);
     ExprRet LoadCharacter(const Ast::Node* character);

@@ -44,6 +44,7 @@ struct SymbolTable
 
     SymbolVariable* QueryVarSymbol(
         const std::string_view& name,
+        int64_t* scopeId = nullptr,
         uint8_t* scopeType = nullptr,
         uint8_t* prevScope = nullptr);
     SymbolFunction* QueryFunctionSymbol(
@@ -59,6 +60,7 @@ struct SymbolTable
     Symbol* QuerySymbolGeneric(
         const std::string_view& name, 
         uint8_t tableIdx,
+        int64_t* scopeId = nullptr,
         uint8_t* scopeType = nullptr,
         uint8_t* prevScope = nullptr);
 

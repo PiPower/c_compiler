@@ -884,7 +884,7 @@ void SemanticAnalyzer::EmitUninitializedGlobals()
     {
         symVar->opts.isEmitted = 1;
         codeGen.EmitGlobalVariable(&symVar->spec, &symVar->decl);
-        InitGlobalVar(&symVar->spec, &symVar->decl);
+        InitGlobalVar(symVar);
     }
 }
 
@@ -1020,7 +1020,7 @@ void SemanticAnalyzer::AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declara
         }
         symVar->opts.isEmitted = 1;
         codeGen.EmitGlobalVariable(spec, decl);
-        InitGlobalVar(spec, decl);
+        InitGlobalVar(symVar);
 
         if(uninitGlobals.find(symVar) != uninitGlobals.end())
         {
@@ -1029,8 +1029,11 @@ void SemanticAnalyzer::AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declara
     }
 }
 
-void SemanticAnalyzer::InitGlobalVar(const DeclSpecs *spec, const Declarator *decl)
+void SemanticAnalyzer::InitGlobalVar(const SymbolVariable* symVar)
 {
+    const DeclSpecs* spec = &symVar->spec;
+    const Declarator* decl = &symVar->decl;
+
     if(!decl->initExpr)
     {
         codeGen.ZeroInitGlobalVar(spec, decl);
@@ -1048,13 +1051,20 @@ void SemanticAnalyzer::InitGlobalVar(const DeclSpecs *spec, const Declarator *de
         return;
     }
     // array stuff
-    InitGlobalArray(&decl->accArr, decl->initExpr, spec);
+    InitArray(&decl->accArr, decl->initExpr, symVar, nullptr);
 
     codeGen.EmitGLobalArrayAlignment(IsPointer(&decl->accArr), spec->symType->alignment);
 }
 
-void SemanticAnalyzer::InitGlobalArray(const AccessArray *accArr, const Ast::Node *initExpr, const DeclSpecs *spec)
+void SemanticAnalyzer::InitArray(
+    const AccessArray *accArr,
+    const Ast::Node *initExpr,
+    const SymbolVariable* symVar, 
+    std::vector<uint64_t>* parentPosition)
 {
+    const DeclSpecs* spec = &symVar->spec;
+    const Declarator* decl = &symVar->decl;
+
     if(spec->symType->dType == BuiltIn::struct_t || spec->symType->dType == BuiltIn::union_t )
     {
         IssueWarning(nullptr, "Array of non built-in types are not supported")
@@ -1063,12 +1073,12 @@ void SemanticAnalyzer::InitGlobalArray(const AccessArray *accArr, const Ast::Nod
     // init arrays
     const AccessArray nextAcc = {accArr->ptr + 1, accArr->count - 1};
     bool isNestedArray = nextAcc.count > 0 && IsArray(&nextAcc);
-
-     // here we emit type
+    bool isGlobal = parentPosition == nullptr;
+    // here we emit type
     if(accArr->count == 0 || (accArr->ptr[0].type == ACC_POINTER))
     {
-        //codeGen.EmitInitializer(spec, initExpr->lChild->lChild, false);
-        AnalyzeInitializer(spec, &nextAcc, initExpr->lChild->lChild, false);
+        // for globals ExprRet is useless
+        AnalyzeInitializer(isGlobal, spec, &nextAcc, initExpr->lChild->lChild, false);
         return;
     }
 
@@ -1081,35 +1091,73 @@ void SemanticAnalyzer::InitGlobalArray(const AccessArray *accArr, const Ast::Nod
     uint64_t currentPair = 0;
     uint64_t arraySize = accArr->ptr->array.size;
     
-    codeGen.StartArray();
+    if(isGlobal)
+    {
+        codeGen.StartArray();
+        for(uint64_t i = 0; i < arraySize; i++)
+        {
+            codeGen.EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
+            if(currentPair < pairs.size() && i == pairs[currentPair].idx)
+            {
+                InitArray(&nextAcc, pairs[currentPair].initializerList, symVar, nullptr);
+                currentPair++;
+            }
+            else
+            {
+                // for globals ExprRet is useless
+                AnalyzeInitializer(isGlobal, spec, &nextAcc, nullptr, isNestedArray);
+            }
+
+            if(i < arraySize - 1)
+            {
+                codeGen.ArgSeparator();
+            }
+        }
+        codeGen.EndArray();
+        return;
+    }
+
+    if(pairs.size() == 0)
+    {
+        return;
+    }
+
     for(uint64_t i = 0; i < arraySize; i++)
     {
-
-        codeGen.EmitDeclaratorAcc(&nextAcc, &spec->typenameView);
         if(currentPair < pairs.size() && i == pairs[currentPair].idx)
         {
-            InitGlobalArray(&nextAcc, pairs[currentPair].initializerList, spec);
+            if(nextAcc.count == 0 || (nextAcc.ptr[0].type == ACC_POINTER))
+            {   
+
+                ExprRet src = AnalyzeInitializer(isGlobal, spec, &nextAcc, initExpr->lChild->lChild, false);
+
+                ExprRet target = {};
+                target.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType;
+                parentPosition->push_back(i);
+                target.id = codeGen.EmitLocalArrGetElemPtr(&decl->accArr, &spec->typenameView, symVar->varIdx, parentPosition);
+                parentPosition->pop_back();
+                ResolveAssignment(target, src);
+                //HandleAssignment
+                //int x = 2;
+            }
+            else
+            {
+                parentPosition->push_back(i);
+                InitArray(&nextAcc, pairs[currentPair].initializerList, symVar, parentPosition);
+                parentPosition->pop_back();
+            }
             currentPair++;
         }
-        else
-        {
-            //codeGen.EmitInitializer(spec, nullptr, isNestedArray);
-            AnalyzeInitializer(spec, &nextAcc, nullptr, isNestedArray);
-        }
-
-        if(i < arraySize - 1)
-        {
-            codeGen.ArgSeparator();
-        }
     }
-    codeGen.EndArray();
+    
 }
 
 void SemanticAnalyzer::AnalyzeLocalVarDecl(const DeclSpecs *spec, const Declarator *decl)
 {
-    SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name);
+    int64_t ownerId = 0;
+    SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name, &ownerId);
 
-    if(symVar == nullptr)
+    if(symVar == nullptr || ownerId != symTab->currentTable->id)
     {
         VariableOpts opts = {.isEnumerator = 0, .isConst = 0, .isEmitted = 0};
         symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, codeGen.GetIdxForLocalVar());
@@ -1350,62 +1398,117 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
     {
         return;
     }
-    Ast::Node node = {
-        .type = Ast::init_expr,
-        .lChild = const_cast<Ast::Node*>(symVar->decl.initExpr)
-    };
-    ExprRet initInfo;
-    initInfo.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType; 
-    initInfo.id = EXPR_ID_VAR;
-    initInfo.var = symVar;
-    node.rChild = (Ast::Node*)&initInfo;
     if(!IsArray(&symVar->decl.accArr))
     {
+        Ast::Node node = {
+            .type = Ast::init_expr,
+            .lChild = const_cast<Ast::Node*>(symVar->decl.initExpr)
+            };
+
+        ExprRet initInfo;
+        initInfo.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType; 
+        initInfo.id = EXPR_ID_VAR;
+        initInfo.var = symVar;
+        node.rChild = (Ast::Node*)&initInfo;
+
         AnalyzeExpr(&node);
     }
     else
     {
+        std::vector<uint64_t> nestedIndicies;
+        InitArray(&symVar->decl.accArr, symVar->decl.initExpr, symVar, &nestedIndicies);
         //codeGen.InitLocalArray(symVar->decl.name, &symVar->decl.accArr, symVar->decl.initExpr, &symVar->spec);
     }
 }
 
-void SemanticAnalyzer::AnalyzeInitializer(const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType)
+ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, const ExprRet& src)
+{
+    if(src.id == EXPR_ID_IGNORE)
+    {
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+    }
+
+    if(dst.type == BuiltIn::struct_t || dst.type == BuiltIn::union_t)
+    {
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+    }
+
+    if(dst.id == EXPR_ID_VAR && dst.type != BuiltIn::ptr)
+    {
+        dst.id = dst.var->varIdx;
+        dst.var = nullptr;
+    }
+
+    if(dst.type != BuiltIn::ptr)
+    {
+        return HandleSimpleAssignment(&dst, &src);
+    }
+    else
+    {
+        return HandlePointerAssignment(&dst, &src);
+    }
+    return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+}
+
+ExprRet SemanticAnalyzer::AnalyzeInitializer(bool isGlobal, const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType)
 {
     if(!(spec->symType->dType >= BuiltIn::s_char_8 && spec->symType->dType <= BuiltIn::double_64))
     {
         IssueWarning(nullptr, "Unsupported initializer type by codegen");
     }
-    if(!initializer)
+    if(isGlobal && !initializer)
     {
         if(isComplexType)
         {
-            codeGen.EmitZeroInitType(true);
+            codeGen.EmitZeroInitType(isGlobal);
         }
         else if(isFloat(spec->symType->dType))
         {
-            codeGen.EmitZeroInitFloat(true);
+            codeGen.EmitZeroInitFloat(isGlobal);
         }
         else
         {
-            codeGen.EmitZeroInitInt(true);
+            codeGen.EmitZeroInitInt(isGlobal);
         }
-        return;
+        return {};
     }
-    std::string initStr;
+    else if(!initializer)
+    {
+        return {};
+    }
+    if(isGlobal)
+    {
+
+        std::string initStr;
+        if(initializer->type == Ast::string_literal)
+        {
+            int64_t strIdx = codeGen.EmitString(initializer);
+            codeGen.EmitString(true, strIdx);
+        }
+        else
+        {
+            ExprRet ret = AnalyzeExpr(initializer);
+            if(ret.id != EXPR_ID_CONST)
+            {
+                IssueWarning(&initializer->token, "global value may only be initialized by constant expression")
+            }
+            codeGen.EmitConstant(true, spec->symType->dType, ret.num);
+        }
+
+        return {};
+    }
+    ExprRet out = {};
     if(initializer->type == Ast::string_literal)
     {
         int64_t strIdx = codeGen.EmitString(initializer);
-        codeGen.EmitString(true, strIdx);
+        out.type = BuiltIn::string;
+        out.id = strIdx;
     }
     else
     {
-        ExprRet ret = AnalyzeExpr(initializer);
-        if(ret.id != EXPR_ID_CONST)
-        {
-            IssueWarning(&initializer->token, "global value may only be initialized by constant expression")
-        }
-        codeGen.EmitConstant(true, spec->symType->dType, ret.num);
+        out = AnalyzeExpr(initializer);
     }
+    return out;
 }
 
 ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
@@ -1565,29 +1668,8 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
 {
     ExprRet* destHandle = (ExprRet*)root->rChild;
     ExprRet source = AnalyzeExpr(root->lChild);
-    if(source.id == EXPR_ID_IGNORE)
-    {
-        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
-    }
 
-    if(destHandle->type == BuiltIn::struct_t ||
-        destHandle->type == BuiltIn::union_t)
-    {
-        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
-    }
-
-    if(destHandle->type != BuiltIn::ptr)
-    {
-        destHandle->id = destHandle->var->varIdx;
-        destHandle->var = nullptr;
-        return HandleSimpleAssignment(destHandle, &source);
-    }
-    else
-    {
-        return HandlePointerAssignment(destHandle, &source);
-    }
-
-    return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+    return ResolveAssignment(*destHandle, source);
 }
 
 ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
@@ -1649,20 +1731,7 @@ ExprRet SemanticAnalyzer::HandleAssignment(const Ast::Node *root)
     ExprRet exprRes = AnalyzeExpr(root->rChild);
     ExprRet dst = AnalyzeExpr(root->lChild);
 
-    if(dst.id == EXPR_ID_VAR)
-    {
-        if(dst.type != BuiltIn::ptr)
-        {
-            dst.id = dst.var->varIdx;
-            dst.var = nullptr;
-            return HandleSimpleAssignment(&dst, &exprRes);
-        }
-        else
-        {
-            return HandlePointerAssignment(&dst, &exprRes);
-        }
-    }
-    return ExprRet();
+    return ResolveAssignment(dst, exprRes);
 }
 
 ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprRet *src)
