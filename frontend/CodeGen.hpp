@@ -84,6 +84,12 @@ struct CodeGen
     int64_t EmitLocalShiftLeft(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalShiftRight(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalIntTruncate(BuiltIn::Type dstType, BuiltIn::Type srcType, Operator src);
+    void EmitZeroInitType(bool isGlobal);
+    void EmitZeroInitInt(bool isGlobal);
+    void EmitZeroInitFloat(bool isGlobal);
+    void EmitString(bool isGlobal,int64_t strIdx);
+    void EmitConstant(bool isGlobal, BuiltIn::Type dstType, const Typed::Number &num);
+
     int64_t EmitLocalBinaryOp(
         BuiltIn::Type opType, 
         Operator left, 

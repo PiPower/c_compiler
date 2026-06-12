@@ -734,6 +734,69 @@ int64_t CodeGen::EmitLocalIntTruncate(BuiltIn::Type dstType, BuiltIn::Type srcTy
             VIEW(strTargetIdx), srcView, VIEW(operandIdx), dstView);
     return targetIdx;
 }
+void CodeGen::EmitZeroInitType(bool isGlobal)
+{
+    if(isGlobal)
+    {
+        BindGlobalVarBuffer();
+    }
+    else
+    {
+        BindLocalBuffer();
+    }
+    WriteCharData(" zeroinitializer");
+}
+void CodeGen::EmitZeroInitInt(bool isGlobal)
+{
+    if(isGlobal)
+    {
+        BindGlobalVarBuffer();
+    }
+    else
+    {
+        BindLocalBuffer();
+    }
+    WriteCharData(" 0");
+}
+void CodeGen::EmitZeroInitFloat(bool isGlobal)
+{
+    if(isGlobal)
+    {
+        BindGlobalVarBuffer();
+    }
+    else
+    {
+        BindLocalBuffer();
+    }
+    WriteCharData(" 0.0e+00");
+}
+void CodeGen::EmitString(bool isGlobal, int64_t strIdx)
+{
+    if(isGlobal)
+    {
+        BindGlobalVarBuffer();
+    }
+    else
+    {
+        BindLocalBuffer();
+    }
+
+    std::string initStr = std::to_string(strIdx);
+    WriteCharData(" @.str.%v", VIEW(initStr));
+}
+
+void CodeGen::EmitConstant(bool isGlobal, BuiltIn::Type dstType, const Typed::Number &num)
+{
+    Typed::Number numLocal = num;
+    if(isFloat(dstType) || isInteger(dstType))
+    {
+        numLocal = CastToBuiltIn(dstType, num);
+    }
+
+    std::string value = Typed::ToString(numLocal);
+    WriteCharData(" %v", VIEW(value));
+}
+
 int64_t CodeGen::EmitLocalBinaryOp(
     BuiltIn::Type opType,
     Operator left,

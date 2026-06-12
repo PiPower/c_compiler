@@ -1067,7 +1067,8 @@ void SemanticAnalyzer::InitGlobalArray(const AccessArray *accArr, const Ast::Nod
      // here we emit type
     if(accArr->count == 0 || (accArr->ptr[0].type == ACC_POINTER))
     {
-        codeGen.EmitInitializer(spec, initExpr->lChild->lChild, false);
+        //codeGen.EmitInitializer(spec, initExpr->lChild->lChild, false);
+        AnalyzeInitializer(spec, &nextAcc, initExpr->lChild->lChild, false);
         return;
     }
 
@@ -1092,7 +1093,8 @@ void SemanticAnalyzer::InitGlobalArray(const AccessArray *accArr, const Ast::Nod
         }
         else
         {
-            codeGen.EmitInitializer(spec, nullptr, isNestedArray);
+            //codeGen.EmitInitializer(spec, nullptr, isNestedArray);
+            AnalyzeInitializer(spec, &nextAcc, nullptr, isNestedArray);
         }
 
         if(i < arraySize - 1)
@@ -1364,6 +1366,45 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
     else
     {
         //codeGen.InitLocalArray(symVar->decl.name, &symVar->decl.accArr, symVar->decl.initExpr, &symVar->spec);
+    }
+}
+
+void SemanticAnalyzer::AnalyzeInitializer(const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType)
+{
+    if(!(spec->symType->dType >= BuiltIn::s_char_8 && spec->symType->dType <= BuiltIn::double_64))
+    {
+        IssueWarning(nullptr, "Unsupported initializer type by codegen");
+    }
+    if(!initializer)
+    {
+        if(isComplexType)
+        {
+            codeGen.EmitZeroInitType(true);
+        }
+        else if(isFloat(spec->symType->dType))
+        {
+            codeGen.EmitZeroInitFloat(true);
+        }
+        else
+        {
+            codeGen.EmitZeroInitInt(true);
+        }
+        return;
+    }
+    std::string initStr;
+    if(initializer->type == Ast::string_literal)
+    {
+        int64_t strIdx = codeGen.EmitString(initializer);
+        codeGen.EmitString(true, strIdx);
+    }
+    else
+    {
+        ExprRet ret = AnalyzeExpr(initializer);
+        if(ret.id != EXPR_ID_CONST)
+        {
+            IssueWarning(&initializer->token, "global value may only be initialized by constant expression")
+        }
+        codeGen.EmitConstant(true, spec->symType->dType, ret.num);
     }
 }
 

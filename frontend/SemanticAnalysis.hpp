@@ -40,6 +40,7 @@ struct SemanticAnalyzer
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     void InitLocalVariable(const SymbolVariable* symVar);
     // expressions
+    void AnalyzeInitializer(const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType);
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet CompoundLiteral(const Ast::Node* literal);
     ExprRet LoadCharacter(const Ast::Node* character);
