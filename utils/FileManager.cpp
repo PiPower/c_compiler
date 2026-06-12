@@ -11,31 +11,12 @@
 #define FILEDATA_PAGE_SIZE (50 * CPU_PAGE_SIZE)
 #define FILENAME_PAGE_SIZE (6 * CPU_PAGE_SIZE)
 
-FileManager::FileManager(const std::vector<const char*>& filenames,
-                         const std::vector<size_t>&  filenameLens)
+FileManager::FileManager()
     :
     fileBuffer({}, 0, 0), filenameBuffer({}, 0, 0)
 {
     AddNewFilePage();
     AddNewFilenamePage();
-
-    assert(filenameLens.size() == filenames.size());
-    size_t maxLen = *std::max_element(filenameLens.begin(), filenameLens.end()) + 1;
-    char* pathBuffer;
-    if(maxLen < 1000'000) { pathBuffer = (char*)alloca(maxLen);}
-    else { printf("Filename too long\n"); exit(-1);}
-    
-    for(size_t i =0; i < filenames.size(); i++)
-    {
-        memcpy(pathBuffer, filenames[i], filenameLens[i]);
-        pathBuffer[filenameLens[i]] = '\0';
-
-        if(TryLoadFile(pathBuffer, filenameLens[i], nullptr) < 0 )
-        {
-            printf("File %s does not exist", pathBuffer);
-            exit(-1);
-        }
-    }
 }
 
 void FileManager::AddNewFilePage()

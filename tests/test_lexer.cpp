@@ -8,10 +8,12 @@ int main()
 {
     const char* path = "examples/testfile.c";
     const char* arr[] = {path};
-    FileManager fileManager({path}, {23});
+    FileManager fileManager;
+    fileManager.TryLoadFile(path, 19, nullptr);
     FILE_ID main;
     fileManager.GetFileId("examples/testfile.c", 23,&main);
-    CompilationOpts opts(1, (const char**)arr);
+    CompilationOpts opts;
+    opts.ParseArgs(1, (const char**)arr);
     Lexer lexer(&fileManager, &opts);
     lexer.PushFile(main, -1, -1);
     Token tok;

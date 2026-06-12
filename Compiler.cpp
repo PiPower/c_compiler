@@ -1,10 +1,10 @@
 #include "Compiler.hpp"
 #include "frontend/Parser.hpp"
 #include <string.h>
+#include <assert.h>
 Compiler::Compiler(int argc, char *argv[])
 :
-    argc(argc), argv(argv), opts(argc, (const char**)argv),
-    fileManager(opts.filenames, opts.filenameLens)
+    argc(argc), argv(argv), opts(), fileManager()
 {
     // standard gcc - 11 search paths
 
@@ -12,7 +12,24 @@ Compiler::Compiler(int argc, char *argv[])
     opts.AddSearchPath("/usr/local/include", 18);
     opts.AddSearchPath("/usr/include/x86_64-linux-gnu", 29);
     opts.AddSearchPath("/usr/include", 12);
+    opts.ParseArgs(argc, (const char**)argv);
 
+    assert(opts.filenames.size() == opts.filenameLens.size());
+    size_t maxLen = *std::max_element(opts.filenameLens.begin(), opts.filenameLens.end()) + 1;
+    char* pathBuffer = new char[maxLen];
+
+    for(size_t i =0; i < opts.filenames.size(); i++)
+    {
+        memcpy(pathBuffer, opts.filenames[i], opts.filenameLens[i]);
+        pathBuffer[opts.filenameLens[i]] = '\0';
+
+        if(fileManager.TryLoadFile(pathBuffer, opts.filenameLens[i], nullptr) < 0 )
+        {
+            printf("File %s does not exist", pathBuffer);
+            exit(-1);
+        }
+    }
+    delete[] pathBuffer;
 }
 
 void Compiler::compile()

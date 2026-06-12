@@ -5,7 +5,8 @@
 
 struct CompilationOpts
 {
-    CompilationOpts(int argc, const char** argv);
+    CompilationOpts();
+    void ParseArgs(int argc, const char** argv);
     bool CheckBinaryFlag(const char* arg, const char* flag); 
     void AddSearchPath(const char* path, size_t len);
 

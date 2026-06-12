@@ -8,10 +8,12 @@ int main()
 {
     const char* path = "examples/lexer_stress_test.c";
     const char* arr[] = {path};
-    FileManager fileManager({path}, {28});
+    FileManager fileManager;
+    fileManager.TryLoadFile(path, 28, nullptr);
     FILE_ID main;
     fileManager.GetFileId("examples/lexer_stress_test.c", 28, &main);
-    CompilationOpts opts(1, (const char**)arr);
+    CompilationOpts opts;
+    opts.ParseArgs(1, (const char**)arr);
     Lexer lexer(&fileManager, &opts);
     lexer.PushFile(main, -1, -1);
     

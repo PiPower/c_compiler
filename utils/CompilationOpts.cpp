@@ -22,9 +22,13 @@ static bool isCFilePath(const char* arg, size_t* len)
     return false;
 }
 
-CompilationOpts::CompilationOpts(int argc, const char** argv)
+CompilationOpts::CompilationOpts()
 :
 longestPath(0)
+{
+}
+
+void CompilationOpts::ParseArgs(int argc, const char **argv)
 {
     trigraphs_refrenced = 0;
     trigraphs_enabled = 1;
