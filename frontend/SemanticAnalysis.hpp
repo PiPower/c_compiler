@@ -44,7 +44,7 @@ struct SemanticAnalyzer
     std::string_view SimpleTypeToString(BuiltIn::Type type);
     DeclSpecs AnalyzeDeclSpec(const Ast::Node* declSpecs);
     void InitLocalVariable(const SymbolVariable* symVar);
-    ExprRet ResolveAssignment(ExprRet dst, const ExprRet& src);
+    ExprRet ResolveAssignment(ExprRet dst, ExprRet src);
     // expressions
     ExprRet AnalyzeInitializer(bool isGlobal, const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType);
     ExprRet AnalyzeExpr(const Ast::Node* root);

@@ -1421,7 +1421,7 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
     }
 }
 
-ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, const ExprRet& src)
+ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
 {
     if(src.id == EXPR_ID_IGNORE)
     {
@@ -1438,6 +1438,14 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, const ExprRet& src)
         dst.id = dst.var->varIdx;
         dst.var = nullptr;
     }
+
+    if(src.id == EXPR_ID_VAR && src.type != BuiltIn::ptr)
+    {
+        const SymbolVariable* srcVar = src.var;
+        src.id = codeGen.EmitLocalLoad(srcVar->spec.symType->dType, srcVar->spec.symType->alignment, srcVar->varIdx);
+        src.var = nullptr;
+    }
+
 
     if(dst.type != BuiltIn::ptr)
     {
