@@ -7,7 +7,8 @@
 struct Compiler
 {
     Compiler(int argc, char* argv[]);
-    void compile();
+    void Compile();
+    void ConstructPathFile();
 
     int argc;
     char** argv;
