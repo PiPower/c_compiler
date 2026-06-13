@@ -19,22 +19,32 @@ Compiler::Compiler(int argc, char *argv[])
         ConstructPathFile();
         if(fileManager.TryLoadFile(SearchPaths, strlen(SearchPaths) - 1, &id) < 0 )
         {
-            printf("FATAL ERROR: could not create \"c_search_paths.set\" file\n");
+            printf("FATAL ERROR: could not create \".c_search_paths.set\" file\n");
             exit(-1);
         }
     }
+    // update search paths
     FILE_STATE state = {};
     fileManager.GetFileState(&id, &state);
-
-    //Dodać kod tworzący plik konfiguracyjny dla ścieżek
-    //opts.AddSearchPath("/usr/lib/gcc/x86_64-linux-gnu/11/include", 40);
-    //opts.AddSearchPath("/usr/local/include", 18);
-    //opts.AddSearchPath("/usr/include/x86_64-linux-gnu", 29);
-    //opts.AddSearchPath("/usr/include", 12);
+    int64_t offset = 0;
+    std::string path;
+    while (offset < state.fileSize)
+    {
+        if(state.fileData[offset] == '\n')
+        {
+            opts.AddSearchPath(path.data(), path.length());
+            path.clear();
+        }
+        else
+        {
+            path += state.fileData[offset];
+        }
+        offset++;
+    }
     opts.ParseArgs(argc, (const char**)argv);
-
-    assert(opts.filenames.size() == opts.filenameLens.size());
     
+    //load all input file names
+    assert(opts.filenames.size() == opts.filenameLens.size());
     size_t maxLen = 0;
     if(opts.filenameLens.size() > 0 )
     {
@@ -115,6 +125,8 @@ void Compiler::ConstructPathFile()
         EXIT_ON_NONZERO(close(fd[1]), "FATA ERROR: could not close write pipe end \n");
     }
 
+    FILE* pathCache = fopen(".c_search_paths.set", "w");
+
     std::string line;
     bool StartAddingPaths = false;
     // read first "
@@ -138,10 +150,11 @@ void Compiler::ConstructPathFile()
         }
         else if(c == '\n')
         {
+            line += c;
             if(StartAddingPaths)
             {
                 std::string_view view(line.cbegin() + 1, line.cend());
-                opts.AddSearchPath(view.data(), view.length());
+                fwrite(view.data(), 1, view.length(), pathCache);
             }
             line.clear();
         }
@@ -152,7 +165,8 @@ void Compiler::ConstructPathFile()
 
     }
     
-   
+    fclose(pathCache);
+
     int wstatus;
     waitpid(ret, &wstatus, 0);
 

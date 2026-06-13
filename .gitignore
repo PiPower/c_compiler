@@ -1,4 +1,5 @@
 build
 .vscode
 .builtin_defines.hpp
+.c_search_paths.set
 *.S
