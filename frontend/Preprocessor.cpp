@@ -596,8 +596,6 @@ int32_t Preprocessor::HandleInclude(bool includeNext)
         size_t stringLen = headerToken.location.len - 1;
         header.name = std::string_view(stringStart, stringLen); 
         header.isLocal = 1;
-        printf("local include are not supported \n");
-        exit(-1);
     }
     else
     {
@@ -625,7 +623,7 @@ int32_t Preprocessor::HandleInclude(bool includeNext)
         }
     }
 
-    for(size_t i = 0; i < opts->searchPaths.size(); i++)
+    for(size_t i = header.isLocal; i < opts->searchPaths.size(); i++)
     {
         uint64_t offset = 0;
         memcpy(pathBuffer + offset, opts->searchPaths[i].data(), opts->searchPaths[i].length() );

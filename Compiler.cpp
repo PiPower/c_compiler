@@ -126,6 +126,8 @@ void Compiler::ConstructPathFile()
     }
 
     FILE* pathCache = fopen(".c_search_paths.set", "w");
+    // write current dir
+    fwrite("./\n", 1, 3, pathCache); 
 
     std::string line;
     bool StartAddingPaths = false;
