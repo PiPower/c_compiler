@@ -441,6 +441,7 @@ void Preprocessor::InsertMacroTokensIntoQueue(
     for(size_t i =0; i < macroTokens.size(); i++)
     {
         if(argPlacement.size() > 0 &&
+           argPlacement.size() < argOffsets &&
            argPlacement[argOffsets].argPos == i )
         {
             const TokenSequence& argTokens =  args[argPlacement[argOffsets].argId];
