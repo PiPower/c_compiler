@@ -11,7 +11,7 @@ ExprRet BinaryOp(SemanticAnalyzer* sema, CodeGen* cg, const Ast::Node* root)
     if(left.id == EXPR_ID_CONST && right.id == EXPR_ID_CONST)
     {
         out.id = EXPR_ID_CONST;
-        out.num = Typed::TypedBinOp<OP::template  op>(left.num, right.num);
+        out.num = Typed::TypedBinOp<OP::template op>(left.num, right.num);
     }
     else 
     {
@@ -23,7 +23,7 @@ ExprRet BinaryOp(SemanticAnalyzer* sema, CodeGen* cg, const Ast::Node* root)
 struct BinaryAddition
 {
     template<typename T>
-    using op = std::plus<T>;
+    using op = std::plus<T>; 
 
     static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
     {

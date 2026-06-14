@@ -2,6 +2,7 @@
 #include "../frontend/TypedNumber.hpp"
 #include <limits>
 #include <string.h>
+#include <algorithm>
 #define IssueWarning(tokenPtr, errorMsg, ...) logger->IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 
 Ast::Node *BuildInitializerList(const std::vector<Ast::Node>& initItems, PagedHeap *allocator)
@@ -305,7 +306,7 @@ uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type)
     case BuiltIn::ptr:         return 8;
     case BuiltIn::void_t:      return 0;
     default:
-        printf("code gen: type unsupported");
+        printf("non built in type");
         exit(-1);
         break;
     }

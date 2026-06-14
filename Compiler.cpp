@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <assert.h>
-
+#include <algorithm>
 #define EXIT_ON_NONZERO(expr, msg) if(expr < 0){printf(msg); exit(-1);}
 
 Compiler::Compiler(int argc, char *argv[])
@@ -76,21 +76,23 @@ void Compiler::Compile()
         fileManager.GetFileId( opts.filenames[i],  opts.filenameLens[i], &mainFile);
         SemanticAnalyzer analyzer(&fileManager, &symtab);
         Parser parser(mainFile, &analyzer, &fileManager, &opts);
+
         while (Ast::Node* ast = parser.Parse())
         {
             analyzer.Analyze(ast);
         }
         analyzer.EmitUninitializedGlobals();
         
-        char* buff = (char*)alloca(opts.filenameLens[i] + 1);
+        char* buff = (char*)alloca(opts.filenameLens[i] + 2);
         memcpy(buff, opts.filenames[i], opts.filenameLens[i]);
         size_t j;
         for(j = opts.filenameLens[i] - 1; j > 0; j--)
         {
             if(buff[j] == '.'){break;}
         }
-        buff[j + 1] = 'S';
-        buff[j + 2] = '\0';
+        buff[j + 1] = 'l';
+        buff[j + 2] = 'l';
+        buff[j + 3] = '\0';
         analyzer.WriteCodeToFile(buff);
     }
 }

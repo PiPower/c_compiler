@@ -339,7 +339,8 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
             spec->symType->dType == BuiltIn::union_t) &&
         !IsPointer(&decl->accArr))
     {
-        IssueWarning(&decl->token, "Internal: Complex types are not supported");
+        return;
+        //IssueWarning(&decl->token, "Internal: Complex types are not supported");
     }
     if(spec->symType->dType == BuiltIn::struct_t ||
        spec->symType->dType == BuiltIn::union_t)
