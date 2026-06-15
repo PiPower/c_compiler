@@ -1,0 +1,5 @@
+.c_search_paths.set
+.builtin_defines.hpp
+build
+.vscode
+examples/*.ll

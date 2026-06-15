@@ -15,5 +15,7 @@ RUN ln -s /usr/bin/clang-22 /usr/bin/clang
 
 COPY . .
 
-RUN  rm -rf build && mkdir build && cd build && cmake .. && make -j12
+RUN mkdir build && cd build && cmake .. && make -j12
 
+RUN chmod +x ./compile_test.sh
+RUN ./compile_test.sh
