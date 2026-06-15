@@ -863,7 +863,7 @@ int64_t CodeGen::EmitString(const Ast::Node *string)
 
     std::string strIdx = std::to_string(idx);
     std::string_view strLiteral = GetViewForToken(string->token, manager);
-    std::string strLen = std::to_string(strLiteral.length());
+    std::string strLen = std::to_string(strLiteral.length() + 1);
     
     WriteCharData("\n@.str.%s = private unnamed_addr constant [%s x i8] c\"",
     strIdx.data(), strIdx.length(), strLen.data(), strLen.length());
