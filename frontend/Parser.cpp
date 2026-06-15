@@ -115,13 +115,6 @@ start_parsing:
     {
         return nullptr;
     }
-    // Check if constant expression is pending
-    if(PP.stages.ConstantExpr > 0)
-    {
-        Ast::Node* expr = ParseConstantExpr();
-        PP.ExecuteConstantExpr(expr);
-        goto start_parsing;
-    }   
 
     Ast::Node* declaration = ParseDeclaration(false);
     token = GetCurrToken();
@@ -148,6 +141,7 @@ Token Parser::GetCurrToken()
 {
     // this is temporary solution to skip kw__attribute__
     // to be resolved later
+get_token:
     Token token = GetCurrTokenInternal();
     while (IsTokenOneOf(&token, TokenType::kw__attribute__, TokenType::kw__asm__, TokenType::kw__extension__))
     {
@@ -179,7 +173,13 @@ Token Parser::GetCurrToken()
         }
     
     }
-    
+
+    if(PP.stages.ConstantExpr > 0 && pState.parsingConstantExpr == 0)
+    {
+        Ast::Node* expr = ParseConstantExpr();
+        PP.ExecuteConstantExpr(expr);
+        goto get_token;
+    }   
     return token;
 }
 

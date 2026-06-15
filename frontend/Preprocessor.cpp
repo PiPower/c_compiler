@@ -280,7 +280,6 @@ scan_arg:
         }
         ConsumeExpectedToken(TokenType::r_parentheses);
     }
-
     InsertMacroTokensIntoQueue(macro->tokenList, args, macro->argPlacement);
 }   
 
@@ -441,7 +440,7 @@ void Preprocessor::InsertMacroTokensIntoQueue(
     for(size_t i =0; i < macroTokens.size(); i++)
     {
         if(argPlacement.size() > 0 &&
-           argPlacement.size() < argOffsets &&
+           argOffsets < argPlacement.size() &&
            argPlacement[argOffsets].argPos == i )
         {
             const TokenSequence& argTokens =  args[argPlacement[argOffsets].argId];
@@ -852,10 +851,21 @@ int32_t Preprocessor::HandlePragma()
             msg[subCommand.length()] = '\0';
             IssueWarningNoneTerminal(&tokenWarning, msg);
         }
+        else if(subCommand == "diagnostic")
+        {
+            // skip diagnostic pragma
+            Token token = GetCurrToken();
+            while (token.type != TokenType::new_line)
+            {
+                ConsumeToken();
+                token = GetCurrToken();
+            }
+            
+        }
         else
         {
-            printf("Unsupported pragma subtype\n");
-            exit(-1);
+            int len = (int)subCommand.length();
+            IssueWarning(&pragmaSubType, "Unsupported pragma subtype \"%.*s \"\n ", len, subCommand.data());
         }
     }
     else
