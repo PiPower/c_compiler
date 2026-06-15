@@ -884,7 +884,10 @@ void SemanticAnalyzer::EmitUninitializedGlobals()
     {
         symVar->opts.isEmitted = 1;
         codeGen.EmitGlobalVariable(&symVar->spec, &symVar->decl);
-        InitGlobalVar(symVar);
+        if(symVar->spec.declType.spec.extern_ == 0)
+        {
+            InitGlobalVar(symVar);
+        }
     }
 }
 
@@ -1020,7 +1023,10 @@ void SemanticAnalyzer::AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declara
         }
         symVar->opts.isEmitted = 1;
         codeGen.EmitGlobalVariable(spec, decl);
-        InitGlobalVar(symVar);
+        if(spec->declType.spec.extern_ == 0)
+        {
+            InitGlobalVar(symVar);
+        }
 
         if(uninitGlobals.find(symVar) != uninitGlobals.end())
         {

@@ -521,8 +521,7 @@ void CodeGen::EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t de
 
     WriteCharData("\n\tstore ");
     EmitBuiltInTypename(GetBuiltInName(type));
-    WriteCharData(" %%%s, ", src.data(), src.length());
-    EmitBuiltInTypename(GetBuiltInName(type));
+    WriteCharData(" %%%s, ptr", src.data(), src.length());
     WriteCharData(" %%%s, align %s", dst.data(), dst.length(), align.data(), align.length());
 }
 
@@ -662,7 +661,7 @@ int64_t CodeGen::EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, 
     std::string strTargetIdx = std::to_string(targetIdx);
     std::string strLoadIdx = std::to_string(loadIdx);
 
-    WriteCharData("\n\t%%%v = sext %v %%%v, to %v",
+    WriteCharData("\n\t%%%v = sext %v %%%v to %v",
             VIEW(strTargetIdx), srcTypeView, VIEW(strLoadIdx), dstTypeView);
 
     return targetIdx;
@@ -677,7 +676,7 @@ int64_t CodeGen::EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, 
     std::string strTargetIdx = std::to_string(targetIdx);
     std::string strLoadIdx = std::to_string(loadIdx);
 
-    WriteCharData("\n\t%%%v = zext %v %%%v, to %v",
+    WriteCharData("\n\t%%%v = zext %v %%%v to %v",
             VIEW(strTargetIdx), srcTypeView, VIEW(strLoadIdx), dstTypeView);
 
     return targetIdx;
