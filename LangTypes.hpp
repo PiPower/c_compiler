@@ -268,7 +268,8 @@ struct SymbolType
 {
     Sym::Kind kind;
     BuiltIn::Type dType;
-    bool isDefined;
+    uint8_t isDefined : 1;
+    uint8_t passByValue : 1; // if value is larger than 16 bytes or unaligned pass by stack else by value
     uint64_t size;
     uint32_t alignment;
     union 
@@ -280,20 +281,22 @@ struct SymbolType
     SymbolType(Sym::Kind k,
                BuiltIn::Type dt,
                bool def,
+               bool passByValue,
                uint64_t s,
                uint32_t align,
                const StructDesc& sd)
-        : kind(k), dType(dt), isDefined(def), size(s), alignment(align), str(sd)
+        : kind(k), dType(dt), isDefined(def), passByValue(passByValue), size(s), alignment(align), str(sd)
         {}
 
     // Constructor for PointerDesc
     SymbolType(Sym::Kind k,
                BuiltIn::Type dt,
                bool def,
+               bool passByValue,
                uint64_t s,
                uint32_t align,
                const PointerDesc& pd)
-        : kind(k), dType(dt), isDefined(def), size(s), alignment(align), ptr(pd)
+        : kind(k), dType(dt), isDefined(def), passByValue(passByValue), size(s), alignment(align), ptr(pd)
         {}
 
 
