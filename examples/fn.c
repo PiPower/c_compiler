@@ -129,8 +129,9 @@ struct Pair2
 {
     int x;
     int y;
+    int y2;
 };
-struct Pair make_pair(int x, int y, struct Pair2 p2)
+struct Pair make_pair(int x, int y, struct Pair2 p2, struct Pair p3)
 {
     struct Pair p;
     p.x = x;
@@ -217,7 +218,7 @@ int main(void)
     CHECK(call_binary(sub, 10, 20) == -10);
 
     struct Pair2 p2 = {};
-    p = make_pair(17, 25, p2);
+    p = make_pair(17, 25, p2, p);
 
     CHECK(p.x == 17);
     CHECK(p.y == 25);

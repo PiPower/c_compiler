@@ -57,6 +57,7 @@ struct CodeGen
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
     void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView);
     void EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t lIdx, int64_t rIdx);
+    void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, bool lastParam, int64_t idx);
     void CloseParamList();
     void EmitFunctionClose();
     // Global stuff 

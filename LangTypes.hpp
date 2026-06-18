@@ -271,6 +271,7 @@ struct SymbolType
     uint8_t isDefined : 1;
     uint8_t passByValue : 1; // if value is larger than 16 bytes or unaligned pass by stack else by value
     uint64_t size;
+    uint32_t alignmentPadd;
     uint32_t alignment;
     union 
     {

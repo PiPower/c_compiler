@@ -592,8 +592,8 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     sym->str.memberList = members;
     sym->isDefined = true;
     sym->alignment = highestAlignment;
-    uint64_t structPadding = sym->size % sym->alignment == 0 ? sym->alignment - sym->size % sym->alignment : 0; // pas size to make it aligned for arrays
-    sym->size = structSize + structPadding;
+    sym->alignmentPadd = sym->size % sym->alignment == 0 ? sym->alignment - sym->size % sym->alignment : 0; // pas size to make it aligned for arrays
+    sym->size = structSize + sym->alignmentPadd;
     if(sym->size > 16)
     {
         sym->passByValue = 0;
@@ -794,9 +794,31 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
             int64_t idx = codeGen.GetIdxForLocalVar();
             codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, idx, INDEX_INVALID);
         }
+        else if(param->spec.symType->passByValue == 1)
+        {
+            int64_t lIdx = codeGen.GetIdxForLocalVar();
+            int64_t rIdx = INDEX_INVALID;
+            uint64_t typeSize = param->spec.symType->size;
+            if(typeSize > 8)
+            {
+                typeSize -= 8 + declSpec->symType->alignmentPadd;
+                rIdx = codeGen.GetIdxForLocalVar();
+            }
+
+            BuiltIn::Type type = BuiltIn::s_int_64;
+            if(typeSize <= 4){type = BuiltIn::s_int_32;}
+            else if(typeSize <= 2) {type = BuiltIn::s_int_16;}
+            else if(typeSize == 1){type = BuiltIn::s_char_8;}
+            codeGen.EmitFunctionParam(type, isLast, lIdx, rIdx);
+        }
+        else
+        {
+            int64_t idx = codeGen.GetIdxForLocalVar();
+            codeGen.EmitFunctionParam(declSpec->symType, declSpec->typenameView, isLast, idx);
+        }
     }
     codeGen.CloseParamList();
-    // reserved index 
+    // allocate reserved index index 
     codeGen.GetIdxForLocalVar();
 }
 

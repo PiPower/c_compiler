@@ -362,6 +362,23 @@ void CodeGen::EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t lIdx
     {
         WriteCharData("%v noundef %%%d", typeView, lIdx);
     }
+    else
+    {
+        WriteCharData("i64 noundef %%%d, %v noundef %%%d", lIdx, typeView, rIdx);
+    }
+
+    if(!lastParam)
+    {
+        WriteCharData(", ");
+    }
+}
+
+void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typeName, bool lastParam, int64_t idx)
+{
+    BindFuncBuffer(); 
+    WriteCharData("ptr noundef byval(");
+    EmitTypename(symType, typeName);
+    WriteCharData(") align 8 %%%d", idx);
 
     if(!lastParam)
     {
