@@ -793,6 +793,10 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
     for(size_t i =0; i < paramDecl->paramCount; i++)
     {
         const FunctionParams* param = &paramDecl->paramTypeList[i];
+        if(param->spec.typenameView == "void")
+        {
+            break;
+        }
         bool isLast = i == paramDecl->paramCount - 1;
         if(DecaysToPointer(&param->decl.accArr))
         {
@@ -845,6 +849,11 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
     for(size_t i =0; i < paramDecl->paramCount; i++)
     {
         const FunctionParams* param = &paramDecl->paramTypeList[i];
+        if(param->spec.typenameView == "void")
+        {
+            break;
+        }
+
         AnalyzeLocalVarDecl(&param->spec, &param->decl);
         SymbolVariable* symVar = symTab->QueryVarSymbol(param->decl.name);
 
