@@ -102,7 +102,6 @@ opts(opts), nodeHeap(10), pState({}), logger(manager, "Parser")
 
 Ast::Node* Parser::Parse()
 {
-start_parsing:
     Token token = GetCurrToken();
     while (token.type == TokenType::new_line)
     {

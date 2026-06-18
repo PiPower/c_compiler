@@ -12,6 +12,14 @@
 constexpr StructDesc emptyDesc = {NOT_EMITTED, 0, nullptr, nullptr, nullptr};
 typedef const Ast::Node Node;
 
+struct ParamDesc
+{
+    BuiltIn::Type lType;
+    BuiltIn::Type rType;
+    int64_t lIdx;
+    int64_t rIdx;
+};
+
 static const char* kTypeNames[] = {
     // void
     "void",
@@ -445,7 +453,7 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
             printf("typedef is not allowed to have initializer\n");
             exit(-1);
         }
-        if(IsPointer(&decl.accArr))
+        if(DecaysToPointer(&decl.accArr))
         {
             PointerDesc ptrDesc;
             ptrDesc.accessTypes = decl.accArr;
@@ -780,6 +788,8 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
         IssueWarning(nullptr, "First access type must be ACC_FN_DECL")
     }
     const FnDecl* paramDecl = &fnDecl->accArr.ptr[0].fnDecl;
+    std::vector<ParamDesc> paramDesc;
+    paramDesc.reserve(paramDecl->paramCount);
     for(size_t i =0; i < paramDecl->paramCount; i++)
     {
         const FunctionParams* param = &paramDecl->paramTypeList[i];
@@ -788,11 +798,13 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
             codeGen.EmitFunctionParam(BuiltIn::ptr, isLast, idx, INDEX_INVALID);
+            paramDesc.emplace_back(BuiltIn::ptr, BuiltIn::none, idx, INDEX_INVALID);
         }
         else if(param->spec.symType->dType != BuiltIn::struct_t && param->spec.symType->dType != BuiltIn::union_t)
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
             codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, idx, INDEX_INVALID);
+            paramDesc.emplace_back(param->spec.symType->dType, BuiltIn::none, idx, INDEX_INVALID);
         }
         else if(param->spec.symType->passByValue == 1)
         {
@@ -810,11 +822,20 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
             else if(typeSize <= 2) {type = BuiltIn::s_int_16;}
             else if(typeSize == 1){type = BuiltIn::s_char_8;}
             codeGen.EmitFunctionParam(type, isLast, lIdx, rIdx);
+            if( param->spec.symType->size <= 8)
+            {
+                paramDesc.emplace_back(type, BuiltIn::none, lIdx, rIdx);
+            }
+            else
+            {
+                paramDesc.emplace_back(BuiltIn::s_int_64, type, lIdx, rIdx);
+            }
         }
         else
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
             codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, isLast, idx);
+            paramDesc.emplace_back(BuiltIn::struct_t, BuiltIn::none, idx, INDEX_INVALID);
         }
     }
     codeGen.CloseParamList();
@@ -825,6 +846,13 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
     {
         const FunctionParams* param = &paramDecl->paramTypeList[i];
         AnalyzeLocalVarDecl(&param->spec, &param->decl);
+        SymbolVariable* symVar = symTab->QueryVarSymbol(param->decl.name);
+
+        if(param->spec.symType->dType == BuiltIn::struct_t &&
+           param->spec.symType->passByValue == 1)
+        {
+            codeGen.AllocatePassByValueHolder(paramDesc[i].lType, paramDesc[i].rType, param->spec.symType->alignment);
+        }
     }
     
 }

@@ -67,6 +67,7 @@ struct CodeGen
     void EmitGLobalArrayAlignment(bool isPtr, uint32_t alignment);
     void EmitInitializer(const DeclSpecs* spec, const Ast::Node* initializer, bool isComplexType);
     // Local stuff
+    int64_t AllocatePassByValueHolder(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment);
     void EmitLocalVariable(const SymbolVariable* symVar);
     void InitLocalArray(const std::string_view& arrName, const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
     void EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx);

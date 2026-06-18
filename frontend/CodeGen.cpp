@@ -166,7 +166,7 @@ void CodeGen::EmitTypename(SymbolType *symType, const std::string_view& typeName
         else
         {
             std::string_view inst = symType->dType ==  BuiltIn::struct_t ? "%%struct.%s.%d": "%%union.%s.%d";
-            WriteCharData(inst.data(), typeName.data(), typeName.length(), typeDesc->second.symbolSaveCounter);
+            WriteCharData(inst.data(), typeName.data(), (int)typeName.length(), typeDesc->second.symbolSaveCounter);
         }
     }   
     
@@ -360,11 +360,11 @@ void CodeGen::EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t lIdx
     std::string_view typeView = GetBuiltInName(type);
     if(rIdx == INDEX_INVALID)
     {
-        WriteCharData("%v noundef %%%d", typeView, lIdx);
+        WriteCharData("%v noundef %%%l", typeView, lIdx);
     }
     else
     {
-        WriteCharData("i64 noundef %%%d, %v noundef %%%d", lIdx, typeView, rIdx);
+        WriteCharData("i64 noundef %%%l, %v noundef %%%l", lIdx, typeView, rIdx);
     }
 
     if(!lastParam)
@@ -378,12 +378,30 @@ void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typ
     BindFuncBuffer(); 
     WriteCharData("ptr noundef byval(");
     EmitTypename(symType, typeName);
-    WriteCharData(") align 8 %%%d", idx);
+    WriteCharData(") align 8 %%%l", idx);
 
     if(!lastParam)
     {
         WriteCharData(", ");
     }
+}
+
+int64_t CodeGen::AllocatePassByValueHolder(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment)
+{
+    BindLocalBuffer();
+    int64_t idx = GetIdxForLocalVar();
+    std::string_view leftType = GetBuiltInName(left);
+    if(right == BuiltIn::none)
+    {
+        WriteCharData("\n\t%%%l = alloca %v, align %lu", idx, leftType, alignment);
+    }
+    else
+    {
+        std::string_view rightType = GetBuiltInName(right);
+        WriteCharData("\n\t%%%l = alloca { %v, %v }, align %lu", idx, leftType, rightType, alignment);
+    }
+
+    return idx;
 }
 
 void CodeGen::CloseParamList()
