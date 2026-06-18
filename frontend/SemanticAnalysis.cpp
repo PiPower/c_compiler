@@ -166,9 +166,11 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     }
 
     codeGen.EmitFunctionName(&declSpec, &fnDecl);
-    const Ast::Node* bodyNode = body->rChild;
-
+    // emit parameters
     symTab->CreateNewScope(Scope::LOCAL);
+    AnalyzeFunctionParams(&declSpec, &fnDecl);
+    // emit function body
+    const Ast::Node* bodyNode = body->rChild;
     while (bodyNode)
     {
         Analyze(bodyNode->lChild);
@@ -590,7 +592,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     sym->str.memberList = members;
     sym->isDefined = true;
     sym->alignment = highestAlignment;
-    uint64_t structPadding = sym->size % sym->alignment ? sym->alignment - sym->size % sym->alignment : 0; // pas size to make it aligned for arrays
+    uint64_t structPadding = sym->size % sym->alignment == 0 ? sym->alignment - sym->size % sym->alignment : 0; // pas size to make it aligned for arrays
     sym->size = structSize + structPadding;
     if(sym->size > 16)
     {
@@ -764,6 +766,38 @@ int SemanticAnalyzer::BuiltInBitCount(BuiltIn::Type type)
     }
 
     return -1;
+}
+
+void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl)
+{
+    if(declSpec->symType->passByValue == 0)
+    {
+        codeGen.EmitReturnByPtr(declSpec->symType, declSpec->typenameView);
+    }
+
+    if(fnDecl->accArr.ptr[0].type != ACC_FN_DECL)
+    {
+        IssueWarning(nullptr, "First access type must be ACC_FN_DECL")
+    }
+    const FnDecl* paramDecl = &fnDecl->accArr.ptr[0].fnDecl;
+    for(size_t i =0; i < paramDecl->paramCount; i++)
+    {
+        const FunctionParams* param = &paramDecl->paramTypeList[i];
+        bool isLast = i == paramDecl->paramCount - 1;
+        if(DecaysToPointer(&param->decl.accArr))
+        {
+            int64_t idx = codeGen.GetIdxForLocalVar();
+            codeGen.EmitFunctionParam(BuiltIn::ptr, isLast, idx, INDEX_INVALID);
+        }
+        else if(param->spec.symType->dType != BuiltIn::struct_t && param->spec.symType->dType != BuiltIn::union_t)
+        {
+            int64_t idx = codeGen.GetIdxForLocalVar();
+            codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, idx, INDEX_INVALID);
+        }
+    }
+    codeGen.CloseParamList();
+    // reserved index 
+    codeGen.GetIdxForLocalVar();
 }
 
 BuiltIn::Type SemanticAnalyzer::BitCountToIntegerType(uint8_t BitCount, bool isSigned)

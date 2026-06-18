@@ -1,5 +1,13 @@
 #include <stdio.h>
 #include <stdint.h>
+#define DEFINE_FUNC(name, expr) \
+int name(int x) {               \
+    int y = x * 2;              \
+    y += 5;                     \
+    return (expr);              \
+}
+
+DEFINE_FUNC(foo, y + 1)
 
 static int failures = 0;
 
@@ -23,6 +31,11 @@ int f0(void)
 int f1(int a)
 {
     return a + 1;
+}
+
+int f_ptr(int* a)
+{
+    return *a  + 34;;
 }
 
 int f2(int a, int b)
@@ -108,10 +121,16 @@ int call_binary(int (*fn)(int, int), int a, int b)
 struct Pair
 {
     int x;
+    long xd;
     int y;
 };
 
-struct Pair make_pair(int x, int y)
+struct Pair2
+{
+    int x;
+    int y;
+};
+struct Pair make_pair(int x, int y, struct Pair2 p2)
 {
     struct Pair p;
     p.x = x;
@@ -197,7 +216,8 @@ int main(void)
     CHECK(call_binary(add, 10, 20) == 30);
     CHECK(call_binary(sub, 10, 20) == -10);
 
-    p = make_pair(17, 25);
+    struct Pair2 p2 = {};
+    p = make_pair(17, 25, p2);
 
     CHECK(p.x == 17);
     CHECK(p.y == 25);

@@ -321,11 +321,10 @@ void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
 void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
 {
     currFn.inFunction = true;
-    currFn.variableIdx = 1;
+    currFn.variableIdx = 0;
     currFn.fnName = decl->name;
     
     std::string_view vis = spec->declType.spec.static_ ? "internal" : "dso_local";
-    BindGlobalVarBuffer();
 
     if(IsArray(&decl->accArr))
     {
@@ -335,25 +334,45 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
     {
         IssueWarning(&decl->token, "EmitFunctionName: unknown return type");
     }
-    if( (spec->symType->dType == BuiltIn::struct_t ||  
-            spec->symType->dType == BuiltIn::union_t) &&
-        !IsPointer(&decl->accArr))
-    {
-        return;
-        //IssueWarning(&decl->token, "Internal: Complex types are not supported");
-    }
-    if(spec->symType->dType == BuiltIn::struct_t ||
-       spec->symType->dType == BuiltIn::union_t)
-    {
-        IssueWarning(nullptr, "Non built in types are not supported in return statement");
-    }
-    std::string_view retName = GetBuiltInName(spec->symType->dType);
 
+    std::string retName = getRetName(spec, decl);
+    bool retByStack = false;
     BindFuncBuffer();
-    WriteCharData("\ndefine %s %s @%s() #0 {", 
+    WriteCharData("\ndefine %s %s @%s(", 
                     vis.data(), vis.length(), 
                     retName.data(), retName.length(),
                     decl->name.data(), decl->name.length());
+
+}
+
+void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView)
+{
+    BindFuncBuffer();
+    WriteCharData("ptr dead_on_unwind noalias writable sret(");
+    EmitTypename(symType, typenameView, true);
+    WriteCharData(") align 8 %%0, ");
+    GetIdxForLocalVar();
+}
+
+void CodeGen::EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t lIdx, int64_t rIdx)
+{
+    BindFuncBuffer(); 
+    std::string_view typeView = GetBuiltInName(type);
+    if(rIdx == INDEX_INVALID)
+    {
+        WriteCharData("%v noundef %%%d", typeView, lIdx);
+    }
+
+    if(!lastParam)
+    {
+        WriteCharData(", ");
+    }
+}
+
+void CodeGen::CloseParamList()
+{
+    BindFuncBuffer(); 
+    WriteCharData("){\n");
 }
 
 void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initializer, bool isComplexType)
@@ -992,6 +1011,37 @@ std::string_view CodeGen::MapBuiltInToLlvm(BuiltIn::Type srcType)
         return "x86_fp80";
 
     default:
+        return "void";
+    }
+}
+
+std::string CodeGen::getRetName(const DeclSpecs* spec, const Declarator* decl)
+{
+    if(IsPointer(&decl->accArr))
+    {
+        return "ptr";
+    }
+    else if(spec->symType->passByValue == 1 && 
+            (spec->symType->dType == BuiltIn::struct_t || spec->symType->dType == BuiltIn::union_t))
+    {
+        if(spec->symType->size <= 8)
+        {
+            return "{ i" + std::to_string(spec->symType->size * 8) + " }";
+        }
+        else
+        {
+           return "{ i64, i" + std::to_string((spec->symType->size - 8) * 8) + " }";
+        }
+
+    }
+    else if(spec->symType->passByValue == 1)
+    {
+        std::string_view view =  GetBuiltInName(spec->symType->dType);
+        std::string ret(view.data(), view.length());
+        return ret;
+    }
+    else
+    {
         return "void";
     }
 }

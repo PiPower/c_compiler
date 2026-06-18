@@ -25,6 +25,7 @@ struct SemanticAnalyzer
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void DeduceInferableArrSize(Declarator* decl);
     int BuiltInBitCount(BuiltIn::Type type);
+    void AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl);
     BuiltIn::Type BitCountToIntegerType(uint8_t BitCount, bool isSigned);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);

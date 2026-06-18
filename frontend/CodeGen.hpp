@@ -55,6 +55,9 @@ struct CodeGen
     void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
     // Function stuff
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
+    void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView);
+    void EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t lIdx, int64_t rIdx);
+    void CloseParamList();
     void EmitFunctionClose();
     // Global stuff 
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
@@ -85,6 +88,7 @@ struct CodeGen
     int64_t EmitLocalShiftLeft(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalShiftRight(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalIntTruncate(BuiltIn::Type dstType, BuiltIn::Type srcType, Operator src);
+
     void EmitZeroInitType(bool isGlobal);
     void EmitZeroInitInt(bool isGlobal);
     void EmitZeroInitFloat(bool isGlobal);
@@ -110,6 +114,7 @@ struct CodeGen
     void EndArray();
     void ArgSeparator();
     std::string_view MapBuiltInToLlvm(BuiltIn::Type srcType);
+    std::string getRetName(const DeclSpecs* spec, const Declarator* decl);
     // expressions
 
     // data writing
