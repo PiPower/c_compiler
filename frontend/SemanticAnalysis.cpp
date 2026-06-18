@@ -801,7 +801,7 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
             uint64_t typeSize = param->spec.symType->size;
             if(typeSize > 8)
             {
-                typeSize -= 8 + declSpec->symType->alignmentPadd;
+                typeSize -= 8 + param->spec.symType->alignmentPadd;
                 rIdx = codeGen.GetIdxForLocalVar();
             }
 
@@ -814,12 +814,19 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
         else
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
-            codeGen.EmitFunctionParam(declSpec->symType, declSpec->typenameView, isLast, idx);
+            codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, isLast, idx);
         }
     }
     codeGen.CloseParamList();
     // allocate reserved index index 
     codeGen.GetIdxForLocalVar();
+
+    for(size_t i =0; i < paramDecl->paramCount; i++)
+    {
+        const FunctionParams* param = &paramDecl->paramTypeList[i];
+        AnalyzeLocalVarDecl(&param->spec, &param->decl);
+    }
+    
 }
 
 BuiltIn::Type SemanticAnalyzer::BitCountToIntegerType(uint8_t BitCount, bool isSigned)

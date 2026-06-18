@@ -389,7 +389,7 @@ void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typ
 void CodeGen::CloseParamList()
 {
     BindFuncBuffer(); 
-    WriteCharData("){\n");
+    WriteCharData("){");
 }
 
 void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initializer, bool isComplexType)
