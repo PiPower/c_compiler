@@ -135,7 +135,7 @@ struct Pair make_pair(int x, int y, struct Pair2 p2, struct Pair p3)
 {
     struct Pair p;
     p.x = x;
-    p.y = y;
+    p.y = p3.x;
     return p;
 }
 

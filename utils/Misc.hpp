@@ -76,6 +76,11 @@ constexpr inline bool isSigned(BuiltIn::Type type)
            type == BuiltIn::s_int_32|| type == BuiltIn::s_int_64;
 }
 
+constexpr inline bool isStructOrUnion(BuiltIn::Type type)
+{
+    return type == BuiltIn::struct_t || type == BuiltIn::union_t;
+}
+
 inline Typed::Number CastToBuiltIn(BuiltIn::Type type, const Typed::Number& num)
 {
     Typed::Number out{};

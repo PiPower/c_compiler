@@ -600,7 +600,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     sym->str.memberList = members;
     sym->isDefined = true;
     sym->alignment = highestAlignment;
-    sym->alignmentPadd = sym->size % sym->alignment == 0 ? sym->alignment - sym->size % sym->alignment : 0; // pas size to make it aligned for arrays
+    sym->alignmentPadd = structSize % sym->alignment == 0 ? 0 : sym->alignment - structSize % sym->alignment; // pas size to make it aligned for arrays
     sym->size = structSize + sym->alignmentPadd;
     if(sym->size > 16)
     {
@@ -854,14 +854,25 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
             break;
         }
 
-        AnalyzeLocalVarDecl(&param->spec, &param->decl);
-        SymbolVariable* symVar = symTab->QueryVarSymbol(param->decl.name);
-
-        if(param->spec.symType->dType == BuiltIn::struct_t &&
-           param->spec.symType->passByValue == 1)
+        const ParamDesc& currentParam = paramDesc[i]; 
+        if(currentParam.rType == BuiltIn::none &&  !isStructOrUnion(currentParam.lType))
         {
-            codeGen.AllocatePassByValueHolder(paramDesc[i].lType, paramDesc[i].rType, param->spec.symType->alignment);
+            AnalyzeLocalVarDecl(&param->spec, &param->decl);
+            SymbolVariable* symVar = symTab->QueryVarSymbol(param->decl.name);
+            codeGen.EmitLocalStorage(currentParam.lType, GetBuiltInAlignemnt(currentParam.lType), symVar->varIdx, currentParam.lIdx);
         }
+        else if(currentParam.lType == BuiltIn::struct_t || currentParam.lType == BuiltIn::union_t)
+        {
+            AnalyzeLocalVarDecl(&param->spec, &param->decl, false, currentParam.lIdx); // by idx to variable 
+        }
+        else
+        {
+            AnalyzeLocalVarDecl(&param->spec, &param->decl);
+            SymbolVariable* symVar = symTab->QueryVarSymbol(param->decl.name);
+            codeGen.CopyPassTmpStructToStruct(symVar->varIdx, symVar->spec.symType->size, currentParam.lType, currentParam.rType, 
+                                    symVar->spec.symType->alignment, currentParam.lIdx, currentParam.rIdx);           
+        }
+
     }
     
 }
@@ -1267,7 +1278,11 @@ void SemanticAnalyzer::InitArray(
     
 }
 
-void SemanticAnalyzer::AnalyzeLocalVarDecl(const DeclSpecs *spec, const Declarator *decl)
+void SemanticAnalyzer::AnalyzeLocalVarDecl(
+    const DeclSpecs *spec, 
+    const Declarator *decl,
+    bool needsEmission,
+    int64_t preallocatedIdx)
 {
     int64_t ownerId = 0;
     SymbolVariable* symVar = symTab->QueryVarSymbol(decl->name, &ownerId);
@@ -1275,7 +1290,11 @@ void SemanticAnalyzer::AnalyzeLocalVarDecl(const DeclSpecs *spec, const Declarat
     if(symVar == nullptr || ownerId != symTab->currentTable->id)
     {
         VariableOpts opts = {.isEnumerator = 0, .isConst = 0, .isEmitted = 0};
-        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, codeGen.GetIdxForLocalVar());
+        if(preallocatedIdx == INDEX_INVALID)
+        {
+            preallocatedIdx = codeGen.GetIdxForLocalVar();
+        }
+        symTab->AddSymbol<SymbolVariable>(decl->name, symTab->currentTable->scopeType, spec, decl, &opts, preallocatedIdx);
         symVar = symTab->QueryVarSymbol(decl->name);
     }
     else
@@ -1283,9 +1302,13 @@ void SemanticAnalyzer::AnalyzeLocalVarDecl(const DeclSpecs *spec, const Declarat
         IssueWarning(&decl->token, "Local variable redefinition")
     }
 
+    // if needsEmission == false it is assumed that variable is already emitted
     symVar->opts.isEmitted = 1;
-    codeGen.EmitLocalVariable(symVar);
-    InitLocalVariable(symVar);
+    if(needsEmission)
+    {
+        codeGen.EmitLocalVariable(symVar);
+        InitLocalVariable(symVar);
+    }
 }
 
 uint64_t SemanticAnalyzer::GetAnnonymousStructId()

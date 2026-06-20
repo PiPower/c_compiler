@@ -386,9 +386,9 @@ void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typ
     }
 }
 
-int64_t CodeGen::AllocatePassByValueHolder(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment)
+int64_t CodeGen::AllocatePassByTmpStruct(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment)
 {
-    BindLocalBuffer();
+    BindFuncBuffer();
     int64_t idx = GetIdxForLocalVar();
     std::string_view leftType = GetBuiltInName(left);
     if(right == BuiltIn::none)
@@ -676,7 +676,48 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
     }
 }
 
-int64_t CodeGen::EmitLocalArrGetElemPtr(const AccessArray *acc, const std::string_view *typeName, int64_t arrayIdx, const std::vector<uint64_t> *indicies)
+void CodeGen::CopyPassTmpStructToStruct(
+    int64_t destIdx,
+    uint64_t destSize, 
+    BuiltIn::Type left, 
+    BuiltIn::Type right, 
+    uint64_t alignment, 
+    int64_t lIdx, 
+    int64_t rIdx)
+{
+    if(right == BuiltIn::none)
+    {
+        std::string_view passStruct = GetBuiltInName(left);
+        BindLocalBuffer();
+        int64_t ptrIdx = GetIdxForLocalVar();
+        WriteCharData("\n\tstore %v %l, ptr %l, align %lu", passStruct, lIdx, destIdx, alignment);
+    }
+    else
+    {
+        int64_t passIdx = AllocatePassByTmpStruct(left, right, alignment);
+        BindLocalBuffer();
+        std::string_view typeView = GetBuiltInName(right);
+        int64_t firstTypeIdx = GetIdxForLocalVar();
+        int64_t secondTypeIdx = GetIdxForLocalVar();
+
+        std::string passStruct = std::string(typeView.data(), typeView.length());
+        passStruct = "{ i64, " + passStruct + " }";
+        WriteCharData("\n\t%%%l = getelementptr inbounds nuw %v, ptr %%%l, i32 0, i32 0", firstTypeIdx, VIEW(passStruct), passIdx);
+        WriteCharData("\n\tstore %v %%%l, ptr %%%l, align %lu", GetBuiltInName(left), lIdx, firstTypeIdx, alignment);
+        WriteCharData("\n\t%%%l = getelementptr inbounds nuw %v, ptr %%%l, i32 0, i32 1", secondTypeIdx, VIEW(passStruct), passIdx);
+        WriteCharData("\n\tstore %v %%%l, ptr %%%l, align %lu", GetBuiltInName(right), rIdx, secondTypeIdx, alignment);
+        WriteCharData("\n\tcall void @llvm.memcpy.p0.p0.i64(ptr align %lu %%%l, ptr align 4 %%%l, i64 12, i1 false)", 
+            alignment, destIdx, passIdx);
+    }
+
+
+}
+
+int64_t CodeGen::EmitLocalArrGetElemPtr(
+    const AccessArray *acc, 
+    const std::string_view *typeName, 
+    int64_t arrayIdx, 
+    const std::vector<uint64_t> *indicies)
 {
     BindLocalBuffer();
     int64_t result = GetIdxForLocalVar();

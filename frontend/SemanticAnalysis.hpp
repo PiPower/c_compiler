@@ -38,7 +38,11 @@ struct SemanticAnalyzer
         const SymbolVariable* symVar, 
         std::vector<uint64_t>* parentPosition);
 
-    void AnalyzeLocalVarDecl(const DeclSpecs* spec, const Declarator* decl);
+    void AnalyzeLocalVarDecl(
+        const DeclSpecs* spec,
+        const Declarator* decl, 
+        bool needsEmission = true,
+        int64_t preallocatedIdx = INDEX_INVALID);
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
     bool IsMemberPointer(const Member* member);

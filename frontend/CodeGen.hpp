@@ -67,7 +67,7 @@ struct CodeGen
     void EmitGLobalArrayAlignment(bool isPtr, uint32_t alignment);
     void EmitInitializer(const DeclSpecs* spec, const Ast::Node* initializer, bool isComplexType);
     // Local stuff
-    int64_t AllocatePassByValueHolder(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment);
+    int64_t AllocatePassByTmpStruct(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment);
     void EmitLocalVariable(const SymbolVariable* symVar);
     void InitLocalArray(const std::string_view& arrName, const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
     void EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx);
@@ -75,7 +75,19 @@ struct CodeGen
     void EmitLocalNullStorage(int64_t destIdx);
     void EmitLocalNamedStore(BuiltIn::Type type, int32_t alignment, int64_t dstIdx, const std::string_view name);
     void EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num);
-    int64_t EmitLocalArrGetElemPtr(const AccessArray* acc, const std::string_view* typeName, int64_t arrayIdx, const std::vector<uint64_t>* indicies);
+    void CopyPassTmpStructToStruct(
+        int64_t destIdx, 
+        uint64_t destSize,
+        BuiltIn::Type left, 
+        BuiltIn::Type right, 
+        uint64_t alignment,
+        int64_t lIdx, 
+        int64_t rIdx);
+    int64_t EmitLocalArrGetElemPtr(
+        const AccessArray* acc, 
+        const std::string_view* typeName, 
+        int64_t arrayIdx, 
+        const std::vector<uint64_t>* indicies);
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
