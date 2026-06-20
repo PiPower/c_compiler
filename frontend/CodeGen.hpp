@@ -41,6 +41,11 @@ struct Operator
     Typed::Number num;
 };
 
+enum class Intrinsic
+{
+    llvm_memcpy
+};
+
 struct CodeGen
 {
     CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne);
@@ -127,6 +132,7 @@ struct CodeGen
     void StartArray();
     void EndArray();
     void ArgSeparator();
+
     std::string_view MapBuiltInToLlvm(BuiltIn::Type srcType);
     std::string getRetName(const DeclSpecs* spec, const Declarator* decl);
     // expressions
@@ -139,6 +145,10 @@ struct CodeGen
     void BindFuncBuffer();
     void BindGlobalVarBuffer();
     void BindLocalBuffer();
+    void BindIntrinsicBuffer();
+    void BindAttrBuffer();
+
+    void DeclareIntrinsic(Intrinsic intr);
     void WriteByte(const char* c);
     void WriteByte(char c);
     void WriteByteInHex(char c);
@@ -150,11 +160,12 @@ struct CodeGen
     std::unordered_map<SymbolType*, LlvmType> emittedTypes;
     std::queue<PendingType> typeQueue;
     uint8_t chosenBuffer;
-    std::array<std::vector<char*>, 5> writableBufferArr;
-    std::array<std::vector<char*>, 5> allocatedBufferHandles;
-    std::array<char*, 5> currPtrArr;
+    std::array<std::vector<char*>, 7> writableBufferArr;
+    std::array<std::vector<char*>, 7> allocatedBufferHandles;
+    std::array<char*, 7> currPtrArr;
     FunctionContext currFn;
     std::stack<uint8_t> buffStack;
+    int64_t attrCtr;
 
     PagedHeap typeHeap;
     SymbolTable* symTab;

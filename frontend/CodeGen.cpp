@@ -15,15 +15,19 @@ constexpr uint8_t FUNC_BUFFER = 1;
 constexpr uint8_t GLOB_VAR_BUFFER = 2;
 constexpr uint8_t LOCAL_BUFFER = 3;
 constexpr uint8_t STR_BUFFER = 4;
+constexpr uint8_t INTRINSIC_BUFFER = 5;
+constexpr uint8_t ATTR_BUFFER = 6;
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
 constexpr uint64_t INST_BUFF_SIZE = nr_of_pages * CPU_PAGE_SIZE;
 const char* ptrAlignment = "8";
+const char* memcpyIntr = "\ndeclare void @llvm.memcpy.p0.p0.i64(ptr noalias writeonly captures(none), ptr noalias readonly captures(none), i64, i1 immarg) #%l";
+
 
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
-chosenBuffer(TYPE_BUFFER), currFn(false, -1, ""), typeHeap(nr_of_pages), symTab(symTab),
+chosenBuffer(TYPE_BUFFER), currFn(false, -1, ""), attrCtr(1), typeHeap(nr_of_pages), symTab(symTab),
 manager(manager), nodeExec(ne), logger(manager, "Code Gen")
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
@@ -33,6 +37,8 @@ manager(manager), nodeExec(ne), logger(manager, "Code Gen")
     }
     BindFuncBuffer();
     WriteByte('\n');
+    BindAttrBuffer();
+    WriteCharData("\n\n" R"(attributes #0 = { noinline nounwind optnone uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" })");
 }
 
 void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name, bool flushQueue)
@@ -407,7 +413,7 @@ int64_t CodeGen::AllocatePassByTmpStruct(BuiltIn::Type left, BuiltIn::Type right
 void CodeGen::CloseParamList()
 {
     BindFuncBuffer(); 
-    WriteCharData("){");
+    WriteCharData(") #0 {");
 }
 
 void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initializer, bool isComplexType)
@@ -689,7 +695,6 @@ void CodeGen::CopyPassTmpStructToStruct(
     {
         std::string_view passStruct = GetBuiltInName(left);
         BindLocalBuffer();
-        int64_t ptrIdx = GetIdxForLocalVar();
         WriteCharData("\n\tstore %v %l, ptr %l, align %lu", passStruct, lIdx, destIdx, alignment);
     }
     else
@@ -709,8 +714,7 @@ void CodeGen::CopyPassTmpStructToStruct(
         WriteCharData("\n\tcall void @llvm.memcpy.p0.p0.i64(ptr align %lu %%%l, ptr align 4 %%%l, i64 12, i1 false)", 
             alignment, destIdx, passIdx);
     }
-
-
+    DeclareIntrinsic(Intrinsic::llvm_memcpy);
 }
 
 int64_t CodeGen::EmitLocalArrGetElemPtr(
@@ -1007,7 +1011,7 @@ void CodeGen::FlushTypeQueue()
 
 void CodeGen::WriteToFile(int fd)
 {
-    constexpr std::array<uint8_t, 4> buffOrder = {TYPE_BUFFER, STR_BUFFER, GLOB_VAR_BUFFER, FUNC_BUFFER,};
+    constexpr std::array<uint8_t, 6> buffOrder = {TYPE_BUFFER, STR_BUFFER, GLOB_VAR_BUFFER, FUNC_BUFFER, INTRINSIC_BUFFER, ATTR_BUFFER};
     size_t maxSize = 0;
     for(const auto& arr : writableBufferArr)
     {
@@ -1156,6 +1160,42 @@ void CodeGen::BindGlobalVarBuffer()
 void CodeGen::BindLocalBuffer()
 {
     chosenBuffer = LOCAL_BUFFER;
+}
+
+void CodeGen::BindIntrinsicBuffer()
+{
+    chosenBuffer = INTRINSIC_BUFFER;
+}
+
+void CodeGen::BindAttrBuffer()
+{
+    chosenBuffer = ATTR_BUFFER;
+}
+
+
+
+void CodeGen::DeclareIntrinsic(Intrinsic intr)
+{
+    
+    switch (intr)
+    {
+    case Intrinsic::llvm_memcpy :
+    {
+        static bool memcpyEmitted = false;
+        if(!memcpyEmitted)
+        {
+            memcpyEmitted = true;
+            BindIntrinsicBuffer();
+            int64_t attr = attrCtr++;
+            WriteCharData(memcpyIntr, attr);
+            BindAttrBuffer();
+            WriteCharData("\nattributes #%l = { nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }", attr);
+        }
+    }break;
+    
+    default:
+        break;
+    }
 }
 
 void CodeGen::WriteByte(const char *c)

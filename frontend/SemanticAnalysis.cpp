@@ -1600,7 +1600,8 @@ ExprRet SemanticAnalyzer::AnalyzeInitializer(bool isGlobal, const DeclSpecs *spe
 {
     if(!(spec->symType->dType >= BuiltIn::s_char_8 && spec->symType->dType <= BuiltIn::double_64))
     {
-        IssueWarning(nullptr, "Unsupported initializer type by codegen");
+        //IssueWarning(nullptr, "Unsupported initializer type by codegen");
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
     if(isGlobal && !initializer)
     {
