@@ -417,6 +417,7 @@ void CodeGen::EmitSimpleReturn(BuiltIn::Type dType, Operator ret)
     if(dType == BuiltIn::none)
     {
         WriteCharData("\n\tret void");
+        return;
     }
 
     std::string_view typeView = GetBuiltInName(dType);
