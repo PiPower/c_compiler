@@ -5,7 +5,9 @@ template<typename OP>
 ExprRet BinaryOp(SemanticAnalyzer* sema, CodeGen* cg, const Ast::Node* root)
 {
     ExprRet left = {}, right = {}, out = {};
-    sema->BinaryExprProlog(&left, &right, root->lChild, root->rChild);
+    ExprRet oldLeft = sema->LoadVariable(sema->AnalyzeExpr(root->lChild));
+    ExprRet oldRight = sema->LoadVariable(sema->AnalyzeExpr(root->rChild));
+    sema->HandleTypePromotion(&oldLeft, &oldRight, &left, &right);
 
     out.type = left.type;
     if(left.id == EXPR_ID_CONST && right.id == EXPR_ID_CONST)

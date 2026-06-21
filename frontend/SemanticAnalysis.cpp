@@ -122,6 +122,10 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         AnalyzeFunctionDef(root->lChild, root->rChild);
     }
+    else if(root->type == Ast::st_return)
+    {
+        RetStatement(root);
+    } 
     else if (root->type == Ast::expression)
     {
         const Ast::Node* expr = root->rChild;
@@ -187,7 +191,9 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     symTab->PopScope();
 
     codeGen.EmitFunctionClose();
-    
+
+    currFn.retType = BuiltIn::none;
+    currFn.retSymType = nullptr;
 }
 
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
@@ -217,6 +223,17 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
     else
     {
         symTab->AddSymbol<SymbolFunction>(decl->name, *spec, *decl, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, false);
+    }
+
+    if(IsPointer(&decl->accArr))
+    {
+        currFn.retType = BuiltIn::ptr;
+        currFn.retSymType = nullptr;
+    }
+    else
+    {
+        currFn.retType = spec->symType->dType;
+        currFn.retSymType = isStructOrUnion(spec->symType->dType) ? spec->symType : nullptr;
     }
 }
 
@@ -926,6 +943,19 @@ void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpec
     spec->typenameView = std::string_view(kTypeNames[idx]);
 }
 
+ExprRet SemanticAnalyzer::LoadVariable(const ExprRet& ret)
+{
+    ExprRet out = ret;
+    if(out.id == EXPR_ID_VAR)
+    {
+        const SymbolVariable* symVar = out.var;
+        out.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
+        out.var = nullptr;
+    }
+
+    return out;
+}
+
 void SemanticAnalyzer::WriteCodeToFile(const char *filename)
 {
     int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC,  
@@ -1011,56 +1041,56 @@ void SemanticAnalyzer::EmitUninitializedGlobals()
     }
 }
 
-void SemanticAnalyzer::ResolveIntegralPromotion(const ExprRet *left, const ExprRet *right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight)
+void SemanticAnalyzer::ResolveIntegralPromotion(const BuiltIn::Type& left, const BuiltIn::Type& right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight)
 {
-    if(isSmallInteger(left->type) && (isSmallInteger(right->type)))
+    if(isSmallInteger(left) && (isSmallInteger(right)))
     {
         *outLeft = BuiltIn::s_int_32;
         *outRight = BuiltIn::s_int_32;
         return;
     }
 
-    if(left->type == right->type)
+    if(left == right)
     {
-        *outLeft = left->type;
-        *outRight= right->type;
+        *outLeft = left;
+        *outRight= right;
         return;
     }
 
-    int rankLeft = GetIntRank(left->type);
-    int rankRight = GetIntRank(right->type);
+    int rankLeft = GetIntRank(left);
+    int rankRight = GetIntRank(right);
     int maxRank = std::max(rankLeft, rankRight);
     // signed values are even and unsigned are odd
-    if(left->type %2 == right->type%2)
+    if(left %2 == right%2)
     {
         if(rankLeft > rankRight)
         {
-            *outLeft = left->type;
-            *outRight= left->type;
+            *outLeft = left;
+            *outRight= left;
         }
         else
         {
-            *outLeft = right->type;
-            *outRight= right->type;
+            *outLeft = right;
+            *outRight= right;
         }
         return;
     }
     // here we know that we have mixed types
-    const ExprRet* unsignedType = isUnsigned(left->type) ? left : nullptr;
-    unsignedType = unsignedType == nullptr ? right : unsignedType;
-    const ExprRet* signedType = isSigned(left->type) ? left : nullptr;
-    signedType = signedType == nullptr? right : signedType;
+    const BuiltIn::Type* unsignedType = isUnsigned(left) ? &left : nullptr;
+    unsignedType = unsignedType == nullptr ? &right : unsignedType;
+    const BuiltIn::Type* signedType = isSigned(left) ? &left : nullptr;
+    signedType = signedType == nullptr? &right : signedType;
 
-    if(GetIntRank(unsignedType->type) == maxRank)
+    if(GetIntRank(*unsignedType) == maxRank)
     {
-        *outLeft = unsignedType->type;
-        *outRight= unsignedType->type;
+        *outLeft = *unsignedType;
+        *outRight = *unsignedType;
         return;
     }
     else
     {
-        *outLeft = signedType->type;
-        *outRight= signedType->type;
+        *outLeft = *signedType;
+        *outRight = *signedType;
         return;
     }
 
@@ -1079,23 +1109,8 @@ int SemanticAnalyzer::GetIntRank(BuiltIn::Type type)
 
 void SemanticAnalyzer::BinaryExprProlog(ExprRet *left, ExprRet *right, const Ast::Node *leftTerm, const Ast::Node *rightTerm)
 {
-    ExprRet oldLeft = AnalyzeExpr(leftTerm);
-    ExprRet oldRight = AnalyzeExpr(rightTerm);
-
-    if(oldLeft.id == EXPR_ID_VAR)
-    {
-        const SymbolVariable* symVar = oldLeft.var;
-        oldLeft.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
-        oldLeft.var = nullptr;
-    }
-
-    if(oldRight.id == EXPR_ID_VAR)
-    {
-        const SymbolVariable* symVar = oldRight.var;
-        oldRight.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
-        oldRight.var = nullptr;
-    }
-
+    ExprRet oldLeft = LoadVariable(AnalyzeExpr(leftTerm));
+    ExprRet oldRight = LoadVariable(AnalyzeExpr(rightTerm));
     HandleTypePromotion(&oldLeft, &oldRight, left, right);
 }
 
@@ -1660,6 +1675,10 @@ ExprRet SemanticAnalyzer::AnalyzeInitializer(bool isGlobal, const DeclSpecs *spe
 
 ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
 {
+    if(!root)
+    {
+        return {BuiltIn::none, {},EXPR_ID_EMPTY};
+    }
     switch (root->type)
     {
     case Ast::get_addr: return HandleGetAddr(root);
@@ -2012,22 +2031,22 @@ void SemanticAnalyzer::HandleTypePromotion(const ExprRet *left, const ExprRet *r
     if(isInteger(left->type) && isInteger(right->type))
     {
         BuiltIn::Type newLeft, newRight;
-        ResolveIntegralPromotion(left, right, &newLeft, &newRight);
-        *outLeft = HandleTypeExtension(left, newLeft);
-        *outRight = HandleTypeExtension(right, newRight);
+        ResolveIntegralPromotion(left->type, right->type, &newLeft, &newRight);
+        *outLeft = HandleTypeConversion(left, newLeft);
+        *outRight = HandleTypeConversion(right, newRight);
         return;
     }
     else if(isFloat(left->type) && isFloat(right->type))
     {
         if(left->type == right->type)
         {
-            *outLeft = HandleTypeExtension(left, left->type);
-            *outRight = HandleTypeExtension(right, left->type);
+            *outLeft = HandleTypeConversion(left, left->type);
+            *outRight = HandleTypeConversion(right, left->type);
         }
     }
 }
 
-ExprRet SemanticAnalyzer::HandleTypeExtension(const ExprRet *src, BuiltIn::Type newType)
+ExprRet SemanticAnalyzer::HandleTypeConversion(const ExprRet *src, BuiltIn::Type newType)
 {
     if(src->type == newType)
     {
@@ -2046,11 +2065,16 @@ ExprRet SemanticAnalyzer::HandleTypeExtension(const ExprRet *src, BuiltIn::Type 
             out.id = src->id;
         }
     }
-    else if(src->id != EXPR_ID_CONST)
+    else if(src->id != EXPR_ID_CONST && isInteger(src->type) && isInteger(newType))
     {
-        if(GetIntRank(src->type) == GetIntRank(newType))
+        int rankSrc = GetIntRank(src->type), rankNewType = GetIntRank(newType);
+        if(rankSrc == rankNewType)
         {
             out.id = src->id;
+        }
+        else if(rankNewType < rankSrc)
+        {
+            out.id = codeGen.EmitLocalIntTruncate(newType, src->type, {src->id, {}});
         }
         else if(isSigned(src->type))
         {
@@ -2115,4 +2139,25 @@ ExprRet SemanticAnalyzer::HandleTypeExtension(const ExprRet *src, BuiltIn::Type 
     }
 
     return out;
+}
+
+void SemanticAnalyzer::RetStatement(const Ast::Node *root)
+{
+    ExprRet retExpr = AnalyzeExpr(root->lChild);
+    if(retExpr.id == EXPR_ID_EMPTY)
+    {
+        codeGen.EmitSimpleReturn(BuiltIn::none, {});
+    }
+
+    retExpr = LoadVariable(retExpr);
+    if(retExpr.type == BuiltIn::none )
+    {
+        return;
+    }
+
+    if(!isStructOrUnion(retExpr.type))
+    {
+        ExprRet ret = HandleTypeConversion(&retExpr, currFn.retType);
+        codeGen.EmitSimpleReturn(ret.type, {ret.id, ret.num});
+    }
 }

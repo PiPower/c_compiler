@@ -7,6 +7,11 @@
 #include "Expression.hpp"
 constexpr size_t  POINTER_SIZE = 8;
 
+struct CurrentFunction
+{
+    BuiltIn::Type retType;
+    const SymbolType* retSymType;
+};
 
 struct SemanticAnalyzer
 {
@@ -66,15 +71,17 @@ struct SemanticAnalyzer
     ExprRet HandleGetAddr(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
     void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
-    ExprRet HandleTypeExtension(const ExprRet* src, BuiltIn::Type newType);
-
+    ExprRet HandleTypeConversion(const ExprRet* src, BuiltIn::Type newType);
+    // statement
+    void RetStatement(const Ast::Node* root);
     // misc
+    ExprRet LoadVariable(const ExprRet& ret);
     void WriteCodeToFile(const char* filename);
     bool CompareParams(size_t paramCount, const FunctionParams* p1, const FunctionParams* p2);
     bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);
     bool CompareDeclarators(const Declarator* d1, const Declarator* d2);
     void EmitUninitializedGlobals();
-    void ResolveIntegralPromotion(const ExprRet* left, const ExprRet* right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight);
+    void ResolveIntegralPromotion(const BuiltIn::Type& left, const BuiltIn::Type& right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight);
     int GetIntRank(BuiltIn::Type type);
     void BinaryExprProlog(ExprRet* left, ExprRet* right, const Ast::Node* leftTerm, const Ast::Node* rightTerm);
 
@@ -83,6 +90,7 @@ struct SemanticAnalyzer
     NodeExecutor ne;
     CodeGen codeGen;
     std::unordered_set<SymbolVariable*> uninitGlobals;
+    CurrentFunction currFn;
     // used as local string to avoid constant re allocation
     // it is not guaranted to be valid after call to any SEMA function
     Logger logger;

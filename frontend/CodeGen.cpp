@@ -410,6 +410,29 @@ int64_t CodeGen::AllocatePassByTmpStruct(BuiltIn::Type left, BuiltIn::Type right
     return idx;
 }
 
+void CodeGen::EmitSimpleReturn(BuiltIn::Type dType, Operator ret)
+{
+    BindLocalBuffer();
+
+    if(dType == BuiltIn::none)
+    {
+        WriteCharData("\n\tret void");
+    }
+
+    std::string_view typeView = GetBuiltInName(dType);
+    if(ret.idx != EXPR_ID_CONST)
+    {
+        WriteCharData("\n\tret %v %%%l", typeView, ret.idx);
+    }
+    else
+    {
+        std::string num = Typed::ToString(ret.num);
+        WriteCharData("\n\tret %v %v", typeView, VIEW(num));
+    }
+
+}
+
+
 void CodeGen::CloseParamList()
 {
     BindFuncBuffer(); 
