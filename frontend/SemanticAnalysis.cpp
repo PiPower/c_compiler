@@ -818,39 +818,30 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
         if(DecaysToPointer(&param->decl.accArr))
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
-            codeGen.EmitFunctionParam(BuiltIn::ptr, isLast, idx, INDEX_INVALID);
-            paramDesc.emplace_back(BuiltIn::ptr, BuiltIn::none, idx, INDEX_INVALID);
+            codeGen.EmitFunctionParam(BuiltIn::ptr, isLast, idx);
+            paramDesc.emplace_back(BuiltIn::ptr, BuiltIn::none, idx);
         }
         else if(param->spec.symType->dType != BuiltIn::struct_t && param->spec.symType->dType != BuiltIn::union_t)
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
-            codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, idx, INDEX_INVALID);
-            paramDesc.emplace_back(param->spec.symType->dType, BuiltIn::none, idx, INDEX_INVALID);
+            codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, idx);
+            paramDesc.emplace_back(param->spec.symType->dType, BuiltIn::none, idx);
         }
         else if(param->spec.symType->passByValue == 1)
         {
+            ByValueStructDesc desc= codeGen.BuildValueStruct(param->spec.symType->str);
             int64_t lIdx = codeGen.GetIdxForLocalVar();
-            int64_t rIdx = INDEX_INVALID;
-            uint64_t typeSize = param->spec.symType->size;
-            if(typeSize > 8)
-            {
-                typeSize -= 8 + param->spec.symType->alignmentPadd;
-                rIdx = codeGen.GetIdxForLocalVar();
-            }
+            int64_t rIdx = desc.rType == "" ? INDEX_INVALID : codeGen.GetIdxForLocalVar();
+            
+            BuiltIn::Type lType = GetBuiltInType(desc.lType);
+            BuiltIn::Type rType = GetBuiltInType(desc.rType);
 
-            BuiltIn::Type type = BuiltIn::s_int_64;
-            if(typeSize <= 4){type = BuiltIn::s_int_32;}
-            else if(typeSize <= 2) {type = BuiltIn::s_int_16;}
-            else if(typeSize == 1){type = BuiltIn::s_char_8;}
-            codeGen.EmitFunctionParam(type, isLast, lIdx, rIdx);
-            if( param->spec.symType->size <= 8)
+            codeGen.EmitFunctionParam(lType, isLast && rType == BuiltIn::none, lIdx);
+            if(rType != BuiltIn::none)
             {
-                paramDesc.emplace_back(type, BuiltIn::none, lIdx, rIdx);
+                codeGen.EmitFunctionParam(rType, isLast, rIdx);
             }
-            else
-            {
-                paramDesc.emplace_back(BuiltIn::s_int_64, type, lIdx, rIdx);
-            }
+            paramDesc.emplace_back(lType, rType, lIdx, rIdx);
         }
         else
         {

@@ -30,6 +30,7 @@ bool IsPointer(const AccessArray *accArray, size_t startIdx = 0);
 bool DecaysToPointer(const AccessArray *accArray, size_t startIdx = 0);
 bool IsArray(const AccessArray *accArray);
 std::string_view GetBuiltInName(const BuiltIn::Type type);
+BuiltIn::Type GetBuiltInType(const std::string_view& typeName);
 uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type);
 std::string_view GetViewForToken(const Token &token, FileManager* fm);
 

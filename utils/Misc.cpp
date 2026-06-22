@@ -287,6 +287,20 @@ std::string_view GetBuiltInName(const BuiltIn::Type type)
     return "";
 }
 
+BuiltIn::Type GetBuiltInType(const std::string_view &typeName)
+{
+    if(typeName == "i8")       return BuiltIn::s_char_8;   // ambiguous
+    if(typeName == "i16")      return BuiltIn::s_int_16;   // ambiguous
+    if(typeName == "i32")      return BuiltIn::s_int_32;   // ambiguous
+    if(typeName == "i64")      return BuiltIn::s_int_64;   // ambiguous
+    if(typeName == "float")    return BuiltIn::float_32;
+    if(typeName == "double")   return BuiltIn::double_64;
+    if(typeName == "x86_fp80") return BuiltIn::long_double;
+    if(typeName == "ptr")      return BuiltIn::ptr;
+    if(typeName == "void")     return BuiltIn::void_t;
+    return BuiltIn::none;
+}
+
 uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type)
 {
     switch (type)

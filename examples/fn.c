@@ -131,8 +131,8 @@ int call_binary(int (*fn)(int, int), int a, int b)
 struct Pair
 {
     int x;
-    long xd;
-    int y;
+    int xd;
+    long y;
 };
 
 struct Pair2
@@ -143,9 +143,14 @@ struct Pair2
 };
 struct Pair make_pair(int x, int y, struct Pair2 p2, struct Pair p3)
 {
+    if(x%2 == 0)
+    {
+        struct Pair p2 =  {2, 4};
+        return p2;
+    }
     struct Pair p;
     p.x = x;
-    p.y = p3.x;
+    p.xd = p3.x;
     return p;
 }
 

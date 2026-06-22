@@ -46,6 +46,12 @@ enum class Intrinsic
     llvm_memcpy
 };
 
+struct ByValueStructDesc
+{
+    std::string lType;
+    std::string rType;
+};
+
 struct CodeGen
 {
     CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne);
@@ -61,7 +67,7 @@ struct CodeGen
     // Function stuff
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
     void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView);
-    void EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t lIdx, int64_t rIdx);
+    void EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t idx);
     void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, bool lastParam, int64_t idx);
     void CloseParamList();
     void EmitFunctionClose();
@@ -135,6 +141,7 @@ struct CodeGen
     void ArgSeparator();
 
     std::string_view MapBuiltInToLlvm(BuiltIn::Type srcType);
+    ByValueStructDesc BuildValueStruct(const StructDesc& desc);
     std::string getRetName(const DeclSpecs* spec, const Declarator* decl);
     // expressions
 

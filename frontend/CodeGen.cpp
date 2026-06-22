@@ -360,19 +360,13 @@ void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typen
     GetIdxForLocalVar();
 }
 
-void CodeGen::EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t lIdx, int64_t rIdx)
+void CodeGen::EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t idx)
 {
     BindFuncBuffer(); 
     std::string_view typeView = GetBuiltInName(type);
-    if(rIdx == INDEX_INVALID)
-    {
-        WriteCharData("%v noundef %%%l", typeView, lIdx);
-    }
-    else
-    {
-        WriteCharData("i64 noundef %%%l, %v noundef %%%l", lIdx, typeView, rIdx);
-    }
 
+    WriteCharData("%v noundef %%%l", typeView, idx);
+    
     if(!lastParam)
     {
         WriteCharData(", ");
@@ -725,12 +719,10 @@ void CodeGen::CopyPassTmpStructToStruct(
     {
         int64_t passIdx = AllocatePassByTmpStruct(left, right, alignment);
         BindLocalBuffer();
-        std::string_view typeView = GetBuiltInName(right);
         int64_t firstTypeIdx = GetIdxForLocalVar();
         int64_t secondTypeIdx = GetIdxForLocalVar();
 
-        std::string passStruct = std::string(typeView.data(), typeView.length());
-        passStruct = "{ i64, " + passStruct + " }";
+        std::string passStruct = "{ " + std::string(GetBuiltInName(left)) + ", " + std::string(GetBuiltInName(right)) + " }";
         WriteCharData("\n\t%%%l = getelementptr inbounds nuw %v, ptr %%%l, i32 0, i32 0", firstTypeIdx, VIEW(passStruct), passIdx);
         WriteCharData("\n\tstore %v %%%l, ptr %%%l, align %lu", GetBuiltInName(left), lIdx, firstTypeIdx, alignment);
         WriteCharData("\n\t%%%l = getelementptr inbounds nuw %v, ptr %%%l, i32 0, i32 1", secondTypeIdx, VIEW(passStruct), passIdx);
@@ -1119,6 +1111,88 @@ std::string_view CodeGen::MapBuiltInToLlvm(BuiltIn::Type srcType)
     }
 }
 
+ByValueStructDesc CodeGen::BuildValueStruct(const StructDesc &desc)
+{
+    // TODO this code may need improvement
+    int lSize = 0, rSize =0, deltaSize = 0;
+    int* consideredSize = &lSize;
+    uint32_t alignment = 1;
+    size_t i =0;
+    while(i < desc.argCount)
+    {
+        const Member* member = &desc.memberList[i];
+        int remainigBytes = *consideredSize % member->alignment ;
+        deltaSize = remainigBytes == 0 ? 0 : member->alignment - remainigBytes;
+        deltaSize += member->size;
+        if(lSize + deltaSize <= 8)
+        {
+            lSize += deltaSize;
+        }
+        else if(rSize == 0)
+        {
+            alignment = 1;
+            consideredSize = &rSize;
+            rSize += member->size;
+        }
+        else
+        {
+            rSize += deltaSize;
+        }
+        
+        alignment = std::max(alignment, member->alignment);
+        i++;
+    }
+
+    if(lSize + rSize > 16)
+    {
+        IssueWarning(nullptr, "Internal fata error: lSize + rSize > 16");
+    }
+
+    if(rSize == 0)
+    {
+        switch (lSize)
+        {
+        case 1: return {"i8", ""};
+        case 2: return {"i16", ""};
+        case 3: return {"i24", ""};
+        case 4: return {"i32", ""};
+        case 5: if (alignment < 4) return {"i40", ""}; break;
+        case 6: if (alignment < 4) return {"i48", ""}; break;
+        case 7: if (alignment < 4) return {"i56", ""}; break;
+        }
+        return {"i64", ""};
+    }
+    else
+    {
+        ByValueStructDesc out = {};
+        switch (lSize)
+        {
+        case 1: out.lType = "i8";   break;
+        case 2: out.lType = "i16";  break;
+        case 3: 
+        case 4: out.lType = "i32";  break;
+        default: out.lType = "i64"; break;
+        }
+        
+        switch (rSize)
+        {
+        case 1: out.rType = "i8";   break;
+        case 2: out.rType = "i16";  break;
+        case 3: 
+        case 4: out.rType = "i32";  break;
+        default: out.rType = "i64"; break;
+        }
+
+        if(out.rType != "i64")
+        {
+            out.lType = "i64";
+        }
+
+        return out;
+    }
+    return {};
+}
+
 std::string CodeGen::getRetName(const DeclSpecs* spec, const Declarator* decl)
 {
     if(IsPointer(&decl->accArr))
@@ -1134,7 +1208,12 @@ std::string CodeGen::getRetName(const DeclSpecs* spec, const Declarator* decl)
         }
         else
         {
-           return "{ i64, i" + std::to_string((spec->symType->size - 8) * 8) + " }";
+            ByValueStructDesc desc = BuildValueStruct(spec->symType->str);
+            if(desc.lType == "")
+            {
+                return desc.lType;
+            }
+            return "{ " + desc.lType + ", " + desc.rType + " }";
         }
 
     }
