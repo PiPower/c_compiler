@@ -143,3 +143,69 @@ struct BinaryShiftRight
         return cg->EmitLocalShiftRight(opType, left, right);
     }
 };
+
+struct CmpGreater
+{
+    template<typename T>
+    using op = std::greater<T>; 
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalCmpGe(opType, left, right);
+    }
+};
+
+struct CmpGreaterEq
+{
+    template<typename T>
+    using op = std::greater_equal<T>; 
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalCmpGeEq(opType, left, right);
+    }
+};
+
+struct CmpLess
+{
+    template<typename T>
+    using op = std::less<T>; 
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalCmpLe(opType, left, right);
+    }
+};
+
+struct CmpLessEq
+{
+    template<typename T>
+    using op = std::less_equal<T>; 
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalCmpLeEq(opType, left, right);
+    }
+};
+
+struct CmpEqual
+{
+    template<typename T>
+    using op = std::equal_to<T>; 
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalCmpEq(opType, left, right);
+    }
+};
+
+struct CmpNotEqual
+{
+    template<typename T>
+    using op = std::not_equal_to<T>; 
+
+    static int64_t emitBinExpr(CodeGen* cg, BuiltIn::Type opType, Operator left, Operator right)
+    {
+        return cg->EmitLocalCmpNotEq(opType, left, right);
+    }
+};

@@ -864,6 +864,30 @@ int64_t CodeGen::EmitLocalIntTruncate(BuiltIn::Type dstType, BuiltIn::Type srcTy
             VIEW(strTargetIdx), srcView, VIEW(operandIdx), dstView);
     return targetIdx;
 }
+int64_t CodeGen::EmitLocalCmpGe(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "icmp sgt", "icmp ugt", "fcmp ogt", false);
+}
+int64_t CodeGen::EmitLocalCmpGeEq(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "icmp sge", "icmp uge", "fcmp oge", false);
+}
+int64_t CodeGen::EmitLocalCmpLe(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "icmp slt", "icmp ult", "fcmp olt", false);
+}
+int64_t CodeGen::EmitLocalCmpLeEq(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "icmp sle", "icmp ule", "fcmp ole", false);
+}
+int64_t CodeGen::EmitLocalCmpEq(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "icmp eq", "icmp eq", "fcmp oeq", false);
+}
+int64_t CodeGen::EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator right)
+{
+    return EmitLocalBinaryOp(opType, left, right, "icmp ne", "icmp ne", "fcmp one", false);
+}
 void CodeGen::EmitZeroInitType(bool isGlobal)
 {
     if(isGlobal)

@@ -114,13 +114,19 @@ struct CodeGen
     int64_t EmitLocalShiftLeft(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalShiftRight(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalIntTruncate(BuiltIn::Type dstType, BuiltIn::Type srcType, Operator src);
+    int64_t EmitLocalCmpGe(BuiltIn::Type opType, Operator left, Operator right);
+    int64_t EmitLocalCmpGeEq(BuiltIn::Type opType, Operator left, Operator right);
+    int64_t EmitLocalCmpLe(BuiltIn::Type opType, Operator left, Operator right);
+    int64_t EmitLocalCmpLeEq(BuiltIn::Type opType, Operator left, Operator right);
+    int64_t EmitLocalCmpEq(BuiltIn::Type opType, Operator left, Operator right);
+    int64_t EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator right);
 
     void EmitZeroInitType(bool isGlobal);
     void EmitZeroInitInt(bool isGlobal);
     void EmitZeroInitFloat(bool isGlobal);
     void EmitString(bool isGlobal,int64_t strIdx);
     void EmitConstant(bool isGlobal, BuiltIn::Type dstType, const Typed::Number &num);
-
+    // general functions
     int64_t EmitLocalBinaryOp(
         BuiltIn::Type opType, 
         Operator left, 

@@ -122,6 +122,10 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         AnalyzeFunctionDef(root->lChild, root->rChild);
     }
+    else if(root->type == Ast::st_if)
+    {
+        IfStatement(root);
+    } 
     else if(root->type == Ast::st_return)
     {
         RetStatement(root);
@@ -1676,6 +1680,12 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     case Ast::assignment: return HandleAssignment(root);
     case Ast::identifier: return HandleIdentifier(root);
     case Ast::cast: return HandleCast(root);
+    case Ast::op_less: return BinaryOp<CmpLess>(this, &codeGen, root);
+    case Ast::op_less_equal: return BinaryOp<CmpLessEq>(this, &codeGen, root);
+    case Ast::op_equal: return BinaryOp<CmpEqual>(this, &codeGen, root);
+    case Ast::op_not_equal: return BinaryOp<CmpNotEqual>(this, &codeGen, root);
+    case Ast::op_greater_equal: return BinaryOp<CmpGreaterEq>(this, &codeGen, root);
+    case Ast::op_greater: return BinaryOp<CmpGreater>(this, &codeGen, root);
     case Ast::op_add: return BinaryOp<BinaryAddition>(this, &codeGen, root);
     case Ast::op_subtract: return BinaryOp<BinarySubtraction>(this, &codeGen, root);
     case Ast::op_multiply: return BinaryOp<BinaryMultiplication>(this, &codeGen, root);
@@ -2130,6 +2140,12 @@ ExprRet SemanticAnalyzer::HandleTypeConversion(const ExprRet *src, BuiltIn::Type
     }
 
     return out;
+}
+
+void SemanticAnalyzer::IfStatement(const Ast::Node *root)
+{
+    const Ast::Node* cond = &root->rChild[0];
+    ExprRet condExpr = AnalyzeExpr(cond);
 }
 
 void SemanticAnalyzer::RetStatement(const Ast::Node *root)

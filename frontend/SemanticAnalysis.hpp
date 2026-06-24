@@ -73,6 +73,7 @@ struct SemanticAnalyzer
     void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
     ExprRet HandleTypeConversion(const ExprRet* src, BuiltIn::Type newType);
     // statement
+    void IfStatement(const Ast::Node* root);
     void RetStatement(const Ast::Node* root);
     // misc
     ExprRet LoadVariable(const ExprRet& ret);

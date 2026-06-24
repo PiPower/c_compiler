@@ -92,7 +92,7 @@ void test_selection_statements(int n)
         side_effect();
  
     /* 3b. if-else */
-    if (n > 0)
+    if (n >= 0)
         side_effect();
     else
         side_effect();
@@ -106,7 +106,7 @@ void test_selection_statements(int n)
         side_effect();
  
     /* 3d. nested if — classic dangling-else */
-    if (n > 0)
+    if (n <= 0)
         if (n > 100)
             side_effect();
         else            /* binds to inner if */
