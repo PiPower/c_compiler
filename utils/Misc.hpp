@@ -33,6 +33,7 @@ std::string_view GetBuiltInName(const BuiltIn::Type type);
 BuiltIn::Type GetBuiltInType(const std::string_view& typeName);
 uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type);
 std::string_view GetViewForToken(const Token &token, FileManager* fm);
+Ast::NodeType tokenAsmToExpr(TokenType::Type asmToken);
 
 constexpr inline Ast::Node* lenToAstPtr(size_t len)
 {

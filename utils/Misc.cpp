@@ -342,3 +342,21 @@ std::string_view GetViewForToken(const Token &token, FileManager* fm)
                                 token.location.len - offset * 2);
     return tokenView;
 }
+
+Ast::NodeType tokenAsmToExpr(TokenType::Type asmToken)
+{
+    switch (asmToken)
+    {
+    case TokenType::star_equal: return Ast::op_multiply;
+    case TokenType::slash_equal: return Ast::op_divide;
+    case TokenType::percent_equal: return Ast::op_divide_modulo;
+    case TokenType::plus_equal: return Ast::op_add;
+    case TokenType::minus_equal: return Ast::op_minus;
+    case TokenType::l_shift_equal: return Ast::op_l_shift;
+    case TokenType::r_shift_equal: return Ast::op_r_shift;
+    case TokenType::ampresand_equal: return Ast::op_and;
+    case TokenType::caret_equal: return Ast::op_exc_or;
+    case TokenType::pipe_equal: return Ast::op_inc_or;
+    default:return Ast::none;
+    }
+}

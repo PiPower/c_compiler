@@ -1815,10 +1815,26 @@ Ast::Node* Parser::AssignmentExpression(Ast::Node* unaryExpr)
     {
         ConsumeToken();
         Ast::Node* asmExpr = AllocateAstNodes();
-        asmExpr->token = token;
-        asmExpr->type = Ast::assignment;
-        asmExpr->lChild = unaryExpr;
-        asmExpr->rChild = AssignmentExpression();
+        if(token.type != TokenType::equal)
+        {
+            Ast::Node* opp = AllocateAstNodes();
+            opp->token = token;
+            opp->type = tokenAsmToExpr(token.type);
+            opp->lChild = unaryExpr;
+            opp->rChild = AssignmentExpression();
+
+            asmExpr->token = token;
+            asmExpr->type = Ast::assignment;
+            asmExpr->lChild = unaryExpr;
+            asmExpr->rChild = opp;
+        }
+        else
+        {
+            asmExpr->token = token;
+            asmExpr->type = Ast::assignment;
+            asmExpr->lChild = unaryExpr;
+            asmExpr->rChild = AssignmentExpression();
+        }
 
         return asmExpr;
     }
