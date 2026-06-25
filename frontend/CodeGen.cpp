@@ -752,6 +752,28 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
     return result;
 }
 
+void CodeGen::EmitLocalLabel(int64_t label)
+{
+    WriteCharData("\n%l:", label);
+}
+
+void CodeGen::EmitLocalJump(int64_t label)
+{
+    WriteCharData("\n\tbr label %%%l", label);
+}
+
+void CodeGen::EmitLocalCondJump(int64_t cond, int64_t jmpIfTrue, int64_t jmpIfFalse)
+{
+    WriteCharData("\n\tbr i1 %%%l, label %%%l, label %%%l", cond, jmpIfTrue, jmpIfFalse);
+}
+
+int64_t CodeGen::EmitLocalLabel()
+{
+    int64_t label = GetIdxForLocalVar();
+    WriteCharData("\n%l:", label);
+    return label;
+}
+
 int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx)
 {
     BindLocalBuffer();

@@ -2027,6 +2027,13 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     }
 }
 
+void SemanticAnalyzer::HandleZeroComparison(const ExprRet &res)
+{
+    Typed::Number num = {};
+    num.type = BuiltInToNum(res.type);
+    codeGen.EmitLocalCmpNotEq(res.type, {res.id, res.num}, {EXPR_ID_CONST, num});
+}
+
 void SemanticAnalyzer::HandleTypePromotion(const ExprRet *left, const ExprRet *right, ExprRet *outLeft, ExprRet *outRight)
 {
     if(isInteger(left->type) && isInteger(right->type))
@@ -2145,7 +2152,24 @@ ExprRet SemanticAnalyzer::HandleTypeConversion(const ExprRet *src, BuiltIn::Type
 void SemanticAnalyzer::IfStatement(const Ast::Node *root)
 {
     const Ast::Node* cond = &root->rChild[0];
+    const Ast::Node* statement = &root->rChild[1];
+    const Ast::Node* elseClause = &root->rChild[2];
+
+    int64_t exprLabel = codeGen.GetIdxForLocalVar();
+    int64_t nextIfLabel = codeGen.GetIdxForLocalVar();
+    int64_t exitLabel =  elseClause->type == Ast::none ? nextIfLabel : codeGen.GetIdxForLocalVar();
+
+
     ExprRet condExpr = AnalyzeExpr(cond);
+    HandleZeroComparison(condExpr);
+
+    codeGen.EmitLocalCondJump(condExpr.id, exprLabel, nextIfLabel);
+    codeGen.EmitLocalLabel(exprLabel);
+    Analyze(&root->rChild[1]);
+    codeGen.EmitLocalJump(exitLabel);
+
+    codeGen.EmitLocalLabel(exitLabel);
+
 }
 
 void SemanticAnalyzer::RetStatement(const Ast::Node *root)

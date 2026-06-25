@@ -70,6 +70,7 @@ struct SemanticAnalyzer
     ExprRet HandlePointerAssignment(const ExprRet* dst, const ExprRet* src);
     ExprRet HandleGetAddr(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
+    void HandleZeroComparison(const ExprRet& res);
     void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
     ExprRet HandleTypeConversion(const ExprRet* src, BuiltIn::Type newType);
     // statement

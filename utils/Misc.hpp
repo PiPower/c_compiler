@@ -35,6 +35,25 @@ uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type);
 std::string_view GetViewForToken(const Token &token, FileManager* fm);
 Ast::NodeType tokenAsmToExpr(TokenType::Type asmToken);
 
+constexpr inline Typed::DType BuiltInToNum(BuiltIn::Type type)
+{
+    switch (type)
+    {
+    case BuiltIn::Type::s_char_8:     return Typed::DType::d_int8_t;
+    case BuiltIn::Type::u_char_8:     return Typed::DType::d_uint8_t;
+    case BuiltIn::Type::s_int_16:     return Typed::DType::d_int16_t;
+    case BuiltIn::Type::u_int_16:     return Typed::DType::d_uint16_t;
+    case BuiltIn::Type::s_int_32:     return Typed::DType::d_int32_t;
+    case BuiltIn::Type::u_int_32:     return Typed::DType::d_uint32_t;
+    case BuiltIn::Type::s_int_64:     return Typed::DType::d_int64_t;
+    case BuiltIn::Type::u_int_64:     return Typed::DType::d_uint64_t;
+    case BuiltIn::Type::float_32:     return Typed::DType::d_float;
+    case BuiltIn::Type::double_64:    return Typed::DType::d_double;
+    case BuiltIn::Type::long_double:  return Typed::DType::d_l_double;
+    default:                          return Typed::DType::d_none;
+    }
+}
+
 constexpr inline Ast::Node* lenToAstPtr(size_t len)
 {
     return reinterpret_cast<Ast::Node*>(static_cast<uintptr_t>(len));

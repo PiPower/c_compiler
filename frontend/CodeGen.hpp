@@ -100,6 +100,11 @@ struct CodeGen
         const std::string_view* typeName, 
         int64_t arrayIdx, 
         const std::vector<uint64_t>* indicies);
+
+    void EmitLocalLabel(int64_t idx);
+    void EmitLocalJump(int64_t label);
+    void EmitLocalCondJump(int64_t cond, int64_t jmpIfTrue, int64_t jmpIfFalse);
+    int64_t EmitLocalLabel();
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
