@@ -2149,16 +2149,14 @@ ExprRet SemanticAnalyzer::HandleTypeConversion(const ExprRet *src, BuiltIn::Type
     return out;
 }
 
-void SemanticAnalyzer::IfStatement(const Ast::Node *root)
+void SemanticAnalyzer::IfBlock(const Ast::Node *root, int64_t exitLabel)
 {
     const Ast::Node* cond = &root->rChild[0];
     const Ast::Node* statement = &root->rChild[1];
     const Ast::Node* elseClause = &root->rChild[2];
 
     int64_t exprLabel = codeGen.GetIdxForLocalVar();
-    int64_t nextIfLabel = codeGen.GetIdxForLocalVar();
-    int64_t exitLabel =  elseClause->type == Ast::none ? nextIfLabel : codeGen.GetIdxForLocalVar();
-
+    int64_t nextIfLabel =  elseClause->type == Ast::none ? exitLabel : codeGen.GetIdxForLocalVar();
 
     ExprRet condExpr = AnalyzeExpr(cond);
     HandleZeroComparison(condExpr);
@@ -2168,8 +2166,31 @@ void SemanticAnalyzer::IfStatement(const Ast::Node *root)
     Analyze(&root->rChild[1]);
     codeGen.EmitLocalJump(exitLabel);
 
-    codeGen.EmitLocalLabel(exitLabel);
 
+    codeGen.EmitLocalLabel(nextIfLabel);
+    if(elseClause->type == Ast::st_if)
+    {
+        IfBlock(elseClause, exitLabel);
+    }
+    else
+    {
+        Analyze(elseClause);
+    }
+    
+}
+
+void SemanticAnalyzer::IfStatement(const Ast::Node *root)
+{
+    const Ast::Node* elseClause = &root->rChild[2];
+
+    int64_t exitLabel = codeGen.GetIdxForLocalVar();
+
+    IfBlock(root, exitLabel);
+
+    if(elseClause->type != Ast::none)
+    {
+        codeGen.EmitLocalLabel(exitLabel);
+    }
 }
 
 void SemanticAnalyzer::RetStatement(const Ast::Node *root)

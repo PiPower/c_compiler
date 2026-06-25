@@ -87,30 +87,32 @@ void test_compound_statements(void)
  * ================================================================ */
 void test_selection_statements(int n)
 {
+    double p = 0;
     /* 3a. plain if */
     if (n > 0)
-        side_effect();
+        p += 1.0;
  
     /* 3b. if-else */
     if (n >= 0)
-        side_effect();
+        p += 2.0;
     else
-        side_effect();
+        p += 3.0;
  
+    int ssd = 11;
     /* 3c. if-else-if chain (dangling-else resolved to nearest if) */
     if (n < 0)
-        side_effect();
+        ssd -= 1;
     else if (n == 0)
-        side_effect();
+        ssd *= 32;
     else
-        side_effect();
+        ssd /= 2;
  
     /* 3d. nested if — classic dangling-else */
     if (n <= 0)
         if (n > 100)
-            side_effect();
+            ssd += 9;
         else            /* binds to inner if */
-            side_effect();
+            ssd -= 21;
  
     /* 3e. switch with fall-through, break, default */
     switch (n) {

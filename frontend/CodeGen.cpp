@@ -754,7 +754,7 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
 
 void CodeGen::EmitLocalLabel(int64_t label)
 {
-    WriteCharData("\n%l:", label);
+    WriteCharData("\n\n%l:", label);
 }
 
 void CodeGen::EmitLocalJump(int64_t label)
