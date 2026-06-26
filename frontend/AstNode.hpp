@@ -54,7 +54,7 @@
     X(parameter_list) \
     X(identifier_list) \
     /* Statement (including loops and conditionals) */ \
-    ST(block) \
+    ST(compound) \
     ST(if) \
     ST(else) \
     ST(for_loop) \
@@ -93,7 +93,6 @@
     /* Misc */ \
     X(init_expr) \
     X(compound_literal) \
-    X(compound_statement) \
     X(var_len_array) \
     X(array_decl) \
     X(glue_list) \

@@ -370,7 +370,7 @@ Ast::Node *Parser::ParseCompoundStatement()
 
     Ast::Node* CompoundStatement = AllocateAstNodes();
     CompoundStatement->token = GetCurrToken();
-    CompoundStatement->type = Ast::compound_statement;
+    CompoundStatement->type = Ast::st_compound;
 
     ConsumeExpectedToken(TokenType::l_brace);
 

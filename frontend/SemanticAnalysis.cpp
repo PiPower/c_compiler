@@ -130,6 +130,18 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         RetStatement(root);
     } 
+    else if(root->type == Ast::st_compound)
+    {
+        symTab->CreateNewScope(Scope::LOCAL);
+        const Ast::Node* st = root->rChild;
+        while (st)
+        {
+            Analyze(st->lChild);
+            st = st->rChild;
+        }
+
+        symTab->PopScope();
+    } 
     else if (root->type == Ast::expression)
     {
         const Ast::Node* expr = root->rChild;
@@ -182,10 +194,12 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     }
 
     codeGen.EmitFunctionName(&declSpec, &fnDecl);
+    fnSym = symTab->QueryFunctionSymbol(fnDecl.name);
     // emit parameters
     symTab->CreateNewScope(Scope::LOCAL);
     AnalyzeFunctionParams(&declSpec, &fnDecl);
     // emit function body
+    fnSym->fnScope = symTab->currentTable;
     const Ast::Node* bodyNode = body->rChild;
     while (bodyNode)
     {
@@ -2027,11 +2041,11 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     }
 }
 
-void SemanticAnalyzer::HandleZeroComparison(const ExprRet &res)
+int64_t SemanticAnalyzer::HandleZeroComparison(const ExprRet &res)
 {
     Typed::Number num = {};
     num.type = BuiltInToNum(res.type);
-    codeGen.EmitLocalCmpNotEq(res.type, {res.id, res.num}, {EXPR_ID_CONST, num});
+    return codeGen.EmitLocalCmpNotEq(res.type, {res.id, res.num}, {EXPR_ID_CONST, num});
 }
 
 void SemanticAnalyzer::HandleTypePromotion(const ExprRet *left, const ExprRet *right, ExprRet *outLeft, ExprRet *outRight)
@@ -2159,9 +2173,9 @@ void SemanticAnalyzer::IfBlock(const Ast::Node *root, int64_t exitLabel)
     int64_t nextIfLabel =  elseClause->type == Ast::none ? exitLabel : codeGen.GetIdxForLocalVar();
 
     ExprRet condExpr = AnalyzeExpr(cond);
-    HandleZeroComparison(condExpr);
+    int64_t condId = HandleZeroComparison(condExpr);
 
-    codeGen.EmitLocalCondJump(condExpr.id, exprLabel, nextIfLabel);
+    codeGen.EmitLocalCondJump(condId, exprLabel, nextIfLabel);
     codeGen.EmitLocalLabel(exprLabel);
     Analyze(&root->rChild[1]);
     codeGen.EmitLocalJump(exitLabel);
