@@ -70,13 +70,14 @@ struct SemanticAnalyzer
     ExprRet HandlePointerAssignment(const ExprRet* dst, const ExprRet* src);
     ExprRet HandleGetAddr(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
-    int64_t HandleZeroComparison(const ExprRet& res);
+    int64_t HandleNotEqZero(const ExprRet& res);
     void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
     ExprRet HandleTypeConversion(const ExprRet* src, BuiltIn::Type newType);
     // statement
     void IfBlock(const Ast::Node* root, int64_t exitLabel);
     void IfStatement(const Ast::Node* root);
     void RetStatement(const Ast::Node* root);
+    void WhileStatement(const Ast::Node* root);
     // misc
     ExprRet LoadVariable(const ExprRet& ret);
     void WriteCodeToFile(const char* filename);

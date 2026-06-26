@@ -156,72 +156,89 @@ void test_selection_statements(int n)
 void test_iteration_statements(void)
 {
     int i, sum;
- 
+
     /* 4a. while */
     i = 0;
     while (i < 10)
-        i++;
- 
+        i += 2;
+
     /* 4b. while with compound body */
     i = 0;
     while (i < 5) {
-        side_effect();
+        sum += i;
         i++;
     }
- 
+
     /* 4c. do-while */
     i = 0;
     do {
         i++;
     } while (i < 10);
- 
+
     /* 4d. do-while runs at least once */
-    do { side_effect(); } while (0);
- 
+    i = 0;
+    do {
+        i += 1;
+    } while (0);
+
     /* 4e. for — all three clauses */
+    sum = 0;
     for (i = 0; i < 10; i++)
-        side_effect();
- 
+        sum += i;
+
     /* 4f. for — C99 declaration in init */
     for (int k = 0; k < 5; k++)
-        side_effect();
- 
+        sum += k;
+
     /* 4g. for — empty clauses (infinite loop, broken by break) */
-    for (;;) { break; }
- 
+    for (;;) {
+        sum += 1;
+        break;
+    }
+
     /* 4h. for — missing update */
-    for (i = 0; i < 3; ) { i++; }
- 
+    for (i = 0; i < 3;) {
+        i++;
+        sum += i;
+    }
+
     /* 4i. for — missing condition (treated as 1) */
-    for (i = 0; ; i++) { if (i >= 3) break; }
- 
+    for (i = 0;; i++) {
+        sum += i;
+        if (i >= 3)
+            break;
+    }
+
     /* 4j. nested loops with labeled break/continue */
     sum = 0;
     for (int r = 0; r < 4; r++) {
         for (int col = 0; col < 4; col++) {
-            if (col == 2) continue;     /* skip column 2 */
-            if (r == 3)   break;        /* stop inner loop on last row */
+            if (col == 2) continue;
+            if (r == 3) break;
             sum += r * col;
         }
     }
     (void)sum;
- 
+
     /* 4k. while with break */
     i = 0;
     while (1) {
-        if (i++ > 5) break;
+        sum += i;
+        if (i++ > 5)
+            break;
     }
- 
+
     /* 4l. while with continue */
-    i = 0; sum = 0;
+    i = 0;
+    sum = 0;
     while (i < 10) {
         i++;
-        if (i % 2 == 0) continue;
+        if (i % 2 == 0)
+            continue;
         sum += i;
     }
     (void)sum;
 }
- 
 /* ================================================================
  * 5. JUMP STATEMENTS  (goto / continue / break / return)
  * ================================================================ */

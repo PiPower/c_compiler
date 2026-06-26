@@ -130,6 +130,10 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         RetStatement(root);
     } 
+    else if(root->type == Ast::st_while_loop)
+    {
+        WhileStatement(root);
+    } 
     else if(root->type == Ast::st_compound)
     {
         symTab->CreateNewScope(Scope::LOCAL);
@@ -2041,7 +2045,7 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     }
 }
 
-int64_t SemanticAnalyzer::HandleZeroComparison(const ExprRet &res)
+int64_t SemanticAnalyzer::HandleNotEqZero(const ExprRet &res)
 {
     Typed::Number num = {};
     num.type = BuiltInToNum(res.type);
@@ -2173,7 +2177,7 @@ void SemanticAnalyzer::IfBlock(const Ast::Node *root, int64_t exitLabel)
     int64_t nextIfLabel =  elseClause->type == Ast::none ? exitLabel : codeGen.GetIdxForLocalVar();
 
     ExprRet condExpr = AnalyzeExpr(cond);
-    int64_t condId = HandleZeroComparison(condExpr);
+    int64_t condId = HandleNotEqZero(condExpr);
 
     codeGen.EmitLocalCondJump(condId, exprLabel, nextIfLabel);
     codeGen.EmitLocalLabel(exprLabel);
@@ -2226,4 +2230,21 @@ void SemanticAnalyzer::RetStatement(const Ast::Node *root)
         ExprRet ret = HandleTypeConversion(&retExpr, currFn.retType);
         codeGen.EmitSimpleReturn(ret.type, {ret.id, ret.num});
     }
+}
+
+void SemanticAnalyzer::WhileStatement(const Ast::Node *root)
+{
+    int64_t entryLabel = codeGen.EmitLocalLabel();
+    int64_t bodyLabel = codeGen.GetIdxForLocalVar();
+    int64_t exitLabel = codeGen.GetIdxForLocalVar();
+
+
+    ExprRet cond = AnalyzeExpr(root->lChild);
+    int64_t id = HandleNotEqZero(cond);
+    codeGen.EmitLocalCondJump(id, bodyLabel, exitLabel);
+
+    codeGen.EmitLocalLabel(bodyLabel);
+    Analyze(root->rChild);
+    codeGen.EmitLocalJump(entryLabel);
+    codeGen.EmitLocalLabel(exitLabel);
 }
