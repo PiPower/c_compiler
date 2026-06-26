@@ -126,6 +126,10 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         IfStatement(root);
     } 
+    else if(root->type == Ast::st_break)
+    {
+        BreakStatement(root);
+    }
     else if(root->type == Ast::st_return)
     {
         RetStatement(root);
@@ -2245,7 +2249,7 @@ void SemanticAnalyzer::WhileStatement(const Ast::Node *root)
     int64_t entryLabel = codeGen.EmitLocalLabel();
     int64_t bodyLabel = codeGen.GetIdxForLocalVar();
     int64_t exitLabel = codeGen.GetIdxForLocalVar();
-
+    currFn.labels.push(exitLabel);
 
     ExprRet cond = AnalyzeExpr(root->lChild);
     int64_t id = HandleNotEqZero(cond);
@@ -2255,12 +2259,14 @@ void SemanticAnalyzer::WhileStatement(const Ast::Node *root)
     Analyze(root->rChild);
     codeGen.EmitLocalJump(entryLabel);
     codeGen.EmitLocalLabel(exitLabel);
+
+    currFn.labels.pop();
 }
 
 void SemanticAnalyzer::DoWhileStatement(const Ast::Node *root)
 {
     int64_t exitLabel = codeGen.GetIdxForLocalVar();
-
+    currFn.labels.push(exitLabel);
     int64_t entryLabel = codeGen.EmitLocalLabel();
     Analyze(root->lChild);
 
@@ -2269,7 +2275,7 @@ void SemanticAnalyzer::DoWhileStatement(const Ast::Node *root)
     codeGen.EmitLocalCondJump(id, entryLabel, exitLabel);
 
     codeGen.EmitLocalLabel(exitLabel);
-
+    currFn.labels.pop();
 }
 
 void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
@@ -2280,6 +2286,7 @@ void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
     const Ast::Node* body = &root->lChild[3];
     int64_t bodyLabel = codeGen.GetIdxForLocalVar();
     int64_t exitLabel = codeGen.GetIdxForLocalVar();
+    currFn.labels.push(exitLabel);
 
     symTab->CreateNewScope(Scope::LOCAL);
     Analyze(decl);
@@ -2298,4 +2305,15 @@ void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
     codeGen.EmitLocalLabel(exitLabel);
 
     symTab->PopScope();
+    currFn.labels.pop();
+
+}
+
+void SemanticAnalyzer::BreakStatement(const Ast::Node *root)
+{
+    if(currFn.labels.size()==0)
+    {
+        IssueWarning(&root->token, "'break' cannot be used outside of loops");
+    }
+    codeGen.EmitLocalJump(currFn.labels.top());
 }

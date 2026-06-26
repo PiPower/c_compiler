@@ -11,6 +11,7 @@ struct CurrentFunction
 {
     BuiltIn::Type retType;
     const SymbolType* retSymType;
+    std::stack<int64_t> labels;
 };
 
 struct SemanticAnalyzer
@@ -48,6 +49,7 @@ struct SemanticAnalyzer
         const Declarator* decl, 
         bool needsEmission = true,
         int64_t preallocatedIdx = INDEX_INVALID);
+
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
     bool IsMemberPointer(const Member* member);
@@ -80,6 +82,7 @@ struct SemanticAnalyzer
     void WhileStatement(const Ast::Node* root);
     void DoWhileStatement(const Ast::Node* root);
     void ForLoopStatement(const Ast::Node* root);
+    void BreakStatement(const Ast::Node* root);
     // misc
     ExprRet LoadVariable(const ExprRet& ret);
     void WriteCodeToFile(const char* filename);
