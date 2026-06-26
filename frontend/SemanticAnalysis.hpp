@@ -78,6 +78,7 @@ struct SemanticAnalyzer
     void IfStatement(const Ast::Node* root);
     void RetStatement(const Ast::Node* root);
     void WhileStatement(const Ast::Node* root);
+    void DoWhileStatement(const Ast::Node* root);
     // misc
     ExprRet LoadVariable(const ExprRet& ret);
     void WriteCodeToFile(const char* filename);

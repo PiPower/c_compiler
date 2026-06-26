@@ -134,6 +134,10 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         WhileStatement(root);
     } 
+    else if(root->type == Ast::st_do_while_loop)
+    {
+        DoWhileStatement(root);
+    }
     else if(root->type == Ast::st_compound)
     {
         symTab->CreateNewScope(Scope::LOCAL);
@@ -2247,4 +2251,19 @@ void SemanticAnalyzer::WhileStatement(const Ast::Node *root)
     Analyze(root->rChild);
     codeGen.EmitLocalJump(entryLabel);
     codeGen.EmitLocalLabel(exitLabel);
+}
+
+void SemanticAnalyzer::DoWhileStatement(const Ast::Node *root)
+{
+    int64_t exitLabel = codeGen.GetIdxForLocalVar();
+
+    int64_t entryLabel = codeGen.EmitLocalLabel();
+    Analyze(root->lChild);
+
+    ExprRet cond = AnalyzeExpr(root->rChild);
+    int64_t id = HandleNotEqZero(cond);
+    codeGen.EmitLocalCondJump(id, entryLabel, exitLabel);
+
+    codeGen.EmitLocalLabel(exitLabel);
+
 }
