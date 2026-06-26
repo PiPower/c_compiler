@@ -134,6 +134,10 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         RetStatement(root);
     } 
+    else if(root->type == Ast::st_switch)
+    {
+        SwitchStatement(root);
+    }
     else if(root->type == Ast::st_while_loop)
     {
         WhileStatement(root);
@@ -1781,7 +1785,7 @@ ExprRet SemanticAnalyzer::LoadCharacter(const Ast::Node *character)
     Typed::Number num;
     num.type = Typed::d_int8_t;
     num.int8 = str[1];
-    return ExprRet{BuiltIn::none, num, EXPR_ID_CONST};
+    return ExprRet{BuiltIn::s_char_8, num, EXPR_ID_CONST};
 }
 
 ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
@@ -2177,6 +2181,65 @@ ExprRet SemanticAnalyzer::HandleTypeConversion(const ExprRet *src, BuiltIn::Type
     }
 
     return out;
+}
+
+void SemanticAnalyzer::SwitchStatement(const Ast::Node *root)
+{
+    int64_t exitLabel = codeGen.GetIdxForLocalVar();
+    currFn.labels.push(exitLabel);
+    std::vector<int64_t> caseLabels;
+    std::vector<Typed::Number> labelValues;
+    const Ast::Node* caseNodeGlue = root->rChild->rChild;
+    int64_t defaultIdx = INDEX_INVALID;
+
+    while (caseNodeGlue)
+    {
+        const Ast::Node* caseNode = caseNodeGlue->lChild;
+        bool theSameLabel = false;
+RUN_CASE_CHECK:
+        if(caseNode->type == Ast::st_case)
+        {
+            if(!theSameLabel)
+            {
+                caseLabels.push_back(codeGen.GetIdxForLocalVar());
+            }
+            else
+            {
+                caseLabels.push_back(caseLabels.back());
+            }
+            ExprRet labelVal = AnalyzeExpr(caseNode->lChild);
+            if(labelVal.id != EXPR_ID_CONST)
+            {
+                IssueWarning(&caseNode->token, "Label for case must be constant expr")
+            }
+            if(!isInteger(labelVal.type))
+            {
+                IssueWarning(&caseNode->token, "Label for case must integer")
+            }
+            labelValues.push_back(labelVal.num);
+        }
+        else if(caseNode->type == Ast::st_default)
+        {
+            if(defaultIdx != INDEX_INVALID)
+            {
+                IssueWarning(&caseNode->token, "switch can only have one default")
+            }
+            defaultIdx = exitLabel;
+        }
+
+        if(caseNode->rChild && caseNode->rChild->type == Ast::st_case)
+        {
+            caseNode = caseNode->rChild;
+            theSameLabel = true;
+            goto RUN_CASE_CHECK;
+        }
+        caseNodeGlue = caseNodeGlue->rChild;
+
+    }
+    ExprRet condExpr = LoadVariable(AnalyzeExpr(root->lChild));
+    codeGen.EmitLocalSwitch(condExpr.type, condExpr.id, exitLabel, caseLabels, labelValues);
+    currFn.labels.pop();
+    int x = 2;
 }
 
 void SemanticAnalyzer::IfBlock(const Ast::Node *root, int64_t exitLabel)

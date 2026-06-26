@@ -774,6 +774,33 @@ int64_t CodeGen::EmitLocalLabel()
     return label;
 }
 
+void CodeGen::EmitLocalSwitch(
+    BuiltIn::Type type, 
+    int64_t cond, 
+    int64_t exitLabel, 
+    const std::vector<int64_t> &caseLabels, 
+    const std::vector<Typed::Number>& labelValues)
+{
+    if(!isInteger(type))
+    {
+        IssueWarning(nullptr, "Switch can only be used on integer types")
+    }
+    if(caseLabels.size() != labelValues.size())
+    {
+        IssueWarning(nullptr, "Number of label values does not math number of case values")
+    }
+
+    std::string_view typeView = GetBuiltInName(type);
+    WriteCharData("\n\tswitch %v %%%l, label %%%l [", typeView, cond, exitLabel);
+    for(size_t i = 0; i < caseLabels.size(); i++)
+    {
+        std::string value = Typed::ToString(labelValues[i]);
+        WriteCharData("\n\t\t %v %v, label %%%l", typeView, VIEW(value), caseLabels[i]);
+    }
+    WriteCharData("\n\t]");
+    return;
+}
+
 int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx)
 {
     BindLocalBuffer();

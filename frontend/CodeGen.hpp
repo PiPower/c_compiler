@@ -105,6 +105,13 @@ struct CodeGen
     void EmitLocalJump(int64_t label);
     void EmitLocalCondJump(int64_t cond, int64_t jmpIfTrue, int64_t jmpIfFalse);
     int64_t EmitLocalLabel();
+    void EmitLocalSwitch(
+        BuiltIn::Type type, 
+        int64_t cond, 
+        int64_t exitLabel, 
+        const std::vector<int64_t>& caseLabels,
+        const std::vector<Typed::Number>& labelValues);
+
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
