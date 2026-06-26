@@ -134,6 +134,10 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         WhileStatement(root);
     } 
+    else if(root->type == Ast::st_for_loop)
+    {
+        ForLoopStatement(root);
+    }
     else if(root->type == Ast::st_do_while_loop)
     {
         DoWhileStatement(root);
@@ -2266,4 +2270,32 @@ void SemanticAnalyzer::DoWhileStatement(const Ast::Node *root)
 
     codeGen.EmitLocalLabel(exitLabel);
 
+}
+
+void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
+{
+    const Ast::Node* decl = &root->lChild[0];
+    const Ast::Node* condNode = &root->lChild[1];
+    const Ast::Node* update = &root->lChild[2];
+    const Ast::Node* body = &root->lChild[3];
+    int64_t bodyLabel = codeGen.GetIdxForLocalVar();
+    int64_t exitLabel = codeGen.GetIdxForLocalVar();
+
+    symTab->CreateNewScope(Scope::LOCAL);
+    Analyze(decl);
+
+    int64_t entryLabel = codeGen.EmitLocalLabel();
+    if(condNode->type != Ast::none)
+    {
+        ExprRet cond = AnalyzeExpr(condNode);
+        int64_t id = HandleNotEqZero(cond);
+        codeGen.EmitLocalCondJump(id, bodyLabel, exitLabel);
+    }
+    codeGen.EmitLocalLabel(bodyLabel);
+    Analyze(body);
+    AnalyzeExpr(update);
+    codeGen.EmitLocalJump(entryLabel);
+    codeGen.EmitLocalLabel(exitLabel);
+
+    symTab->PopScope();
 }
