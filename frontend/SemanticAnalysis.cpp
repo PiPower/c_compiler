@@ -2196,6 +2196,7 @@ void SemanticAnalyzer::SwitchStatement(const Ast::Node *root)
     {
         const Ast::Node* caseNode = caseNodeGlue->lChild;
         bool theSameLabel = false;
+        // this goto is used for nested cases
 RUN_CASE_CHECK:
         if(caseNode->type == Ast::st_case)
         {
@@ -2224,7 +2225,7 @@ RUN_CASE_CHECK:
             {
                 IssueWarning(&caseNode->token, "switch can only have one default")
             }
-            defaultIdx = exitLabel;
+            defaultIdx = codeGen.GetIdxForLocalVar();
         }
 
         if(caseNode->rChild && caseNode->rChild->type == Ast::st_case)
@@ -2237,9 +2238,45 @@ RUN_CASE_CHECK:
 
     }
     ExprRet condExpr = LoadVariable(AnalyzeExpr(root->lChild));
-    codeGen.EmitLocalSwitch(condExpr.type, condExpr.id, exitLabel, caseLabels, labelValues);
+    codeGen.EmitLocalSwitch(condExpr.type, condExpr.id, 
+        defaultIdx == INDEX_INVALID ? exitLabel : defaultIdx, caseLabels, labelValues);
+    // second pass - code gen
+    caseNodeGlue = root->rChild->rChild;
+    size_t idx = 0;
+    bool hasDefault = false;
+    while (caseNodeGlue)
+    {
+        bool isCase = false;
+        const Ast::Node* caseNode = caseNodeGlue->lChild;
+        // reach bottom of the nested cases
+        while (caseNode->rChild && caseNode->type == Ast::st_case)
+        {
+            caseNode = caseNode->rChild;
+            isCase = true;
+        }
+
+        if(caseNode->type == Ast::st_default)
+        {
+            hasDefault =  true;
+            codeGen.EmitLocalLabel(defaultIdx);
+            Analyze(caseNode->lChild);
+        }
+        else
+        {
+            if(isCase)
+            {
+                codeGen.EmitLocalLabel(caseLabels[idx]);
+                idx++;
+            }
+            Analyze(caseNode);
+        }
+        
+        caseNodeGlue = caseNodeGlue->rChild;
+
+    }
+
+    codeGen.EmitLocalLabel(exitLabel);
     currFn.labels.pop();
-    int x = 2;
 }
 
 void SemanticAnalyzer::IfBlock(const Ast::Node *root, int64_t exitLabel)
