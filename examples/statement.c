@@ -116,6 +116,9 @@ void test_selection_statements(int n)
  
     /* 3e. switch with fall-through, break, default */
     switch (n) {
+        {
+            int ppr = n * 23;
+        }
     case 0:
         side_effect();
         break;

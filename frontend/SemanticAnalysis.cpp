@@ -130,6 +130,14 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         BreakStatement(root);
     }
+    else if (root->type == Ast::st_label)
+    {
+        LabelStatement(root);
+    }
+    else if(root->type == Ast::st_goto)
+    {
+        GotoStatement(root);
+    }
     else if(root->type == Ast::st_return)
     {
         RetStatement(root);
@@ -2398,6 +2406,7 @@ void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
         int64_t id = HandleNotEqZero(cond);
         codeGen.EmitLocalCondJump(id, bodyLabel, exitLabel);
     }
+
     codeGen.EmitLocalLabel(bodyLabel);
     Analyze(body);
     AnalyzeExpr(update);
@@ -2416,4 +2425,21 @@ void SemanticAnalyzer::BreakStatement(const Ast::Node *root)
         IssueWarning(&root->token, "'break' cannot be used outside of loops");
     }
     codeGen.EmitLocalJump(currFn.labels.top());
+}
+
+void SemanticAnalyzer::LabelStatement(const Ast::Node *root)
+{
+    std::string_view lableName = GetViewForToken(root->token, manager);
+    if(currFn.namedLabels.find(lableName) != currFn.namedLabels.cend())
+    {
+        IssueWarning(&root->token, "Label name redefinition")
+    }
+
+    int64_t labelId = codeGen.EmitLocalLabel();
+    currFn.namedLabels[lableName] = labelId;
+    Analyze(root->lChild);
+}
+
+void SemanticAnalyzer::GotoStatement(const Ast::Node *root)
+{
 }

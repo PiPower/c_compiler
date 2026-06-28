@@ -5,6 +5,7 @@
 #include "Preprocessor.hpp"
 #include "CodeGen.hpp"
 #include "Expression.hpp"
+#include <tuple>
 constexpr size_t  POINTER_SIZE = 8;
 
 struct CurrentFunction
@@ -12,6 +13,7 @@ struct CurrentFunction
     BuiltIn::Type retType;
     const SymbolType* retSymType;
     std::stack<int64_t> labels;
+    std::unordered_map<std::string_view, int64_t> namedLabels;
 };
 
 struct SemanticAnalyzer
@@ -84,6 +86,8 @@ struct SemanticAnalyzer
     void DoWhileStatement(const Ast::Node* root);
     void ForLoopStatement(const Ast::Node* root);
     void BreakStatement(const Ast::Node* root);
+    void LabelStatement(const Ast::Node* root);
+    void GotoStatement(const Ast::Node* root);
     // misc
     ExprRet LoadVariable(const ExprRet& ret);
     void WriteCodeToFile(const char* filename);
