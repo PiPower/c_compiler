@@ -360,14 +360,29 @@ void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typen
     GetIdxForLocalVar();
 }
 
-void CodeGen::EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t idx)
+void CodeGen::EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op)
 {
-    BindFuncBuffer(); 
+    if((flags & fpIsUsedInCall) > 0 )
+    {
+        BindLocalBuffer(); 
+    }
+    else
+    {
+        BindFuncBuffer(); 
+    }
     std::string_view typeView = GetBuiltInName(type);
 
-    WriteCharData("%v noundef %%%l", typeView, idx);
-    
-    if(!lastParam)
+    if(op.idx != EXPR_ID_CONST)
+    {
+        WriteCharData("%v noundef %%%l", typeView, op.idx);
+    }
+    else
+    {
+        std::string constValue = Typed::ToString(op.num);
+        WriteCharData("%v noundef %v", typeView, VIEW(constValue));
+    }
+
+    if((flags & fpIsLast) == 0 )
     {
         WriteCharData(", ");
     }
@@ -470,7 +485,7 @@ void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initialize
             IssueWarning(&initializer->token, "global value may only be initialized by constant expression")
         }
 
-        initStr = Typed::ToString(CastToBuiltIn(spec->symType->dType, num));
+        initStr = Typed::ToString(CastTypedNumber(spec->symType->dType, num));
     }
 
     if(isFloat(spec->symType->dType))
@@ -754,21 +769,25 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
 
 void CodeGen::EmitLocalLabel(int64_t label)
 {
+    BindLocalBuffer();
     WriteCharData("\n\n%l:", label);
 }
 
 void CodeGen::EmitLocalJump(int64_t label)
 {
+    BindLocalBuffer();
     WriteCharData("\n\tbr label %%%l", label);
 }
 
 void CodeGen::EmitLocalCondJump(int64_t cond, int64_t jmpIfTrue, int64_t jmpIfFalse)
 {
+    BindLocalBuffer();
     WriteCharData("\n\tbr i1 %%%l, label %%%l, label %%%l", cond, jmpIfTrue, jmpIfFalse);
 }
 
 int64_t CodeGen::EmitLocalLabel()
 {
+    BindLocalBuffer();
     int64_t label = GetIdxForLocalVar();
     WriteCharData("\n%l:", label);
     return label;
@@ -781,6 +800,7 @@ void CodeGen::EmitLocalSwitch(
     const std::vector<int64_t> &caseLabels, 
     const std::vector<Typed::Number>& labelValues)
 {
+    BindLocalBuffer();
     if(!isInteger(type))
     {
         IssueWarning(nullptr, "Switch can only be used on integer types")
@@ -937,16 +957,20 @@ int64_t CodeGen::EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator
 {
     return EmitLocalBinaryOp(opType, left, right, "icmp ne", "icmp ne", "fcmp one", false);
 }
-int64_t CodeGen::EmitFunctionCall(BuiltIn::Type ret, std::string_view fnName)
+int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName)
 {
     BindLocalBuffer();
-    if(ret == BuiltIn::void_t)
-    {
-        WriteCharData("\n\tcall void @%v()", fnName);
-        return EXPR_ID_IGNORE;
-    }
-    return 0;
+    std::string_view retType = GetBuiltInName(ret);
+    WriteCharData("\n\tcall %v @%v(", retType, fnName);
+    return EXPR_ID_IGNORE;
 }
+
+void CodeGen::EmitCloseFnCall()
+{
+    BindLocalBuffer();
+    WriteByte(')');
+}
+
 void CodeGen::EmitZeroInitType(bool isGlobal)
 {
     if(isGlobal)
@@ -1003,7 +1027,7 @@ void CodeGen::EmitConstant(bool isGlobal, BuiltIn::Type dstType, const Typed::Nu
     Typed::Number numLocal = num;
     if(isFloat(dstType) || isInteger(dstType))
     {
-        numLocal = CastToBuiltIn(dstType, num);
+        numLocal = CastTypedNumber(dstType, num);
     }
 
     std::string value = Typed::ToString(numLocal);

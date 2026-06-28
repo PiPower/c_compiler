@@ -110,7 +110,7 @@ constexpr inline bool isStructOrUnion(BuiltIn::Type type)
     return type == BuiltIn::struct_t || type == BuiltIn::union_t;
 }
 
-inline Typed::Number CastToBuiltIn(BuiltIn::Type type, const Typed::Number& num)
+inline Typed::Number CastTypedNumber(BuiltIn::Type type, const Typed::Number& num)
 {
     Typed::Number out{};
     switch (type)
@@ -163,3 +163,4 @@ inline Typed::Number CastToBuiltIn(BuiltIn::Type type, const Typed::Number& num)
         return {0, Typed::DType::d_none};
     }
 }
+

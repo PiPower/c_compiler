@@ -121,7 +121,8 @@ int sub(int a, int b)
 
 int call_binary(int (*fn)(int, int), int a, int b)
 {
-    return fn(a, b);
+    //return fn(a, b);
+    return 0;
 }
 
 /* ------------------------------------------------------------------ */

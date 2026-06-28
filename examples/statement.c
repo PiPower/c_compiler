@@ -412,6 +412,6 @@ int main(void)
     v = test_return_value(0);
     (void)v;
  
-    printf("All statement parser tests passed.\n");
+    //printf("All statement parser tests passed.\n");
     return 0;
 }

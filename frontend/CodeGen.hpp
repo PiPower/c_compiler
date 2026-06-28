@@ -51,6 +51,9 @@ struct ByValueStructDesc
     std::string lType;
     std::string rType;
 };
+// funciton param flags
+constexpr int8_t fpIsLast = 0x01;
+constexpr int8_t fpIsUsedInCall = 0x01 << 1;
 
 struct CodeGen
 {
@@ -67,7 +70,7 @@ struct CodeGen
     // Function stuff
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
     void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView);
-    void EmitFunctionParam(BuiltIn::Type type, bool lastParam, int64_t idx);
+    void EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op);
     void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, bool lastParam, int64_t idx);
     void CloseParamList();
     void EmitFunctionClose();
@@ -133,7 +136,8 @@ struct CodeGen
     int64_t EmitLocalCmpEq(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator right);
     // fuction call related
-    int64_t EmitFunctionCall(BuiltIn::Type ret, std::string_view fnName); 
+    int64_t EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName);
+    void EmitCloseFnCall();
     // variable related
     void EmitZeroInitType(bool isGlobal);
     void EmitZeroInitInt(bool isGlobal);

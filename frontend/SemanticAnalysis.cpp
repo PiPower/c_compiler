@@ -864,17 +864,17 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
         {
             break;
         }
-        bool isLast = i == paramDecl->paramCount - 1;
+        int8_t isLast = i == paramDecl->paramCount - 1 ? fpIsLast : 0;
         if(DecaysToPointer(&param->decl.accArr))
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
-            codeGen.EmitFunctionParam(BuiltIn::ptr, isLast, idx);
+            codeGen.EmitFunctionParam(BuiltIn::ptr, isLast, {idx, {}});
             paramDesc.emplace_back(BuiltIn::ptr, BuiltIn::none, idx);
         }
         else if(param->spec.symType->dType != BuiltIn::struct_t && param->spec.symType->dType != BuiltIn::union_t)
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
-            codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, idx);
+            codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, {idx, {}});
             paramDesc.emplace_back(param->spec.symType->dType, BuiltIn::none, idx);
         }
         else if(param->spec.symType->passByValue == 1)
@@ -886,10 +886,11 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
             BuiltIn::Type lType = GetBuiltInType(desc.lType);
             BuiltIn::Type rType = GetBuiltInType(desc.rType);
 
-            codeGen.EmitFunctionParam(lType, isLast && rType == BuiltIn::none, lIdx);
+            int8_t isLastJoined = isLast && rType == BuiltIn::none ? fpIsLast : 0;
+            codeGen.EmitFunctionParam(lType, isLastJoined, {lIdx, {}});
             if(rType != BuiltIn::none)
             {
-                codeGen.EmitFunctionParam(rType, isLast, rIdx);
+                codeGen.EmitFunctionParam(rType, isLast,  {rIdx, {}});
             }
             paramDesc.emplace_back(lType, rType, lIdx, rIdx);
         }
@@ -1898,10 +1899,62 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
     
     if(root->rChild == nullptr && isVoidCall(symFn))
     {
-        codeGen.EmitFunctionCall(BuiltIn::void_t, fnName);
+        codeGen.EmitOpenFnCall(BuiltIn::void_t, fnName);
+        codeGen.EmitCloseFnCall();
         return {BuiltIn::void_t, {}, EXPR_ID_IGNORE};
     }
-    return ExprRet();
+    if(isStructOrUnion(symFn->retType))
+    {
+        return {BuiltIn::void_t, {}, EXPR_ID_IGNORE};
+    }
+    const Ast::Node* arg = root->rChild->rChild;
+    const FunctionParams* params = symFn->params;
+    size_t i = 0;
+    int64_t id = codeGen.EmitOpenFnCall(symFn->retType, fnName);
+    while (arg)
+    {
+        if( i >= symFn->paramCount)
+        {
+            IssueWarning(&root->token, "Incorrect number of function call arguments")
+        }
+        ExprRet result = LoadVariable(AnalyzeExpr(arg->lChild));
+        BuiltIn::Type paramType = params[i].spec.symType->dType;
+        if(DecaysToPointer(&params[i].decl.accArr))
+        {
+            if(BuiltIn::ptr != result.type)
+            {
+                return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+                IssueWarning(&root->token, "Casting non pointer is incompatibile with pointer")
+            }
+        }
+        else if(!isStructOrUnion(params[i].spec.symType->dType))
+        {
+            result = HandleTypeConversion(&result, paramType);
+            int8_t flags = fpIsUsedInCall;
+            flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
+
+            codeGen.EmitFunctionParam(paramType, flags,  {result.id, result.num});
+
+        }
+        else
+        {
+            return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+        }
+
+        arg = arg->rChild;
+        i++;
+    }
+
+    if(i != symFn->paramCount)
+    {
+        IssueWarning(&root->token, "Incorrect number of function call arguments")
+    }
+    codeGen.EmitCloseFnCall();
+
+    ExprRet out = {};
+    out.id = id;
+    out.type = symFn->retType;
+    return out;
 }
 
 ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
@@ -2161,54 +2214,7 @@ ExprRet SemanticAnalyzer::HandleTypeConversion(const ExprRet *src, BuiltIn::Type
     else
     {
         out.id = EXPR_ID_CONST;
-        switch (newType)
-        {
-        case BuiltIn::Type::s_char_8:
-            out.num.type = Typed::d_int8_t;
-            out.num.int8 = Typed::CastTo<int8_t>(src->num); 
-            break;
-        case BuiltIn::Type::u_char_8:
-            out.num.type = Typed::d_uint8_t;
-            out.num.uint8 = Typed::CastTo<uint8_t>(src->num); 
-            break;
-        case BuiltIn::Type::s_int_16:
-            out.num.type = Typed::d_int16_t;
-            out.num.int16 = Typed::CastTo<int16_t>(src->num); 
-            break;
-        case BuiltIn::Type::u_int_16:
-            out.num.type = Typed::d_uint16_t;
-            out.num.uint16 = Typed::CastTo<uint16_t>(src->num); 
-            break;
-        case BuiltIn::Type::s_int_32: 
-            out.num.type = Typed::d_int32_t;
-            out.num.int32 = Typed::CastTo<int32_t>(src->num); 
-            break;
-        case BuiltIn::Type::u_int_32: 
-            out.num.type = Typed::d_uint32_t;
-            out.num.uint32 = Typed::CastTo<uint32_t>(src->num); 
-            break;
-        case BuiltIn::Type::s_int_64: 
-            out.num.type = Typed::d_int64_t;
-            out.num.int64 = Typed::CastTo<int64_t>(src->num); 
-            break;
-        case BuiltIn::Type::u_int_64: 
-            out.num.type = Typed::d_uint64_t;
-            out.num.uint64 = Typed::CastTo<uint64_t>(src->num); 
-            break;
-        case BuiltIn::Type::float_32: 
-            out.num.type = Typed::d_float;
-            out.num.float32 = Typed::CastTo<float>(src->num); 
-            break;
-        case BuiltIn::Type::double_64: 
-            out.num.type = Typed::d_double;
-            out.num.float64 = Typed::CastTo<double>(src->num); 
-            break;        
-        case BuiltIn::Type::long_double: 
-            out.num.type = Typed::d_l_double;
-            out.num.lFloat = Typed::CastTo<long double>(src->num); 
-            break;
-        default: break;
-        }
+        out.num = CastTypedNumber(newType, src->num);
     }
 
     return out;
