@@ -2429,17 +2429,37 @@ void SemanticAnalyzer::BreakStatement(const Ast::Node *root)
 
 void SemanticAnalyzer::LabelStatement(const Ast::Node *root)
 {
+    int64_t labelId = 0;
     std::string_view lableName = GetViewForToken(root->token, manager);
-    if(currFn.namedLabels.find(lableName) != currFn.namedLabels.cend())
+    const auto label = currFn.namedLabels.find(lableName);
+    if(label != currFn.namedLabels.cend() && label->second >= 0)
     {
         IssueWarning(&root->token, "Label name redefinition")
     }
+    else if(label != currFn.namedLabels.cend() && label->second < 0)
+    {
+        labelId = label->second * -1;
+    }
+    else
+    {
+        labelId = codeGen.GetIdxForLocalVar();
+    }
 
-    int64_t labelId = codeGen.EmitLocalLabel();
+    codeGen.EmitLocalLabel(labelId);
     currFn.namedLabels[lableName] = labelId;
     Analyze(root->lChild);
 }
 
 void SemanticAnalyzer::GotoStatement(const Ast::Node *root)
 {
+    std::string_view lableName = GetViewForToken(root->token, manager);
+    auto label = currFn.namedLabels.find(lableName);
+    if(label == currFn.namedLabels.cend())
+    {
+        // if idx < 0 that means label is not placed
+        currFn.namedLabels[lableName] = codeGen.GetIdxForLocalVar() * -1; 
+        label = currFn.namedLabels.find(lableName);
+    }
+    int64_t labelValue = label->second < 0 ? label->second * -1 : label->second;
+    codeGen.EmitLocalJump(labelValue);
 }
