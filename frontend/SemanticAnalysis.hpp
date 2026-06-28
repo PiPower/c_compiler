@@ -10,8 +10,7 @@ constexpr size_t  POINTER_SIZE = 8;
 
 struct CurrentFunction
 {
-    BuiltIn::Type retType;
-    const SymbolType* retSymType;
+    SymbolFunction* symFn;
     std::stack<int64_t> labels;
     std::unordered_map<std::string_view, int64_t> namedLabels;
 };
@@ -67,6 +66,7 @@ struct SemanticAnalyzer
     ExprRet LoadConstant(const Ast::Node* constant);
     ExprRet LoadStringLiteral(const Ast::Node* string);
     ExprRet HandleInitExpr(const Ast::Node* root);
+    ExprRet HandleFunctionCall(const Ast::Node* root);
     ExprRet HandleCast(const Ast::Node* root);
     ExprRet HandleOpMinus(const Ast::Node* root);
     ExprRet HandleAssignment(const Ast::Node* root);

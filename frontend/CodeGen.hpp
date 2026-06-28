@@ -132,7 +132,9 @@ struct CodeGen
     int64_t EmitLocalCmpLeEq(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalCmpEq(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator right);
-
+    // fuction call related
+    int64_t EmitFunctionCall(BuiltIn::Type ret, std::string_view fnName); 
+    // variable related
     void EmitZeroInitType(bool isGlobal);
     void EmitZeroInitInt(bool isGlobal);
     void EmitZeroInitFloat(bool isGlobal);

@@ -937,6 +937,16 @@ int64_t CodeGen::EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator
 {
     return EmitLocalBinaryOp(opType, left, right, "icmp ne", "icmp ne", "fcmp one", false);
 }
+int64_t CodeGen::EmitFunctionCall(BuiltIn::Type ret, std::string_view fnName)
+{
+    BindLocalBuffer();
+    if(ret == BuiltIn::void_t)
+    {
+        WriteCharData("\n\tcall void @%v()", fnName);
+        return EXPR_ID_IGNORE;
+    }
+    return 0;
+}
 void CodeGen::EmitZeroInitType(bool isGlobal)
 {
     if(isGlobal)

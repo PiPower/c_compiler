@@ -54,6 +54,14 @@ constexpr inline Typed::DType BuiltInToNum(BuiltIn::Type type)
     }
 }
 
+inline bool isVoidCall(const SymbolFunction* symFn)
+{
+ return symFn->paramCount == 1 && 
+        !DecaysToPointer(&symFn->params[0].decl.accArr) &&
+        symFn->params[0].spec.typenameView == "void";
+}
+
+
 constexpr inline Ast::Node* lenToAstPtr(size_t len)
 {
     return reinterpret_cast<Ast::Node*>(static_cast<uintptr_t>(len));

@@ -220,14 +220,16 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     {
         codeGen.EmitUnionStruct(declSpec.symType, declSpec.typenameView);
     }
-
+    
     codeGen.EmitFunctionName(&declSpec, &fnDecl);
     fnSym = symTab->QueryFunctionSymbol(fnDecl.name);
-    // emit parameters
     symTab->CreateNewScope(Scope::LOCAL);
+    currFn.symFn = fnSym;
+    fnSym->fnScope = symTab->currentTable;
+    fnSym->isDefined = 1;
+    // emit parameters
     AnalyzeFunctionParams(&declSpec, &fnDecl);
     // emit function body
-    fnSym->fnScope = symTab->currentTable;
     const Ast::Node* bodyNode = body->rChild;
     while (bodyNode)
     {
@@ -237,9 +239,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     symTab->PopScope();
 
     codeGen.EmitFunctionClose();
-
-    currFn.retType = BuiltIn::none;
-    currFn.retSymType = nullptr;
+    currFn.symFn = nullptr;
 }
 
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
@@ -256,6 +256,20 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
         paramsPtr->spec.symType = symTab->QueryTypeSymbol(paramsPtr->spec.typenameView);
         FnDecl->fnDecl.paramTypeList = paramsPtr;
     }
+
+    BuiltIn::Type retType;
+    const SymbolType* retSymType;
+    if(IsPointer(&decl->accArr))
+    {
+        retType = BuiltIn::ptr;
+        retSymType = nullptr;
+    }
+    else
+    {
+        retType = spec->symType->dType;
+        retSymType = isStructOrUnion(spec->symType->dType) ? spec->symType : nullptr;
+    }
+
     //const Ast::Node* args = FnDecl->fnDecl.paramTypeList;
     SymbolFunction* tableSym = symTab->QueryFunctionSymbol(decl->name);
     if(tableSym)
@@ -268,18 +282,8 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
     }
     else
     {
-        symTab->AddSymbol<SymbolFunction>(decl->name, *spec, *decl, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, false);
-    }
-
-    if(IsPointer(&decl->accArr))
-    {
-        currFn.retType = BuiltIn::ptr;
-        currFn.retSymType = nullptr;
-    }
-    else
-    {
-        currFn.retType = spec->symType->dType;
-        currFn.retSymType = isStructOrUnion(spec->symType->dType) ? spec->symType : nullptr;
+        symTab->AddSymbol<SymbolFunction>(decl->name, *spec, *decl, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, retType, retSymType, 0, 1, 0);
+        tableSym = symTab->QueryFunctionSymbol(decl->name);
     }
 }
 
@@ -1718,6 +1722,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     }
     switch (root->type)
     {
+    case Ast::function_call: return HandleFunctionCall(root);
     case Ast::get_addr: return HandleGetAddr(root);
     case Ast::assignment: return HandleAssignment(root);
     case Ast::identifier: return HandleIdentifier(root);
@@ -1879,6 +1884,24 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
     ExprRet source = AnalyzeExpr(root->lChild);
 
     return ResolveAssignment(*destHandle, source);
+}
+
+ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
+{
+    std::string_view fnName = GetViewForToken(root->lChild->token, manager);
+    SymbolFunction* symFn = symTab->QueryFunctionSymbol(fnName);
+    if(!symFn)
+    {
+        int len = fnName.length();
+        IssueWarning(&root->token, "Function '%.*s' is not declared", len, fnName.data());
+    }
+    
+    if(root->rChild == nullptr && isVoidCall(symFn))
+    {
+        codeGen.EmitFunctionCall(BuiltIn::void_t, fnName);
+        return {BuiltIn::void_t, {}, EXPR_ID_IGNORE};
+    }
+    return ExprRet();
 }
 
 ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
@@ -2347,7 +2370,7 @@ void SemanticAnalyzer::RetStatement(const Ast::Node *root)
 
     if(!isStructOrUnion(retExpr.type))
     {
-        ExprRet ret = HandleTypeConversion(&retExpr, currFn.retType);
+        ExprRet ret = HandleTypeConversion(&retExpr, currFn.symFn->retType);
         codeGen.EmitSimpleReturn(ret.type, {ret.id, ret.num});
     }
 }

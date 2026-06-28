@@ -312,7 +312,11 @@ struct SymbolFunction
     uint32_t retPtrOrder; // if pointer is to be returned, gives pointer order
     FunctionParams* params;
     ScopedSymbolTable* fnScope;
-    bool isDefined;
+    BuiltIn::Type retType;
+    const SymbolType* retSymType;
+    uint8_t isDefined : 1;
+    uint8_t isDeclared : 1;
+    uint8_t isCalled : 1;
 };
 
 struct VariableOpts
