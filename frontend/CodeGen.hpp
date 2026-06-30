@@ -30,9 +30,10 @@ struct PendingType
 
 struct FunctionContext
 {
-    bool inFunction;
     int64_t variableIdx;
     std::string_view fnName;
+    bool inFunction;
+    bool isBlockTerminated;
 };
 
 struct Operator
@@ -65,6 +66,7 @@ struct CodeGen
     bool EmitDeclaratorAcc(const AccessArray* acc, const std::string_view* typeName);
     void EmitMember(Member* member);
     bool EmitAccessArrayOpened(const AccessArray* accArr, uint64_t* bracket);
+    bool IsBlockTerminated();
     // Type stuff
     void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
     // Function stuff

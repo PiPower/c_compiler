@@ -121,6 +121,11 @@ utilHeap(5)
 
 void SemanticAnalyzer::Analyze(const Ast::Node *root)
 {
+    if(codeGen.IsBlockTerminated())
+    {
+        return;
+    }
+
     if(root->type == Ast::declaration)
     {
         AnalyzeDeclaration(root->lChild, root->rChild);
@@ -233,7 +238,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     symTab->CreateNewScope(Scope::LOCAL);
     fnSym->fnScope = symTab->currentTable;
     fnSym->isDefined = 1;
-    if(isStructOrUnion(currFn.symFn->retType))
+    if(isStructOrUnion(fnSym->retType))
     {
         IssueWarning(nullptr, "return structs are currenlty not supported")
     }
@@ -1736,6 +1741,11 @@ ExprRet SemanticAnalyzer::AnalyzeInitializer(bool isGlobal, const DeclSpecs *spe
 
 ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
 {
+    if(codeGen.IsBlockTerminated())
+    {
+        return {BuiltIn::none, {}, EXPR_ID_IGNORE};
+    }
+
     if(!root)
     {
         return {BuiltIn::none, {},EXPR_ID_EMPTY};
@@ -2375,7 +2385,10 @@ void SemanticAnalyzer::IfBlock(const Ast::Node *root, int64_t exitLabel)
     codeGen.EmitLocalCondJump(condId, exprLabel, nextIfLabel);
     codeGen.EmitLocalLabel(exprLabel);
     Analyze(&root->rChild[1]);
-    codeGen.EmitLocalJump(exitLabel);
+    if(!codeGen.IsBlockTerminated())
+    {
+        codeGen.EmitLocalJump(exitLabel);
+    }
 
 
     codeGen.EmitLocalLabel(nextIfLabel);

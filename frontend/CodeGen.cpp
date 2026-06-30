@@ -27,7 +27,7 @@ const char* memcpyIntr = "\ndeclare void @llvm.memcpy.p0.p0.i64(ptr noalias writ
 
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
-chosenBuffer(TYPE_BUFFER), currFn(false, -1, ""), attrCtr(1), typeHeap(nr_of_pages), symTab(symTab),
+chosenBuffer(TYPE_BUFFER), currFn(-1, "", false, false), attrCtr(1), typeHeap(nr_of_pages), symTab(symTab),
 manager(manager), nodeExec(ne), logger(manager, "Code Gen")
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
@@ -276,6 +276,11 @@ bool CodeGen::EmitAccessArrayOpened(const AccessArray *accArr, uint64_t* bracket
     return false;
 }
 
+bool CodeGen::IsBlockTerminated()
+{
+    return currFn.isBlockTerminated;
+}
+
 void CodeGen::EmitGlobalVariable(const DeclSpecs *spec, const Declarator *decl)
 {
     BindGlobalVarBuffer();
@@ -336,6 +341,7 @@ int64_t CodeGen::AllocateLocalVariable(BuiltIn::Type type)
 
 void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
 {
+    currFn.isBlockTerminated = false;
     currFn.inFunction = true;
     currFn.variableIdx = 0;
     currFn.fnName = decl->name;
@@ -565,7 +571,7 @@ void CodeGen::EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t r
     currFn.inFunction = false;
     currFn.variableIdx = -1;
     currFn.fnName = "";
-
+    currFn.isBlockTerminated = false;
     ResetBuffer(LOCAL_BUFFER);
 }
 
@@ -805,18 +811,21 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
 void CodeGen::EmitLocalLabel(int64_t label)
 {
     BindLocalBuffer();
+    currFn.isBlockTerminated = false;
     WriteCharData("\n\n%l:", label);
 }
 
 void CodeGen::EmitLocalJump(int64_t label)
 {
     BindLocalBuffer();
+    currFn.isBlockTerminated = true;
     WriteCharData("\n\tbr label %%%l", label);
 }
 
 void CodeGen::EmitLocalCondJump(int64_t cond, int64_t jmpIfTrue, int64_t jmpIfFalse)
 {
     BindLocalBuffer();
+    currFn.isBlockTerminated = true;
     WriteCharData("\n\tbr i1 %%%l, label %%%l, label %%%l", cond, jmpIfTrue, jmpIfFalse);
 }
 
@@ -825,6 +834,7 @@ int64_t CodeGen::EmitLocalLabel()
     BindLocalBuffer();
     int64_t label = GetIdxForLocalVar();
     WriteCharData("\n%l:", label);
+    currFn.isBlockTerminated = false;
     return label;
 }
 
