@@ -73,7 +73,7 @@ struct CodeGen
     void EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op);
     void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, bool lastParam, int64_t idx);
     void CloseParamList();
-    void EmitFunctionClose();
+    void EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal);
     // Global stuff 
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
     void EmitGlobalBuiltInInit(const Ast::Node* initExpr, uint32_t alignment);
@@ -84,7 +84,9 @@ struct CodeGen
     int64_t AllocatePassByTmpStruct(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment);
     void EmitSimpleReturn(BuiltIn::Type dType, Operator ret);
     void EmitLocalVariable(const SymbolVariable* symVar);
+    int64_t AllocateLocalVariable(BuiltIn::Type type);
     void InitLocalArray(const std::string_view& arrName, const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
+    void EmitLocalBuiltInStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, Operator op);
     void EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx);
     void EmitLocalStrStorage(int64_t destIdx, int64_t strIdx);
     void EmitLocalNullStorage(int64_t destIdx);

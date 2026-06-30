@@ -13,6 +13,8 @@ struct CurrentFunction
     SymbolFunction* symFn;
     std::stack<int64_t> labels;
     std::unordered_map<std::string_view, int64_t> namedLabels;
+    int64_t retIdx;
+    int64_t retVal;
 };
 
 struct SemanticAnalyzer
@@ -67,6 +69,7 @@ struct SemanticAnalyzer
     ExprRet LoadStringLiteral(const Ast::Node* string);
     ExprRet HandleInitExpr(const Ast::Node* root);
     ExprRet HandleFunctionCall(const Ast::Node* root);
+    ExprRet HandleNegate(const Ast::Node* root);
     ExprRet HandleCast(const Ast::Node* root);
     ExprRet HandleOpMinus(const Ast::Node* root);
     ExprRet HandleAssignment(const Ast::Node* root);

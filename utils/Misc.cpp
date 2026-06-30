@@ -301,7 +301,7 @@ BuiltIn::Type GetBuiltInType(const std::string_view &typeName)
     return BuiltIn::none;
 }
 
-uint32_t GetBuiltInAlignemnt(const BuiltIn::Type type)
+uint32_t GetBuiltInAlignment(const BuiltIn::Type type)
 {
     switch (type)
     {

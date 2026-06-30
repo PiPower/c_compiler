@@ -20,6 +20,13 @@ struct ParamDesc
     int64_t rIdx;
 };
 
+struct ArgDesc
+{
+    Operator op;
+    BuiltIn::Type paramType;
+    int8_t flags;
+};
+
 static const char* kTypeNames[] = {
     // void
     "void",
@@ -220,15 +227,23 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     {
         codeGen.EmitUnionStruct(declSpec.symType, declSpec.typenameView);
     }
-    
+
     codeGen.EmitFunctionName(&declSpec, &fnDecl);
     fnSym = symTab->QueryFunctionSymbol(fnDecl.name);
     symTab->CreateNewScope(Scope::LOCAL);
-    currFn.symFn = fnSym;
     fnSym->fnScope = symTab->currentTable;
     fnSym->isDefined = 1;
+    if(isStructOrUnion(currFn.symFn->retType))
+    {
+        IssueWarning(nullptr, "return structs are currenlty not supported")
+    }
     // emit parameters
     AnalyzeFunctionParams(&declSpec, &fnDecl);
+    currFn.symFn = fnSym;
+    currFn.retIdx = codeGen.GetIdxForLocalVar();
+    currFn.retVal = codeGen.AllocateLocalVariable(currFn.symFn->retType);
+    // allocate reserved index index 
+    codeGen.GetIdxForLocalVar();
     // emit function body
     const Ast::Node* bodyNode = body->rChild;
     while (bodyNode)
@@ -238,8 +253,14 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     }
     symTab->PopScope();
 
-    codeGen.EmitFunctionClose();
+    codeGen.EmitFunctionClose(currFn.symFn->retType, currFn.retIdx, currFn.retVal);
     currFn.symFn = nullptr;
+    currFn.namedLabels.clear();
+    while (currFn.labels.size() > 0)
+    {
+        currFn.labels.pop();
+    }
+    
 }
 
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
@@ -902,8 +923,6 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
         }
     }
     codeGen.CloseParamList();
-    // allocate reserved index index 
-    codeGen.GetIdxForLocalVar();
 
     for(size_t i =0; i < paramDecl->paramCount; i++)
     {
@@ -918,7 +937,7 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
         {
             AnalyzeLocalVarDecl(&param->spec, &param->decl);
             SymbolVariable* symVar = symTab->QueryVarSymbol(param->decl.name);
-            codeGen.EmitLocalStorage(currentParam.lType, GetBuiltInAlignemnt(currentParam.lType), symVar->varIdx, currentParam.lIdx);
+            codeGen.EmitLocalStorage(currentParam.lType, GetBuiltInAlignment(currentParam.lType), symVar->varIdx, currentParam.lIdx);
         }
         else if(currentParam.lType == BuiltIn::struct_t || currentParam.lType == BuiltIn::union_t)
         {
@@ -1723,6 +1742,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     }
     switch (root->type)
     {
+    case Ast::op_log_negate: return HandleNegate(root); 
     case Ast::function_call: return HandleFunctionCall(root);
     case Ast::get_addr: return HandleGetAddr(root);
     case Ast::assignment: return HandleAssignment(root);
@@ -1907,18 +1927,20 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
     {
         return {BuiltIn::void_t, {}, EXPR_ID_IGNORE};
     }
+    std::vector<ArgDesc> args;
     const Ast::Node* arg = root->rChild->rChild;
     const FunctionParams* params = symFn->params;
     size_t i = 0;
-    int64_t id = codeGen.EmitOpenFnCall(symFn->retType, fnName);
     while (arg)
     {
-        if( i >= symFn->paramCount)
+        if(args.size() >= symFn->paramCount)
         {
             IssueWarning(&root->token, "Incorrect number of function call arguments")
         }
         ExprRet result = LoadVariable(AnalyzeExpr(arg->lChild));
-        BuiltIn::Type paramType = params[i].spec.symType->dType;
+        ArgDesc argDesc = {};
+        argDesc.paramType = params[i].spec.symType->dType;
+
         if(DecaysToPointer(&params[i].decl.accArr))
         {
             if(BuiltIn::ptr != result.type)
@@ -1929,31 +1951,53 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
         }
         else if(!isStructOrUnion(params[i].spec.symType->dType))
         {
-            result = HandleTypeConversion(&result, paramType);
-            int8_t flags = fpIsUsedInCall;
-            flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
-
-            codeGen.EmitFunctionParam(paramType, flags,  {result.id, result.num});
-
+            result = HandleTypeConversion(&result, argDesc.paramType);
+            argDesc.flags = fpIsUsedInCall;
+            argDesc.flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
+            argDesc.op = {result.id, result.num};
         }
         else
         {
             return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
         }
 
+        args.push_back(argDesc);
         arg = arg->rChild;
         i++;
     }
 
-    if(i != symFn->paramCount)
+
+    if(args.size() != symFn->paramCount)
     {
         IssueWarning(&root->token, "Incorrect number of function call arguments")
+    }
+
+    int64_t id = codeGen.EmitOpenFnCall(symFn->retType, fnName);
+    for(const auto& arg : args)
+    {
+        if(!isStructOrUnion(arg.paramType))
+        {
+            codeGen.EmitFunctionParam(arg.paramType, arg.flags, arg.op);
+        }
     }
     codeGen.EmitCloseFnCall();
 
     ExprRet out = {};
     out.id = id;
     out.type = symFn->retType;
+    return out;
+}
+
+ExprRet SemanticAnalyzer::HandleNegate(const Ast::Node *root)
+{
+    ExprRet ret = AnalyzeExpr(root->lChild);
+    Typed::Number num;
+    num.int8 = 0;
+    num.type = Typed::d_int8_t;
+    num = CastTypedNumber(ret.type, num);
+
+    ExprRet out = {};
+    out.id = codeGen.EmitLocalCmpEq(ret.type, {ret.id, {}}, {EXPR_ID_CONST, num});
     return out;
 }
 
@@ -2023,7 +2067,7 @@ ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprR
 {
     if(src->id == EXPR_ID_CONST)
     {
-        codeGen.EmitLocalConstAsm(dst->type, GetBuiltInAlignemnt(dst->type), dst->id, src->num);
+        codeGen.EmitLocalConstAsm(dst->type, GetBuiltInAlignment(dst->type), dst->id, src->num);
         return *src;
     }
 
@@ -2043,14 +2087,14 @@ ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprR
             localSrc.id = codeGen.EmitLocalIntTruncate(dst->type, src->type, {src->id, src->num});
         }
 
-        codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignemnt(localDst.type), localDst.id, localSrc.id);
+        codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignment(localDst.type), localDst.id, localSrc.id);
     }
     else if(isFloat(dst->type) && isFloat(src->type))
     {
         ExprRet localDst = *dst, localSrc = *src;
 
         // TODO add float conversion code
-        codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignemnt(localDst.type), localDst.id, localSrc.id);
+        codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignment(localDst.type), localDst.id, localSrc.id);
     }
     return *src;
 }
@@ -2066,7 +2110,7 @@ ExprRet SemanticAnalyzer::HandlePointerAssignment(const ExprRet *dst, const Expr
     if( src->id == EXPR_ID_VAR || src->id == EXPR_ID_GLOBAL || src->id == EXPR_ID_FN)
     {
         const Declarator* decl = src->id == EXPR_ID_FN ? &src->fn->decl :  &src->var->decl;
-        codeGen.EmitLocalNamedStore(src->type, GetBuiltInAlignemnt(src->type), dstId, decl->name);
+        codeGen.EmitLocalNamedStore(src->type, GetBuiltInAlignment(src->type), dstId, decl->name);
     }
     else if(src->id == EXPR_ID_CONST && src->num.uint64 == 0)
     {
@@ -2078,7 +2122,7 @@ ExprRet SemanticAnalyzer::HandlePointerAssignment(const ExprRet *dst, const Expr
     }
     else
     {
-       codeGen.EmitLocalStorage(dst->type, GetBuiltInAlignemnt(dst->type), dstId, src->id); 
+       codeGen.EmitLocalStorage(dst->type, GetBuiltInAlignment(dst->type), dstId, src->id); 
     }
     return *src;
 }
@@ -2363,24 +2407,16 @@ void SemanticAnalyzer::IfStatement(const Ast::Node *root)
 void SemanticAnalyzer::RetStatement(const Ast::Node *root)
 {
     ExprRet retExpr = AnalyzeExpr(root->lChild);
-    if(retExpr.id == EXPR_ID_EMPTY)
-    {
-        codeGen.EmitSimpleReturn(BuiltIn::none, {});
-    }
-
-    retExpr = LoadVariable(retExpr);
-    if(retExpr.type == BuiltIn::none )
-    {
-        return;
-    }
-
+   
+    //tylko jeden ret per funkcja i  dodanie i1 dla istrukcji br
     if(!isStructOrUnion(retExpr.type))
     {
         ExprRet ret = HandleTypeConversion(&retExpr, currFn.symFn->retType);
-        codeGen.EmitSimpleReturn(ret.type, {ret.id, ret.num});
+        codeGen.EmitLocalBuiltInStorage(currFn.symFn->retType, 
+                GetBuiltInAlignment(currFn.symFn->retType), currFn.retVal, {retExpr.id, retExpr.num});
+        codeGen.EmitLocalJump(currFn.retIdx);
     }
 }
-
 void SemanticAnalyzer::WhileStatement(const Ast::Node *root)
 {
     int64_t entryLabel = codeGen.EmitLocalLabel();

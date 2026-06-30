@@ -324,6 +324,16 @@ void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
     //Initializer init = ProcessInitExpr(initExpr);
 }
 
+int64_t CodeGen::AllocateLocalVariable(BuiltIn::Type type)
+{
+    BindFuncBuffer();
+    int64_t id = GetIdxForLocalVar();
+    std::string_view typeName = GetBuiltInName(type);
+    uint64_t align = GetBuiltInAlignment(type);
+    WriteCharData("\n\t%%%l = alloca %v, align %lu", id, typeName, align);
+    return id;
+}
+
 void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
 {
     currFn.inFunction = true;
@@ -532,8 +542,21 @@ void CodeGen::EmitGLobalArrayAlignment(bool isPtr, uint32_t alignment)
     }
 }
 
-void CodeGen::EmitFunctionClose()
+void CodeGen::EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal)
 {
+    BindLocalBuffer(); 
+    EmitLocalLabel(retIdx);
+    if(retType == BuiltIn::void_t)
+    {
+        WriteCharData("\n\tret void");
+    }
+    else if(!isStructOrUnion(retType))
+    {
+        std::string_view typeView = GetBuiltInName(retType);
+        int64_t retLoad = EmitLocalLoad(retType, GetBuiltInAlignment(retType), retVal);
+        WriteCharData("\n\tret %v %%%l", typeView, retLoad);
+    }
+
     BindFuncBuffer(); 
     // copy LOC_VAR_BUFFER buffer to FUNC_BUFFER
     CopyBuffers(FUNC_BUFFER, LOCAL_BUFFER);
@@ -602,6 +625,18 @@ void CodeGen::InitLocalArray(const std::string_view& arrName, const AccessArray 
     ResetBuffer(TMP_BUFFER);
     PopBufferType();
     */
+}
+
+void CodeGen::EmitLocalBuiltInStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, Operator op)
+{
+    if(op.idx == EXPR_ID_CONST)
+    {
+        EmitLocalConstAsm(type, alignment, destIdx, op.num);
+    }
+    else
+    {
+        EmitLocalStorage(type, alignment, destIdx, op.idx);
+    }
 }
 
 void CodeGen::EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx)
@@ -961,8 +996,18 @@ int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName)
 {
     BindLocalBuffer();
     std::string_view retType = GetBuiltInName(ret);
-    WriteCharData("\n\tcall %v @%v(", retType, fnName);
-    return EXPR_ID_IGNORE;
+    int64_t id = EXPR_ID_IGNORE;
+
+    WriteCharData("\n\t");
+    if(ret != BuiltIn::void_t)
+    {
+        id = GetIdxForLocalVar();
+        WriteCharData("%%%l = ", id);
+    }
+ 
+    WriteCharData("call %v @%v(", retType, fnName);
+
+    return id;
 }
 
 void CodeGen::EmitCloseFnCall()
