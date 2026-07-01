@@ -636,9 +636,9 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             members[idx].accArr = structDecls[i].declarators[j].decl.accArr;
             members[idx].memberType = memType->dType;
             // if elemnt is passed by stack it propagates to parent
-            if(memType->passByValue == 1 || !( DecaysToPointer(&members[idx].accArr)) )
+            if(memType->passByValue == 0 || !( DecaysToPointer(&members[idx].accArr)) )
             {
-                sym->passByValue = 1;
+                sym->passByValue = 0;
             }
             // memory related processing
             MemoryDesc desc = GetMemoryDesc(&members[idx].accArr, memType, &logger, &ne);
