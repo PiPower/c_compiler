@@ -1134,12 +1134,18 @@ int64_t CodeGen::EmitLocalBinaryOp(
 
 int64_t CodeGen::EmitString(const Ast::Node *string)
 {
+    std::string_view strLiteral = GetViewForToken(string->token, manager);
+    auto strIter = emittedStrings.find(strLiteral);
+    if(strIter != emittedStrings.end())
+    {
+        return strIter->second;
+    }
+
     BindStrBuffer();
     static int64_t stringIdx= 1;
     int64_t idx = stringIdx++;
-
+    emittedStrings[strLiteral] = idx;
     std::string strIdx = std::to_string(idx);
-    std::string_view strLiteral = GetViewForToken(string->token, manager);
     std::string strLen = std::to_string(strLiteral.length() + 1);
     
     WriteCharData("\n@.str.%s = private unnamed_addr constant [%s x i8] c\"",

@@ -192,6 +192,7 @@ struct CodeGen
     void CopyBuffers(uint8_t dest, uint8_t src);
     void ResetBuffer(uint8_t buff);
 
+    std::unordered_map<std::string_view, int64_t> emittedStrings;
     std::unordered_map<std::string_view, int> typeCounter;
     std::unordered_map<SymbolType*, LlvmType> emittedTypes;
     std::queue<PendingType> typeQueue;
