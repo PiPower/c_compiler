@@ -238,15 +238,12 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     symTab->CreateNewScope(Scope::LOCAL);
     fnSym->fnScope = symTab->currentTable;
     fnSym->isDefined = 1;
-    if(isStructOrUnion(fnSym->retType))
-    {
-        IssueWarning(nullptr, "return structs are currenlty not supported")
-    }
     // emit parameters
     AnalyzeFunctionParams(&declSpec, &fnDecl);
     currFn.symFn = fnSym;
     currFn.retIdx = codeGen.GetIdxForLocalVar();
-    currFn.retVal = codeGen.AllocateLocalVariable(currFn.symFn->retType);
+    currFn.retVal = codeGen.AllocateLocalVariable(currFn.symFn->retType, 
+                currFn.symFn->spec.symType, currFn.symFn->spec.typenameView);
     // allocate reserved index index 
     codeGen.GetIdxForLocalVar();
     // emit function body
@@ -308,7 +305,7 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
     }
     else
     {
-        symTab->AddSymbol<SymbolFunction>(decl->name, *spec, *decl, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, retType, retSymType, 0, 1, 0);
+        symTab->AddSymbol<SymbolFunction>(decl->name, *spec, *decl, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, retType, 0, 1, 0);
         tableSym = symTab->QueryFunctionSymbol(decl->name);
     }
 }

@@ -329,13 +329,22 @@ void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
     //Initializer init = ProcessInitExpr(initExpr);
 }
 
-int64_t CodeGen::AllocateLocalVariable(BuiltIn::Type type)
+int64_t CodeGen::AllocateLocalVariable(BuiltIn::Type type, SymbolType* symType, const std::string_view& typeName)
 {
     BindFuncBuffer();
     int64_t id = GetIdxForLocalVar();
-    std::string_view typeName = GetBuiltInName(type);
-    uint64_t align = GetBuiltInAlignment(type);
-    WriteCharData("\n\t%%%l = alloca %v, align %lu", id, typeName, align);
+    if(!isStructOrUnion(type))
+    {
+        std::string_view typeName = GetBuiltInName(type);
+        uint64_t align = GetBuiltInAlignment(type);
+        WriteCharData("\n\t%%%l = alloca %v, align %lu", id, typeName, align);
+    }
+    else
+    {
+        WriteCharData("\n\t%%%l = alloca ", id);
+        EmitTypename(symType, typeName);
+        WriteCharData(", align %lu ", symType->alignment);
+    }
     return id;
 }
 

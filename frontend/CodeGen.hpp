@@ -86,7 +86,7 @@ struct CodeGen
     int64_t AllocatePassByTmpStruct(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment);
     void EmitSimpleReturn(BuiltIn::Type dType, Operator ret);
     void EmitLocalVariable(const SymbolVariable* symVar);
-    int64_t AllocateLocalVariable(BuiltIn::Type type);
+    int64_t AllocateLocalVariable(BuiltIn::Type type, SymbolType* symType = nullptr, const std::string_view& typeName = "");
     void InitLocalArray(const std::string_view& arrName, const AccessArray* accArr, const Ast::Node* initExpr, const DeclSpecs *spec);
     void EmitLocalBuiltInStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, Operator op);
     void EmitLocalStorage(BuiltIn::Type type, int32_t alignment, int64_t destIdx, int64_t srcIdx);
