@@ -75,7 +75,7 @@ struct CodeGen
     void EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op);
     void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, bool lastParam, int64_t idx);
     void CloseParamList();
-    void EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal);
+    void EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal, DeclSpecs* retSpec);
     // Global stuff 
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
     void EmitGlobalBuiltInInit(const Ast::Node* initExpr, uint32_t alignment);

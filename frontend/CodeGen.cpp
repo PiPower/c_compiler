@@ -557,7 +557,7 @@ void CodeGen::EmitGLobalArrayAlignment(bool isPtr, uint32_t alignment)
     }
 }
 
-void CodeGen::EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal)
+void CodeGen::EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal, DeclSpecs* retSpec)
 {
     BindLocalBuffer(); 
     EmitLocalLabel(retIdx);
@@ -570,6 +570,18 @@ void CodeGen::EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t r
         std::string_view typeView = GetBuiltInName(retType);
         int64_t retLoad = EmitLocalLoad(retType, GetBuiltInAlignment(retType), retVal);
         WriteCharData("\n\tret %v %%%l", typeView, retLoad);
+    }
+    else if(retSpec->symType->passByValue)
+    {
+        std::string retName = getRetName(retSpec, nullptr);
+        int64_t tmpIdx =  GetIdxForLocalVar();
+        uint64_t alignment = retSpec->symType->alignment;
+        WriteCharData("\n\t%%%l = load %v, ptr %%%l align %l", tmpIdx, VIEW(retName), retVal, alignment);
+        WriteCharData("\n\tret %v %%%l", VIEW(retName), tmpIdx);
+    }
+    else
+    {
+        WriteCharData("\n\tret void");
     }
 
     BindFuncBuffer(); 
@@ -1374,7 +1386,7 @@ ByValueStructDesc CodeGen::BuildValueStruct(const StructDesc &desc)
 
 std::string CodeGen::getRetName(const DeclSpecs* spec, const Declarator* decl)
 {
-    if(IsPointer(&decl->accArr))
+    if(decl && IsPointer(&decl->accArr))
     {
         return "ptr";
     }

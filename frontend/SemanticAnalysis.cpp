@@ -255,7 +255,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     }
     symTab->PopScope();
 
-    codeGen.EmitFunctionClose(currFn.symFn->retType, currFn.retIdx, currFn.retVal);
+    codeGen.EmitFunctionClose(currFn.symFn->retType, currFn.retIdx, currFn.retVal, &currFn.symFn->spec);
     currFn.symFn = nullptr;
     currFn.namedLabels.clear();
     while (currFn.labels.size() > 0)
