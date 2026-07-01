@@ -9,7 +9,15 @@ ExprRet BinaryOp(SemanticAnalyzer* sema, CodeGen* cg, const Ast::Node* root)
     ExprRet oldRight = sema->LoadVariable(sema->AnalyzeExpr(root->rChild));
     sema->HandleTypePromotion(&oldLeft, &oldRight, &left, &right);
 
-    out.type = left.type;
+    if constexpr(OP::forcedOutput == BuiltIn::none)
+    {
+        out.type = left.type;
+    }
+    else
+    {
+        out.type = OP::forcedOutput;
+    }
+
     if(left.id == EXPR_ID_CONST && right.id == EXPR_ID_CONST)
     {
         out.id = EXPR_ID_CONST;
@@ -24,6 +32,8 @@ ExprRet BinaryOp(SemanticAnalyzer* sema, CodeGen* cg, const Ast::Node* root)
 
 struct BinaryAddition
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<typename T>
     using op = std::plus<T>; 
 
@@ -35,6 +45,8 @@ struct BinaryAddition
 
 struct BinarySubtraction
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<typename T>
     using op = std::minus<T>;
 
@@ -46,6 +58,8 @@ struct BinarySubtraction
 
 struct BinaryMultiplication
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<typename T>
     using op = std::multiplies<T>;
 
@@ -57,6 +71,8 @@ struct BinaryMultiplication
 
 struct BinaryDivision
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<typename T>
     using op = std::divides<T>;
 
@@ -68,6 +84,8 @@ struct BinaryDivision
 
 struct BinaryModulus
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<std::integral T>
     using op = std::modulus<T>;
 
@@ -79,6 +97,8 @@ struct BinaryModulus
 
 struct BinaryBitAnd
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<std::integral T>
     using op = std::bit_and<T>;
 
@@ -90,6 +110,8 @@ struct BinaryBitAnd
 
 struct BinaryBitOr
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<std::integral T>
     using op = std::bit_or<T>;
 
@@ -101,6 +123,8 @@ struct BinaryBitOr
 
 struct BinaryBitXor
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<std::integral T>
     using op = std::bit_xor<T>;
 
@@ -112,6 +136,8 @@ struct BinaryBitXor
 
 struct BinaryShiftLeft
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<std::integral T>
     struct op
     {
@@ -129,6 +155,8 @@ struct BinaryShiftLeft
 
 struct BinaryShiftRight
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::none;
+
     template<std::integral T>
     struct op
     {
@@ -146,6 +174,8 @@ struct BinaryShiftRight
 
 struct CmpGreater
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::int_1;
+
     template<typename T>
     using op = std::greater<T>; 
 
@@ -157,6 +187,8 @@ struct CmpGreater
 
 struct CmpGreaterEq
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::int_1;
+
     template<typename T>
     using op = std::greater_equal<T>; 
 
@@ -168,6 +200,8 @@ struct CmpGreaterEq
 
 struct CmpLess
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::int_1;
+
     template<typename T>
     using op = std::less<T>; 
 
@@ -179,6 +213,8 @@ struct CmpLess
 
 struct CmpLessEq
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::int_1;
+
     template<typename T>
     using op = std::less_equal<T>; 
 
@@ -190,6 +226,8 @@ struct CmpLessEq
 
 struct CmpEqual
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::int_1;
+
     template<typename T>
     using op = std::equal_to<T>; 
 
@@ -201,6 +239,8 @@ struct CmpEqual
 
 struct CmpNotEqual
 {
+    static constexpr BuiltIn::Type forcedOutput = BuiltIn::int_1;
+
     template<typename T>
     using op = std::not_equal_to<T>; 
 

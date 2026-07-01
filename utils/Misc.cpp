@@ -265,6 +265,7 @@ std::string_view GetBuiltInName(const BuiltIn::Type type)
 {
     switch (type)
     {
+    case BuiltIn::int_1:      return "i1";   break;
     case BuiltIn::bool_t:      return "i8";   break;
     case BuiltIn::s_char_8:    return "i8";   break;
     case BuiltIn::u_char_8:    return "i8";   break;

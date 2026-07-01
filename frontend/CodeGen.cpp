@@ -1247,6 +1247,8 @@ std::string_view CodeGen::MapBuiltInToLlvm(BuiltIn::Type srcType)
 {
     switch (srcType)
     {
+    case BuiltIn::Type::int_1:
+        return "i1";
     case BuiltIn::Type::s_char_8:
     case BuiltIn::Type::u_char_8:
         return "i8";

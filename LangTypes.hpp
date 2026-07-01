@@ -38,6 +38,7 @@ enum Type : uint16_t
     enum_t,
     ptr,
     string,
+    int_1,
     s_char_8,         
     u_char_8,         
     s_int_16,         

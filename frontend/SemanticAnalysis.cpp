@@ -1164,8 +1164,8 @@ void SemanticAnalyzer::ResolveIntegralPromotion(const BuiltIn::Type& left, const
 
 int SemanticAnalyzer::GetIntRank(BuiltIn::Type type)
 {
-    static const int intRanks[] = {1, 1, 2, 2, 3, 3, 4, 4}; // i8, ui8, i16, ui16, i32, ui32, i64, ui64
-    if(type < BuiltIn::s_char_8 || type > BuiltIn::u_int_64)
+    static const int intRanks[] = {0, 1, 1, 2, 2, 3, 3, 4, 4}; // i1, i8, ui8, i16, ui16, i32, ui32, i64, ui64
+    if(type < BuiltIn::int_1 || type > BuiltIn::u_int_64)
     {
         return -1;
     }
@@ -2002,12 +2002,13 @@ ExprRet SemanticAnalyzer::HandleNegate(const Ast::Node *root)
 {
     ExprRet ret = AnalyzeExpr(root->lChild);
     Typed::Number num;
-    num.int8 = 0;
+    num.int8 = 1;
     num.type = Typed::d_int8_t;
     num = CastTypedNumber(ret.type, num);
 
     ExprRet out = {};
-    out.id = codeGen.EmitLocalCmpEq(ret.type, {ret.id, {}}, {EXPR_ID_CONST, num});
+    out.type = ret.type;
+    out.id = codeGen.EmitLocalBitXor(ret.type, {ret.id, {}}, {EXPR_ID_CONST, num});
     return out;
 }
 

@@ -39,6 +39,7 @@ constexpr inline Typed::DType BuiltInToNum(BuiltIn::Type type)
 {
     switch (type)
     {
+    case BuiltIn::Type::int_1:
     case BuiltIn::Type::s_char_8:     return Typed::DType::d_int8_t;
     case BuiltIn::Type::u_char_8:     return Typed::DType::d_uint8_t;
     case BuiltIn::Type::s_int_16:     return Typed::DType::d_int16_t;
@@ -85,7 +86,7 @@ constexpr inline bool isSmallInteger(BuiltIn::Type type)
 
 constexpr inline bool isInteger(BuiltIn::Type type)
 {
-    return type >=  BuiltIn::s_char_8 && type <=  BuiltIn::u_int_64;
+    return type >=  BuiltIn::int_1 && type <=  BuiltIn::u_int_64 ;
 }
 
 constexpr inline bool isFloat(BuiltIn::Type type)
@@ -96,7 +97,7 @@ constexpr inline bool isFloat(BuiltIn::Type type)
 constexpr inline bool isUnsigned(BuiltIn::Type type)
 {
     return type == BuiltIn::u_char_8 || type == BuiltIn::u_int_16 ||
-           type == BuiltIn::u_int_32|| type == BuiltIn::u_int_64;
+           type == BuiltIn::u_int_32|| type == BuiltIn::u_int_64 || type == BuiltIn::int_1;
 }
 
 constexpr inline bool isSigned(BuiltIn::Type type)
@@ -115,6 +116,7 @@ inline Typed::Number CastTypedNumber(BuiltIn::Type type, const Typed::Number& nu
     Typed::Number out{};
     switch (type)
     {
+    case BuiltIn::Type::int_1:
     case BuiltIn::Type::s_char_8:
         out.int8 = CastTo<int8_t>(num);
         out.type = Typed::DType::d_int8_t;
