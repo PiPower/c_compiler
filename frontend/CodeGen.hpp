@@ -159,6 +159,8 @@ struct CodeGen
         bool usePoison);
     // string sutff
     int64_t EmitString(const Ast::Node* string);
+    //intrinsics
+    void EmitLocalIntMemcpy(uint64_t lAlign, uint64_t rAlign, int64_t dest, int64_t src, uint64_t size);
     // misc
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
     void FlushTypeQueue();

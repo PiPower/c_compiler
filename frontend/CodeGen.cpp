@@ -804,10 +804,8 @@ void CodeGen::CopyPassTmpStructToStruct(
         WriteCharData("\n\tstore %v %%%l, ptr %%%l, align %lu", GetBuiltInName(left), lIdx, firstTypeIdx, alignment);
         WriteCharData("\n\t%%%l = getelementptr inbounds nuw %v, ptr %%%l, i32 0, i32 1", secondTypeIdx, VIEW(passStruct), passIdx);
         WriteCharData("\n\tstore %v %%%l, ptr %%%l, align %lu", GetBuiltInName(right), rIdx, secondTypeIdx, alignment);
-        WriteCharData("\n\tcall void @llvm.memcpy.p0.p0.i64(ptr align %lu %%%l, ptr align 4 %%%l, i64 12, i1 false)", 
-            alignment, destIdx, passIdx);
+        EmitLocalIntMemcpy(alignment, alignment, destIdx, passIdx, destSize);
     }
-    DeclareIntrinsic(Intrinsic::llvm_memcpy);
 }
 
 int64_t CodeGen::EmitLocalArrGetElemPtr(
@@ -1196,6 +1194,14 @@ int64_t CodeGen::EmitString(const Ast::Node *string)
 
     WriteCharData("\\00\", align 1");
     return idx;
+}
+
+void CodeGen::EmitLocalIntMemcpy(uint64_t lAlign, uint64_t rAlign, int64_t dest, int64_t src, uint64_t size)
+{
+    BindLocalBuffer();
+    WriteCharData("\n\tcall void @llvm.memcpy.p0.p0.i64(ptr align %lu %%%l, ptr align %lu %%%l, i64 %lu, i1 false)", 
+            lAlign, dest, rAlign,  src, size);
+    DeclareIntrinsic(Intrinsic::llvm_memcpy);
 }
 
 void CodeGen::AddSymbolToEmitQueue(SymbolType *symType, const std::string_view &name)

@@ -239,11 +239,20 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     fnSym->fnScope = symTab->currentTable;
     fnSym->isDefined = 1;
     // emit parameters
+    
     AnalyzeFunctionParams(&declSpec, &fnDecl);
     currFn.symFn = fnSym;
     currFn.retIdx = codeGen.GetIdxForLocalVar();
-    currFn.retVal = codeGen.AllocateLocalVariable(currFn.symFn->retType, 
-                currFn.symFn->spec.symType, currFn.symFn->spec.typenameView);
+    const SymbolType* retType = currFn.symFn->spec.symType;
+    if(!isStructOrUnion(retType->dType) || retType->passByValue)
+    {
+        currFn.retVal = codeGen.AllocateLocalVariable(currFn.symFn->retType, 
+                    currFn.symFn->spec.symType, currFn.symFn->spec.typenameView);
+    }
+    else
+    {
+        currFn.retVal = 0;
+    }
     // allocate reserved index index 
     codeGen.GetIdxForLocalVar();
     // emit function body
@@ -598,7 +607,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
     if(sym->isDefined)
     {
         // used simply to trigger redefinition error
-        symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, false, true, 0, 0, emptyDesc);
+        symTab->AddSymbol<SymbolType>(spec->typenameView, BuiltIn::struct_t, 0, 1, 0, 0, emptyDesc);
     }
     // struct has its own scope
     Node *argList = structTree;
@@ -636,7 +645,7 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             members[idx].accArr = structDecls[i].declarators[j].decl.accArr;
             members[idx].memberType = memType->dType;
             // if elemnt is passed by stack it propagates to parent
-            if(memType->passByValue == 0 || !( DecaysToPointer(&members[idx].accArr)) )
+            if(!( DecaysToPointer(&members[idx].accArr))  && memType->passByValue == 0 )
             {
                 sym->passByValue = 0;
             }
@@ -2419,14 +2428,25 @@ void SemanticAnalyzer::RetStatement(const Ast::Node *root)
 {
     ExprRet retExpr = AnalyzeExpr(root->lChild);
    
-    //tylko jeden ret per funkcja i  dodanie i1 dla istrukcji br
     if(!isStructOrUnion(retExpr.type))
     {
         ExprRet ret = HandleTypeConversion(&retExpr, currFn.symFn->retType);
         codeGen.EmitLocalBuiltInStorage(currFn.symFn->retType, 
                 GetBuiltInAlignment(currFn.symFn->retType), currFn.retVal, {retExpr.id, retExpr.num});
         codeGen.EmitLocalJump(currFn.retIdx);
+        return;
     }
+
+    const SymbolFunction* symFn = currFn.symFn;
+    const SymbolType* retType = symFn->spec.symType;
+    int64_t id = retExpr.id;
+    if(id == EXPR_ID_VAR)
+    {
+        id = retExpr.var->varIdx;
+    }
+    codeGen.EmitLocalIntMemcpy(retType->alignment, retType->alignment, currFn.retVal, id, retType->size);
+    codeGen.EmitLocalJump(currFn.retIdx);
+    
 }
 void SemanticAnalyzer::WhileStatement(const Ast::Node *root)
 {

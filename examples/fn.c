@@ -133,7 +133,8 @@ struct Pair
 {
     int x;
     int xd;
-    long y;
+    int y;
+    short p;
 };
 
 struct Pair2
@@ -142,6 +143,17 @@ struct Pair2
     int y;
     int y2;
 };
+
+struct Pair3
+{
+    int x;
+    int xd;
+    int y;
+    short p;
+    long p2;
+    double z;
+};
+
 struct Pair make_pair(int x, int y, struct Pair2 p2, struct Pair p3)
 {
     if(x%2 == 0)
@@ -155,6 +167,18 @@ struct Pair make_pair(int x, int y, struct Pair2 p2, struct Pair p3)
     return p;
 }
 
+struct Pair3 make_pair2(int x, int y, struct Pair2 p2, struct Pair p3)
+{
+    if(x%2 == 0)
+    {
+        struct Pair3 p2 =  {2, 4};
+        return p2;
+    }
+    struct Pair3 p;
+    p.x = x;
+    p.xd = p3.x;
+    return p;
+}
 int pair_sum(struct Pair p)
 {
     return p.x + p.y;
@@ -235,7 +259,8 @@ int main(void)
 
     struct Pair2 p2 = {};
     p = make_pair(17, 25, p2, p);
-
+    struct Pair3 p3 = {};
+    p3 = make_pair2(17, 25, p2, p);
     CHECK(p.x == 17);
     CHECK(p.y == 25);
     CHECK(pair_sum(p) == 42);
