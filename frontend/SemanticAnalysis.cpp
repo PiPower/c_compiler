@@ -253,8 +253,6 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     {
         currFn.retVal = 0;
     }
-    // allocate reserved index index 
-    codeGen.GetIdxForLocalVar();
     // emit function body
     const Ast::Node* bodyNode = body->rChild;
     while (bodyNode)
@@ -933,6 +931,8 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
             paramDesc.emplace_back(BuiltIn::struct_t, BuiltIn::none, idx, INDEX_INVALID);
         }
     }
+    // allocate reserved index
+    codeGen.GetIdxForLocalVar();
     codeGen.CloseParamList();
 
     for(size_t i =0; i < paramDecl->paramCount; i++)
