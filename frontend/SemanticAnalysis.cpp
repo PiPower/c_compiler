@@ -1309,7 +1309,7 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         {
             result = HandleTypeConversion(&result, argDesc.paramType);
             argDesc.flags = fpIsUsedInCall;
-            argDesc.flags +=  i == symFn->paramCount - 2? fpIsLast : 0;
+            argDesc.flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
             argDesc.op = {result.id, result.num};
         }
 
