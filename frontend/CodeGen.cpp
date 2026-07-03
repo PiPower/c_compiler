@@ -376,9 +376,17 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
 
 }
 
-void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView)
+void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, bool isFnCall)
 {
-    BindFuncBuffer();
+    if(isFnCall)
+    {
+        BindLocalBuffer();
+    }
+    else
+    {
+        BindFuncBuffer();
+    }
+
     WriteCharData("ptr dead_on_unwind noalias writable sret(");
     EmitTypename(symType, typenameView, true);
     WriteCharData(") align 8 %%0, ");
@@ -413,14 +421,22 @@ void CodeGen::EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op)
     }
 }
 
-void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typeName, bool lastParam, int64_t idx)
+void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typeName, int8_t flags, int64_t idx)
 {
-    BindFuncBuffer(); 
+    if((flags & fpIsUsedInCall) > 0 )
+    {
+        BindLocalBuffer(); 
+    }
+    else
+    {
+        BindFuncBuffer(); 
+    }
+    
     WriteCharData("ptr noundef byval(");
     EmitTypename(symType, typeName);
     WriteCharData(") align 8 %%%l", idx);
 
-    if(!lastParam)
+    if((flags & fpIsLast) == 0 )
     {
         WriteCharData(", ");
     }
@@ -1021,11 +1037,20 @@ int64_t CodeGen::EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator
 {
     return EmitLocalBinaryOp(opType, left, right, "icmp ne", "icmp ne", "fcmp one", false);
 }
-int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName)
+int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName, const DeclSpecs* spec)
 {
     BindLocalBuffer();
-    std::string_view retType = GetBuiltInName(ret);
     int64_t id = EXPR_ID_IGNORE;
+    std::string_view retType;
+    if(ret == BuiltIn::special)
+    {
+        retType = getRetName(spec, nullptr);
+    }
+    else
+    {
+        retType = GetBuiltInName(ret);
+    }
+    
 
     WriteCharData("\n\t");
     if(ret != BuiltIn::void_t)
@@ -1033,7 +1058,6 @@ int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName)
         id = GetIdxForLocalVar();
         WriteCharData("%%%l = ", id);
     }
- 
     WriteCharData("call %v @%v(", retType, fnName);
 
     return id;

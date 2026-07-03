@@ -17,6 +17,13 @@ struct CurrentFunction
     int64_t retVal;
 };
 
+struct ArgDesc
+{
+    Operator op;
+    BuiltIn::Type paramType;
+    int8_t flags;
+};
+
 struct SemanticAnalyzer
 {
     SemanticAnalyzer(FileManager* manager, SymbolTable* symTab);
@@ -41,6 +48,8 @@ struct SemanticAnalyzer
     void AnalyzeVariableDecl(const DeclSpecs* spec, const Declarator* decl);
     void AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declarator* decl);
     void InitGlobalVar(const SymbolVariable* symVar);
+    int64_t AnalyzeFnCallStart(const Ast::Node* callRoot, const SymbolFunction* symFn, const std::string_view& fnName);
+    std::vector<ArgDesc> AnalyzeFnCallArgs(const Ast::Node* callRoot, const SymbolFunction* symFn);
     void InitArray(
         const AccessArray* accArr, 
         const Ast::Node* initExpr, 

@@ -71,9 +71,9 @@ struct CodeGen
     void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
     // Function stuff
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
-    void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView);
+    void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, bool isFnCall);
     void EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op);
-    void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, bool lastParam, int64_t idx);
+    void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, int8_t flags, int64_t idx);
     void CloseParamList();
     void EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal, DeclSpecs* retSpec);
     // Global stuff 
@@ -140,7 +140,7 @@ struct CodeGen
     int64_t EmitLocalCmpEq(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator right);
     // fuction call related
-    int64_t EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName);
+    int64_t EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName, const DeclSpecs* spec = nullptr);
     void EmitCloseFnCall();
     // variable related
     void EmitZeroInitType(bool isGlobal);
