@@ -376,9 +376,9 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
 
 }
 
-void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, bool isFnCall)
+void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, int8_t flags, int64_t argIdx)
 {
-    if(isFnCall)
+    if((flags & fpIsUsedInCall) > 0)
     {
         BindLocalBuffer();
     }
@@ -389,8 +389,20 @@ void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typen
 
     WriteCharData("ptr dead_on_unwind noalias writable sret(");
     EmitTypename(symType, typenameView, true);
-    WriteCharData(") align 8 %%0, ");
-    GetIdxForLocalVar();
+    if(!(flags & fpIsUsedInCall))
+    {
+        WriteCharData(") align 8 %%0");
+        GetIdxForLocalVar();
+    }
+    else
+    {
+        WriteCharData(") align 8 %%%l", argIdx);
+    }
+
+    if((flags & fpIsLast) == 0)
+    {
+        WriteCharData(", ");
+    }
 }
 
 void CodeGen::EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op)
@@ -442,19 +454,17 @@ void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typ
     }
 }
 
-int64_t CodeGen::AllocatePassByTmpStruct(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment)
+int64_t CodeGen::AllocatePassByTmpStruct(const std::string_view& left, const std::string_view& right, uint64_t alignment)
 {
     BindFuncBuffer();
     int64_t idx = GetIdxForLocalVar();
-    std::string_view leftType = GetBuiltInName(left);
-    if(right == BuiltIn::none)
+    if(right == "")
     {
-        WriteCharData("\n\t%%%l = alloca %v, align %lu", idx, leftType, alignment);
+        WriteCharData("\n\t%%%l = alloca %v, align %lu", idx, left, alignment);
     }
     else
     {
-        std::string_view rightType = GetBuiltInName(right);
-        WriteCharData("\n\t%%%l = alloca { %v, %v }, align %lu", idx, leftType, rightType, alignment);
+        WriteCharData("\n\t%%%l = alloca { %v, %v }, align %lu", idx,  left,  right, alignment);
     }
 
     return idx;
@@ -810,7 +820,7 @@ void CodeGen::CopyPassTmpStructToStruct(
     }
     else
     {
-        int64_t passIdx = AllocatePassByTmpStruct(left, right, alignment);
+        int64_t passIdx = AllocatePassByTmpStruct(GetBuiltInName(left), GetBuiltInName(right), alignment);
         BindLocalBuffer();
         int64_t firstTypeIdx = GetIdxForLocalVar();
         int64_t secondTypeIdx = GetIdxForLocalVar();
@@ -826,14 +836,21 @@ void CodeGen::CopyPassTmpStructToStruct(
 
 int64_t CodeGen::EmitLocalArrGetElemPtr(
     const AccessArray *acc, 
-    const std::string_view *typeName, 
+    const std::string_view& typeName, 
     int64_t arrayIdx, 
     const std::vector<uint64_t> *indicies)
 {
     BindLocalBuffer();
     int64_t result = GetIdxForLocalVar();
     WriteCharData("\n\t%%%l = getelementptr inbounds ", result);
-    EmitDeclarator(acc, typeName);
+    if(acc)
+    {
+        EmitDeclarator(acc, &typeName);
+    }
+    else
+    {
+        WriteCharData("%v", typeName);
+    }
     WriteCharData(", ptr %%%l i64 0", arrayIdx);
     for(uint64_t idx : *indicies)
     {
@@ -903,15 +920,20 @@ void CodeGen::EmitLocalSwitch(
 
 int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx)
 {
+    std::string_view srcType = MapBuiltInToLlvm(type);
+    return EmitLocalLoad(srcType, alignment, loadIdx);
+}
+
+int64_t CodeGen::EmitLocalLoad(const std::string_view &typeView, int32_t alignment, int64_t loadIdx)
+{
     BindLocalBuffer();
     std::string strLoadIdx = std::to_string(loadIdx);
     std::string strAlign = std::to_string(alignment);
     int64_t targetIdx = GetIdxForLocalVar();
     std::string strTargetIdx = std::to_string(targetIdx);
-    std::string_view srcType = MapBuiltInToLlvm(type);
 
     WriteCharData("\n\t%%%v = load %v, ptr %%%v, align %v",
-            VIEW(strTargetIdx), srcType, VIEW(strLoadIdx), VIEW(strAlign));
+            VIEW(strTargetIdx), typeView, VIEW(strLoadIdx), VIEW(strAlign));
 
     return targetIdx;
 }
@@ -1334,7 +1356,7 @@ std::string_view CodeGen::MapBuiltInToLlvm(BuiltIn::Type srcType)
 
 ByValueStructDesc CodeGen::BuildValueStruct(const StructDesc &desc)
 {
-    // TODO this code may need improvement
+    // TODO this code may need improvement for randomized layouts
     int lSize = 0, rSize =0, deltaSize = 0;
     int* consideredSize = &lSize;
     uint32_t alignment = 1;

@@ -71,7 +71,7 @@ struct CodeGen
     void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
     // Function stuff
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
-    void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, bool isFnCall);
+    void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, int8_t flags, int64_t argIdx = EXPR_ID_IGNORE);
     void EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op);
     void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, int8_t flags, int64_t idx);
     void CloseParamList();
@@ -83,7 +83,7 @@ struct CodeGen
     void EmitGLobalArrayAlignment(bool isPtr, uint32_t alignment);
     void EmitInitializer(const DeclSpecs* spec, const Ast::Node* initializer, bool isComplexType);
     // Local stuff
-    int64_t AllocatePassByTmpStruct(BuiltIn::Type left, BuiltIn::Type right, uint64_t alignment);
+    int64_t AllocatePassByTmpStruct(const std::string_view& left, const std::string_view& right, uint64_t alignment);
     void EmitSimpleReturn(BuiltIn::Type dType, Operator ret);
     void EmitLocalVariable(const SymbolVariable* symVar);
     int64_t AllocateLocalVariable(BuiltIn::Type type, SymbolType* symType = nullptr, const std::string_view& typeName = "");
@@ -104,7 +104,7 @@ struct CodeGen
         int64_t rIdx);
     int64_t EmitLocalArrGetElemPtr(
         const AccessArray* acc, 
-        const std::string_view* typeName, 
+        const std::string_view& typeName, 
         int64_t arrayIdx, 
         const std::vector<uint64_t>* indicies);
 
@@ -120,6 +120,7 @@ struct CodeGen
         const std::vector<Typed::Number>& labelValues);
 
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
+    int64_t EmitLocalLoad(const std::string_view& typeView, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalAddition(BuiltIn::Type opType, Operator left, Operator right);

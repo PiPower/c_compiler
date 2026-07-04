@@ -280,6 +280,10 @@ std::string_view GetBuiltInName(const BuiltIn::Type type)
     case BuiltIn::long_double: return "x86_fp80";  break;
     case BuiltIn::ptr:         return "ptr";     break;
     case BuiltIn::void_t:      return "void";     break;
+    case BuiltIn::i24:         return "i24"; break;
+    case BuiltIn::i40:         return "i40"; break;
+    case BuiltIn::i48:         return "i48"; break;
+    case BuiltIn::i56:         return "i56"; break;
     default:
         printf("code gen: type unsupported");
         exit(-1);
@@ -298,7 +302,10 @@ BuiltIn::Type GetBuiltInType(const std::string_view &typeName)
     if(typeName == "double")   return BuiltIn::double_64;
     if(typeName == "x86_fp80") return BuiltIn::long_double;
     if(typeName == "ptr")      return BuiltIn::ptr;
-    if(typeName == "void")     return BuiltIn::void_t;
+    if(typeName == "i24")     return BuiltIn::i24;
+    if(typeName == "i40")     return BuiltIn::i40;
+    if(typeName == "i48")     return BuiltIn::i48;
+    if(typeName == "i56")     return BuiltIn::i56;
     return BuiltIn::none;
 }
 
@@ -320,6 +327,10 @@ uint32_t GetBuiltInAlignment(const BuiltIn::Type type)
     case BuiltIn::long_double: return 16;
     case BuiltIn::ptr:         return 8;
     case BuiltIn::void_t:      return 0;
+    case BuiltIn::i24:    return 4;
+    case BuiltIn::i40:    return 8;
+    case BuiltIn::i48:    return 8;
+    case BuiltIn::i56:    return 8;
     default:
         printf("non built in type");
         exit(-1);

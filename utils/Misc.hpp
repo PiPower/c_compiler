@@ -55,11 +55,9 @@ constexpr inline Typed::DType BuiltInToNum(BuiltIn::Type type)
     }
 }
 
-inline bool isVoidCall(const SymbolFunction* symFn)
+inline bool isVoidCall(uint32_t paramCount, const AccessArray* accArr, const std::string_view& typenameView)
 {
- return symFn->paramCount == 1 && 
-        !DecaysToPointer(&symFn->params[0].decl.accArr) &&
-        symFn->params[0].spec.typenameView == "void";
+ return paramCount == 1 && !DecaysToPointer(accArr) && typenameView == "void";
 }
 
 

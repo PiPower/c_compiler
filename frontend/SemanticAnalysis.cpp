@@ -683,7 +683,6 @@ void SemanticAnalyzer::AnalyzeStructUnion(const Ast::Node *structTree, DeclSpecs
             idx++;
         }
     }
-
     //sym->str.structTable = scopedTable;
     sym->str.argCount = argCount;
     sym->str.memberNames = argNames;
@@ -870,7 +869,13 @@ void SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const De
 {
     if(declSpec->symType->passByValue == 0)
     {
-        codeGen.EmitReturnByPtr(declSpec->symType, declSpec->typenameView, false);
+        int64_t flag = 0;
+        const std::string_view firstParamTypeName = fnDecl->accArr.ptr[0].fnDecl.paramTypeList[0].spec.typenameView;
+        if(isVoidCall(fnDecl->accArr.ptr[0].fnDecl.paramCount, &fnDecl->accArr, firstParamTypeName))
+        {
+            flag += fpIsLast;
+        }
+        codeGen.EmitReturnByPtr(declSpec->symType, declSpec->typenameView, flag);
     }
 
     if(fnDecl->accArr.ptr[0].type != ACC_FN_DECL)
@@ -1276,7 +1281,13 @@ int64_t SemanticAnalyzer::AnalyzeFnCallStart(const Ast::Node* callRoot, const Sy
     {
         int64_t tmp = codeGen.AllocateLocalVariable(symFn->retType, symFn->spec.symType, symFn->spec.typenameView);
         int id = codeGen.EmitOpenFnCall(BuiltIn::void_t, fnName);
-        codeGen.EmitReturnByPtr(symFn->spec.symType, symFn->spec.typenameView, true);
+        int64_t flags = fpIsUsedInCall;
+        const std::string_view firstParamTypeName = symFn->decl.accArr.ptr[0].fnDecl.paramTypeList[0].spec.typenameView;
+        if(isVoidCall(symFn->paramCount, &symFn->decl.accArr, firstParamTypeName))
+        {
+            flags += fpIsLast;
+        }
+        codeGen.EmitReturnByPtr(symFn->spec.symType, symFn->spec.typenameView, flags, tmp);
         return id;
     }
 }
@@ -1284,19 +1295,24 @@ int64_t SemanticAnalyzer::AnalyzeFnCallStart(const Ast::Node* callRoot, const Sy
 std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRoot, const SymbolFunction* symFn)
 {
     std::vector<ArgDesc> args;
+    if(!callRoot->rChild)
+    {
+        return args;
+    }
     const Ast::Node* arg = callRoot->rChild->rChild;
     const FunctionParams* params = symFn->params;
     size_t i = 0;
     while (arg)
     {
-        if(args.size() >= symFn->paramCount)
+        if(i >= symFn->paramCount)
         {
             IssueWarning(&callRoot->token, "Incorrect number of function call arguments")
         }
-        ExprRet result = LoadVariable(AnalyzeExpr(arg->lChild));
+        ExprRet result = AnalyzeExpr(arg->lChild);
         ArgDesc argDesc = {};
         argDesc.paramType = params[i].spec.symType->dType;
-
+        argDesc.flags = fpIsUsedInCall;
+        argDesc.flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
         if(DecaysToPointer(&params[i].decl.accArr))
         {
             if(BuiltIn::ptr != result.type)
@@ -1307,18 +1323,53 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         }
         else if(!isStructOrUnion(params[i].spec.symType->dType))
         {
+            result = LoadVariable(result);
             result = HandleTypeConversion(&result, argDesc.paramType);
-            argDesc.flags = fpIsUsedInCall;
-            argDesc.flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
             argDesc.op = {result.id, result.num};
         }
+        else if(params[i].spec.symType->passByValue)
+        {
+            if(result.id != EXPR_ID_VAR)
+            {
+                IssueWarning(&callRoot->token, "Struct cannot be passed as expression")
+            }
+            ByValueStructDesc desc = codeGen.BuildValueStruct(params[i].spec.symType->str);
+            if(desc.rType == "")
+            {
+                int64_t loadedVar = codeGen.EmitLocalLoad(desc.lType, params[i].spec.symType->alignment, result.var->varIdx);
+                argDesc.op = {loadedVar, {}};
+                argDesc.paramType = GetBuiltInType(desc.lType);
+            }
+            else
+            {
+                std::string retName = codeGen.getRetName(&params[i].spec, nullptr);
+                int64_t tmp = codeGen.AllocatePassByTmpStruct(desc.lType, desc.rType, params[i].spec.symType->alignment);
+                std::vector<uint64_t> indicies({0});
+                int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, &indicies);
+                int64_t l = codeGen.EmitLocalLoad(desc.lType, params[i].spec.symType->alignment, lPtr);
+                indicies[0] = 1;
+                int64_t rPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, &indicies);
+                int64_t r = codeGen.EmitLocalLoad(desc.rType, params[i].spec.symType->alignment, rPtr);
+                argDesc.paramType = GetBuiltInType(desc.lType);
+                argDesc.op = {l};
+                argDesc.flags = fpIsUsedInCall;
+                args.push_back(argDesc);
+                argDesc.paramType = GetBuiltInType(desc.rType);
+                argDesc.op = {r};
+                argDesc.flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
 
+            }
+        }
+        else
+        {
+            //Fill structs passed by ptr
+        }
         args.push_back(argDesc);
         arg = arg->rChild;
         i++;
     }
 
-    if(args.size() != symFn->paramCount)
+    if(i != symFn->paramCount )
     {
         IssueWarning(&callRoot->token, "Incorrect number of function call arguments")
     }
@@ -1404,7 +1455,7 @@ void SemanticAnalyzer::InitArray(
                 ExprRet target = {};
                 target.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType;
                 parentPosition->push_back(i);
-                target.id = codeGen.EmitLocalArrGetElemPtr(&decl->accArr, &spec->typenameView, symVar->varIdx, parentPosition);
+                target.id = codeGen.EmitLocalArrGetElemPtr(&decl->accArr, spec->typenameView, symVar->varIdx, parentPosition);
                 parentPosition->pop_back();
                 ResolveAssignment(target, src);
                 //HandleAssignment
