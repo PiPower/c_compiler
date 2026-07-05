@@ -30,6 +30,7 @@ struct ArgDesc
     Operator op;
     BuiltIn::Type paramType;
     int8_t flags;
+    size_t parmIdx; 
 };
 
 struct SemanticAnalyzer

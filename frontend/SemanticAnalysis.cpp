@@ -1349,6 +1349,7 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         argDesc.paramType = params[i].spec.symType->dType;
         argDesc.flags = fpIsUsedInCall;
         argDesc.flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
+        argDesc.parmIdx = i;
         if(DecaysToPointer(&params[i].decl.accArr))
         {
             if(BuiltIn::ptr != result.type)
@@ -1399,6 +1400,12 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         else
         {
             //Fill structs passed by ptr
+            if(result.id != EXPR_ID_VAR)
+            {
+                IssueWarning(&callRoot->token, "Struct must be a variable")
+            }
+            argDesc.paramType = BuiltIn::struct_t;
+            argDesc.op.idx = result.var->varIdx;
         }
         args.push_back(argDesc);
         arg = arg->rChild;
@@ -2084,6 +2091,11 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
         if(!isStructOrUnion(arg.paramType))
         {
             codeGen.EmitFunctionParam(arg.paramType, arg.flags, arg.op);
+        }
+        else
+        {
+            FunctionParams* param = &symFn->params[arg.parmIdx];
+            codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, arg.flags, arg.parmIdx);
         }
     }
     codeGen.EmitCloseFnCall();
