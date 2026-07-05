@@ -8,6 +8,14 @@
 #include <tuple>
 constexpr size_t  POINTER_SIZE = 8;
 
+struct ParamDesc
+{
+    BuiltIn::Type lType;
+    BuiltIn::Type rType;
+    int64_t lIdx;
+    int64_t rIdx;
+};
+
 struct CurrentFunction
 {
     SymbolFunction* symFn;
@@ -41,7 +49,7 @@ struct SemanticAnalyzer
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void DeduceInferableArrSize(Declarator* decl);
     int BuiltInBitCount(BuiltIn::Type type);
-    void AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl);
+    std::vector<bool> AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl);
     BuiltIn::Type BitCountToIntegerType(uint8_t BitCount, bool isSigned);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);
@@ -101,6 +109,7 @@ struct SemanticAnalyzer
     void LabelStatement(const Ast::Node* root);
     void GotoStatement(const Ast::Node* root);
     // misc
+    int TryEmitValueStruct(const StructDesc& str, bool isLast, int usedValueCount, ParamDesc* paramDesc);
     ExprRet LoadVariable(const ExprRet& ret);
     void WriteCodeToFile(const char* filename);
     bool CompareParams(size_t paramCount, const FunctionParams* p1, const FunctionParams* p2);

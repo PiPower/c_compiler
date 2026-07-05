@@ -319,6 +319,7 @@ struct SymbolFunction
     FunctionParams* params;
     ScopedSymbolTable* fnScope;
     BuiltIn::Type retType;
+    uint8_t* passByValueArray;
     uint8_t isDefined : 1;
     uint8_t isDeclared : 1;
     uint8_t isCalled : 1;

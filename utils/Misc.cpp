@@ -372,3 +372,23 @@ Ast::NodeType tokenAsmToExpr(TokenType::Type asmToken)
     default:return Ast::none;
     }
 }
+
+void SetByValueArray(uint8_t *arr, const std::vector<bool>& values)
+{
+    for(size_t i =0; i < values.size(); i++)
+    {
+        size_t arrayOffset = i / 8;
+        size_t byteOffset = i - arrayOffset * 8;
+        if(values[i])
+        {
+            arr[arrayOffset] += (1 << byteOffset);
+        }
+    }
+}
+
+bool IsArgPassedByValue(const uint8_t *arr, size_t idx)
+{
+    size_t arrayOffset = idx/8;
+    size_t byteOffset = idx - arrayOffset * 8;
+    return (arr[arrayOffset]  &  (1 << byteOffset)) > 0;
+}

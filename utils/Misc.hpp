@@ -34,6 +34,8 @@ BuiltIn::Type GetBuiltInType(const std::string_view& typeName);
 uint32_t GetBuiltInAlignment(const BuiltIn::Type type);
 std::string_view GetViewForToken(const Token &token, FileManager* fm);
 Ast::NodeType tokenAsmToExpr(TokenType::Type asmToken);
+void SetByValueArray(uint8_t* arr, const std::vector<bool>& values);
+bool IsArgPassedByValue(const uint8_t *arr, size_t idx);
 
 constexpr inline Typed::DType BuiltInToNum(BuiltIn::Type type)
 {
@@ -84,7 +86,8 @@ constexpr inline bool isSmallInteger(BuiltIn::Type type)
 
 constexpr inline bool isInteger(BuiltIn::Type type)
 {
-    return type >=  BuiltIn::int_1 && type <=  BuiltIn::u_int_64 ;
+    return (type >=  BuiltIn::int_1 && type <=  BuiltIn::u_int_64)  || 
+           (type >=  BuiltIn::i24 && type <=  BuiltIn::i56) ;
 }
 
 constexpr inline bool isFloat(BuiltIn::Type type)
