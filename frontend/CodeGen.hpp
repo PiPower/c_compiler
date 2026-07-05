@@ -171,7 +171,6 @@ struct CodeGen
     void EndArray();
     void ArgSeparator();
 
-    std::string_view MapBuiltInToLlvm(BuiltIn::Type srcType);
     ByValueStructDesc BuildValueStruct(const StructDesc& desc);
     std::string getRetName(const DeclSpecs* spec, const Declarator* decl);
     // expressions

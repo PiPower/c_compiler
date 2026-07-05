@@ -285,9 +285,7 @@ std::string_view GetBuiltInName(const BuiltIn::Type type)
     case BuiltIn::i48:         return "i48"; break;
     case BuiltIn::i56:         return "i56"; break;
     default:
-        printf("code gen: type unsupported");
-        exit(-1);
-        break;
+        return "void";
     }
     return "";
 }

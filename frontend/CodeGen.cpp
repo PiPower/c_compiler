@@ -6,6 +6,7 @@
 #include "SemanticAnalysis.hpp"
 #include <string.h>
 #include <bit>
+#include "../utils/Misc.hpp"
 #include "Parser.hpp"
 #define VIEW(x) std::string_view(x)
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
@@ -920,7 +921,7 @@ void CodeGen::EmitLocalSwitch(
 
 int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx)
 {
-    std::string_view srcType = MapBuiltInToLlvm(type);
+    std::string_view srcType = GetBuiltInName(type);
     return EmitLocalLoad(srcType, alignment, loadIdx);
 }
 
@@ -941,8 +942,8 @@ int64_t CodeGen::EmitLocalLoad(const std::string_view &typeView, int32_t alignme
 int64_t CodeGen::EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx)
 {
     BindLocalBuffer();
-    std::string_view srcTypeView = MapBuiltInToLlvm(srcType);
-    std::string_view dstTypeView = MapBuiltInToLlvm(dstType);
+    std::string_view srcTypeView = GetBuiltInName(srcType);
+    std::string_view dstTypeView = GetBuiltInName(dstType);
     int64_t targetIdx = GetIdxForLocalVar();
     std::string strTargetIdx = std::to_string(targetIdx);
     std::string strLoadIdx = std::to_string(loadIdx);
@@ -956,8 +957,8 @@ int64_t CodeGen::EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, 
 int64_t CodeGen::EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx)
 {
     BindLocalBuffer();
-    std::string_view srcTypeView = MapBuiltInToLlvm(srcType);
-    std::string_view dstTypeView = MapBuiltInToLlvm(dstType);
+    std::string_view srcTypeView = GetBuiltInName(srcType);
+    std::string_view dstTypeView = GetBuiltInName(dstType);
     int64_t targetIdx = GetIdxForLocalVar();
     std::string strTargetIdx = std::to_string(targetIdx);
     std::string strLoadIdx = std::to_string(loadIdx);
@@ -1025,8 +1026,8 @@ int64_t CodeGen::EmitLocalIntTruncate(BuiltIn::Type dstType, BuiltIn::Type srcTy
         return EXPR_ID_IGNORE;
     }
 
-    std::string_view dstView = MapBuiltInToLlvm(dstType);
-    std::string_view srcView = MapBuiltInToLlvm(srcType);
+    std::string_view dstView = GetBuiltInName(dstType);
+    std::string_view srcView = GetBuiltInName(srcType);
     int64_t targetIdx = GetIdxForLocalVar();
     std::string strTargetIdx = std::to_string(targetIdx);
     std::string operandIdx = std::to_string(src.idx);
@@ -1170,7 +1171,7 @@ int64_t CodeGen::EmitLocalBinaryOp(
     std::string strRight = right.idx == EXPR_ID_CONST ? Typed::ToString(right.num) : std::to_string(right.idx);
     std::string_view strLeftConst = left.idx == EXPR_ID_CONST ? "" : "%";
     std::string_view strRightConst = right.idx == EXPR_ID_CONST ? "" : "%";
-    std::string_view opTypeView = MapBuiltInToLlvm(opType);
+    std::string_view opTypeView = GetBuiltInName(opType);
     std::string_view opStr;
     std::string_view poisonVal = "";
 
@@ -1320,38 +1321,6 @@ void CodeGen::EndArray()
 void CodeGen::ArgSeparator()
 {
     WriteCharData(", ");
-}
-
-std::string_view CodeGen::MapBuiltInToLlvm(BuiltIn::Type srcType)
-{
-    switch (srcType)
-    {
-    case BuiltIn::Type::int_1:
-        return "i1";
-    case BuiltIn::Type::s_char_8:
-    case BuiltIn::Type::u_char_8:
-        return "i8";
-    case BuiltIn::Type::s_int_16:
-    case BuiltIn::Type::u_int_16:
-        return "i16";
-    case BuiltIn::Type::s_int_32:
-    case BuiltIn::Type::u_int_32:
-        return "i32";
-    case BuiltIn::Type::s_int_64:
-    case BuiltIn::Type::u_int_64:
-        return "i64";
-    case BuiltIn::Type::float_32:
-        return "float";
-    case BuiltIn::Type::double_64:
-        return "double";
-    case BuiltIn::Type::long_double:
-        // NOTE: platform-dependent in LLVM IR
-        // x86: x86_fp80, ARM: fp128, PPC: ppc_fp128
-        return "x86_fp80";
-
-    default:
-        return "void";
-    }
 }
 
 ByValueStructDesc CodeGen::BuildValueStruct(const StructDesc &desc)

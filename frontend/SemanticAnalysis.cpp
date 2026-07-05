@@ -1357,6 +1357,12 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
                 //return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
                 IssueWarning(&callRoot->token, "Casting non pointer is incompatibile with pointer")
             }
+            argDesc.paramType = BuiltIn::ptr;
+            if(!IsArray(&params[i].decl.accArr))
+            {
+                int64_t id = result.id == EXPR_ID_VAR ? result.var->varIdx : result.id;
+                argDesc.op.idx = codeGen.EmitLocalLoad(BuiltIn::ptr, 8, id);
+            }
         }
         else if(!isStructOrUnion(params[i].spec.symType->dType))
         {
@@ -2099,7 +2105,6 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
         }
     }
     codeGen.EmitCloseFnCall();
-    return {BuiltIn::void_t, {}, id};
 
     ExprRet out = {};
     out.id = id;
