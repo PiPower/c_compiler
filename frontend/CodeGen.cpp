@@ -722,7 +722,7 @@ void CodeGen::EmitLocalNullStorage(int64_t destIdx)
     WriteCharData("\n\tstore ptr null, ptr %%%v, align 8", VIEW(strDest));
 }
 
-void CodeGen::EmitLocalNamedStore(BuiltIn::Type type, int32_t alignment, int64_t dstIdx, const std::string_view name)
+void CodeGen::EmitLocalNamedStore(BuiltIn::Type type, int32_t alignment, int64_t dstIdx, const std::string_view& name)
 {
     BindLocalBuffer();
     std::string strDest = std::to_string(dstIdx);

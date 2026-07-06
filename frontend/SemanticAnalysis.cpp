@@ -1352,13 +1352,23 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         argDesc.parmIdx = i;
         if(DecaysToPointer(&params[i].decl.accArr))
         {
-            uint64_t arrayOrder = GetArrayOrder(&result.var->decl.accArr);
             argDesc.paramType = BuiltIn::ptr;
-            int64_t id = result.id == EXPR_ID_VAR ? result.var->varIdx : result.id;
-            argDesc.op.idx = result.type == BuiltIn::ptr ? 
-                codeGen.EmitLocalLoad(BuiltIn::ptr, 8, id) : 
-                codeGen.EmitLocalArrGetElemPtr(&result.var->decl.accArr, result.var->spec.typenameView,
-                    result.var->varIdx, std::vector<uint64_t>(arrayOrder, 0) );
+            
+            if(result.id == EXPR_ID_FN)
+            {
+                int64_t store = codeGen.GetIdxForLocalVar();
+                codeGen.EmitLocalNamedStore(BuiltIn::ptr, 8, store, result.fn->decl.name);
+                argDesc.op.idx = codeGen.EmitLocalLoad(BuiltIn::ptr, 8, store);
+            }
+            else
+            {
+                uint64_t arrayOrder = GetArrayOrder(&result.var->decl.accArr);
+                int64_t id = result.id == EXPR_ID_VAR ? result.var->varIdx : result.id;
+                argDesc.op.idx = result.type == BuiltIn::ptr ? 
+                    codeGen.EmitLocalLoad(BuiltIn::ptr, 8, id) : 
+                    codeGen.EmitLocalArrGetElemPtr(&result.var->decl.accArr, result.var->spec.typenameView,
+                        result.var->varIdx, std::vector<uint64_t>(arrayOrder, 0) );
+            }
         }
         else if(!isStructOrUnion(params[i].spec.symType->dType))
         {
