@@ -290,6 +290,26 @@ std::string_view GetBuiltInName(const BuiltIn::Type type)
     return "";
 }
 
+uint64_t GetArrayOrder(const AccessArray *accArray)
+{
+    uint64_t order = 0;
+    size_t idx = 0;
+    while (idx < accArray->count)
+    {
+        if(accArray->ptr[idx].type == ACC_ARRAY)
+        {
+            order++;
+        }
+        else
+        {
+            break;
+        }
+        idx++;
+    }
+    
+    return order;
+}
+
 BuiltIn::Type GetBuiltInType(const std::string_view &typeName)
 {
     if(typeName == "i8")       return BuiltIn::s_char_8;   // ambiguous

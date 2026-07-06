@@ -57,6 +57,7 @@ enum Type : uint16_t
     complex_long_double,
     compound_literal,
     special,
+    array,
     // non x64 integer llvm types
     i24,
     i40, 

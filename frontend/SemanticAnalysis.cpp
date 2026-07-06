@@ -1352,17 +1352,13 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         argDesc.parmIdx = i;
         if(DecaysToPointer(&params[i].decl.accArr))
         {
-            if(BuiltIn::ptr != result.type)
-            {
-                //return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
-                IssueWarning(&callRoot->token, "Casting non pointer is incompatibile with pointer")
-            }
+            uint64_t arrayOrder = GetArrayOrder(&result.var->decl.accArr);
             argDesc.paramType = BuiltIn::ptr;
-            if(!IsArray(&params[i].decl.accArr))
-            {
-                int64_t id = result.id == EXPR_ID_VAR ? result.var->varIdx : result.id;
-                argDesc.op.idx = codeGen.EmitLocalLoad(BuiltIn::ptr, 8, id);
-            }
+            int64_t id = result.id == EXPR_ID_VAR ? result.var->varIdx : result.id;
+            argDesc.op.idx = result.type == BuiltIn::ptr ? 
+                codeGen.EmitLocalLoad(BuiltIn::ptr, 8, id) : 
+                codeGen.EmitLocalArrGetElemPtr(&result.var->decl.accArr, result.var->spec.typenameView,
+                    result.var->varIdx, std::vector<uint64_t>(arrayOrder, 0) );
         }
         else if(!isStructOrUnion(params[i].spec.symType->dType))
         {
@@ -1388,10 +1384,10 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
                 std::string retName = codeGen.getRetName(&params[i].spec, nullptr);
                 int64_t tmp = codeGen.AllocatePassByTmpStruct(desc.lType, desc.rType, params[i].spec.symType->alignment);
                 std::vector<uint64_t> indicies({0});
-                int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, &indicies);
+                int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
                 int64_t l = codeGen.EmitLocalLoad(desc.lType, params[i].spec.symType->alignment, lPtr);
                 indicies[0] = 1;
-                int64_t rPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, &indicies);
+                int64_t rPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
                 int64_t r = codeGen.EmitLocalLoad(desc.rType, params[i].spec.symType->alignment, rPtr);
                 argDesc.paramType = GetBuiltInType(desc.lType);
                 argDesc.op = {l};
@@ -1504,7 +1500,7 @@ void SemanticAnalyzer::InitArray(
                 ExprRet target = {};
                 target.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType;
                 parentPosition->push_back(i);
-                target.id = codeGen.EmitLocalArrGetElemPtr(&decl->accArr, spec->typenameView, symVar->varIdx, parentPosition);
+                target.id = codeGen.EmitLocalArrGetElemPtr(&decl->accArr, spec->typenameView, symVar->varIdx, *parentPosition);
                 parentPosition->pop_back();
                 ResolveAssignment(target, src);
                 //HandleAssignment
@@ -2283,9 +2279,13 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     {
         if(symVar->opts.isEnumerator == 0)
         {
-            if(IsArray(&symVar->decl.accArr) || IsPointer(&symVar->decl.accArr) )
+            if(IsPointer(&symVar->decl.accArr) )
             {
                 out.type = BuiltIn::ptr;
+            }
+            else if(IsArray(&symVar->decl.accArr) )
+            {
+                out.type = BuiltIn::array;
             }
             else
             {

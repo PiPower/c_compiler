@@ -839,7 +839,7 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
     const AccessArray *acc, 
     const std::string_view& typeName, 
     int64_t arrayIdx, 
-    const std::vector<uint64_t> *indicies)
+    const std::vector<uint64_t>& indicies)
 {
     BindLocalBuffer();
     int64_t result = GetIdxForLocalVar();
@@ -852,8 +852,8 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
     {
         WriteCharData("%v", typeName);
     }
-    WriteCharData(", ptr %%%l i64 0", arrayIdx);
-    for(uint64_t idx : *indicies)
+    WriteCharData(", ptr %%%l, i64 0", arrayIdx);
+    for(uint64_t idx : indicies)
     {
         WriteCharData(", i64 %lu", idx);
     }
