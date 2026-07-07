@@ -865,28 +865,28 @@ void CodeGen::EmitLocalLabel(int64_t label)
 {
     BindLocalBuffer();
     currFn.isBlockTerminated = false;
-    WriteCharData("\n\n%l:", label);
+    WriteCharData("\n\nlabel_%l:", label);
 }
 
 void CodeGen::EmitLocalJump(int64_t label)
 {
     BindLocalBuffer();
     currFn.isBlockTerminated = true;
-    WriteCharData("\n\tbr label %%%l", label);
+    WriteCharData("\n\tbr label %%label_%l", label);
 }
 
 void CodeGen::EmitLocalCondJump(int64_t cond, int64_t jmpIfTrue, int64_t jmpIfFalse)
 {
     BindLocalBuffer();
     currFn.isBlockTerminated = true;
-    WriteCharData("\n\tbr i1 %%%l, label %%%l, label %%%l", cond, jmpIfTrue, jmpIfFalse);
+    WriteCharData("\n\tbr i1 %%%l, label %%label_%l, label %%label_%l", cond, jmpIfTrue, jmpIfFalse);
 }
 
 int64_t CodeGen::EmitLocalLabel()
 {
     BindLocalBuffer();
     int64_t label = GetIdxForLocalVar();
-    WriteCharData("\n%l:", label);
+    WriteCharData("\nlabel_%l:", label);
     currFn.isBlockTerminated = false;
     return label;
 }
