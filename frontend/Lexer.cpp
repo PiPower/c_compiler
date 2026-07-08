@@ -642,7 +642,13 @@ int32_t Lexer::Lex(Token* token)
         break;
     case '\\':
         C = GetNextChar();
-        if(C != '\n')
+        if(C == 'u' || C == 'U')
+        {
+            ConsumeChar();
+            LexIdentifier(token, &loc);
+            return 0;
+        }
+        else if(C != '\n')
         {
             IssueWarning(token, "Unexpected followup to \\");
             exit(-1);

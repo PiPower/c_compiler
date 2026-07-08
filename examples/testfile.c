@@ -30,7 +30,7 @@ int main(void) {
     }
     Point_t p = { .x = a, .y = b };
     Point_t* ptr = &p;
-    ptr->x = 0;
+    //ptr->x = 0;
     // This is a comment with tricky symbols: ++ -- && || == !=
     return 0;
 }
