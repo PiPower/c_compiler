@@ -1312,6 +1312,7 @@ int64_t SemanticAnalyzer::AnalyzeFnCallStart(const Ast::Node* callRoot, const Sy
     if(symFn->spec.symType->passByValue)
     {
         int id = codeGen.EmitOpenFnCall(BuiltIn::special, fnName, &symFn->spec);
+        return id;
     }
     else
     {
