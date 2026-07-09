@@ -1220,6 +1220,101 @@ void SemanticAnalyzer::BinaryExprProlog(ExprRet *left, ExprRet *right, const Ast
     HandleTypePromotion(&oldLeft, &oldRight, left, right);
 }
 
+int64_t SemanticAnalyzer::PointerArg(const FunctionParams& param, const ExprRet& result)
+{
+    if(DecaysToPointer(&param.decl.accArr))
+    {
+        if(result.type == BuiltIn::string)
+        {
+            return result.id;
+        }
+        else if(result.id == EXPR_ID_FN)
+        {
+            int64_t store = codeGen.GetIdxForLocalVar();
+            codeGen.EmitLocalNamedStore(BuiltIn::ptr, 8, store, result.fn->decl.name);
+            return codeGen.EmitLocalLoad(BuiltIn::ptr, 8, store);
+        }
+        else
+        {
+            uint64_t arrayOrder = GetArrayOrder(&result.var->decl.accArr);
+            int64_t id = result.id == EXPR_ID_VAR ? result.var->varIdx : result.id;
+            return result.type == BuiltIn::ptr ? 
+                codeGen.EmitLocalLoad(BuiltIn::ptr, 8, id) : 
+                codeGen.EmitLocalArrGetElemPtr(&result.var->decl.accArr, result.var->spec.typenameView,
+                    result.var->varIdx, std::vector<uint64_t>(arrayOrder, 0) );
+        }
+    }
+}
+
+void SemanticAnalyzer::StructArg(
+        const SymbolFunction& symFn,
+        size_t argIdx, 
+        const FunctionParams& param,
+        const ExprRet& result, 
+        const Ast::Node* callRoot,
+        ArgDesc* left,
+        ArgDesc* right)
+{
+    *left = {};
+    *right = {};
+
+    if(IsArgPassedByValue(symFn.passByValueArray, argIdx))
+    {
+        if(result.id != EXPR_ID_VAR)
+        {
+            IssueWarning(&callRoot->token, "Struct cannot be passed as expression")
+        }
+        ByValueStructDesc desc = codeGen.BuildValueStruct(param.spec.symType->str);
+        if(desc.rType == "")
+        {
+            int64_t loadedVar = codeGen.EmitLocalLoad(desc.lType, param.spec.symType->alignment, result.var->varIdx);
+            left->op = {loadedVar, {}};
+            left->paramType = GetBuiltInType(desc.lType);
+            left->flags = fpIsUsedInCall + (argIdx == symFn.paramCount - 1? fpIsLast : 0);
+        }
+        else
+        {
+            std::string retName = codeGen.getRetName(&param.spec, nullptr);
+            int64_t tmp = codeGen.AllocatePassByTmpStruct(desc.lType, desc.rType, param.spec.symType->alignment);
+            std::vector<uint64_t> indicies({0});
+            int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
+            int64_t l = codeGen.EmitLocalLoad(desc.lType, param.spec.symType->alignment, lPtr);
+            indicies[0] = 1;
+            int64_t rPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
+            int64_t r = codeGen.EmitLocalLoad(desc.rType, param.spec.symType->alignment, rPtr);
+            left->paramType = GetBuiltInType(desc.lType);
+            left->op = {l};
+            left->flags = fpIsUsedInCall;
+            left->parmIdx = argIdx;
+
+            right->paramType = GetBuiltInType(desc.rType);
+            right->op = {r};
+            right->flags =  fpIsUsedInCall + (argIdx == symFn.paramCount - 1? fpIsLast : 0);
+            right->parmIdx = argIdx;
+        }
+    }
+    else
+    {
+        //Fill structs passed by ptr
+        if(result.id != EXPR_ID_VAR)
+        {
+            IssueWarning(&callRoot->token, "Struct must be a variable")
+        }
+        left->paramType = BuiltIn::struct_t;
+        left->op.idx = result.var->varIdx;
+        left->parmIdx = argIdx;
+        left->flags = fpIsUsedInCall + (argIdx == symFn.paramCount - 1? fpIsLast : 0);
+    }
+
+}
+
+Operator SemanticAnalyzer::ValueArg(const FunctionParams &param, const ExprRet &result)
+{
+    ExprRet res = LoadVariable(result);
+    res = HandleTypeConversion(&result, param.spec.symType->dType);
+    return {result.id, result.num};
+}
+
 bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 {
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
@@ -1351,78 +1446,41 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         argDesc.flags = fpIsUsedInCall;
         argDesc.flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
         argDesc.parmIdx = i;
-        if(DecaysToPointer(&params[i].decl.accArr))
+
+        if(result.type == BuiltIn::ptr ||
+           result.type == BuiltIn::string ||
+           result.type == BuiltIn::array)
         {
             argDesc.paramType = BuiltIn::ptr;
-            
-            if(result.id == EXPR_ID_FN)
-            {
-                int64_t store = codeGen.GetIdxForLocalVar();
-                codeGen.EmitLocalNamedStore(BuiltIn::ptr, 8, store, result.fn->decl.name);
-                argDesc.op.idx = codeGen.EmitLocalLoad(BuiltIn::ptr, 8, store);
-            }
-            else
-            {
-                uint64_t arrayOrder = GetArrayOrder(&result.var->decl.accArr);
-                int64_t id = result.id == EXPR_ID_VAR ? result.var->varIdx : result.id;
-                argDesc.op.idx = result.type == BuiltIn::ptr ? 
-                    codeGen.EmitLocalLoad(BuiltIn::ptr, 8, id) : 
-                    codeGen.EmitLocalArrGetElemPtr(&result.var->decl.accArr, result.var->spec.typenameView,
-                        result.var->varIdx, std::vector<uint64_t>(arrayOrder, 0) );
-            }
+            argDesc.op.idx = PointerArg(params[i], result);
         }
-        else if(!isStructOrUnion(params[i].spec.symType->dType))
+        else if(isStructOrUnion(result.type))
         {
-            result = LoadVariable(result);
-            result = HandleTypeConversion(&result, argDesc.paramType);
-            argDesc.op = {result.id, result.num};
-        }
-        else if(IsArgPassedByValue(symFn->passByValueArray, i))
-        {
-            if(result.id != EXPR_ID_VAR)
-            {
-                IssueWarning(&callRoot->token, "Struct cannot be passed as expression")
-            }
-            ByValueStructDesc desc = codeGen.BuildValueStruct(params[i].spec.symType->str);
-            if(desc.rType == "")
-            {
-                int64_t loadedVar = codeGen.EmitLocalLoad(desc.lType, params[i].spec.symType->alignment, result.var->varIdx);
-                argDesc.op = {loadedVar, {}};
-                argDesc.paramType = GetBuiltInType(desc.lType);
-            }
-            else
-            {
-                std::string retName = codeGen.getRetName(&params[i].spec, nullptr);
-                int64_t tmp = codeGen.AllocatePassByTmpStruct(desc.lType, desc.rType, params[i].spec.symType->alignment);
-                std::vector<uint64_t> indicies({0});
-                int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
-                int64_t l = codeGen.EmitLocalLoad(desc.lType, params[i].spec.symType->alignment, lPtr);
-                indicies[0] = 1;
-                int64_t rPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
-                int64_t r = codeGen.EmitLocalLoad(desc.rType, params[i].spec.symType->alignment, rPtr);
-                argDesc.paramType = GetBuiltInType(desc.lType);
-                argDesc.op = {l};
-                argDesc.flags = fpIsUsedInCall;
-                args.push_back(argDesc);
-                argDesc.paramType = GetBuiltInType(desc.rType);
-                argDesc.op = {r};
-                argDesc.flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
+            ArgDesc left= {}, right = {};
+            StructArg(*symFn, i, params[i], result, callRoot, &left, &right);
 
+            argDesc.flags = left.flags;
+            argDesc.op = left.op;
+            argDesc.paramType = left.paramType;
+            if(right.paramType != BuiltIn::none)
+            {
+                args.push_back(argDesc);
+                argDesc.flags = right.flags;
+                argDesc.op = right.op;
+                argDesc.paramType = right.paramType;
             }
         }
         else
         {
-            //Fill structs passed by ptr
-            if(result.id != EXPR_ID_VAR)
-            {
-                IssueWarning(&callRoot->token, "Struct must be a variable")
-            }
-            argDesc.paramType = BuiltIn::struct_t;
-            argDesc.op.idx = result.var->varIdx;
+            argDesc.op = ValueArg(params[i], result);
         }
+
         args.push_back(argDesc);
         arg = arg->rChild;
-        i++;
+        if(params[i].spec.declType.isEllipsis == 0)
+        {
+            i++;
+        }
     }
 
     if(i != symFn->paramCount )
@@ -2290,13 +2348,13 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     {
         if(symVar->opts.isEnumerator == 0)
         {
-            if(IsPointer(&symVar->decl.accArr) )
-            {
-                out.type = BuiltIn::ptr;
-            }
-            else if(IsArray(&symVar->decl.accArr) )
+            if(IsArray(&symVar->decl.accArr) )
             {
                 out.type = BuiltIn::array;
+            }
+            else if(IsPointer(&symVar->decl.accArr) )
+            {
+                out.type = BuiltIn::ptr;
             }
             else
             {

@@ -120,6 +120,16 @@ struct SemanticAnalyzer
     void ResolveIntegralPromotion(const BuiltIn::Type& left, const BuiltIn::Type& right, BuiltIn::Type* outLeft, BuiltIn::Type* outRight);
     int GetIntRank(BuiltIn::Type type);
     void BinaryExprProlog(ExprRet* left, ExprRet* right, const Ast::Node* leftTerm, const Ast::Node* rightTerm);
+    int64_t PointerArg(const FunctionParams& param, const ExprRet& result);
+    void StructArg(
+        const SymbolFunction& symFn,
+        size_t argIdx, 
+        const FunctionParams& param,
+        const ExprRet& result, 
+        const Ast::Node* callRoot,
+        ArgDesc* left,
+        ArgDesc* right);
+    Operator ValueArg(const FunctionParams& param, const ExprRet& result);
 
     SymbolTable* symTab;
     FileManager* manager;
