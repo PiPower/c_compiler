@@ -118,6 +118,7 @@ struct CodeGen
         const std::vector<int64_t>& caseLabels,
         const std::vector<Typed::Number>& labelValues);
 
+    int64_t EmitLocalGlLoad(BuiltIn::Type type, int32_t alignment, const std::string_view& varName);
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalLoad(const std::string_view& typeView, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);

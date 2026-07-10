@@ -928,6 +928,17 @@ void CodeGen::EmitLocalSwitch(
     return;
 }
 
+int64_t CodeGen::EmitLocalGlLoad(BuiltIn::Type type, int32_t alignment, const std::string_view &varName)
+{
+    BindLocalBuffer();
+    int64_t targetIdx = GetIdxForLocalVar();
+    std::string_view srcType = GetBuiltInName(type);
+
+    WriteCharData("\n\t%%%l = load %v, ptr @%v, align %l",
+            targetIdx, srcType, varName, alignment);
+    return targetIdx;
+}
+
 int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx)
 {
     std::string_view srcType = GetBuiltInName(type);

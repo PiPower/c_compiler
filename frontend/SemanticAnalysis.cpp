@@ -1072,14 +1072,19 @@ ExprRet SemanticAnalyzer::LoadVariable(const ExprRet &ret)
     ExprRet out = ret;
     if(out.id == EXPR_ID_VAR)
     {
-        const SymbolVariable* symVar = out.var;
-        out.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
-        out.var = nullptr;
+        const SymbolVariable* symVar = out.var; 
+        if(symVar->varIdx == EXPR_ID_GLOBAL)
+        {
+            out.id = codeGen.EmitLocalGlLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->decl.name);
+            out.var = nullptr;
+        }
+        else
+        {
+            out.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
+            out.var = nullptr;
+        }
     }
-    else if(out.id == EXPR_ID_GLOBAL)
-    {
-        int x = 2;
-    }
+
     return out;
 }
 
