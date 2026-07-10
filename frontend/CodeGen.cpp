@@ -418,7 +418,16 @@ void CodeGen::EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op)
     }
     std::string_view typeView = GetBuiltInName(type);
 
-    if(op.idx != EXPR_ID_CONST)
+    if((flags & fpIsUsedInCall) == 0 && type == BuiltIn::string)
+    {
+        IssueWarning(nullptr, "String cannot be used in function declaration")
+    }
+
+    if(type == BuiltIn::string)
+    {
+        EmitString(false, op.idx);
+    }
+    else if(op.idx != EXPR_ID_CONST)
     {
         WriteCharData("%v noundef %%%l", typeView, op.idx);
     }
@@ -1140,7 +1149,7 @@ void CodeGen::EmitString(bool isGlobal, int64_t strIdx)
     }
 
     std::string initStr = std::to_string(strIdx);
-    WriteCharData(" @.str.%v", VIEW(initStr));
+    WriteCharData("@.str.%v", VIEW(initStr));
 }
 
 void CodeGen::EmitConstant(bool isGlobal, BuiltIn::Type dstType, const Typed::Number &num)

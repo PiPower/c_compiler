@@ -3,6 +3,7 @@
 #include "../LangTypes.hpp"
 #include "TypedNumber.hpp"
 
+constexpr int64_t INDEX_INVALID = -1;
 constexpr int64_t EXPR_ID_EMPTY= -10;
 constexpr int64_t EXPR_ID_GLOBAL = -100;
 constexpr int64_t EXPR_ID_CONST = -1000;

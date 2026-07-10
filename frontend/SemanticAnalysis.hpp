@@ -29,7 +29,6 @@ struct ArgDesc
 {
     Operator op;
     BuiltIn::Type paramType;
-    int8_t flags;
     size_t parmIdx; 
 };
 
@@ -50,7 +49,7 @@ struct SemanticAnalyzer
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void DeduceInferableArrSize(Declarator* decl);
     int BuiltInBitCount(BuiltIn::Type type);
-    std::vector<bool> AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl);
+    std::vector<bool> AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl, int* usedIntReg);
     BuiltIn::Type BitCountToIntegerType(uint8_t BitCount, bool isSigned);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);
@@ -128,7 +127,8 @@ struct SemanticAnalyzer
         const ExprRet& result, 
         const Ast::Node* callRoot,
         ArgDesc* left,
-        ArgDesc* right);
+        ArgDesc* right,
+        int usedIntRegs);
     Operator ValueArg(const FunctionParams& param, const ExprRet& result);
 
     SymbolTable* symTab;

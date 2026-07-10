@@ -12,6 +12,22 @@
 constexpr StructDesc emptyDesc = {NOT_EMITTED, 0, nullptr, nullptr, nullptr};
 typedef const Ast::Node Node;
 
+constexpr inline bool canEmitPassByValue(bool usesRightValue, int usedIntRegs)
+{
+    // sysv ABI
+    if(usedIntRegs >= 6)
+    {
+        return false;
+    }
+
+    if(usesRightValue && usedIntRegs >= 5)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 static const char* kTypeNames[] = {
     // void
     "void",
@@ -225,7 +241,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     fnSym->isDefined = 1;
     // emit parameters
     
-    std::vector<bool> passByValueArray = AnalyzeFunctionParams(&declSpec, &fnDecl);
+    std::vector<bool> passByValueArray = AnalyzeFunctionParams(&declSpec, &fnDecl, &fnSym->usedIntRegs);
     fnSym->passByValueArray = symTab->AllocateTypeArrayOnHeap<uint8_t>(passByValueArray.size()/8 + 1);
     SetByValueArray(fnSym->passByValueArray, passByValueArray);
 
@@ -300,7 +316,7 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
     }
     else
     {
-        symTab->AddSymbol<SymbolFunction>(decl->name, *spec, *decl, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, retType, nullptr, 0, 1, 0);
+        symTab->AddSymbol<SymbolFunction>(decl->name, *spec, *decl, FnDecl->fnDecl.paramCount, 0, FnDecl->fnDecl.paramTypeList, nullptr, retType, 0, nullptr, 0, 1, 0);
         tableSym = symTab->QueryFunctionSymbol(decl->name);
     }
 }
@@ -420,6 +436,7 @@ FunctionParams *SemanticAnalyzer::ProcessFnParams(const Ast::Node *paramsNode, s
         {
             if(glueNode->rChild) { IssueWarning(&glueNode->token, "elipsis MUST be the last parameter")}
             param.spec.declType.isEllipsis = 1;
+            if(params.size() == 0) { IssueWarning(&glueNode->token, "Variadic function must have atleast on arguments")} 
             params.push_back(param);
             break;
         }
@@ -860,7 +877,7 @@ int SemanticAnalyzer::BuiltInBitCount(BuiltIn::Type type)
     return -1;
 }
 
-std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl)
+std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl, int* usedIntReg)
 {
     // sysv abi
     // if usedIntegerValues > 6 structs that were to be passed by value are passed by ptr 
@@ -931,6 +948,10 @@ std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declS
             usedIntegerValues += usedValueSlots;
         }
 
+    }
+    if(usedIntReg)
+    {
+        *usedIntReg = usedIntegerValues;
     }
     // allocate reserved index
     codeGen.GetIdxForLocalVar();
@@ -1019,15 +1040,12 @@ void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpec
 int SemanticAnalyzer::TryEmitValueStruct(const StructDesc& str, bool isLast, int usedValueCount, ParamDesc* paramDesc)
 {
     // sysv abi: no free register to pass struct even if it consists of only one int
-    if(usedValueCount >= 6)
-    {
-        return 0; 
-    }
     ByValueStructDesc desc= codeGen.BuildValueStruct(str);
     int64_t lIdx = codeGen.GetIdxForLocalVar();
     int64_t rIdx = desc.rType == "" ? INDEX_INVALID : codeGen.GetIdxForLocalVar();
     // struct must be passed via ptr
-    if(rIdx != INDEX_INVALID && usedValueCount >= 5)
+
+    if(!canEmitPassByValue(rIdx != INDEX_INVALID, usedValueCount))
     {
         return 0;
     }
@@ -1058,7 +1076,10 @@ ExprRet SemanticAnalyzer::LoadVariable(const ExprRet &ret)
         out.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
         out.var = nullptr;
     }
-
+    else if(out.id == EXPR_ID_GLOBAL)
+    {
+        int x = 2;
+    }
     return out;
 }
 
@@ -1222,7 +1243,7 @@ void SemanticAnalyzer::BinaryExprProlog(ExprRet *left, ExprRet *right, const Ast
 
 int64_t SemanticAnalyzer::PointerArg(const FunctionParams& param, const ExprRet& result)
 {
-    if(DecaysToPointer(&param.decl.accArr))
+    if(DecaysToPointer(&param.decl.accArr) || param.spec.declType.isEllipsis)
     {
         if(result.type == BuiltIn::string)
         {
@@ -1253,26 +1274,31 @@ void SemanticAnalyzer::StructArg(
         const ExprRet& result, 
         const Ast::Node* callRoot,
         ArgDesc* left,
-        ArgDesc* right)
+        ArgDesc* right,
+        int usedIntRegs)
 {
     *left = {};
     *right = {};
-
-    if(IsArgPassedByValue(symFn.passByValueArray, argIdx))
+    // in the case of ellipsis we cannot use passByValueArray, we need to check each arg separetly
+    if(param.spec.declType.isEllipsis || IsArgPassedByValue(symFn.passByValueArray, argIdx))
     {
         if(result.id != EXPR_ID_VAR)
         {
             IssueWarning(&callRoot->token, "Struct cannot be passed as expression")
         }
         ByValueStructDesc desc = codeGen.BuildValueStruct(param.spec.symType->str);
-        if(desc.rType == "")
+        
+        // check needs to be done only in ellipsis arg
+        bool canEmit = param.spec.declType.isEllipsis == 1 ? 
+                        canEmitPassByValue(desc.rType != "", usedIntRegs) : true; 
+        if(canEmit && desc.rType == "")
         {
             int64_t loadedVar = codeGen.EmitLocalLoad(desc.lType, param.spec.symType->alignment, result.var->varIdx);
             left->op = {loadedVar, {}};
             left->paramType = GetBuiltInType(desc.lType);
-            left->flags = fpIsUsedInCall + (argIdx == symFn.paramCount - 1? fpIsLast : 0);
+            return;
         }
-        else
+        else if(canEmit)
         {
             std::string retName = codeGen.getRetName(&param.spec, nullptr);
             int64_t tmp = codeGen.AllocatePassByTmpStruct(desc.lType, desc.rType, param.spec.symType->alignment);
@@ -1284,28 +1310,23 @@ void SemanticAnalyzer::StructArg(
             int64_t r = codeGen.EmitLocalLoad(desc.rType, param.spec.symType->alignment, rPtr);
             left->paramType = GetBuiltInType(desc.lType);
             left->op = {l};
-            left->flags = fpIsUsedInCall;
             left->parmIdx = argIdx;
 
             right->paramType = GetBuiltInType(desc.rType);
             right->op = {r};
-            right->flags =  fpIsUsedInCall + (argIdx == symFn.paramCount - 1? fpIsLast : 0);
             right->parmIdx = argIdx;
+            return;
         }
     }
-    else
+ 
+    //Fill structs passed by ptr
+    if(result.id != EXPR_ID_VAR)
     {
-        //Fill structs passed by ptr
-        if(result.id != EXPR_ID_VAR)
-        {
-            IssueWarning(&callRoot->token, "Struct must be a variable")
-        }
-        left->paramType = BuiltIn::struct_t;
-        left->op.idx = result.var->varIdx;
-        left->parmIdx = argIdx;
-        left->flags = fpIsUsedInCall + (argIdx == symFn.paramCount - 1? fpIsLast : 0);
+        IssueWarning(&callRoot->token, "Struct must be a variable")
     }
-
+    left->paramType = BuiltIn::struct_t;
+    left->op.idx = result.var->varIdx;
+    left->parmIdx = argIdx;
 }
 
 Operator SemanticAnalyzer::ValueArg(const FunctionParams &param, const ExprRet &result)
@@ -1434,6 +1455,7 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
     const Ast::Node* arg = callRoot->rChild->rChild;
     const FunctionParams* params = symFn->params;
     size_t i = 0;
+    int usedIntRegs = symFn->usedIntRegs;
     while (arg)
     {
         if(i >= symFn->paramCount)
@@ -1442,37 +1464,47 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         }
         ExprRet result = AnalyzeExpr(arg->lChild);
         ArgDesc argDesc = {};
-        argDesc.paramType = params[i].spec.symType->dType;
-        argDesc.flags = fpIsUsedInCall;
-        argDesc.flags +=  i == symFn->paramCount - 1? fpIsLast : 0;
         argDesc.parmIdx = i;
+        int isEllipsis = params[i].spec.declType.isEllipsis;
 
         if(result.type == BuiltIn::ptr ||
            result.type == BuiltIn::string ||
            result.type == BuiltIn::array)
         {
-            argDesc.paramType = BuiltIn::ptr;
+            argDesc.paramType = result.type == BuiltIn::string ? BuiltIn::string : BuiltIn::ptr;
             argDesc.op.idx = PointerArg(params[i], result);
+            usedIntRegs += isEllipsis;
         }
         else if(isStructOrUnion(result.type))
         {
             ArgDesc left= {}, right = {};
-            StructArg(*symFn, i, params[i], result, callRoot, &left, &right);
-
-            argDesc.flags = left.flags;
+            StructArg(*symFn, i, params[i], result, callRoot, &left, &right, usedIntRegs);
             argDesc.op = left.op;
             argDesc.paramType = left.paramType;
+            
+            usedIntRegs += isEllipsis * isInteger(argDesc.paramType);
             if(right.paramType != BuiltIn::none)
             {
                 args.push_back(argDesc);
-                argDesc.flags = right.flags;
                 argDesc.op = right.op;
                 argDesc.paramType = right.paramType;
+                usedIntRegs += isEllipsis * isInteger(argDesc.paramType);
             }
         }
         else
         {
-            argDesc.op = ValueArg(params[i], result);
+            if(params[i].spec.declType.isEllipsis)
+            {
+                ExprRet res = LoadVariable(result);
+                argDesc.op = {res.id, res.num};
+                argDesc.paramType = res.type;
+                usedIntRegs += isInteger(argDesc.paramType);
+            }
+            else
+            {
+                argDesc.paramType = params[i].spec.symType->dType; 
+                argDesc.op = ValueArg(params[i], result);
+            }
         }
 
         args.push_back(argDesc);
@@ -1483,7 +1515,9 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         }
     }
 
-    if(i != symFn->paramCount )
+    bool isEllipsis = symFn->params[symFn->paramCount - 1].spec.declType.isEllipsis;
+    size_t argCount = isEllipsis ? symFn->paramCount - 1 : symFn->paramCount;
+    if(i != argCount )
     {
         IssueWarning(&callRoot->token, "Incorrect number of function call arguments")
     }
@@ -2157,16 +2191,19 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
     std::vector<ArgDesc> args = AnalyzeFnCallArgs(root, symFn);
 
     int64_t id = AnalyzeFnCallStart(root, symFn, fnName);
-    for(const auto& arg : args)
+    for(size_t i =0; i < args.size(); i++)
     {
+        const ArgDesc& arg = args[i];
+        int8_t flags = fpIsUsedInCall;
+        flags += i == args.size() - 1 ? fpIsLast : 0; 
         if(!isStructOrUnion(arg.paramType))
         {
-            codeGen.EmitFunctionParam(arg.paramType, arg.flags, arg.op);
+            codeGen.EmitFunctionParam(arg.paramType, flags, arg.op);
         }
         else
         {
             FunctionParams* param = &symFn->params[arg.parmIdx];
-            codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, arg.flags, arg.parmIdx);
+            codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, flags, arg.parmIdx);
         }
     }
     codeGen.EmitCloseFnCall();

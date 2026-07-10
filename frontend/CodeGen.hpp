@@ -15,7 +15,6 @@ constexpr uint64_t CG_ZERO_SIZED_ARRAY = 0xFFFFFFFFFFFFFFFF;
 // special variable idx values
 constexpr int64_t NOT_EMITTED = -2;
 constexpr int64_t ANON_EMITTED = -3;
-constexpr int64_t INDEX_INVALID = -1;
 struct LlvmType
 {
     int symbolSaveCounter;
@@ -147,7 +146,7 @@ struct CodeGen
     void EmitZeroInitType(bool isGlobal);
     void EmitZeroInitInt(bool isGlobal);
     void EmitZeroInitFloat(bool isGlobal);
-    void EmitString(bool isGlobal,int64_t strIdx);
+    void EmitString(bool isGlobal, int64_t strIdx);
     void EmitConstant(bool isGlobal, BuiltIn::Type dstType, const Typed::Number &num);
     // general functions
     int64_t EmitLocalBinaryOp(
