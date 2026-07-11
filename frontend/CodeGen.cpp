@@ -28,7 +28,7 @@ const char* memcpyIntr = "\ndeclare void @llvm.memcpy.p0.p0.i64(ptr noalias writ
 
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
-chosenBuffer(TYPE_BUFFER), currFn(-1, "", false, false), attrCtr(1), typeHeap(nr_of_pages), symTab(symTab),
+chosenBuffer(TYPE_BUFFER), currFn(-1, "", false, false), attrCtr(0), typeHeap(nr_of_pages), symTab(symTab),
 manager(manager), nodeExec(ne), logger(manager, "Code Gen")
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
@@ -39,7 +39,12 @@ manager(manager), nodeExec(ne), logger(manager, "Code Gen")
     BindFuncBuffer();
     WriteByte('\n');
     BindAttrBuffer();
+    attrCtr++;
     WriteCharData("\n\n" R"(attributes #0 = { noinline nounwind optnone uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" })");
+    attrCtr++;
+    declareAttribute = 1;
+    WriteCharData("\n" R"(attributes #1 = { "frame-pointer"="all" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic"})");
+
 }
 
 void CodeGen::EmitUnionStruct(SymbolType *symType, const std::string_view& name, bool flushQueue)
@@ -383,6 +388,7 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl, bo
         WriteCharData("\ndeclare %s @%s(", 
                         retName.data(), retName.length(),
                         decl->name.data(), decl->name.length());
+
     }
 
 }
@@ -518,13 +524,20 @@ void CodeGen::EmitSimpleReturn(BuiltIn::Type dType, Operator ret)
 }
 
 
-void CodeGen::CloseParamList()
+void CodeGen::CloseParamList(bool isDeclaration)
 {
     BindFuncBuffer(); 
-    WriteCharData(") #0");
+    if(isDeclaration)
+    {
+        WriteCharData(") #1");
+    }
+    else
+    {
+        WriteCharData(") #0");
+    }
 }
 
-void CodeGen::EmitFunctionStart()
+void CodeGen::EmitFunctionBodyStart()
 {
     BindFuncBuffer(); 
     WriteCharData(" {");
@@ -613,7 +626,7 @@ void CodeGen::EmitGLobalArrayAlignment(bool isPtr, uint32_t alignment)
     }
 }
 
-void CodeGen::EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal, DeclSpecs* retSpec)
+void CodeGen::EmitFunctionBodyClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal, DeclSpecs* retSpec)
 {
     BindLocalBuffer(); 
     EmitLocalLabel(retIdx);

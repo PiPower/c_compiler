@@ -924,12 +924,13 @@ std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declS
     }
     // allocate reserved index
     codeGen.GetIdxForLocalVar();
-    codeGen.CloseParamList();
+    codeGen.CloseParamList(!startFunctionBody);
     if(!startFunctionBody)
     {
         return passByValue;
     }
-    codeGen.EmitFunctionStart();
+    codeGen.EmitFunctionBodyStart();
+
     for(size_t i =0; i < paramDecl->paramCount; i++)
     {
         const FunctionParams* param = &paramDecl->paramTypeList[i];
@@ -1680,7 +1681,7 @@ void SemanticAnalyzer::StopFunction(bool declareFunc)
 {
     if(!declareFunc)
     {
-        codeGen.EmitFunctionClose(currFn.symFn->retType, currFn.retIdx, currFn.retVal, &currFn.symFn->spec);
+        codeGen.EmitFunctionBodyClose(currFn.symFn->retType, currFn.retIdx, currFn.retVal, &currFn.symFn->spec);
     }
     symTab->PopScope();
     currFn.symFn = nullptr;
