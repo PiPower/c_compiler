@@ -222,41 +222,14 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
 
     Declarator fnDecl = AnalyzeDeclarator(initDecl->rChild, nullptr, nullptr);
     SymbolFunction* fnSym = symTab->QueryFunctionSymbol(fnDecl.name);
-    if(fnSym != nullptr)
+    if(fnSym != nullptr && fnSym->isDefined)
     {
         IssueWarning(&fnDecl.token, "Function redefinition")
     }
     AnalyzeFunctionDecl(&declSpec, &fnDecl);
-    
-    // emitt type 
-    if(!IsPointer(&fnDecl.accArr , 1))
-    {
-        codeGen.EmitUnionStruct(declSpec.symType, declSpec.typenameView);
-    }
-
-    codeGen.EmitFunctionName(&declSpec, &fnDecl);
     fnSym = symTab->QueryFunctionSymbol(fnDecl.name);
-    symTab->CreateNewScope(Scope::LOCAL);
-    fnSym->fnScope = symTab->currentTable;
     fnSym->isDefined = 1;
-    // emit parameters
-    
-    std::vector<bool> passByValueArray = AnalyzeFunctionParams(&declSpec, &fnDecl, &fnSym->usedIntRegs);
-    fnSym->passByValueArray = symTab->AllocateTypeArrayOnHeap<uint8_t>(passByValueArray.size()/8 + 1);
-    SetByValueArray(fnSym->passByValueArray, passByValueArray);
-
-    currFn.symFn = fnSym;
-    currFn.retIdx = codeGen.GetIdxForLocalVar();
-    const SymbolType* retType = currFn.symFn->spec.symType;
-    if(!isStructOrUnion(retType->dType) || retType->passByValue)
-    {
-        currFn.retVal = codeGen.AllocateLocalVariable(currFn.symFn->retType, 
-                    currFn.symFn->spec.symType, currFn.symFn->spec.typenameView);
-    }
-    else
-    {
-        currFn.retVal = 0;
-    }
+    StartFunction(fnSym, false);
     // emit function body
     const Ast::Node* bodyNode = body->rChild;
     while (bodyNode)
@@ -264,16 +237,8 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
         Analyze(bodyNode->lChild);
         bodyNode = bodyNode->rChild;
     }
-    symTab->PopScope();
 
-    codeGen.EmitFunctionClose(currFn.symFn->retType, currFn.retIdx, currFn.retVal, &currFn.symFn->spec);
-    currFn.symFn = nullptr;
-    currFn.namedLabels.clear();
-    while (currFn.labels.size() > 0)
-    {
-        currFn.labels.pop();
-    }
-    
+    StopFunction(false);    
 }
 
 void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
@@ -877,7 +842,7 @@ int SemanticAnalyzer::BuiltInBitCount(BuiltIn::Type type)
     return -1;
 }
 
-std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl, int* usedIntReg)
+std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl, int* usedIntReg, bool startFunctionBody)
 {
     // sysv abi
     // if usedIntegerValues > 6 structs that were to be passed by value are passed by ptr 
@@ -907,12 +872,16 @@ std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declS
     for(size_t i =0; i < paramDecl->paramCount; i++)
     {
         const FunctionParams* param = &paramDecl->paramTypeList[i];
+        int8_t isLast = i == paramDecl->paramCount - 1 ? fpIsLast : 0;
         if(param->spec.typenameView == "void")
         {
             break;
-            passByValue.push_back(false);
         }
-        int8_t isLast = i == paramDecl->paramCount - 1 ? fpIsLast : 0;
+        else if(param->spec.declType.isEllipsis)
+        {
+            codeGen.EmitFunctionParam(BuiltIn::special, isLast, {});
+            break;
+        }
         if(DecaysToPointer(&param->decl.accArr))
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
@@ -956,7 +925,11 @@ std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declS
     // allocate reserved index
     codeGen.GetIdxForLocalVar();
     codeGen.CloseParamList();
-
+    if(!startFunctionBody)
+    {
+        return passByValue;
+    }
+    codeGen.EmitFunctionStart();
     for(size_t i =0; i < paramDecl->paramCount; i++)
     {
         const FunctionParams* param = &paramDecl->paramTypeList[i];
@@ -1169,6 +1142,15 @@ void SemanticAnalyzer::EmitUninitializedGlobals()
         if(symVar->spec.declType.spec.extern_ == 0)
         {
             InitGlobalVar(symVar);
+        }
+    }
+
+    for(SymbolFunction* symFn : maybeUndefinedFuncs)
+    {
+        if(symFn->isDefined == 0)
+        {
+            StartFunction(symFn, true);
+            StopFunction(true);
         }
     }
 }
@@ -1656,6 +1638,56 @@ void SemanticAnalyzer::AnalyzeLocalVarDecl(
     {
         codeGen.EmitLocalVariable(symVar);
         InitLocalVariable(symVar);
+    }
+}
+
+void SemanticAnalyzer::StartFunction(SymbolFunction* symFn, bool declareFunc)
+{
+    // emitt type 
+    if(!IsPointer(&symFn->decl.accArr , 1))
+    {
+        codeGen.EmitUnionStruct(symFn->spec.symType, symFn->spec.typenameView);
+    }
+
+    codeGen.EmitFunctionName(&symFn->spec, &symFn->decl, declareFunc);
+    symTab->CreateNewScope(Scope::LOCAL);
+    symFn->fnScope = symTab->currentTable;
+  
+    // emit parameters  
+    std::vector<bool> passByValueArray = AnalyzeFunctionParams(&symFn->spec, &symFn->decl, &symFn->usedIntRegs, !declareFunc);
+    symFn->passByValueArray = symTab->AllocateTypeArrayOnHeap<uint8_t>(passByValueArray.size()/8 + 1);
+    SetByValueArray(symFn->passByValueArray, passByValueArray);
+
+    // emitt type 
+    currFn.symFn = symFn;
+    currFn.retIdx = codeGen.GetIdxForLocalVar();
+    const SymbolType* retType = currFn.symFn->spec.symType;
+    if(!declareFunc && (!isStructOrUnion(retType->dType) || retType->passByValue))
+    {
+        currFn.retVal = codeGen.AllocateLocalVariable(currFn.symFn->retType, 
+                    currFn.symFn->spec.symType, currFn.symFn->spec.typenameView);
+    }
+    else
+    {
+        currFn.retVal = 0;
+    }
+
+    return;
+}
+
+
+void SemanticAnalyzer::StopFunction(bool declareFunc)
+{
+    if(!declareFunc)
+    {
+        codeGen.EmitFunctionClose(currFn.symFn->retType, currFn.retIdx, currFn.retVal, &currFn.symFn->spec);
+    }
+    symTab->PopScope();
+    currFn.symFn = nullptr;
+    currFn.namedLabels.clear();
+    while (currFn.labels.size() > 0)
+    {
+        currFn.labels.pop();
     }
 }
 
@@ -2192,6 +2224,10 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
     {
         int len = fnName.length();
         IssueWarning(&root->token, "Function '%.*s' is not declared", len, fnName.data());
+    }
+    if(symFn->isDefined == 0)
+    {
+        maybeUndefinedFuncs.insert(symFn);
     }
     std::vector<ArgDesc> args = AnalyzeFnCallArgs(root, symFn);
 

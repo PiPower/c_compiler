@@ -349,7 +349,7 @@ int64_t CodeGen::AllocateLocalVariable(BuiltIn::Type type, SymbolType* symType, 
     return id;
 }
 
-void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
+void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl, bool declareFunc)
 {
     currFn.isBlockTerminated = false;
     currFn.inFunction = true;
@@ -370,10 +370,20 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl)
     std::string retName = getRetName(spec, decl);
     bool retByStack = false;
     BindFuncBuffer();
-    WriteCharData("\ndefine %s %s @%s(", 
-                    vis.data(), vis.length(), 
-                    retName.data(), retName.length(),
-                    decl->name.data(), decl->name.length());
+
+    if(!declareFunc)
+    {
+        WriteCharData("\ndefine %s %s @%s(", 
+                        vis.data(), vis.length(), 
+                        retName.data(), retName.length(),
+                        decl->name.data(), decl->name.length());
+    }
+    else
+    {
+        WriteCharData("\ndeclare %s @%s(", 
+                        retName.data(), retName.length(),
+                        decl->name.data(), decl->name.length());
+    }
 
 }
 
@@ -426,6 +436,10 @@ void CodeGen::EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op)
     if(type == BuiltIn::string)
     {
         EmitString(false, op.idx);
+    }
+    else if(type == BuiltIn::special)
+    {
+        WriteCharData("...");
     }
     else if(op.idx != EXPR_ID_CONST)
     {
@@ -507,7 +521,13 @@ void CodeGen::EmitSimpleReturn(BuiltIn::Type dType, Operator ret)
 void CodeGen::CloseParamList()
 {
     BindFuncBuffer(); 
-    WriteCharData(") #0 {");
+    WriteCharData(") #0");
+}
+
+void CodeGen::EmitFunctionStart()
+{
+    BindFuncBuffer(); 
+    WriteCharData(" {");
 }
 
 void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initializer, bool isComplexType)

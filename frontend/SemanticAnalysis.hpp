@@ -49,7 +49,7 @@ struct SemanticAnalyzer
     void AnalyzeEnum(const Ast::Node* enumTree, DeclSpecs* spec);
     void DeduceInferableArrSize(Declarator* decl);
     int BuiltInBitCount(BuiltIn::Type type);
-    std::vector<bool> AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl, int* usedIntReg);
+    std::vector<bool> AnalyzeFunctionParams(const DeclSpecs *declSpec, const Declarator* fnDecl, int* usedIntReg, bool startFunctionBody);
     BuiltIn::Type BitCountToIntegerType(uint8_t BitCount, bool isSigned);
     void AnalyzeSimpleType(const Ast::Node* typeSequence, DeclSpecs* spec);
     bool NamesAType(const std::string_view& identifier);
@@ -70,6 +70,8 @@ struct SemanticAnalyzer
         bool needsEmission = true,
         int64_t preallocatedIdx = INDEX_INVALID);
 
+    void StartFunction(SymbolFunction* symFn, bool declareFunc);
+    void StopFunction(bool declareFunc);
     uint64_t GetAnnonymousStructId();
     uint64_t GetAnnonymousUnionId();
     bool IsMemberPointer(const Member* member);
@@ -136,6 +138,7 @@ struct SemanticAnalyzer
     NodeExecutor ne;
     CodeGen codeGen;
     std::unordered_set<SymbolVariable*> uninitGlobals;
+    std::unordered_set<SymbolFunction*> maybeUndefinedFuncs;
     CurrentFunction currFn;
     // used as local string to avoid constant re allocation
     // it is not guaranted to be valid after call to any SEMA function

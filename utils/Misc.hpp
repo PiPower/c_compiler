@@ -60,7 +60,7 @@ constexpr inline Typed::DType BuiltInToNum(BuiltIn::Type type)
 
 inline bool isVoidCall(uint32_t paramCount, const AccessArray* accArr, const std::string_view& typenameView)
 {
- return paramCount == 1 && !DecaysToPointer(accArr) && typenameView == "void";
+    return paramCount == 1 && !DecaysToPointer(accArr) && typenameView == "void";
 }
 
 

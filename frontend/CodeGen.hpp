@@ -69,11 +69,12 @@ struct CodeGen
     // Type stuff
     void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
     // Function stuff
-    void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl);
+    void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl, bool declareFunc);
     void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, int8_t flags, int64_t argIdx = EXPR_ID_IGNORE);
     void EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op);
     void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, int8_t flags, int64_t idx);
     void CloseParamList();
+    void EmitFunctionStart();
     void EmitFunctionClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal, DeclSpecs* retSpec);
     // Global stuff 
     void EmitGlobalVariable(const DeclSpecs* spec, const Declarator* decl);
