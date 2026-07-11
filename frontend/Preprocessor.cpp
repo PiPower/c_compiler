@@ -5,10 +5,10 @@
 #include "../utils/DataEncoder.hpp"
 #include <functional>
 #include <iostream>
+#include <limits>
 #include "../utils/Misc.hpp"
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 #define IssueWarningNoneTerminal(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__);
-
 
 static const char* PreprocessorFlename = "preprocessor_file.comp";
 static const char* InsertableValues = "01";
@@ -115,15 +115,26 @@ fetch_token:
             std::string_view view = GetViewForToken(*token, manager);
             IssueWarning(token, "Errounsous identifier [%.*s]", (int)view.length(), view.data());
         }
-        Macro *macro;
         std::string_view macroView = GetViewForToken(*token, manager);
+        Macro *macro;
         bool hasEntry = FetchMacro(&macroView, &macro);
-        if(!hasEntry && stages.ConstantExpr == 0)
+        // if there is name that does not represent macro but preprocessor is inside constant expr
+        // that name shall be treated as 0
+        // if preprocessor is not inside constant expr then its just identifier
+        if(!hasEntry && macroView == "__LINE__")
+        {
+            ConstructLineToken(token);
+            return 0;
+        }
+        else if(!hasEntry && stages.ConstantExpr == 0)
         {
             // if we are not inside directive of any sort just return
             return 0;
         }
-        FillQueueWithMacro(macro);
+        else
+        {
+            FillQueueWithMacro(macro);
+        }
         goto fetch_token;
     }
     else if(token->type == TokenType::pp_defined)
@@ -415,15 +426,18 @@ void Preprocessor::ConsumeExpectedToken(TokenType::Type type)
     return;
 }
 
-void Preprocessor::WriteToPreprocessorFile(const char *data, int64_t dataLen)
+SourceLocation Preprocessor::WriteToPreprocessorFile(const char *data, int64_t dataLen)
 {
-    if(manager->WriteToFile(data, fileOffset, dataLen ,&preprocessorFile) != 0)
+    if(manager->WriteToFile(data, fileOffset, dataLen, &preprocessorFile) != 0)
     {
         printf("Run out of memory for preprocessor file \n");
         exit(-1);
     }
 
+    SourceLocation loc(preprocessorFile, fileOffset, 0, dataLen);
     fileOffset += dataLen;
+
+    return loc;
 }
 
 void Preprocessor::InsertMacroTokensIntoQueue(
@@ -505,6 +519,20 @@ void Preprocessor::InsertMacroTokensIntoQueue(
     }
 
     std::reverse(tokenQueue.begin(),tokenQueue.end() - n);
+}
+
+void Preprocessor::ConstructLineToken(Token *token)
+{
+    int64_t lineNr = lexer.GetCurrentLine();
+    std::string lineNrStr = std::to_string(lineNr);
+    
+    *token = {};
+    token->type = TokenType::numeric_constant;
+    token->isDec = 1;
+    token->l = lineNr > std::numeric_limits<int>::max() ? 1 : 0; 
+    token->location = WriteToPreprocessorFile(lineNrStr.data(), lineNrStr.size());
+    return;
+
 }
 
 std::string_view Preprocessor::FormHeadername()

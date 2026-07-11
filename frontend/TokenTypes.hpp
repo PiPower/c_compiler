@@ -176,6 +176,10 @@ struct SourceLocation
     SourceLocation(size_t id,  int64_t offset, int64_t line, int64_t len) :
     id(FILE_ID{id}), offset(offset), line(line), len(len)
     {}
+    
+    SourceLocation(FILE_ID id,  int64_t offset, int64_t line, int64_t len) :
+    id(id), offset(offset), line(line), len(len)
+    {}
 
     FILE_ID id;
     int64_t offset;

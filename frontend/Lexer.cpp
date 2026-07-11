@@ -93,6 +93,11 @@ SourceLocation Lexer::GetCurrLoc()
     return currLocations.front();
 }
 
+int64_t Lexer::GetCurrentLine()
+{
+    return files.top().lineNr;
+}
+
 char Lexer::GetCurrChar()
 {
     if(!charsQueue.empty())

@@ -57,11 +57,12 @@ private:
     void ConsumeToken();
     TokenType::Type GetPreprocessorType(const Token* token);
     void ConsumeExpectedToken(TokenType::Type type);
-    void WriteToPreprocessorFile(const char* data, int64_t dataLen);
+    SourceLocation WriteToPreprocessorFile(const char* data, int64_t dataLen);
     void InsertMacroTokensIntoQueue(
         const std::vector<Token>& macroTokens, 
         const std::vector<std::vector<Token>>& args,
         const std::vector<MacroArgPlacement>& argPlacement);
+    void ConstructLineToken(Token* token);
     std::string_view FormHeadername();
     int32_t HandleIf();
     int32_t HandleElse();

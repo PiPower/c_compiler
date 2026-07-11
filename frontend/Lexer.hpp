@@ -31,6 +31,7 @@ struct Lexer
     bool IsSimpleChar(char C);
     void ChangeLexedFile();
     SourceLocation GetCurrLoc();
+    int64_t GetCurrentLine();
     char GetCurrChar();
     char GetNextChar();
     char GetCharSlow();
