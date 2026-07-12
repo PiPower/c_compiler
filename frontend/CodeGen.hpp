@@ -143,7 +143,7 @@ struct CodeGen
     int64_t EmitLocalCmpEq(BuiltIn::Type opType, Operator left, Operator right);
     int64_t EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator right);
     // fuction call related
-    int64_t EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName, const DeclSpecs* spec = nullptr);
+    int64_t EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName, const DeclSpecs* spec = nullptr, size_t paramCount = 0, BuiltIn::Type* paramList = nullptr);
     void EmitCloseFnCall();
     // variable related
     void EmitZeroInitType(bool isGlobal);

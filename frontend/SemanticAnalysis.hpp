@@ -59,6 +59,7 @@ struct SemanticAnalyzer
     void InitGlobalVar(const SymbolVariable* symVar);
     int64_t AnalyzeFnCallStart(const Ast::Node* callRoot, const SymbolFunction* symFn, const std::string_view& fnName);
     ParamTuple IterateOverParams(const FnDecl* paramDecl, int* usedInts);
+    std::vector<BuiltIn::Type> IterateOverParamsForBuilints(const FnDecl* paramDecl, int* usedInts);
     std::vector<ArgDesc> AnalyzeFnCallArgs(const Ast::Node* callRoot, const SymbolFunction* symFn);
     void InitArray(
         const AccessArray* accArr, 

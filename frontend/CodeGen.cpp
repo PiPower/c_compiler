@@ -1145,7 +1145,7 @@ int64_t CodeGen::EmitLocalCmpNotEq(BuiltIn::Type opType, Operator left, Operator
 {
     return EmitLocalBinaryOp(opType, left, right, "icmp ne", "icmp ne", "fcmp one", false);
 }
-int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName, const DeclSpecs* spec)
+int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName, const DeclSpecs* spec, size_t paramCount, BuiltIn::Type* paramList)
 {
     BindLocalBuffer();
     int64_t id = EXPR_ID_IGNORE;
@@ -1166,7 +1166,17 @@ int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName, cons
         id = GetIdxForLocalVar();
         WriteCharData("%%%l = ", id);
     }
-    WriteCharData("call %v @%v(", retType, fnName);
+    WriteCharData("call %v", retType) ;
+    if(paramCount > 0)
+    {
+        WriteCharData(" (");
+        for(size_t i = 0; i < paramCount; i++)
+        {
+            WriteCharData("%v, ", GetBuiltInName(paramList[i]));
+        }
+        WriteCharData("... )");
+    }
+    WriteCharData(" @%v(", fnName);
 
     return id;
 }

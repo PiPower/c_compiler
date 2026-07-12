@@ -1362,19 +1362,38 @@ void SemanticAnalyzer::InitGlobalVar(const SymbolVariable* symVar)
 
 int64_t SemanticAnalyzer::AnalyzeFnCallStart(const Ast::Node* callRoot, const SymbolFunction* symFn, const std::string_view& fnName)
 {
+    std::vector<BuiltIn::Type> paramList;
+    if(symFn->params[symFn->paramCount - 1].spec.declType.isEllipsis)
+    {
+        // first int is reserved for struct if it is passed via pointer, remaining params
+        // will be resolved by IterateOverParamsForBuilints
+        int usedInts = 0;
+        if(isStructOrUnion(symFn->retType) && symFn->spec.symType->passByValue == 0)
+        {
+            usedInts++;
+            paramList.push_back(BuiltIn::ptr);
+            std::vector<BuiltIn::Type> paramListTmp = IterateOverParamsForBuilints(&symFn->decl.accArr.ptr[0].fnDecl, &usedInts);
+            paramList.insert(paramListTmp.begin(), paramListTmp.end(), paramList.begin());
+        }
+        else
+        {
+            paramList = IterateOverParamsForBuilints(&symFn->decl.accArr.ptr[0].fnDecl, &usedInts);
+        }
+    }
+
     if(!isStructOrUnion(symFn->retType))
     {
-        return codeGen.EmitOpenFnCall(symFn->retType, fnName);
+        return codeGen.EmitOpenFnCall(symFn->retType, fnName, nullptr, paramList.size(), paramList.data());
     }
     if(symFn->spec.symType->passByValue)
     {
-        int id = codeGen.EmitOpenFnCall(BuiltIn::special, fnName, &symFn->spec);
+        int id = codeGen.EmitOpenFnCall(BuiltIn::special, fnName, &symFn->spec, paramList.size(), paramList.data());
         return id;
     }
     else
     {
         int64_t tmp = codeGen.AllocateLocalVariable(symFn->retType, symFn->spec.symType, symFn->spec.typenameView);
-        int id = codeGen.EmitOpenFnCall(BuiltIn::void_t, fnName);
+        int id = codeGen.EmitOpenFnCall(BuiltIn::void_t, fnName, nullptr, paramList.size(), paramList.data());
         int64_t flags = fpIsUsedInCall;
         const std::string_view firstParamTypeName = symFn->decl.accArr.ptr[0].fnDecl.paramTypeList[0].spec.typenameView;
         if(isVoidCall(symFn->paramCount, &symFn->decl.accArr, firstParamTypeName))
@@ -1441,6 +1460,61 @@ ParamTuple SemanticAnalyzer::IterateOverParams(const FnDecl* paramDecl, int* use
             passByValue.push_back(desc.lType != BuiltIn::struct_t);
             paramDesc.push_back(desc);
             *usedInts += usedValueSlots;
+        }
+
+    }
+    return out;
+}
+
+std::vector<BuiltIn::Type> SemanticAnalyzer::IterateOverParamsForBuilints(const FnDecl *paramDecl, int *usedInts)
+{
+    int usedIntCount = *usedInts;
+    std::vector<BuiltIn::Type> out;
+    out.reserve(15);
+    for(size_t i =0; i < paramDecl->paramCount; i++)
+    {
+        const FunctionParams* param = &paramDecl->paramTypeList[i];
+        if(param->spec.typenameView == "void" || param->spec.declType.isEllipsis)
+        {
+            break;
+        }
+
+        if(DecaysToPointer(&param->decl.accArr))
+        {
+            out.push_back(BuiltIn::ptr);
+            usedIntCount++;
+        }
+        else if(param->spec.symType->dType != BuiltIn::struct_t && param->spec.symType->dType != BuiltIn::union_t)
+        {
+            out.push_back(param->spec.symType->dType);
+            if(isInteger(param->spec.symType->dType))
+            {
+                usedIntCount++;
+            }
+        }
+        else
+        {
+            bool passViaPtr = true;
+            ByValueStructDesc desc = codeGen.BuildValueStruct(param->spec.symType->str);
+            if(!canEmitPassByValue(desc.rType != "", usedIntCount))
+            {
+                passViaPtr = false;
+            }
+            if(passViaPtr)
+            {
+                out.push_back(BuiltIn::ptr);
+                usedIntCount++;
+            }
+            else
+            {
+                out.push_back(GetBuiltInType(desc.lType));
+                usedIntCount++;
+                if(desc.rType != "")
+                {
+                    out.push_back(GetBuiltInType(desc.rType));
+                    usedIntCount++;
+                }
+            }
         }
 
     }
