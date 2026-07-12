@@ -278,6 +278,7 @@ std::string_view GetBuiltInName(const BuiltIn::Type type)
     case BuiltIn::float_32:    return "float";   break;
     case BuiltIn::double_64:   return "double";  break;
     case BuiltIn::long_double: return "x86_fp80";  break;
+    case BuiltIn::string:         return "ptr";     break;
     case BuiltIn::ptr:         return "ptr";     break;
     case BuiltIn::void_t:      return "void";     break;
     case BuiltIn::i24:         return "i24"; break;

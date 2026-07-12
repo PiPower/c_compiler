@@ -32,6 +32,7 @@ struct ArgDesc
     size_t parmIdx; 
 };
 
+typedef std::tuple<std::vector<ParamDesc>, std::vector<bool>> ParamTuple;
 struct SemanticAnalyzer
 {
     SemanticAnalyzer(FileManager* manager, SymbolTable* symTab);
@@ -57,6 +58,7 @@ struct SemanticAnalyzer
     void AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declarator* decl);
     void InitGlobalVar(const SymbolVariable* symVar);
     int64_t AnalyzeFnCallStart(const Ast::Node* callRoot, const SymbolFunction* symFn, const std::string_view& fnName);
+    ParamTuple IterateOverParams(const FnDecl* paramDecl, int* usedInts);
     std::vector<ArgDesc> AnalyzeFnCallArgs(const Ast::Node* callRoot, const SymbolFunction* symFn);
     void InitArray(
         const AccessArray* accArr, 

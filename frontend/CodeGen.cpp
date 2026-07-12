@@ -422,6 +422,38 @@ void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typen
     }
 }
 
+void CodeGen::EmitFunctionType(BuiltIn::Type type, int8_t flags, Operator op)
+{
+     if((flags & fpIsUsedInCall) > 0 )
+    {
+        BindLocalBuffer(); 
+    }
+    else
+    {
+        BindFuncBuffer(); 
+    }
+
+    if((flags & fpIsUsedInCall) == 0 && type == BuiltIn::string)
+    {
+        IssueWarning(nullptr, "String cannot be used in function declaration")
+    }
+
+    std::string_view typeView = GetBuiltInName(type);
+    if(type == BuiltIn::special)
+    {
+        WriteCharData("...");
+    }
+    else
+    {
+        WriteCharData("%v", typeView);
+    }
+
+    if((flags & fpIsLast) == 0 )
+    {
+        WriteCharData(", ");
+    }
+}
+
 void CodeGen::EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op)
 {
     if((flags & fpIsUsedInCall) > 0 )

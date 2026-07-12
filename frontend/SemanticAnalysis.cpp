@@ -857,60 +857,11 @@ std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declS
         IssueWarning(nullptr, "First access type must be ACC_FN_DECL")
     }
 
-    const FnDecl* paramDecl = &fnDecl->accArr.ptr[0].fnDecl;
-    std::vector<ParamDesc> paramDesc;
-    std::vector<bool> passByValue;
-    passByValue.reserve(paramDecl->paramCount);
-    paramDesc.reserve(paramDecl->paramCount);
-    for(size_t i =0; i < paramDecl->paramCount; i++)
-    {
-        const FunctionParams* param = &paramDecl->paramTypeList[i];
-        int8_t isLast = i == paramDecl->paramCount - 1 ? fpIsLast : 0;
-        if(param->spec.typenameView == "void")
-        {
-            break;
-        }
-        else if(param->spec.declType.isEllipsis)
-        {
-            codeGen.EmitFunctionParam(BuiltIn::special, isLast, {});
-            break;
-        }
-        if(DecaysToPointer(&param->decl.accArr))
-        {
-            int64_t idx = codeGen.GetIdxForLocalVar();
-            codeGen.EmitFunctionParam(BuiltIn::ptr, isLast, {idx, {}});
-            paramDesc.emplace_back(BuiltIn::ptr, BuiltIn::none, idx);
-            usedIntegerValues++;
-            passByValue.push_back(true);
-        }
-        else if(param->spec.symType->dType != BuiltIn::struct_t && param->spec.symType->dType != BuiltIn::union_t)
-        {
-            int64_t idx = codeGen.GetIdxForLocalVar();
-            codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, {idx, {}});
-            paramDesc.emplace_back(param->spec.symType->dType, BuiltIn::none, idx);
-            passByValue.push_back(true);
-            if(isInteger(param->spec.symType->dType))
-            {
-                usedIntegerValues++;
-            }
-        }
-        else
-        {
-            int usedValueSlots = 0;
-            ParamDesc desc = {};
-            if(param->spec.symType->passByValue == 0 || 
-                (usedValueSlots = TryEmitValueStruct(param->spec.symType->str, isLast, usedIntegerValues, &desc)) == 0 )
-            {
-                int64_t idx = codeGen.GetIdxForLocalVar();
-                codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, isLast, idx);
-                desc = {BuiltIn::struct_t, BuiltIn::none, idx, INDEX_INVALID};
-            }
-            passByValue.push_back(desc.lType != BuiltIn::struct_t);
-            paramDesc.push_back(desc);
-            usedIntegerValues += usedValueSlots;
-        }
+    ParamTuple out = IterateOverParams(&fnDecl->accArr.ptr[0].fnDecl, &usedIntegerValues);
+    std::vector<ParamDesc> paramDesc = std::move(std::get<0>(out));
+    std::vector<bool> passByValue = std::move(std::get<1>(out));
 
-    }
+
     if(usedIntReg)
     {
         *usedIntReg = usedIntegerValues;
@@ -923,7 +874,7 @@ std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declS
         return passByValue;
     }
     codeGen.EmitFunctionBodyStart();
-
+    const FnDecl* paramDecl = &fnDecl->accArr.ptr[0].fnDecl;
     for(size_t i =0; i < paramDecl->paramCount; i++)
     {
         const FunctionParams* param = &paramDecl->paramTypeList[i];
@@ -1433,6 +1384,67 @@ int64_t SemanticAnalyzer::AnalyzeFnCallStart(const Ast::Node* callRoot, const Sy
         codeGen.EmitReturnByPtr(symFn->spec.symType, symFn->spec.typenameView, flags, tmp);
         return id;
     }
+}
+
+ParamTuple SemanticAnalyzer::IterateOverParams(const FnDecl* paramDecl, int* usedInts)
+{
+    ParamTuple out{};
+    std::vector<ParamDesc>& paramDesc = std::get<0>(out);
+    std::vector<bool>& passByValue = std::get<1>(out);
+
+    passByValue.reserve(paramDecl->paramCount);
+    paramDesc.reserve(paramDecl->paramCount);
+
+    for(size_t i =0; i < paramDecl->paramCount; i++)
+    {
+        const FunctionParams* param = &paramDecl->paramTypeList[i];
+        int8_t isLast = i == paramDecl->paramCount - 1 ? fpIsLast : 0;
+        if(param->spec.typenameView == "void")
+        {
+            break;
+        }
+        else if(param->spec.declType.isEllipsis)
+        {
+            codeGen.EmitFunctionParam(BuiltIn::special, isLast, {});
+            break;
+        }
+        if(DecaysToPointer(&param->decl.accArr))
+        {
+            int64_t idx = codeGen.GetIdxForLocalVar();
+            codeGen.EmitFunctionParam(BuiltIn::ptr, isLast, {idx, {}});
+            paramDesc.emplace_back(BuiltIn::ptr, BuiltIn::none, idx);
+            (*usedInts)++;
+            passByValue.push_back(true);
+        }
+        else if(param->spec.symType->dType != BuiltIn::struct_t && param->spec.symType->dType != BuiltIn::union_t)
+        {
+            int64_t idx = codeGen.GetIdxForLocalVar();
+            codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, {idx, {}});
+            paramDesc.emplace_back(param->spec.symType->dType, BuiltIn::none, idx);
+            passByValue.push_back(true);
+            if(isInteger(param->spec.symType->dType))
+            {
+                (*usedInts)++;
+            }
+        }
+        else
+        {
+            int usedValueSlots = 0;
+            ParamDesc desc = {};
+            if(param->spec.symType->passByValue == 0 || 
+                (usedValueSlots = TryEmitValueStruct(param->spec.symType->str, isLast, *usedInts, &desc)) == 0 )
+            {
+                int64_t idx = codeGen.GetIdxForLocalVar();
+                codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, isLast, idx);
+                desc = {BuiltIn::struct_t, BuiltIn::none, idx, INDEX_INVALID};
+            }
+            passByValue.push_back(desc.lType != BuiltIn::struct_t);
+            paramDesc.push_back(desc);
+            *usedInts += usedValueSlots;
+        }
+
+    }
+    return out;
 }
 
 std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRoot, const SymbolFunction* symFn)
