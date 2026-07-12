@@ -1174,7 +1174,7 @@ int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName, cons
         {
             WriteCharData("%v, ", GetBuiltInName(paramList[i]));
         }
-        WriteCharData("... )");
+        WriteCharData("...)");
     }
     WriteCharData(" @%v(", fnName);
 
