@@ -14,6 +14,7 @@ for file in examples/*.c; do
     echo "---------- Compiling $file ----------"; 
     echo "---------- Compiling $file ----------" >> test_logs.txt;  
     build/c_compiler $file  >> test_logs.txt
+    opt -passes=verify examples/$base.ll -disable-output &>> test_logs.txt
     echo >> test_logs.txt; 
 done
 
