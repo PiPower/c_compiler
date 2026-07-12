@@ -5,3 +5,4 @@ build
 *.S
 *.ll
 rel
+test_logs.txt

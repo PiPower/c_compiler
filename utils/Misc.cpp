@@ -351,7 +351,7 @@ uint32_t GetBuiltInAlignment(const BuiltIn::Type type)
     case BuiltIn::i48:    return 8;
     case BuiltIn::i56:    return 8;
     default:
-        printf("non built in type");
+        printf("non built in type\n");
         exit(-1);
         break;
     }
