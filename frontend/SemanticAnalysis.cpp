@@ -256,18 +256,11 @@ void SemanticAnalyzer::AnalyzeFunctionDecl(DeclSpecs *spec, Declarator *decl)
         FnDecl->fnDecl.paramTypeList = paramsPtr;
     }
 
-    BuiltIn::Type retType;
-    const SymbolType* retSymType;
-    if(IsPointer(&decl->accArr))
+    if(IsArray(&decl->accArr) && !IsPointer(&decl->accArr) )
     {
-        retType = BuiltIn::ptr;
-        retSymType = nullptr;
+        IssueWarning(&decl->token, "Fuction is not allowed to return an array")
     }
-    else
-    {
-        retType = spec->symType->dType;
-        retSymType = isStructOrUnion(spec->symType->dType) ? spec->symType : nullptr;
-    }
+    BuiltIn::Type retType = IsPointer(&decl->accArr) ? BuiltIn::ptr : spec->symType->dType;
 
     //const Ast::Node* args = FnDecl->fnDecl.paramTypeList;
     SymbolFunction* tableSym = symTab->QueryFunctionSymbol(decl->name);
@@ -1289,7 +1282,12 @@ void SemanticAnalyzer::StructArg(
         else if(canEmit)
         {
             std::string retName = codeGen.getRetName(&param.spec, nullptr);
-            int64_t tmp = codeGen.AllocatePassByTmpStruct(desc.lType, desc.rType, param.spec.symType->alignment);
+            
+            ////DODAĆ Kopiowanie i używanie struktury tmp
+            //int32_t structAlignment = param.spec.symType->alignment;
+            //int64_t tmp = codeGen.AllocatePassByTmpStruct(desc.lType, desc.rType, structAlignment);
+            //codeGen.EmitLocalIntMemcpy(structAlignment, structAlignment, tmp, result.var->varIdx, param.spec.symType->size);
+            // TODO: Verify if there needs to be a copy of source type
             std::vector<uint64_t> indicies({0});
             int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
             int64_t l = codeGen.EmitLocalLoad(desc.lType, param.spec.symType->alignment, lPtr);
@@ -1312,8 +1310,12 @@ void SemanticAnalyzer::StructArg(
     {
         IssueWarning(&callRoot->token, "Struct must be a variable")
     }
+
+    int64_t tmp = codeGen.AllocateLocalVariable(BuiltIn::struct_t, result.var->spec.symType, result.var->spec.typenameView);
+    uint32_t alignment = result.var->spec.symType->alignment;
+    codeGen.EmitLocalIntMemcpy(alignment, alignment, tmp, result.var->varIdx, param.spec.symType->size);
     left->paramType = BuiltIn::struct_t;
-    left->op.idx = result.var->varIdx;
+    left->op.idx = tmp;
     left->parmIdx = argIdx;
 }
 
@@ -2245,7 +2247,7 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
         else
         {
             FunctionParams* param = &symFn->params[arg.parmIdx];
-            codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, flags, arg.parmIdx);
+            codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, flags, arg.op.idx);
         }
     }
     codeGen.EmitCloseFnCall();
@@ -2597,7 +2599,7 @@ RUN_CASE_CHECK:
     // second pass - code gen
     caseNodeGlue = root->rChild->rChild;
     size_t idx = 0;
-    bool hasDefault = false;
+
     while (caseNodeGlue)
     {
         bool isCase = false;
@@ -2611,7 +2613,6 @@ RUN_CASE_CHECK:
 
         if(caseNode->type == Ast::st_default)
         {
-            hasDefault =  true;
             codeGen.EmitLocalLabel(defaultIdx);
             Analyze(caseNode->lChild);
         }
