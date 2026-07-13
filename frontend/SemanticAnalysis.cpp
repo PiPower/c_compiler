@@ -1751,7 +1751,9 @@ void SemanticAnalyzer::StartFunction(SymbolFunction* symFn, bool declareFunc)
     currFn.symFn = symFn;
     currFn.retIdx = codeGen.GetIdxForLocalVar();
     const SymbolType* retType = currFn.symFn->spec.symType;
-    if(!declareFunc && (!isStructOrUnion(retType->dType) || retType->passByValue))
+    if(!declareFunc &&  
+       currFn.symFn->retType != BuiltIn::void_t && 
+       (!isStructOrUnion(retType->dType) || retType->passByValue))
     {
         currFn.retVal = codeGen.AllocateLocalVariable(currFn.symFn->retType, 
                     currFn.symFn->spec.symType, currFn.symFn->spec.typenameView);
