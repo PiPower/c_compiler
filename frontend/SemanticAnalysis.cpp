@@ -246,7 +246,11 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
         bodyNode = bodyNode->rChild;
     }
 
-
+    if(!bodyNode)
+    {
+        codeGen.EmitLocalJump(currFn.retIdx);
+    }
+    
     StopFunction(false);    
 }
 
