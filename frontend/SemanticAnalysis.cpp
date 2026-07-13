@@ -232,22 +232,20 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     StartFunction(fnSym, false);
     // emit function body
     const Ast::Node* bodyNode = body->rChild;
-    while (true)
+    while (bodyNode)
     {
         Analyze(bodyNode->lChild);
-        if(bodyNode->rChild)
+        if(!bodyNode->rChild)
         {
-            bodyNode = bodyNode->rChild;
-        }
-        else
-        {
+            if(bodyNode->type != Ast::st_return)
+            {
+                codeGen.EmitLocalJump(currFn.retIdx);
+            }
             break;
         }
+        bodyNode = bodyNode->rChild;
     }
-    if(bodyNode->type != Ast::st_return)
-    {
-        codeGen.EmitLocalJump(currFn.retIdx);
-    }
+
 
     StopFunction(false);    
 }
