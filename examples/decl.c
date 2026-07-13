@@ -252,7 +252,7 @@ void test_mixed_decl_code(void) {
 
 /* Tentative definitions */
 int tentative;
-int tentative = 0;
+int tentative = 20;
 
 /* Array parameter decays to pointer */
 void arr_param_decay(int arr[], int n) {}

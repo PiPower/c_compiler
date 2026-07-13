@@ -712,6 +712,10 @@ void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
     {
         zero_init = " zeroinitializer";
     }
+    else
+    {
+        zero_init = " 0";
+    }
     if(!IsPointer(&decl->accArr))
     {
         alignment = std::to_string(symType->alignment);

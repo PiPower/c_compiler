@@ -1328,7 +1328,9 @@ void SemanticAnalyzer::AnalyzeGlobalVarDecl(const DeclSpecs* spec, const Declara
             int len = (int) decl->name.length();
             IssueWarning(nullptr, "Symbol \'%.*s\' redefinition", len, decl->name.data());
         }
+
         symVar->opts.isEmitted = 1;
+        symVar->decl.initExpr = decl->initExpr; // set init expr
         codeGen.EmitGlobalVariable(spec, decl);
         if(spec->declType.spec.extern_ == 0)
         {
