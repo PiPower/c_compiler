@@ -250,7 +250,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     {
         codeGen.EmitLocalJump(currFn.retIdx);
     }
-    
+
     StopFunction(false);    
 }
 
@@ -2763,9 +2763,10 @@ void SemanticAnalyzer::IfBlock(const Ast::Node *root, int64_t exitLabel)
     {
         IfBlock(elseClause, exitLabel);
     }
-    else
+    else if(elseClause->type != Ast::none)
     {
         Analyze(elseClause);
+        codeGen.EmitLocalJump(exitLabel);
     }
     
 }
