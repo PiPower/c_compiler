@@ -6,3 +6,4 @@ build
 *.ll
 rel
 test_logs.txt
+build_cnt

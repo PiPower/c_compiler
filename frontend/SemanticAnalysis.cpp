@@ -237,7 +237,7 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
         Analyze(bodyNode->lChild);
         if(!bodyNode->rChild)
         {
-            if(bodyNode->type != Ast::st_return)
+            if(bodyNode->lChild->type != Ast::st_return)
             {
                 codeGen.EmitLocalJump(currFn.retIdx);
             }

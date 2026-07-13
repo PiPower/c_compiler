@@ -1,8 +1,8 @@
 #!/bin/bash
 rm test_logs.txt
 rm .builtin_defines.hpp .c_search_paths.set
-mkdir -p build 
-cd build
+mkdir -p build_cnt
+cd build_cnt
 rm -rf ./*
 cmake ..
 make -j"$(getconf _NPROCESSORS_ONLN)"
@@ -13,7 +13,7 @@ for file in examples/*.c; do
     base=$(basename "$file" .c); 
     echo "---------- Compiling $file ----------"; 
     echo "---------- Compiling $file ----------" >> test_logs.txt;  
-    build/c_compiler $file  >> test_logs.txt
+    build_cnt/c_compiler $file  >> test_logs.txt
     opt -passes=verify examples/$base.ll -disable-output &>> test_logs.txt
     echo >> test_logs.txt; 
 done

@@ -324,7 +324,7 @@ void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
     }
     std::string idx = std::to_string(symVar->varIdx);
 
-    BindFuncBuffer();
+    BindLocalBuffer();
 
     WriteCharData("\n\t%%%s = alloca ", idx.data(), idx.length());
     bool isPtr = EmitDeclarator(&symVar->decl.accArr, &symVar->spec.typenameView);
@@ -337,7 +337,7 @@ void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
 
 int64_t CodeGen::AllocateLocalVariable(BuiltIn::Type type, SymbolType* symType, const std::string_view& typeName)
 {
-    BindFuncBuffer();
+    BindLocalBuffer();
     int64_t id = GetIdxForLocalVar();
     if(!isStructOrUnion(type))
     {
@@ -518,7 +518,7 @@ void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typ
 
 int64_t CodeGen::AllocatePassByTmpStruct(const std::string_view& left, const std::string_view& right, uint64_t alignment)
 {
-    BindFuncBuffer();
+    BindLocalBuffer();
     int64_t idx = GetIdxForLocalVar();
     if(right == "")
     {
@@ -1307,10 +1307,9 @@ int64_t CodeGen::EmitString(const Ast::Node *string)
     int64_t idx = stringIdx++;
     emittedStrings[strLiteral] = idx;
     std::string strIdx = std::to_string(idx);
-    std::string strLen = std::to_string(strLiteral.length() + 1);
-    
-    WriteCharData("\n@.str.%s = private unnamed_addr constant [%s x i8] c\"",
-    strIdx.data(), strIdx.length(), strLen.data(), strLen.length());
+    uint64_t strLen = strLiteral.length() + 1;
+    std::string strData;
+    strData.reserve(strLiteral.length() + 1);
 
     for(size_t i =0; i < strLiteral.length(); i++)
     {
@@ -1319,22 +1318,23 @@ int64_t CodeGen::EmitString(const Ast::Node *string)
             i++;
             switch (strLiteral[i])
             {
-            case '0': WriteCharData("\\00"); break;
-            case 'n': WriteCharData("\\0A"); break;
-            case 'r': WriteCharData("\\0D"); break;
-            case 't': WriteCharData("\\09"); break;
-            case '"': WriteCharData("\\22"); break;
-            case '\\': WriteCharData("\\5C"); break;
+            case '0': strData +=  "\\00"; strLen--; break;
+            case 'n': strData +=  "\\0A"; strLen--; break;
+            case 'r': strData +=  "\\0D"; strLen--; break;
+            case 't': strData +=  "\\09"; strLen--; break;
+            case '"': strData +=  "\\22"; strLen--; break;
+            case '\\':strData +=  "\\5C"; strLen--; break;
             default: WriteByte(strLiteral[i]); break;
             }
         }
         else
         {
-            WriteByte(strLiteral[i]);
+           strData += strLiteral[i];
         }
     }
 
-    WriteCharData("\\00\", align 1");
+    WriteCharData("\n@.str.%s = private unnamed_addr constant [%lu x i8] c\"%v\\00\", align 1",
+        strIdx.data(), strIdx.length(), strLen, VIEW(strData));
     return idx;
 }
 
