@@ -1031,6 +1031,28 @@ void SemanticAnalyzer::WriteCodeToFile(const char *filename)
     close(fd);
 }
 
+void SemanticAnalyzer::HandleNotZeroComparison(const ExprRet &cond, int64_t bodyLabel, int64_t exitLabel)
+{
+        if(cond.id == EXPR_ID_CONST)
+    {
+        Typed::Number num = {};
+        num.type = cond.num.type;
+        if(cond.num != num)
+        {
+            codeGen.EmitLocalJump(bodyLabel);
+        }
+        else
+        {
+            codeGen.EmitLocalJump(exitLabel);
+        }
+    }
+    else
+    {
+        int64_t id = HandleNotEqZero(cond);
+        codeGen.EmitLocalCondJump(id, bodyLabel, exitLabel);
+    }
+}
+
 bool SemanticAnalyzer::CompareDeclSpec(const DeclSpecs *s1, const DeclSpecs *s2)
 {
     return s1->declType.storageFlags == s2->declType.storageFlags &&
@@ -2840,14 +2862,17 @@ void SemanticAnalyzer::RetStatement(const Ast::Node *root)
 }
 void SemanticAnalyzer::WhileStatement(const Ast::Node *root)
 {
-    int64_t entryLabel = codeGen.EmitLocalLabel();
+
+    int64_t entryLabel = codeGen.GetIdxForLocalVar();
+    codeGen.EmitLocalJump(entryLabel);
+    codeGen.EmitLocalLabel(entryLabel);
+
     int64_t bodyLabel = codeGen.GetIdxForLocalVar();
     int64_t exitLabel = codeGen.GetIdxForLocalVar();
     currFn.labels.push(exitLabel);
 
     ExprRet cond = AnalyzeExpr(root->lChild);
-    int64_t id = HandleNotEqZero(cond);
-    codeGen.EmitLocalCondJump(id, bodyLabel, exitLabel);
+    HandleNotZeroComparison(cond, bodyLabel, exitLabel);
 
     codeGen.EmitLocalLabel(bodyLabel);
     Analyze(root->rChild);
@@ -2861,12 +2886,14 @@ void SemanticAnalyzer::DoWhileStatement(const Ast::Node *root)
 {
     int64_t exitLabel = codeGen.GetIdxForLocalVar();
     currFn.labels.push(exitLabel);
-    int64_t entryLabel = codeGen.EmitLocalLabel();
+
+    int64_t entryLabel = codeGen.GetIdxForLocalVar();
+    codeGen.EmitLocalJump(entryLabel);
+    codeGen.EmitLocalLabel(entryLabel);
     Analyze(root->lChild);
 
     ExprRet cond = AnalyzeExpr(root->rChild);
-    int64_t id = HandleNotEqZero(cond);
-    codeGen.EmitLocalCondJump(id, entryLabel, exitLabel);
+    HandleNotZeroComparison(cond, entryLabel, exitLabel);
 
     codeGen.EmitLocalLabel(exitLabel);
     currFn.labels.pop();
@@ -2885,14 +2912,18 @@ void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
     symTab->CreateNewScope(Scope::LOCAL);
     Analyze(decl);
 
-    int64_t entryLabel = codeGen.EmitLocalLabel();
+    int64_t entryLabel = codeGen.GetIdxForLocalVar();
+    codeGen.EmitLocalJump(entryLabel);
+    codeGen.EmitLocalLabel(entryLabel);
     if(condNode->type != Ast::none)
     {
         ExprRet cond = AnalyzeExpr(condNode);
-        int64_t id = HandleNotEqZero(cond);
-        codeGen.EmitLocalCondJump(id, bodyLabel, exitLabel);
+        HandleNotZeroComparison(cond, bodyLabel, exitLabel);
     }
-
+    else
+    {
+        codeGen.EmitLocalJump(bodyLabel);
+    }
     codeGen.EmitLocalLabel(bodyLabel);
     Analyze(body);
     AnalyzeExpr(update);

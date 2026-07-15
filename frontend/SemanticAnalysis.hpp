@@ -118,6 +118,7 @@ struct SemanticAnalyzer
     int TryEmitValueStruct(const StructDesc& str, bool isLast, int usedValueCount, ParamDesc* paramDesc);
     ExprRet LoadVariable(const ExprRet& ret);
     void WriteCodeToFile(const char* filename);
+    void HandleNotZeroComparison(const ExprRet& cond, int64_t bodyLabel, int64_t exitLabel);
     bool CompareParams(size_t paramCount, const FunctionParams* p1, const FunctionParams* p2);
     bool CompareDeclSpec(const DeclSpecs* s1, const DeclSpecs* s2);
     bool CompareDeclarators(const Declarator* d1, const Declarator* d2);
