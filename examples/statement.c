@@ -175,7 +175,7 @@ void test_iteration_statements(void)
     /* 4c. do-while */
     i = 0;
     do {
-        i++;
+        i+=1;
     } while (i < 10);
 
     /* 4d. do-while runs at least once */
@@ -227,7 +227,8 @@ void test_iteration_statements(void)
     i = 0;
     while (1) {
         sum += i;
-        if (i++ > 5)
+        i += 1;
+        if (i > 5)
             break;
     }
 
