@@ -121,6 +121,13 @@ utilHeap(5)
 
 void SemanticAnalyzer::Analyze(const Ast::Node *root)
 {
+    // label is first cause it starts new block 
+    if (root->type == Ast::st_label)
+    {
+        LabelStatement(root);
+        return;
+    }
+
     if(codeGen.IsBlockTerminated())
     {
         return;
@@ -141,10 +148,6 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     else if(root->type == Ast::st_break)
     {
         BreakStatement(root);
-    }
-    else if (root->type == Ast::st_label)
-    {
-        LabelStatement(root);
     }
     else if(root->type == Ast::st_goto)
     {
@@ -2421,7 +2424,13 @@ ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
                 value.num.type = Typed::d_uint64_t;
             }
         }
-
+        else
+        {
+            if(spec.typenameView == "void")
+            {
+                return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+            }
+        }
         castNode = castNode->rChild;
     }
     
@@ -2839,12 +2848,15 @@ void SemanticAnalyzer::IfStatement(const Ast::Node *root)
 void SemanticAnalyzer::RetStatement(const Ast::Node *root)
 {
     ExprRet retExpr = AnalyzeExpr(root->lChild);
-   
+    
     if(!isStructOrUnion(retExpr.type))
     {
-        ExprRet ret = HandleTypeConversion(&retExpr, currFn.symFn->retType);
-        codeGen.EmitLocalBuiltInStorage(currFn.symFn->retType, 
-                GetBuiltInAlignment(currFn.symFn->retType), currFn.retVal, {retExpr.id, retExpr.num});
+        if(currFn.symFn->retType != BuiltIn::void_t)
+        {
+            ExprRet ret = HandleTypeConversion(&retExpr, currFn.symFn->retType);
+            codeGen.EmitLocalBuiltInStorage(currFn.symFn->retType, 
+                    GetBuiltInAlignment(currFn.symFn->retType), currFn.retVal, {retExpr.id, retExpr.num});
+        }
         codeGen.EmitLocalJump(currFn.retIdx);
         return;
     }
@@ -2963,6 +2975,7 @@ void SemanticAnalyzer::LabelStatement(const Ast::Node *root)
         labelId = codeGen.GetIdxForLocalVar();
     }
 
+    codeGen.EmitLocalJump(labelId);
     codeGen.EmitLocalLabel(labelId);
     currFn.namedLabels[lableName] = labelId;
     Analyze(root->lChild);
