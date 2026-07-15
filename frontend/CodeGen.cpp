@@ -987,11 +987,11 @@ void CodeGen::EmitLocalSwitch(
     }
 
     std::string_view typeView = GetBuiltInName(type);
-    WriteCharData("\n\tswitch %v %%%l, label %%%l [", typeView, cond, exitLabel);
+    WriteCharData("\n\tswitch %v %%%l, label %%label_%l [", typeView, cond, exitLabel);
     for(size_t i = 0; i < caseLabels.size(); i++)
     {
         std::string value = Typed::ToString(labelValues[i]);
-        WriteCharData("\n\t\t %v %v, label %%%l", typeView, VIEW(value), caseLabels[i]);
+        WriteCharData("\n\t\t %v %v, label %%label_%l", typeView, VIEW(value), caseLabels[i]);
     }
     WriteCharData("\n\t]");
     return;

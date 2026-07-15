@@ -23,6 +23,7 @@ struct CurrentFunction
     std::unordered_map<std::string_view, int64_t> namedLabels;
     int64_t retIdx;
     int64_t retVal;
+    bool breakCalled; // informs switch statement whether break was called
 };
 
 struct ArgDesc

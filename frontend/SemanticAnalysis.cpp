@@ -8,7 +8,6 @@
 #include "../utils/Misc.hpp"
 #include "ExpressionTypes.hpp"
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
-
 constexpr StructDesc emptyDesc = {NOT_EMITTED, 0, nullptr, nullptr, nullptr};
 typedef const Ast::Node Node;
 
@@ -173,11 +172,16 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     }
     else if(root->type == Ast::st_compound)
     {
+
         symTab->CreateNewScope(Scope::LOCAL);
         const Ast::Node* st = root->rChild;
         while (st)
         {
             Analyze(st->lChild);
+            if(st->type == Ast::st_break || st->type == Ast::st_continue)
+            {
+                break;
+            }
             st = st->rChild;
         }
 
@@ -1764,6 +1768,7 @@ void SemanticAnalyzer::StartFunction(SymbolFunction* symFn, bool declareFunc)
 
     // emitt type 
     currFn.symFn = symFn;
+    currFn.breakCalled = false;
     currFn.retIdx = codeGen.GetIdxForLocalVar();
     const SymbolType* retType = currFn.symFn->spec.symType;
     if(!declareFunc &&  
@@ -1790,6 +1795,7 @@ void SemanticAnalyzer::StopFunction(bool declareFunc)
     }
     symTab->PopScope();
     currFn.symFn = nullptr;
+    currFn.breakCalled = false;
     currFn.namedLabels.clear();
     while (currFn.labels.size() > 0)
     {
@@ -2650,7 +2656,7 @@ void SemanticAnalyzer::SwitchStatement(const Ast::Node *root)
     std::vector<Typed::Number> labelValues;
     const Ast::Node* caseNodeGlue = root->rChild->rChild;
     int64_t defaultIdx = INDEX_INVALID;
-
+    //POPRAWIC CASE
     while (caseNodeGlue)
     {
         const Ast::Node* caseNode = caseNodeGlue->lChild;
@@ -2701,31 +2707,49 @@ RUN_CASE_CHECK:
         defaultIdx == INDEX_INVALID ? exitLabel : defaultIdx, caseLabels, labelValues);
     // second pass - code gen
     caseNodeGlue = root->rChild->rChild;
+    //skip everythin between switch and case
+    while (caseNodeGlue && 
+           caseNodeGlue->lChild && 
+           (caseNodeGlue->lChild->type != Ast::st_case && caseNodeGlue->lChild->type != Ast::st_default) )
+    {
+        caseNodeGlue = caseNodeGlue->rChild;
+    }
+        
     size_t idx = 0;
-
+    currFn.breakCalled = true;
     while (caseNodeGlue)
     {
-        bool isCase = false;
         const Ast::Node* caseNode = caseNodeGlue->lChild;
         // reach bottom of the nested cases
-        while (caseNode->rChild && caseNode->type == Ast::st_case)
+        while (caseNode->rChild && caseNode->rChild->type == Ast::st_case)
         {
             caseNode = caseNode->rChild;
-            isCase = true;
+            // skip repeated label
+            idx++;
         }
-
         if(caseNode->type == Ast::st_default)
         {
+            if(!currFn.breakCalled)
+            {
+                codeGen.EmitLocalJump(defaultIdx);
+            }
+            currFn.breakCalled = false;
             codeGen.EmitLocalLabel(defaultIdx);
             Analyze(caseNode->lChild);
         }
+        else if(caseNode->type == Ast::st_case)
+        {
+            if(!currFn.breakCalled)
+            {
+                codeGen.EmitLocalJump(caseLabels[idx]);
+            }
+            currFn.breakCalled = false;
+            codeGen.EmitLocalLabel(caseLabels[idx]);
+            idx++;
+            Analyze(caseNode->rChild);
+        }
         else
         {
-            if(isCase)
-            {
-                codeGen.EmitLocalLabel(caseLabels[idx]);
-                idx++;
-            }
             Analyze(caseNode);
         }
         
@@ -2733,6 +2757,11 @@ RUN_CASE_CHECK:
 
     }
 
+    if(!currFn.breakCalled)
+    {
+        currFn.breakCalled = false;
+        codeGen.EmitLocalJump(exitLabel);
+    }
     codeGen.EmitLocalLabel(exitLabel);
     currFn.labels.pop();
 }
@@ -2882,6 +2911,7 @@ void SemanticAnalyzer::BreakStatement(const Ast::Node *root)
         IssueWarning(&root->token, "'break' cannot be used outside of loops");
     }
     codeGen.EmitLocalJump(currFn.labels.top());
+    currFn.breakCalled = true;
 }
 
 void SemanticAnalyzer::LabelStatement(const Ast::Node *root)

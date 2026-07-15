@@ -1,6 +1,6 @@
 #!/bin/bash
-rm test_logs.txt
-rm .builtin_defines.hpp .c_search_paths.set
+rm -f test_logs.txt
+rm -f .builtin_defines.hpp .c_search_paths.set
 mkdir -p build_cnt
 cd build_cnt
 rm -rf ./*
