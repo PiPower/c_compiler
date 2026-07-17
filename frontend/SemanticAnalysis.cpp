@@ -2456,7 +2456,7 @@ ExprRet SemanticAnalyzer::HandleStructAccess(const Ast::Node *root)
     {
         if(structDesc.memberNames[i] == element)
         {
-            std::vector<uint64_t> indicies;
+            std::vector<uint64_t> indicies({i});
             out.id = codeGen.EmitLocalArrGetElemPtr(&structDesc.memberList[i].accArr, symVar->spec.typenameView, symVar->varIdx, indicies);
             out.type = structDesc.memberList[i].memberType;
         }
