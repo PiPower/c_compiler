@@ -677,7 +677,7 @@ void CodeGen::EmitFunctionBodyClose(BuiltIn::Type retType, int64_t retIdx, int64
         std::string retName = getRetName(retSpec, nullptr);
         int64_t tmpIdx =  GetIdxForLocalVar();
         uint64_t alignment = retSpec->symType->alignment;
-        WriteCharData("\n\t%%%l = load %v, ptr %%%l align %l", tmpIdx, VIEW(retName), retVal, alignment);
+        WriteCharData("\n\t%%%l = load %v, ptr %%%l, align %l", tmpIdx, VIEW(retName), retVal, alignment);
         WriteCharData("\n\tret %v %%%l", VIEW(retName), tmpIdx);
     }
     else
