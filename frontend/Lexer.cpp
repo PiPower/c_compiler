@@ -540,6 +540,7 @@ int64_t Lexer::LexMultilineComment()
     RestoreLexerPointer();
     int64_t commentLen = 0;
 skip_loop:
+    bool closed = false;
     while (fCurr + 1 < fEnd)
     {
         if(*fCurr == '\n')
@@ -550,18 +551,16 @@ skip_loop:
         fCurr++;
         if(*fCurr == '*' && *(fCurr + 1) == '/')
         {
+            closed = true;
             break;
         }
     }
     fCurr += 2;
-
-    if(fCurr == fEnd && files.size() > 0)
+    if(!closed)
     {
-        ChangeLexedFile();
-        fCurr = files.top().fileCurrent;
-        fEnd = fEnd;
-        goto skip_loop;
+        IssueWarning(nullptr, "Multiline comment needs to be closed")
     }
+
 
     return commentLen;
 }

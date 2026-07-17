@@ -142,7 +142,6 @@ struct AccessType
         Array array;
     };
     uint32_t level;
-    AccessType* next;
 };
 
 struct DeclaratorAcces
