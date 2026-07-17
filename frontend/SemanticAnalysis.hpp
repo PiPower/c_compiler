@@ -94,6 +94,7 @@ struct SemanticAnalyzer
     ExprRet HandleFunctionCall(const Ast::Node* root);
     ExprRet HandleNegate(const Ast::Node* root);
     ExprRet HandleCast(const Ast::Node* root);
+    ExprRet HandleStructAccess(const Ast::Node* root);
     ExprRet HandleOpMinus(const Ast::Node* root);
     ExprRet HandleAssignment(const Ast::Node* root);
     ExprRet HandleSimpleAssignment(const ExprRet* dst, const ExprRet* src);

@@ -2188,6 +2188,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     }
     switch (root->type)
     {
+    case Ast::struct_access: return HandleStructAccess(root);
     case Ast::op_log_negate: return HandleNegate(root); 
     case Ast::function_call: return HandleFunctionCall(root);
     case Ast::get_addr: return HandleGetAddr(root);
@@ -2435,6 +2436,33 @@ ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
     }
     
     return value;
+}
+
+ExprRet SemanticAnalyzer::HandleStructAccess(const Ast::Node *root)
+{
+    std::string_view variable = GetViewForToken(root->lChild->token, manager);
+    const Ast::Node* elemAst = root->rChild->type == Ast::struct_access ? 
+                               root->rChild->rChild : root->rChild ; 
+    std::string_view element = GetViewForToken(elemAst->token, manager);
+    SymbolVariable* symVar = symTab->QueryVarSymbol(variable);
+    if(!isStructOrUnion(symVar->spec.symType->dType) || DecaysToPointer(&symVar->decl.accArr))
+    {
+        IssueWarning(&root->token, "Element cannot be accessed")
+    }
+
+    const StructDesc& structDesc = symVar->spec.symType->str;
+    ExprRet out = {}; 
+    for(size_t i =0; i < structDesc.argCount; i++)
+    {
+        if(structDesc.memberNames[i] == element)
+        {
+            std::vector<uint64_t> indicies({0, i});
+            out.id = codeGen.EmitLocalArrGetElemPtr(&structDesc.memberList[i].accArr, symVar->spec.typenameView, symVar->varIdx, indicies);
+            out.type = structDesc.memberList[i].memberType;
+        }
+    }
+
+    return out;
 }
 
 ExprRet SemanticAnalyzer::HandleOpMinus(const Ast::Node *root)
