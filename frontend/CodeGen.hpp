@@ -109,7 +109,8 @@ struct CodeGen
         const AccessArray* acc, 
         const std::string_view& typeName, 
         int64_t arrayIdx, 
-        const std::vector<uint64_t>& indicies);
+        const std::vector<uint64_t>& indicies,
+        bool isNUW = false);
 
     void EmitLocalLabel(int64_t idx);
     void EmitLocalJump(int64_t label);

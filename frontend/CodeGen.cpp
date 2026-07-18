@@ -923,11 +923,16 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
     const AccessArray *acc, 
     const std::string_view& typeName, 
     int64_t arrayIdx, 
-    const std::vector<uint64_t>& indicies)
+    const std::vector<uint64_t>& indicies,
+    bool isNUW)
 {
     BindLocalBuffer();
     int64_t result = GetIdxForLocalVar();
     WriteCharData("\n\t%%%l = getelementptr inbounds ", result);
+    if(isNUW)
+    {
+        WriteCharData("nuw ");
+    }
     if(acc)
     {
         EmitDeclarator(acc, &typeName);
@@ -1809,7 +1814,14 @@ void CodeGen::MergeFunctionBuffers()
     }
     for(size_t i = 0; i < remapTable.size(); i++)
     {
-        remapTable[i] = INDEX_INVALID;
+        if( i >= startRemapValue)
+        {
+            remapTable[i] = INDEX_INVALID;
+        }
+        else
+        {
+            remapTable[i] = i;
+        }
     }
 
 
