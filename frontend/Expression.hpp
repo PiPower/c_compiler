@@ -19,6 +19,7 @@ struct ExprRet
     BuiltIn::Type type;
     Typed::Number num;
     int64_t id;
+    uint8_t isPtr : 1;
     union
     {
         const SymbolVariable* var;
@@ -26,6 +27,7 @@ struct ExprRet
     };
 
     ExprRet() = default;
-    ExprRet(BuiltIn::Type type, const Typed::Number& num, int64_t id) 
-    : type(type), num(num), id(id) {}
+    ExprRet(BuiltIn::Type type, const Typed::Number& num, int64_t id, uint8_t isPtr = 0) 
+    : type(type), num(num), id(id), isPtr(isPtr){}
+
 };

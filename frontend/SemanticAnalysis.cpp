@@ -1008,6 +1008,11 @@ int SemanticAnalyzer::TryEmitValueStruct(const StructDesc& str, bool isLast, int
 ExprRet SemanticAnalyzer::LoadVariable(const ExprRet &ret)
 {
     ExprRet out = ret;
+    if(ret.isPtr == 0)
+    {
+        return out;
+    }
+
     if(out.id == EXPR_ID_VAR)
     {
         const SymbolVariable* symVar = out.var; 
@@ -1021,6 +1026,14 @@ ExprRet SemanticAnalyzer::LoadVariable(const ExprRet &ret)
             out.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
             out.var = nullptr;
         }
+    }
+    else
+    {
+        if(ret.type == BuiltIn::none)
+        {
+            IssueWarning(nullptr, "ret.type cannot be none")
+        }
+        out.id = codeGen.EmitLocalLoad(ret.type, GetBuiltInAlignment(ret.type), ret.id);
     }
 
     return out;
@@ -2060,10 +2073,11 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
             .lChild = const_cast<Ast::Node*>(symVar->decl.initExpr)
             };
 
-        ExprRet initInfo;
+        ExprRet initInfo = {};
         initInfo.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType; 
         initInfo.id = EXPR_ID_VAR;
         initInfo.var = symVar;
+        initInfo.isPtr = 1;
         node.rChild = (Ast::Node*)&initInfo;
 
         AnalyzeExpr(&node);
@@ -2087,20 +2101,23 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
     {
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
-
-    if(dst.id == EXPR_ID_VAR && dst.type != BuiltIn::ptr)
+    if(dst.isPtr)
     {
-        dst.id = dst.var->varIdx;
-        dst.var = nullptr;
+        if(dst.id == EXPR_ID_VAR)
+        {
+            dst.id = dst.var->varIdx;
+            dst.var = nullptr;
+        }
     }
-
-    if(src.id == EXPR_ID_VAR && src.type != BuiltIn::ptr)
+    if(src.isPtr)
     {
-        const SymbolVariable* srcVar = src.var;
-        src.id = codeGen.EmitLocalLoad(srcVar->spec.symType->dType, srcVar->spec.symType->alignment, srcVar->varIdx);
-        src.var = nullptr;
+        if(src.id == EXPR_ID_VAR)
+        {
+            const SymbolVariable* srcVar = src.var;
+            src.id = codeGen.EmitLocalLoad(srcVar->spec.symType->dType, srcVar->spec.symType->alignment, srcVar->varIdx);
+            src.var = nullptr;
+        }
     }
-
 
     if(dst.type != BuiltIn::ptr)
     {
@@ -2339,10 +2356,10 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
 
 ExprRet SemanticAnalyzer::LoadStringLiteral(const Ast::Node *string)
 {
-    ExprRet out;
+    ExprRet out = {};
     out.type = BuiltIn::string;
     out.id = codeGen.EmitString(string);
-
+    out.isPtr = 1;
     return out;
 }
 
@@ -2350,7 +2367,6 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
 {
     ExprRet* destHandle = (ExprRet*)root->rChild;
     ExprRet source = AnalyzeExpr(root->lChild);
-
     return ResolveAssignment(*destHandle, source);
 }
 
@@ -2457,7 +2473,7 @@ ExprRet SemanticAnalyzer::HandleStructAccess(const Ast::Node *root)
         if(structDesc.memberNames[i] == element)
         {
             std::vector<uint64_t> indicies({i});
-            out.id = codeGen.EmitLocalArrGetElemPtr(&structDesc.memberList[i].accArr, symVar->spec.typenameView, symVar->varIdx, indicies);
+            out.id = codeGen.EmitLocalArrGetElemPtr(&structDesc.memberList[i].accArr, symVar->spec.typenameView, symVar->varIdx, indicies, true);
             out.type = structDesc.memberList[i].memberType;
         }
     }
@@ -2609,6 +2625,7 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
             {
                 out.type = symVar->spec.symType->dType;
             }
+            out.isPtr = 1;
             out.id = EXPR_ID_VAR;
             out.var = symVar;
         }
@@ -2627,7 +2644,7 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
         out.id = EXPR_ID_FN;
         out.fn = symFn;
         out.type = BuiltIn::ptr;
-
+        out.isPtr = 1;
         return out;
     }
 }
