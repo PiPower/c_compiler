@@ -18,6 +18,7 @@ constexpr uint8_t LOCAL_BUFFER = 3;
 constexpr uint8_t STR_BUFFER = 4;
 constexpr uint8_t INTRINSIC_BUFFER = 5;
 constexpr uint8_t ATTR_BUFFER = 6;
+constexpr uint8_t ALLOCA_BUFFER = 7;
 
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
@@ -28,7 +29,7 @@ const char* memcpyIntr = "\ndeclare void @llvm.memcpy.p0.p0.i64(ptr noalias writ
 
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
-chosenBuffer(TYPE_BUFFER), currFn(-1, "", false, false), attrCtr(0), typeHeap(nr_of_pages), symTab(symTab),
+chosenBuffer(TYPE_BUFFER), currFn(-1, -1, "", false, false), attrCtr(0), typeHeap(nr_of_pages), symTab(symTab),
 manager(manager), nodeExec(ne), logger(manager, "Code Gen")
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
@@ -324,8 +325,8 @@ void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
     }
     std::string idx = std::to_string(symVar->varIdx);
 
-    BindLocalBuffer();
-
+    BindAllocaBuffer();
+    
     WriteCharData("\n\t%%%s = alloca ", idx.data(), idx.length());
     bool isPtr = EmitDeclarator(&symVar->decl.accArr, &symVar->spec.typenameView);
     std::string alignment = isPtr ? ptrAlignment : std::to_string(varType->alignment);
@@ -337,7 +338,7 @@ void CodeGen::EmitLocalVariable(const SymbolVariable* symVar)
 
 int64_t CodeGen::AllocateLocalVariable(BuiltIn::Type type, SymbolType* symType, const std::string_view& typeName)
 {
-    BindLocalBuffer();
+    BindAllocaBuffer();
     int64_t id = GetIdxForLocalVar();
     if(!isStructOrUnion(type))
     {
@@ -518,7 +519,7 @@ void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typ
 
 int64_t CodeGen::AllocatePassByTmpStruct(const std::string_view& left, const std::string_view& right, uint64_t alignment)
 {
-    BindLocalBuffer();
+    BindAllocaBuffer();
     int64_t idx = GetIdxForLocalVar();
     if(right == "")
     {
@@ -573,6 +574,8 @@ void CodeGen::EmitFunctionBodyStart()
 {
     BindFuncBuffer(); 
     WriteCharData(" {");
+    // starting from the next index every value after % will be remapped to linearly growing addresses
+    currFn.startRemapIdx = currFn.variableIdx;
 }
 
 void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initializer, bool isComplexType)
@@ -684,10 +687,12 @@ void CodeGen::EmitFunctionBodyClose(BuiltIn::Type retType, int64_t retIdx, int64
     {
         WriteCharData("\n\tret void");
     }
+    // writes everyting into target buffer while remapping values to linearly growing
+    MergeFunctionBuffers();
 
     BindFuncBuffer(); 
     // copy LOC_VAR_BUFFER buffer to FUNC_BUFFER
-    CopyBuffers(FUNC_BUFFER, LOCAL_BUFFER);
+    //CopyBuffers(FUNC_BUFFER, LOCAL_BUFFER);
     WriteCharData("\n}\n");
 
     currFn.inFunction = false;
@@ -695,6 +700,7 @@ void CodeGen::EmitFunctionBodyClose(BuiltIn::Type retType, int64_t retIdx, int64
     currFn.fnName = "";
     currFn.isBlockTerminated = false;
     ResetBuffer(LOCAL_BUFFER);
+    ResetBuffer(ALLOCA_BUFFER);
 }
 
 void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
@@ -1586,7 +1592,10 @@ void CodeGen::BindAttrBuffer()
     chosenBuffer = ATTR_BUFFER;
 }
 
-
+void CodeGen::BindAllocaBuffer()
+{
+    chosenBuffer = ALLOCA_BUFFER;
+}
 
 void CodeGen::DeclareIntrinsic(Intrinsic intr)
 {
@@ -1784,4 +1793,77 @@ void CodeGen::ResetBuffer(uint8_t buff)
     }
     writableBufferArr[buff].resize(1);
     currPtrArr[buff] = writableBufferArr[buff][0];
+}
+
+/*
+    Function works because new index ALWAYS appears in the leftmost part
+*/
+void CodeGen::MergeFunctionBuffers()
+{
+    int64_t startRemapValue = currFn.startRemapIdx;
+    std::vector<int64_t>& remapTable = currFn.remapTable;
+    uint64_t bufferSize = typeHeap.GetAllocSize();
+    if((int64_t)remapTable.size() < currFn.variableIdx)
+    {
+        remapTable.resize(currFn.variableIdx);
+    }
+    for(size_t i = 0; i < remapTable.size(); i++)
+    {
+        remapTable[i] = INDEX_INVALID;
+    }
+
+
+    BindFuncBuffer();
+    CopyWithRemapToBoundBuffer(ALLOCA_BUFFER, &remapTable, &startRemapValue);
+    CopyWithRemapToBoundBuffer(LOCAL_BUFFER, &remapTable, &startRemapValue);
+}
+
+void CodeGen::CopyWithRemapToBoundBuffer(
+    uint8_t srcBuffer, 
+    std::vector<int64_t>* remapTablePtr, 
+    int64_t* startRemapValuePtr)
+{
+    std::vector<int64_t>& remapTable = *remapTablePtr;
+    int64_t& startRemapValue = *startRemapValuePtr;
+    const std::vector<char*>& allocaBuffer = writableBufferArr[srcBuffer];
+    for(size_t i = 0; i < allocaBuffer.size(); i++)
+    {
+        uint64_t copySize = i == allocaBuffer.size() - 1 ? currPtrArr[srcBuffer] - allocaBuffer.back() : typeHeap.GetAllocSize();
+        const char* basePtr = allocaBuffer[i];
+        for(uint64_t i = 0; i < copySize; i++)
+        {
+            std::string value;
+            if(basePtr[i] == '%')
+            {
+                uint64_t j = i + 1;
+                if(basePtr[j] == ' ')
+                {
+                    IssueWarning(nullptr, "Incorrect value of basePtr[j] ")
+                }
+                while (j < copySize && basePtr[j] != ' ')
+                {
+                    if(basePtr[j] < '0' || basePtr[j] > '9')
+                    {
+                        break;
+                    }
+                    value += basePtr[j];
+                    j++;
+                }
+                i = j - 1;
+            }
+            if(value.size() > 0)
+            {
+                int64_t remapIdx = std::stoi(value);
+                if(remapTable[remapIdx] == INDEX_INVALID)
+                {
+                    remapTable[remapIdx] = startRemapValue++;
+                }
+                WriteCharData("%%%l", remapTable[remapIdx]);
+            }
+            else
+            {
+                WriteByte(basePtr[i]);
+            }
+        }
+    }
 }

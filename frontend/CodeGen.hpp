@@ -30,9 +30,11 @@ struct PendingType
 struct FunctionContext
 {
     int64_t variableIdx;
+    int64_t startRemapIdx;
     std::string_view fnName;
     bool inFunction;
     bool isBlockTerminated;
+    std::vector<int64_t> remapTable;
 };
 
 struct Operator
@@ -187,6 +189,7 @@ struct CodeGen
     void BindLocalBuffer();
     void BindIntrinsicBuffer();
     void BindAttrBuffer();
+    void BindAllocaBuffer();
 
     void DeclareIntrinsic(Intrinsic intr);
     void WriteByte(const char* c);
@@ -195,15 +198,20 @@ struct CodeGen
     void WriteCharData(const char* data, ...);
     void CopyBuffers(uint8_t dest, uint8_t src);
     void ResetBuffer(uint8_t buff);
+    void MergeFunctionBuffers();
+    void CopyWithRemapToBoundBuffer(
+        uint8_t srcBuffer, 
+        std::vector<int64_t>* remapTablePtr, 
+        int64_t* startRemapValuePtr);
 
     std::unordered_map<std::string_view, int64_t> emittedStrings;
     std::unordered_map<std::string_view, int> typeCounter;
     std::unordered_map<SymbolType*, LlvmType> emittedTypes;
     std::queue<PendingType> typeQueue;
     uint8_t chosenBuffer;
-    std::array<std::vector<char*>, 7> writableBufferArr;
-    std::array<std::vector<char*>, 7> allocatedBufferHandles;
-    std::array<char*, 7> currPtrArr;
+    std::array<std::vector<char*>, 8> writableBufferArr;
+    std::array<std::vector<char*>, 8> allocatedBufferHandles;
+    std::array<char*, 8> currPtrArr;
     FunctionContext currFn;
     std::stack<uint8_t> buffStack;
     int64_t attrCtr;
