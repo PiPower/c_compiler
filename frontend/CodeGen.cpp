@@ -865,7 +865,7 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
     {
         long double value = Typed::CastTo<long double>(num);
         const unsigned char* bytes  = reinterpret_cast<const unsigned char*>(&value);
-        WriteCharData("\n\tstore x86_fp80 f0x");
+        WriteCharData("\n\tstore x86_fp80 0xK");
         if constexpr (std::endian::native == std::endian::big)
         {
             for (int i = 0; i <= 9; i++)
