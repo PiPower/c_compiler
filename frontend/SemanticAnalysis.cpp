@@ -2895,7 +2895,6 @@ void SemanticAnalyzer::RetStatement(const Ast::Node *root)
 {
     ExprRet retExpr = AnalyzeExpr(root->lChild);
     
-
     if(!isStructOrUnion(retExpr.type))
     {
         if(currFn.symFn->retType != BuiltIn::void_t)
@@ -2903,7 +2902,7 @@ void SemanticAnalyzer::RetStatement(const Ast::Node *root)
             retExpr = LoadVariable(retExpr);
             ExprRet ret = HandleTypeConversion(&retExpr, currFn.symFn->retType);
             codeGen.EmitLocalBuiltInStorage(currFn.symFn->retType, 
-                    GetBuiltInAlignment(currFn.symFn->retType), currFn.retVal, {retExpr.id, retExpr.num});
+                    GetBuiltInAlignment(currFn.symFn->retType), currFn.retVal, {ret.id, ret.num});
         }
         codeGen.EmitLocalJump(currFn.retIdx);
         return;
