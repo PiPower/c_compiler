@@ -1013,6 +1013,7 @@ ExprRet SemanticAnalyzer::LoadVariable(const ExprRet &ret)
         return out;
     }
 
+    out.isPtr = 0;
     if(out.id == EXPR_ID_VAR)
     {
         const SymbolVariable* symVar = out.var; 
@@ -2894,10 +2895,12 @@ void SemanticAnalyzer::RetStatement(const Ast::Node *root)
 {
     ExprRet retExpr = AnalyzeExpr(root->lChild);
     
+
     if(!isStructOrUnion(retExpr.type))
     {
         if(currFn.symFn->retType != BuiltIn::void_t)
         {
+            retExpr = LoadVariable(retExpr);
             ExprRet ret = HandleTypeConversion(&retExpr, currFn.symFn->retType);
             codeGen.EmitLocalBuiltInStorage(currFn.symFn->retType, 
                     GetBuiltInAlignment(currFn.symFn->retType), currFn.retVal, {retExpr.id, retExpr.num});
@@ -2977,7 +2980,7 @@ void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
         ExprRet cond = AnalyzeExpr(condNode);
         HandleNotZeroComparison(cond, bodyLabel, exitLabel);
     }
-    else
+    else 
     {
         codeGen.EmitLocalJump(bodyLabel);
     }
