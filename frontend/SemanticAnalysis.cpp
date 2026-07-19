@@ -1219,7 +1219,7 @@ int SemanticAnalyzer::GetIntRank(BuiltIn::Type type)
         return -1;
     }
 
-    return  intRanks[type - BuiltIn::s_char_8];
+    return  intRanks[type - BuiltIn::int_1];
 }
 
 void SemanticAnalyzer::BinaryExprProlog(ExprRet *left, ExprRet *right, const Ast::Node *leftTerm, const Ast::Node *rightTerm)
