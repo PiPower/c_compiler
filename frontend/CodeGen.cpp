@@ -924,6 +924,7 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
     const std::string_view& typeName, 
     int64_t arrayIdx, 
     const std::vector<uint64_t>& indicies,
+    bool use32BitOffset,
     bool isNUW)
 {
     BindLocalBuffer();
@@ -941,10 +942,11 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
     {
         WriteCharData("%v", typeName);
     }
-    WriteCharData(", ptr %%%l, i64 0", arrayIdx);
+    std::string_view type = use32BitOffset ? "i32" : "i64";
+    WriteCharData(", ptr %%%l, %v 0", arrayIdx, type);
     for(uint64_t idx : indicies)
     {
-        WriteCharData(", i64 %lu", idx);
+        WriteCharData(", %v %lu", type, idx);
     }
 
     return result;

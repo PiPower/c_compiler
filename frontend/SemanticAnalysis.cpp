@@ -910,7 +910,7 @@ std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declS
             SymbolVariable* symVar = symTab->QueryVarSymbol(param->decl.name);
             codeGen.EmitLocalStorage(currentParam.lType, GetBuiltInAlignment(currentParam.lType), symVar->varIdx, currentParam.lIdx);
         }
-        else if(currentParam.lType == BuiltIn::struct_t || currentParam.lType == BuiltIn::union_t)
+        else if(isStructOrUnion(currentParam.lType ))
         {
             AnalyzeLocalVarDecl(&param->spec, &param->decl, false, currentParam.lIdx); // by idx to variable 
         }
@@ -1493,7 +1493,7 @@ ParamTuple SemanticAnalyzer::IterateOverParams(const FnDecl* paramDecl, int* use
             (*usedInts)++;
             passByValue.push_back(true);
         }
-        else if(param->spec.symType->dType != BuiltIn::struct_t && param->spec.symType->dType != BuiltIn::union_t)
+        else if(!isStructOrUnion(param->spec.symType->dType))
         {
             int64_t idx = codeGen.GetIdxForLocalVar();
             codeGen.EmitFunctionParam(param->spec.symType->dType, isLast, {idx, {}});
@@ -1506,6 +1506,8 @@ ParamTuple SemanticAnalyzer::IterateOverParams(const FnDecl* paramDecl, int* use
         }
         else
         {
+            codeGen.EmitUnionStruct(param->spec.symType, param->spec.typenameView);
+
             int usedValueSlots = 0;
             ParamDesc desc = {};
             if(param->spec.symType->passByValue == 0 || 
@@ -2469,12 +2471,14 @@ ExprRet SemanticAnalyzer::HandleStructAccess(const Ast::Node *root)
 
     const StructDesc& structDesc = symVar->spec.symType->str;
     ExprRet out = {}; 
+    out.isPtr = 1;
     for(size_t i =0; i < structDesc.argCount; i++)
     {
         if(structDesc.memberNames[i] == element)
         {
             std::vector<uint64_t> indicies({i});
-            out.id = codeGen.EmitLocalArrGetElemPtr(&structDesc.memberList[i].accArr, symVar->spec.typenameView, symVar->varIdx, indicies, true);
+            out.id = codeGen.EmitLocalArrGetElemPtr(&structDesc.memberList[i].accArr, 
+                            symVar->spec.typenameView, symVar->varIdx, indicies, true, true);
             out.type = structDesc.memberList[i].memberType;
         }
     }

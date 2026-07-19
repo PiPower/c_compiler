@@ -110,6 +110,7 @@ struct CodeGen
         const std::string_view& typeName, 
         int64_t arrayIdx, 
         const std::vector<uint64_t>& indicies,
+        bool use32BitOffset = false,
         bool isNUW = false);
 
     void EmitLocalLabel(int64_t idx);
