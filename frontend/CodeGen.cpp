@@ -960,8 +960,11 @@ void CodeGen::EmitLocalLabel(int64_t label)
 void CodeGen::EmitLocalJump(int64_t label)
 {
     BindLocalBuffer();
-    currFn.isBlockTerminated = true;
-    WriteCharData("\n\tbr label %%label_%l", label);
+    if(!currFn.isBlockTerminated)
+    {
+        currFn.isBlockTerminated = true;
+        WriteCharData("\n\tbr label %%label_%l", label);
+    }
 }
 
 void CodeGen::EmitLocalCondJump(int64_t cond, int64_t jmpIfTrue, int64_t jmpIfFalse)
