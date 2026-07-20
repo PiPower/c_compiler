@@ -19,15 +19,17 @@ struct ExprRet
     BuiltIn::Type type;
     Typed::Number num;
     int64_t id;
-    uint8_t isPtr : 1;
+    uint8_t isPtr : 1; // this indicates whether expr is pure llvm-pointer
+    uint32_t internalPtrCount; // pointers defined from c code are defined here
     union
     {
         const SymbolVariable* var;
         const SymbolFunction* fn;
     };
 
-    ExprRet() = default;
+    ExprRet() 
+    : type(BuiltIn::none), num({}), id(0), isPtr(0), internalPtrCount(0), var(nullptr){};
     ExprRet(BuiltIn::Type type, const Typed::Number& num, int64_t id, uint8_t isPtr = 0) 
-    : type(type), num(num), id(id), isPtr(isPtr){}
+    : type(type), num(num), id(id), isPtr(isPtr), internalPtrCount(0), var(nullptr){}
 
 };

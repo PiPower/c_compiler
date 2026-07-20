@@ -41,19 +41,17 @@ struct Outer {
     } anon;
 };
 
-
-
 int sum_point(struct Point p)
 {
     return p.x + p.y;
 }
-/*
+
 void modify_point(struct Point *p)
 {
     p->x += 10;
     p->y += 20;
 }
-
+/*
 int main(void)
 {
     // ------------------------------------------------------------

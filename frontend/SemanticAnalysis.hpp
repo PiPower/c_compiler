@@ -33,6 +33,13 @@ struct ArgDesc
     size_t parmIdx; 
 };
 
+struct ElemPtrInfo
+{
+    std::int64_t id;
+    BuiltIn::Type type;
+    uint32_t internalPtrCount;
+};
+
 typedef std::tuple<std::vector<ParamDesc>, std::vector<bool>> ParamTuple;
 struct SemanticAnalyzer
 {
@@ -95,12 +102,14 @@ struct SemanticAnalyzer
     ExprRet HandleNegate(const Ast::Node* root);
     ExprRet HandleCast(const Ast::Node* root);
     ExprRet HandleStructAccess(const Ast::Node* root);
+    ExprRet HandlePtrStructAccess(const Ast::Node* root);
     ExprRet HandleOpMinus(const Ast::Node* root);
     ExprRet HandleAssignment(const Ast::Node* root);
     ExprRet HandleSimpleAssignment(const ExprRet* dst, const ExprRet* src);
     ExprRet HandlePointerAssignment(const ExprRet* dst, const ExprRet* src);
     ExprRet HandleGetAddr(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
+    ExprRet HandleIdentifier(const std::string_view& name);
     int64_t HandleNotEqZero(const ExprRet& res);
     void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
     ExprRet HandleTypeConversion(const ExprRet* src, BuiltIn::Type newType);
@@ -116,6 +125,11 @@ struct SemanticAnalyzer
     void LabelStatement(const Ast::Node* root);
     void GotoStatement(const Ast::Node* root);
     // misc
+    ElemPtrInfo LoadElemPtr(
+        const StructDesc &structDesc,
+        const std::string_view& element, 
+        const std::string_view& typenameView, 
+        int64_t varIdx);
     int TryEmitValueStruct(const StructDesc& str, bool isLast, int usedValueCount, ParamDesc* paramDesc);
     ExprRet LoadVariable(const ExprRet& ret);
     void WriteCodeToFile(const char* filename);

@@ -975,7 +975,28 @@ void SemanticAnalyzer::AnalyzeSimpleType(const Ast::Node *typeSequence, DeclSpec
     spec->typenameView = std::string_view(kTypeNames[idx]);
 }
 
-int SemanticAnalyzer::TryEmitValueStruct(const StructDesc& str, bool isLast, int usedValueCount, ParamDesc* paramDesc)
+ElemPtrInfo SemanticAnalyzer::LoadElemPtr(
+    const StructDesc &structDesc,
+    const std::string_view& element, 
+    const std::string_view& typenameView, 
+    int64_t varIdx)
+{
+    for(size_t i =0; i < structDesc.argCount; i++)
+    {
+        if(structDesc.memberNames[i] == element)
+        {
+            std::vector<uint64_t> indicies({i});
+            ElemPtrInfo out = {};
+            out.id = codeGen.EmitLocalArrGetElemPtr(&structDesc.memberList[i].accArr, 
+                            typenameView, varIdx, indicies, true, true);
+            out.type = structDesc.memberList[i].memberType;
+            out.internalPtrCount = GetInternalPtrCount(structDesc.memberList[i].accArr);
+            return out;
+        }
+    }
+}
+
+int SemanticAnalyzer::TryEmitValueStruct(const StructDesc &str, bool isLast, int usedValueCount, ParamDesc *paramDesc)
 {
     // sysv abi: no free register to pass struct even if it consists of only one int
     ByValueStructDesc desc= codeGen.BuildValueStruct(str);
@@ -2122,7 +2143,7 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
         }
     }
 
-    if(dst.type != BuiltIn::ptr)
+    if(dst.internalPtrCount == 0)
     {
         return HandleSimpleAssignment(&dst, &src);
     }
@@ -2209,6 +2230,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     switch (root->type)
     {
     case Ast::struct_access: return HandleStructAccess(root);
+    case Ast::ptr_access: return HandlePtrStructAccess(root);
     case Ast::op_log_negate: return HandleNegate(root); 
     case Ast::function_call: return HandleFunctionCall(root);
     case Ast::get_addr: return HandleGetAddr(root);
@@ -2463,26 +2485,56 @@ ExprRet SemanticAnalyzer::HandleStructAccess(const Ast::Node *root)
     const Ast::Node* elemAst = root->rChild->type == Ast::struct_access ? 
                                root->rChild->rChild : root->rChild ; 
     std::string_view element = GetViewForToken(elemAst->token, manager);
-    SymbolVariable* symVar = symTab->QueryVarSymbol(variable);
+
+    ExprRet symExpr = HandleIdentifier(variable);
+    if(symExpr.internalPtrCount != 0 || symExpr.id != EXPR_ID_VAR)
+    {
+        IssueWarning(&root->token, "Element is not variable")
+    }
+    const SymbolVariable* symVar = symExpr.var;
     if(!isStructOrUnion(symVar->spec.symType->dType) || DecaysToPointer(&symVar->decl.accArr))
     {
         IssueWarning(&root->token, "Element cannot be accessed")
     }
 
     const StructDesc& structDesc = symVar->spec.symType->str;
+    ElemPtrInfo info = LoadElemPtr(structDesc, element, symVar->spec.typenameView, symVar->varIdx);
     ExprRet out = {}; 
     out.isPtr = 1;
-    for(size_t i =0; i < structDesc.argCount; i++)
+    out.id = info.id;
+    out.type = info.type;
+    out.internalPtrCount = info.internalPtrCount;
+    return out;
+}
+
+ExprRet SemanticAnalyzer::HandlePtrStructAccess(const Ast::Node *root)
+{
+    std::string_view variable = GetViewForToken(root->lChild->token, manager);
+    const Ast::Node* elemAst = root->rChild->type == Ast::ptr_access ? 
+                               root->rChild->rChild : root->rChild;
+
+    std::string_view element = GetViewForToken(elemAst->token, manager);
+    ExprRet structPtr = HandleIdentifier(variable);
+    const SymbolVariable* symVar = structPtr.var;
+    if(structPtr.id != EXPR_ID_VAR || structPtr.internalPtrCount != 1)
     {
-        if(structDesc.memberNames[i] == element)
-        {
-            std::vector<uint64_t> indicies({i});
-            out.id = codeGen.EmitLocalArrGetElemPtr(&structDesc.memberList[i].accArr, 
-                            symVar->spec.typenameView, symVar->varIdx, indicies, true, true);
-            out.type = structDesc.memberList[i].memberType;
-        }
+        IssueWarning(&root->token, "Is not pointer to struct")
+    }   
+    if(structPtr.var->varIdx == EXPR_ID_GLOBAL) {IssueWarning(&root->token, "GLOBALS ARE NOT SUPPORTED")}
+    
+    if(!isStructOrUnion(symVar->spec.symType->dType))
+    {
+        IssueWarning(&root->token, "Element cannot be accessed")
     }
 
+    const StructDesc& structDesc = symVar->spec.symType->str;
+    int64_t derefPtr = codeGen.EmitLocalLoad("ptr", 8, structPtr.var->varIdx);
+    ElemPtrInfo info = LoadElemPtr(structDesc, element, symVar->spec.typenameView, derefPtr);
+    ExprRet out = {}; 
+    out.isPtr = 1;
+    out.id = info.id;
+    out.type = info.type;
+    out.internalPtrCount = info.internalPtrCount;
     return out;
 }
 
@@ -2561,6 +2613,7 @@ ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprR
 
 ExprRet SemanticAnalyzer::HandlePointerAssignment(const ExprRet *dst, const ExprRet *src)
 {
+    // needs refactor
     int64_t dstId = dst->id;
     if(dst->id == EXPR_ID_GLOBAL || dst->id == EXPR_ID_VAR)
     {
@@ -2612,27 +2665,33 @@ ExprRet SemanticAnalyzer::HandleGetAddr(const Ast::Node *root)
 ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
 {
     std::string_view varName = GetViewForToken(root->token, manager);
-    const SymbolVariable* symVar = symTab->QueryVarSymbol(varName);
+    return HandleIdentifier(varName);
+}
+
+ExprRet SemanticAnalyzer::HandleIdentifier(const std::string_view &name)
+{
+    const SymbolVariable* symVar = symTab->QueryVarSymbol(name);
     ExprRet out = {};
     if(symVar)
     {
         if(symVar->opts.isEnumerator == 0)
         {
-            if(IsArray(&symVar->decl.accArr) )
+            const AccessArray& symAcc = symVar->decl.accArr;
+            if(IsArray(&symAcc) )
             {
                 out.type = BuiltIn::array;
             }
-            else if(IsPointer(&symVar->decl.accArr) )
+            else if(IsPointer(&symAcc) )
             {
                 out.type = BuiltIn::ptr;
             }
-            else
-            {
-                out.type = symVar->spec.symType->dType;
-            }
+            
+            
             out.isPtr = 1;
             out.id = EXPR_ID_VAR;
             out.var = symVar;
+            out.type = symVar->spec.symType->dType;
+            out.internalPtrCount = GetInternalPtrCount(symAcc);
         }
         else
         {
@@ -2645,7 +2704,7 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const Ast::Node *root)
     }
     else
     {
-        const SymbolFunction* symFn = symTab->QueryFunctionSymbol(varName);
+        const SymbolFunction* symFn = symTab->QueryFunctionSymbol(name);
         out.id = EXPR_ID_FN;
         out.fn = symFn;
         out.type = BuiltIn::ptr;

@@ -37,7 +37,7 @@ std::string_view GetViewForToken(const Token &token, FileManager* fm);
 Ast::NodeType tokenAsmToExpr(TokenType::Type asmToken);
 void SetByValueArray(uint8_t* arr, const std::vector<bool>& values);
 bool IsArgPassedByValue(const uint8_t *arr, size_t idx);
-
+uint32_t GetInternalPtrCount(const AccessArray& accArray);
 constexpr inline Typed::DType BuiltInToNum(BuiltIn::Type type)
 {
     switch (type)

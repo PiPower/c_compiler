@@ -411,3 +411,19 @@ bool IsArgPassedByValue(const uint8_t *arr, size_t idx)
     size_t byteOffset = idx - arrayOffset * 8;
     return (arr[arrayOffset]  &  (1 << byteOffset)) > 0;
 }
+
+uint32_t GetInternalPtrCount(const AccessArray& accArray)
+{
+    uint64_t internalPtrCount = 0;
+    for(size_t i =0; i < accArray.count; i++)
+    {
+        if(accArray.ptr[i].type == ACC_ARRAY ||
+           accArray.ptr[i].type == ACC_ARRAY_VLA ||
+           accArray.ptr[i].type == ACC_POINTER)
+        {
+            internalPtrCount++;
+        }
+    }
+
+    return internalPtrCount;
+}
