@@ -35,7 +35,7 @@ struct ArgDesc
 
 struct ElemPtrInfo
 {
-    std::int64_t id;
+    int64_t id;
     BuiltIn::Type type;
     uint32_t internalPtrCount;
     std::string_view typeName;

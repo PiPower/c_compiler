@@ -2101,19 +2101,19 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
             };
 
         ExprRet initInfo = {};
-        initInfo.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType; 
+        initInfo.type = symVar->spec.symType->dType; 
         initInfo.id = EXPR_ID_VAR;
         initInfo.var = symVar;
         initInfo.isPtr = 1;
-        node.rChild = (Ast::Node*)&initInfo;
+        initInfo.internalPtrCount = GetInternalPtrCount(symVar->decl.accArr);
 
+        node.rChild = (Ast::Node*)&initInfo;
         AnalyzeExpr(&node);
     }
     else
     {
         std::vector<uint64_t> nestedIndicies;
         InitArray(&symVar->decl.accArr, symVar->decl.initExpr, symVar, &nestedIndicies);
-        //codeGen.InitLocalArray(symVar->decl.name, &symVar->decl.accArr, symVar->decl.initExpr, &symVar->spec);
     }
 }
 
@@ -2124,10 +2124,12 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
 
-    if(dst.type == BuiltIn::struct_t || dst.type == BuiltIn::union_t)
+    if(dst.internalPtrCount == 0  && 
+       (dst.type == BuiltIn::struct_t || dst.type == BuiltIn::union_t) )
     {
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
+
     if(dst.isPtr)
     {
         if(dst.id == EXPR_ID_VAR)
@@ -2663,7 +2665,8 @@ ExprRet SemanticAnalyzer::HandlePointerAssignment(const ExprRet *dst, const Expr
     }
     else
     {
-       codeGen.EmitLocalStorage(dst->type, GetBuiltInAlignment(dst->type), dstId, src->id); 
+        BuiltIn::Type type = dst->internalPtrCount > 0 ? BuiltIn::ptr : dst->type;
+        codeGen.EmitLocalStorage(type, GetBuiltInAlignment(type), dstId, src->id); 
     }
     return *src;
 }
@@ -2678,13 +2681,15 @@ ExprRet SemanticAnalyzer::HandleGetAddr(const Ast::Node *root)
 
     if(handle.id == EXPR_ID_VAR)
     {
-        return {BuiltIn::ptr, {}, handle.var->varIdx};
+        return {handle.type, {}, handle.var->varIdx, 0, handle.internalPtrCount + 1};
+    }
+    else
+    {
+        IssueWarning(nullptr, "Unsupported case for GetAddress")
     }
 
-
-    if(handle.type == BuiltIn::ptr)
+    if(handle.internalPtrCount > 1)
     {
-
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
     return {BuiltIn::ptr, {}, EXPR_ID_IGNORE};
