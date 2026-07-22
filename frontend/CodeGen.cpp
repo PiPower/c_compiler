@@ -474,6 +474,7 @@ void CodeGen::EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op)
 
     if(type == BuiltIn::string)
     {
+        WriteCharData("ptr ");
         EmitString(false, op.idx);
     }
     else if(type == BuiltIn::special)
