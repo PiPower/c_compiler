@@ -3,6 +3,7 @@
 #include <limits>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stack>
 #include "../utils/DataEncoder.hpp"
 #include "../utils/Logger.hpp"
 #include "../utils/Misc.hpp"
@@ -991,6 +992,8 @@ ElemPtrInfo SemanticAnalyzer::LoadElemPtr(
                             typenameView, varIdx, indicies, true, true);
             out.type = structDesc.memberList[i].memberType;
             out.internalPtrCount = GetInternalPtrCount(structDesc.memberList[i].accArr);
+            out.typeName = structDesc.memberList[i].typeName;
+            out.symType = symTab->QueryTypeSymbol(out.typeName);
             return out;
         }
     }
@@ -2141,6 +2144,10 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
             src.id = codeGen.EmitLocalLoad(srcVar->spec.symType->dType, srcVar->spec.symType->alignment, srcVar->varIdx);
             src.var = nullptr;
         }
+        else
+        {
+            src.id = codeGen.EmitLocalLoad(GetBuiltInName(src.type), GetBuiltInAlignment(src.type), src.id);
+        }
     }
 
     if(dst.internalPtrCount == 0)
@@ -2481,24 +2488,45 @@ ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
 
 ExprRet SemanticAnalyzer::HandleStructAccess(const Ast::Node *root)
 {
-    std::string_view variable = GetViewForToken(root->lChild->token, manager);
-    const Ast::Node* elemAst = root->rChild->type == Ast::struct_access ? 
-                               root->rChild->rChild : root->rChild ; 
-    std::string_view element = GetViewForToken(elemAst->token, manager);
-
+    std::stack<std::string_view> structElemNames;
+    while (root->type == Ast::struct_access)
+    {
+        structElemNames.push(GetViewForToken(root->rChild->token, manager));
+        root = root->lChild;
+    }
+    
+    std::string_view variable = GetViewForToken(root->token, manager);
     ExprRet symExpr = HandleIdentifier(variable);
+    const SymbolVariable* symVar = symExpr.var;
     if(symExpr.internalPtrCount != 0 || symExpr.id != EXPR_ID_VAR)
     {
         IssueWarning(&root->token, "Element is not variable")
     }
-    const SymbolVariable* symVar = symExpr.var;
     if(!isStructOrUnion(symVar->spec.symType->dType) || DecaysToPointer(&symVar->decl.accArr))
     {
         IssueWarning(&root->token, "Element cannot be accessed")
     }
 
-    const StructDesc& structDesc = symVar->spec.symType->str;
-    ElemPtrInfo info = LoadElemPtr(structDesc, element, symVar->spec.typenameView, symVar->varIdx);
+    ElemPtrInfo info = {};
+    const SymbolType* symType = symVar->spec.symType;
+    std::string_view typeName = symVar->spec.typenameView;
+    int64_t currIdx = symVar->varIdx;
+    bool repeatAccess = false;
+    do
+    {
+        info = LoadElemPtr(symType->str, structElemNames.top(), typeName, currIdx);
+        structElemNames.pop();
+        if(structElemNames.size() == 0)
+        {
+            break;
+        }
+        currIdx = info.id;
+        typeName = info.typeName;
+        symType = info.symType;
+
+    }while (true);
+
+    
     ExprRet out = {}; 
     out.isPtr = 1;
     out.id = info.id;

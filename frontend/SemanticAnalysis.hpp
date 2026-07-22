@@ -38,6 +38,8 @@ struct ElemPtrInfo
     std::int64_t id;
     BuiltIn::Type type;
     uint32_t internalPtrCount;
+    std::string_view typeName;
+    const SymbolType* symType;
 };
 
 typedef std::tuple<std::vector<ParamDesc>, std::vector<bool>> ParamTuple;

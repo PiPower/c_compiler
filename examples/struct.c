@@ -1,7 +1,7 @@
 // struct_access_test.c
 // C99
 
-//#include <stdio.h>
+#include <stdio.h>
 
 struct Point {
     int x;
@@ -40,7 +40,7 @@ struct Outer {
         int inner;
     } anon;
 };
-
+/*
 int sum_point(struct Point p)
 {
     return p.x + p.y;
@@ -50,8 +50,8 @@ void modify_point(struct Point *p)
 {
     p->x += 10;
     p->y += 20;
-}
-/*
+}*/
+
 int main(void)
 {
     // ------------------------------------------------------------
@@ -67,7 +67,8 @@ int main(void)
     pn.p2.x = p.x;
 
     printf("%d %d\n", p.x, p.y);
-
+}
+/*
     // ------------------------------------------------------------
     // Pointer access
     // ------------------------------------------------------------
