@@ -105,6 +105,7 @@
     X(type_name) \
     X(array_access) \
     X(struct_access) \
+    X(ptr_struct_access) \
     X(cast) \
     X(get_addr) \
     X(ptr_access) \

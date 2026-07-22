@@ -1537,7 +1537,7 @@ Ast::Node* Parser::PostfixExpression()
         }
         else if(token.type == TokenType::arrow)
         {
-            node->type = Ast::NodeType::ptr_access;
+            node->type = Ast::NodeType::ptr_struct_access;
             node->lChild = postfixExpr;
             node->rChild = ParseIdentifier();
         }

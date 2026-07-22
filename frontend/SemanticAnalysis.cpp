@@ -2239,7 +2239,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     switch (root->type)
     {
     case Ast::struct_access: return HandleStructAccess(root);
-    case Ast::ptr_access: return HandlePtrStructAccess(root);
+    case Ast::ptr_struct_access: return HandlePtrStructAccess(root);
     case Ast::op_log_negate: return HandleNegate(root); 
     case Ast::function_call: return HandleFunctionCall(root);
     case Ast::get_addr: return HandleGetAddr(root);
