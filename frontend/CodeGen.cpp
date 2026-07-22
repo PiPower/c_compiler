@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include "../utils/DataEncoder.hpp"
 #include <sys/uio.h>
+#include <numeric>
 #include <unistd.h>
 #include "SemanticAnalysis.hpp"
 #include <string.h>
@@ -374,7 +375,6 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl, bo
     }
 
     std::string retName = getRetName(spec, decl);
-    bool retByStack = false;
     BindFuncBuffer();
 
     if(!declareFunc)
@@ -1813,12 +1813,16 @@ void CodeGen::MergeFunctionBuffers()
 {
     int64_t startRemapValue = currFn.startRemapIdx;
     std::vector<int64_t>& remapTable = currFn.remapTable;
-    uint64_t bufferSize = typeHeap.GetAllocSize();
     if((int64_t)remapTable.size() < currFn.variableIdx)
     {
         remapTable.resize(currFn.variableIdx);
     }
-    for(size_t i = 0; i < remapTable.size(); i++)
+    if(remapTable.size() > std::numeric_limits<int64_t>::max() )
+    {
+        IssueWarning(nullptr, "Number of indexes is too large")
+    }
+    int64_t remapTableSize = (int64_t) remapTable.size();
+    for(int64_t i = 0; i < remapTableSize; i++)
     {
         if( i >= startRemapValue)
         {
@@ -1829,7 +1833,6 @@ void CodeGen::MergeFunctionBuffers()
             remapTable[i] = i;
         }
     }
-
 
     BindFuncBuffer();
     CopyWithRemapToBoundBuffer(ALLOCA_BUFFER, &remapTable, &startRemapValue);

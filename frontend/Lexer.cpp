@@ -539,7 +539,7 @@ int64_t Lexer::LexMultilineComment()
 {
     RestoreLexerPointer();
     int64_t commentLen = 0;
-skip_loop:
+
     bool closed = false;
     while (fCurr + 1 < fEnd)
     {

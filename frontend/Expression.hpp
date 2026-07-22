@@ -29,7 +29,7 @@ struct ExprRet
 
     ExprRet() 
     : type(BuiltIn::none), num({}), id(0), isPtr(0), internalPtrCount(0), var(nullptr){};
-    ExprRet(BuiltIn::Type type, const Typed::Number& num, int64_t id, uint8_t isPtr = 0, uint8_t internalPtrCount = 0) 
+    ExprRet(BuiltIn::Type type, const Typed::Number& num, int64_t id, uint8_t isPtr = 0, uint32_t internalPtrCount = 0) 
     : type(type), num(num), id(id), isPtr(isPtr), internalPtrCount(internalPtrCount), var(nullptr){}
 
 };

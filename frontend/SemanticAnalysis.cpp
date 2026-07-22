@@ -997,6 +997,8 @@ ElemPtrInfo SemanticAnalyzer::LoadElemPtr(
             return out;
         }
     }
+    IssueWarning(nullptr, "Typename %.*s does not name a type", (int)typenameView.size(), typenameView.data())
+    return {};
 }
 
 int SemanticAnalyzer::TryEmitValueStruct(const StructDesc &str, bool isLast, int usedValueCount, ParamDesc *paramDesc)
@@ -1277,6 +1279,9 @@ int64_t SemanticAnalyzer::PointerArg(const FunctionParams& param, const ExprRet&
                     result.var->varIdx, std::vector<uint64_t>(arrayOrder, 0) );
         }
     }
+
+    IssueWarning(nullptr, "Unsupported code path in PointerArg")
+    return -1;
 }
 
 void SemanticAnalyzer::StructArg(
@@ -2513,7 +2518,6 @@ ExprRet SemanticAnalyzer::HandleStructAccess(const Ast::Node *root)
     const SymbolType* symType = symVar->spec.symType;
     std::string_view typeName = symVar->spec.typenameView;
     int64_t currIdx = symVar->varIdx;
-    bool repeatAccess = false;
     do
     {
         info = LoadElemPtr(symType->str, structElemNames.top(), typeName, currIdx);
@@ -2942,7 +2946,6 @@ RUN_CASE_CHECK:
 void SemanticAnalyzer::IfBlock(const Ast::Node *root, int64_t exitLabel)
 {
     const Ast::Node* cond = &root->rChild[0];
-    const Ast::Node* statement = &root->rChild[1];
     const Ast::Node* elseClause = &root->rChild[2];
 
     int64_t exprLabel = codeGen.GetIdxForLocalVar();
