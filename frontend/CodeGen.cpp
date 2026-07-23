@@ -846,33 +846,15 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
             VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
     case BuiltIn::Type::float_32:
+    {
+        WriteCharData("\n\tstore float 0x");
+        WriteFloatingPointToCurrBuffer(Typed::CastTo<double>(num), false);
+        WriteCharData(", ptr %%%v, align %v",VIEW(strIdx), VIEW(strAlign));
+    } break;
     case BuiltIn::Type::double_64:
     {
-        if(type == BuiltIn::Type::float_32)
-        {
-            WriteCharData("\n\tstore float 0x");
-        }
-        else
-        {
-            WriteCharData("\n\tstore double 0x");
-        }
-        double value = Typed::CastTo<double>(num);
-        const unsigned char* bytes  = reinterpret_cast<const unsigned char*>(&value);
-        int lowerEnd = BuiltIn::Type::float_32 == type ? 4 : 0;
-        int start = lowerEnd, end = 7;
-        if constexpr (std::endian::native == std::endian::little)
-        {
-            start = 7, end = lowerEnd;
-        }
-        for (int i = start; i >= end; i--)
-        {
-            WriteByteInHex(bytes[i]);
-        }
-        if(type == BuiltIn::Type::float_32)
-        {
-            WriteByteInHex(bytes[3] & 0xF0);
-            WriteCharData("000000");
-        }
+        WriteCharData("\n\tstore float 0x");
+        WriteFloatingPointToCurrBuffer(Typed::CastTo<double>(num), true);
         WriteCharData(", ptr %%%v, align %v",VIEW(strIdx), VIEW(strAlign));
     } break;
     case BuiltIn::Type::long_double:
@@ -1895,4 +1877,25 @@ void CodeGen::CopyWithRemapToBoundBuffer(
             }
         }
     }
+}
+
+void CodeGen::WriteFloatingPointToCurrBuffer(double value, bool isFloat32)
+{
+    const unsigned char* bytes  = reinterpret_cast<const unsigned char*>(&value);
+    int lowerEnd = isFloat32 ? 4 : 0;
+    int start = lowerEnd, end = 7;
+    if constexpr (std::endian::native == std::endian::little)
+    {
+        start = 7, end = lowerEnd;
+    }
+    for (int i = start; i >= end; i--)
+    {
+        WriteByteInHex(bytes[i]);
+    }
+    if(isFloat32)
+    {
+        WriteByteInHex(bytes[3] & 0xF0);
+        WriteCharData("000000");
+    }
+
 }

@@ -205,6 +205,7 @@ struct CodeGen
         uint8_t srcBuffer, 
         std::vector<int64_t>* remapTablePtr, 
         int64_t* startRemapValuePtr);
+    void WriteFloatingPointToCurrBuffer(double value, bool isFloat32);
 
     std::unordered_map<std::string_view, int64_t> emittedStrings;
     std::unordered_map<std::string_view, int> typeCounter;
