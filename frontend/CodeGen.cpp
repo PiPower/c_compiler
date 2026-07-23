@@ -596,7 +596,7 @@ void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initialize
             WriteCharData(" 0");
             if(isFloat(spec->symType->dType))
             {
-                WriteCharData(".0e+00");
+                WriteCharData(".000000e+00");
             }
         }
         return;
@@ -618,10 +618,6 @@ void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initialize
         initStr = Typed::ToString(CastTypedNumber(spec->symType->dType, num));
     }
 
-    if(isFloat(spec->symType->dType))
-    {
-        initStr += "e+00";
-    }
     BindGlobalVarBuffer();
     WriteCharData(" %s", initStr.data(), initStr.length());
 }
@@ -735,8 +731,7 @@ void CodeGen::ZeroInitGlobalVar(const DeclSpecs* spec, const Declarator* decl)
     if(!IsPointer(&decl->accArr) && 
         (spec->symType->dType == BuiltIn::float_32 || spec->symType->dType == BuiltIn::double_64))
     {
-        WriteCharData("%se+00, align %s", 
-            zero_init.data(), zero_init.length(),
+        WriteCharData("0.000000e+00, align %s", 
             alignment.data(), alignment.length());
     }
     else
@@ -851,35 +846,48 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
             VIEW(value), VIEW(strIdx), VIEW(strAlign));
     } break;
     case BuiltIn::Type::float_32:
-    {
-        std::string value = std::to_string(Typed::CastTo<float>(num));
-        WriteCharData("\n\tstore float %ve+00, ptr %%%v, align %v",
-            VIEW(value), VIEW(strIdx), VIEW(strAlign));
-    } break;
     case BuiltIn::Type::double_64:
     {
-        std::string value = std::to_string(Typed::CastTo<double>(num));
-        WriteCharData("\n\tstore double %ve+00, ptr %%%v, align %v",
-            VIEW(value), VIEW(strIdx), VIEW(strAlign));
+        if(type == BuiltIn::Type::float_32)
+        {
+            WriteCharData("\n\tstore float 0x");
+        }
+        else
+        {
+            WriteCharData("\n\tstore double 0x");
+        }
+        double value = Typed::CastTo<double>(num);
+        const unsigned char* bytes  = reinterpret_cast<const unsigned char*>(&value);
+        int lowerEnd = BuiltIn::Type::float_32 == type ? 4 : 0;
+        int start = lowerEnd, end = 7;
+        if constexpr (std::endian::native == std::endian::little)
+        {
+            start = 7, end = lowerEnd;
+        }
+        for (int i = start; i >= end; i--)
+        {
+            WriteByteInHex(bytes[i]);
+        }
+        if(type == BuiltIn::Type::float_32)
+        {
+            WriteByteInHex(bytes[3] & 0xF0);
+            WriteCharData("000000");
+        }
+        WriteCharData(", ptr %%%v, align %v",VIEW(strIdx), VIEW(strAlign));
     } break;
     case BuiltIn::Type::long_double:
     {
         long double value = Typed::CastTo<long double>(num);
         const unsigned char* bytes  = reinterpret_cast<const unsigned char*>(&value);
         WriteCharData("\n\tstore x86_fp80 0xK");
-        if constexpr (std::endian::native == std::endian::big)
+        int start = 0, end = 8, offset = 6;
+        if constexpr (std::endian::native == std::endian::little)
         {
-            for (int i = 0; i <= 9; i++)
-            {
-                WriteByteInHex(bytes[i + 6]);
-            }
+            start = 9, end = 0, offset = 0;
         }
-        else
+        for (int i = start; i >= end; i--)
         {
-            for (int i = 9; i >= 0; i--)
-            {
-                WriteByteInHex(bytes[i]);
-            }
+            WriteByteInHex(bytes[i + offset]);
         }
         WriteCharData(", ptr %%%v, align %v", VIEW(strIdx), VIEW(strAlign));
     } break;
@@ -1242,7 +1250,7 @@ void CodeGen::EmitZeroInitFloat(bool isGlobal)
     {
         BindLocalBuffer();
     }
-    WriteCharData(" 0.0e+00");
+    WriteCharData(" 0.000000e+00");
 }
 void CodeGen::EmitString(bool isGlobal, int64_t strIdx)
 {

@@ -7,13 +7,14 @@ int main(void) {
     int \u9323 = 939, \U85483922 = 395995l;
     char \u93F3\UAAFFf293sdsa3 = '\x34';
     int a = 5, b = 10;
-    float f = 3.14, g = 0xFF.AFp12f;
+    float f = 3.14f, g = 0xFF.AFp12f;
     double d = 1e3;
     long l = 1234567890L;
     char c = 'Z';
     _Bool flag = 1;
     const int ci = 42;
     volatile int vi = 0;
+    
     if (a < b && b > 0 || !flag) {
         a += 1; b -= 1; c++; d--;
     }
@@ -31,6 +32,6 @@ int main(void) {
     Point_t p = { .x = a, .y = b };
     Point_t* ptr = &p;
     //ptr->x = 0;
-    // This is a comment with tricky symbols: ++ -- && || == !=
+    // This is a comment with tricky symbols: ++ -- && || == !
     return 0;
 }
