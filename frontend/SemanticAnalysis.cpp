@@ -1768,6 +1768,7 @@ void SemanticAnalyzer::InitArray(
                 ExprRet target = {};
                 target.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType;
                 parentPosition->push_back(i);
+                target.isPtr = 1;
                 target.id = codeGen.EmitLocalArrGetElemPtr(&decl->accArr, spec->typenameView, symVar->varIdx, *parentPosition);
                 parentPosition->pop_back();
                 ResolveAssignment(target, src);
@@ -2149,7 +2150,7 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
     {
         IssueWarning(nullptr, "Only l-value can be assigned a value")
     }
-    if(src.isPtr)
+    if(src.isPtr && src.type != BuiltIn::string)
     {
         if(src.id == EXPR_ID_VAR)
         {
