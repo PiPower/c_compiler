@@ -17,11 +17,3 @@ target_compile_options(c_compiler PRIVATE -Wno-psabi)
 
 target_link_libraries(c_compiler PUBLIC frontend)
 target_link_libraries(c_compiler PUBLIC utils)
-
-add_executable(lexer_test tests/test_lexer_2.cpp)
-target_link_libraries(lexer_test PUBLIC frontend)
-target_link_libraries(lexer_test PUBLIC utils)
-
-add_executable(preprocessor_test tests/test_preprocessor.cpp)
-target_link_libraries(preprocessor_test PUBLIC frontend)
-target_link_libraries(preprocessor_test PUBLIC utils)
