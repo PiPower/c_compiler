@@ -1632,9 +1632,9 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
         argDesc.parmIdx = i;
         int isEllipsis = params[i].spec.declType.isEllipsis;
 
-        if(result.type == BuiltIn::ptr ||
+        if(result.internalPtrCount > 0 ||
            result.type == BuiltIn::string ||
-           result.type == BuiltIn::array)
+           result.isArray)
         {
             argDesc.paramType = result.type == BuiltIn::string ? BuiltIn::string : BuiltIn::ptr;
             argDesc.op.idx = PointerArg(params[i], result);
@@ -2155,7 +2155,16 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
         if(src.id == EXPR_ID_VAR)
         {
             const SymbolVariable* srcVar = src.var;
-            src.id = codeGen.EmitLocalLoad(srcVar->spec.symType->dType, srcVar->spec.symType->alignment, srcVar->varIdx);
+            if(!src.isArray)
+            {
+                src.id = codeGen.EmitLocalLoad(srcVar->spec.symType->dType, srcVar->spec.symType->alignment, srcVar->varIdx);
+            }
+            else
+            {
+                uint64_t arrayCount = GetArrayOrder(&srcVar->decl.accArr);
+                std::vector<uint64_t>  indicies(arrayCount, 0);
+                src.id = codeGen.EmitLocalArrGetElemPtr(&srcVar->decl.accArr, src.typenameView, srcVar->varIdx, indicies);
+            }
             src.var = nullptr;
         }
         else
@@ -2416,7 +2425,11 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
         }
     }
 
-    return ExprRet{type, num, EXPR_ID_CONST};
+    ExprRet out = {};
+    out.type = type;
+    out.num = num;
+    out.id = EXPR_ID_CONST;
+    return out;
 }
 
 ExprRet SemanticAnalyzer::LoadStringLiteral(const Ast::Node *string)
@@ -2740,18 +2753,11 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const std::string_view &name)
             const AccessArray& symAcc = symVar->decl.accArr;
             if(IsArray(&symAcc) )
             {
-                out.type = BuiltIn::array;
+                out.isArray = 1;
             }
-            else if(IsPointer(&symAcc) )
-            {
-                out.type = BuiltIn::ptr;
-            }
-            
-            if(isStructOrUnion(symVar->spec.symType->dType))
-            {
-                out.typenameView = symVar->spec.typenameView;
-                out.symType = symVar->spec.symType;
-            }
+
+            out.typenameView = symVar->spec.typenameView;
+            out.symType = symVar->spec.symType;
             out.isPtr = 1;
             out.id = EXPR_ID_VAR;
             out.var = symVar;

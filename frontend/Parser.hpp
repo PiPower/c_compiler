@@ -42,7 +42,9 @@ struct Parser
     Ast::Node* ShiftExpression();
     Ast::Node* AdditiveExpression();
     Ast::Node* MultiplicativeExpression();
-    Ast::Node* CastExpression();
+    Ast::Node* CastExpressionAsmExprDisabled();
+    Ast::Node* CastExpressionAsmExprEnabled();
+    Ast::Node* CastExpression(bool disableAsmExpr = false);
     Ast::Node* UnaryExpression();
     Ast::Node* PostfixExpression();
     Ast::Node* PrimaryExpression();

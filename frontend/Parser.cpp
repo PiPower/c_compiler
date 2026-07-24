@@ -30,7 +30,7 @@ static Ast::NodeType ResolveNodeType(
 }
 
 template<size_t Count>
-static Ast::Node* ParseLoop(
+static Ast::Node* ParseBinExpr(
     Parser* p, 
     ParseFn pFn, 
     const std::array<TokenType::Type, Count>& operators,
@@ -51,6 +51,10 @@ static Ast::Node* ParseLoop(
         expr = node;
 
         token =  p->GetCurrToken();
+        if(p->IsAssignment(token.type))
+        {
+            p->logger.IssueWarningImpl(&token, "Assignment operator cannot appear inside binary expression");
+        }
     }
     
     return expr;
@@ -1623,7 +1627,7 @@ unary_expr:
         ConsumeToken();
         Ast::Node* node =  AllocateAstNodes();
         node->type = ResolveNodeType(token.type, tokTypes, opTypes);
-        node->lChild = CastExpression();
+        node->lChild = CastExpressionAsmExprDisabled();
         node->rChild = unary;
         node->token = token;
         return node;
@@ -1638,7 +1642,12 @@ unary_expr:
     return postfix;
 }
 
-Ast::Node* Parser::CastExpression()
+Ast::Node *Parser::CastExpressionAsmExprEnabled()
+{
+    return CastExpression(false);
+}
+
+Ast::Node *Parser::CastExpression(bool disableAsmExpr)
 {
     Token token = GetCurrToken();
     Ast::Node* cast = nullptr;
@@ -1689,7 +1698,7 @@ Ast::Node* Parser::CastExpression()
     
     Ast::Node* unary = UnaryExpression();
     token = GetCurrToken();
-    if(unary && IsAssignment(token.type))
+    if(!disableAsmExpr && unary && IsAssignment(token.type))
     {
         if(cast)
         {
@@ -1712,21 +1721,48 @@ Ast::Node* Parser::MultiplicativeExpression()
 {
     constexpr std::array<TokenType::Type, 3> tokTypes = {TokenType::star, TokenType::slash, TokenType::percent};
     constexpr std::array<Ast::NodeType, 3> opTypes = {Ast::op_multiply, Ast::op_divide, Ast::op_divide_modulo};
-    return ParseLoop(this, &Parser::CastExpression, tokTypes,  opTypes);
+    
+    Ast::Node* expr = CastExpressionAsmExprEnabled();
+    Token token = GetCurrToken();
+
+    while (IsTokenOneFromArray(&token, tokTypes))
+    {
+        ConsumeToken();
+
+        Ast::Node* node =  AllocateAstNodes();
+        node->type = ResolveNodeType(token.type, tokTypes, opTypes);
+        node->lChild = expr;
+        node->rChild = CastExpressionAsmExprDisabled();
+        node->token = token;
+        expr = node;
+
+        token = GetCurrToken();
+        if(IsAssignment(token.type))
+        {
+            IssueWarning(&token, "Assignment operator cannot appear inside binary expression");
+        }
+    }
+    
+    return expr;
+}
+
+Ast::Node *Parser::CastExpressionAsmExprDisabled()
+{
+    return CastExpression(true);
 }
 
 Ast::Node* Parser::AdditiveExpression()
 {
     constexpr std::array<TokenType::Type, 2> tokTypes = {TokenType::plus, TokenType::minus};
     constexpr std::array<Ast::NodeType, 2> opTypes = {Ast::op_add, Ast::op_subtract};
-    return ParseLoop(this, &Parser::MultiplicativeExpression, tokTypes,  opTypes);
+    return ParseBinExpr(this, &Parser::MultiplicativeExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::ShiftExpression()
 {
     constexpr std::array<TokenType::Type, 2> tokTypes = {TokenType::l_shift, TokenType::r_shift};
     constexpr std::array<Ast::NodeType, 2> opTypes = {Ast::op_l_shift, Ast::op_r_shift};
-    return ParseLoop(this, &Parser::AdditiveExpression, tokTypes,  opTypes);
+    return ParseBinExpr(this, &Parser::AdditiveExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::RelationalExpression()
@@ -1735,49 +1771,49 @@ Ast::Node* Parser::RelationalExpression()
         TokenType::less, TokenType::greater, TokenType::less_equal, TokenType::greater_equal};
     constexpr std::array<Ast::NodeType, 4> opTypes = {
         Ast::op_less, Ast::op_greater, Ast::op_less_equal, Ast::op_greater_equal};
-    return ParseLoop(this, &Parser::ShiftExpression, tokTypes,  opTypes);
+    return ParseBinExpr(this, &Parser::ShiftExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::EqualityExpression()
 {
     constexpr std::array<TokenType::Type, 2> tokTypes = {TokenType::equal_equal, TokenType::bang_equal};
     constexpr std::array<Ast::NodeType, 2> opTypes = {Ast::op_equal, Ast::op_not_equal};
-    return ParseLoop(this, &Parser::RelationalExpression, tokTypes,  opTypes);
+    return ParseBinExpr(this, &Parser::RelationalExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::AndExpression()
 {
     constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::ampersand};
     constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_and};
-    return ParseLoop(this, &Parser::EqualityExpression, tokTypes,  opTypes);
+    return ParseBinExpr(this, &Parser::EqualityExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::ExclusiveOrExpression()
 {
     constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::caret};
     constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_exc_or};
-    return ParseLoop(this, &Parser::AndExpression, tokTypes,  opTypes);
+    return ParseBinExpr(this, &Parser::AndExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::InclusiveOrExpression()
 {
     constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::pipe};
     constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_inc_or};
-    return ParseLoop(this, &Parser::ExclusiveOrExpression, tokTypes,  opTypes);
+    return ParseBinExpr(this, &Parser::ExclusiveOrExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::LogicalAndExpression()
 {
     constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::double_ampersand};
     constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_log_and};
-    return ParseLoop(this, &Parser::InclusiveOrExpression, tokTypes,  opTypes);
+    return ParseBinExpr(this, &Parser::InclusiveOrExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::LogicalOrExpression()
 {
     constexpr std::array<TokenType::Type, 1> tokTypes = {TokenType::double_pipe};
     constexpr std::array<Ast::NodeType,1> opTypes = {Ast::op_log_or};
-    return ParseLoop(this, &Parser::LogicalAndExpression, tokTypes,  opTypes);
+    return ParseBinExpr(this, &Parser::LogicalAndExpression, tokTypes,  opTypes);
 }
 
 Ast::Node* Parser::ConditionalExpression()

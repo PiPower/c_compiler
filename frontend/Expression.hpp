@@ -20,6 +20,7 @@ struct ExprRet
     Typed::Number num;
     int64_t id;
     uint8_t isPtr : 1; // this indicates whether expr is pure llvm-pointer
+    uint8_t isArray : 1; // this indicates whether underlying object is array
     uint32_t internalPtrCount; // pointers defined from c code are defined here
     std::string_view typenameView; 
     const SymbolType* symType;
@@ -30,9 +31,9 @@ struct ExprRet
     };
 
     ExprRet() 
-    : type(BuiltIn::none), num({}), id(0), isPtr(0), internalPtrCount(0), typenameView(""), symType(nullptr), var(nullptr){};
+    : type(BuiltIn::none), num({}), id(0), isPtr(0), isArray(0), internalPtrCount(0), typenameView(""), symType(nullptr), var(nullptr){};
     ExprRet(BuiltIn::Type type, const Typed::Number& num, int64_t id, uint8_t isPtr = 0, uint32_t internalPtrCount = 0) 
-    : type(type), num(num), id(id), isPtr(isPtr), internalPtrCount(internalPtrCount), 
+    : type(type), num(num), id(id), isPtr(isPtr), isArray(0), internalPtrCount(internalPtrCount), 
       typenameView(""), symType(nullptr), var(nullptr){}
 
 };
