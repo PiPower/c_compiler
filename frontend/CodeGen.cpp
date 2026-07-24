@@ -853,7 +853,7 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
     } break;
     case BuiltIn::Type::double_64:
     {
-        WriteCharData("\n\tstore float 0x");
+        WriteCharData("\n\tstore double 0x");
         WriteFloatingPointToCurrBuffer(Typed::CastTo<double>(num), true);
         WriteCharData(", ptr %%%v, align %v",VIEW(strIdx), VIEW(strAlign));
     } break;
