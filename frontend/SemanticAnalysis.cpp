@@ -2150,31 +2150,33 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
     {
         IssueWarning(nullptr, "Only l-value can be assigned a value")
     }
-    if(src.isPtr && src.type != BuiltIn::string)
-    {
-        if(src.id == EXPR_ID_VAR)
-        {
-            const SymbolVariable* srcVar = src.var;
-            if(!src.isArray)
-            {
-                src.id = codeGen.EmitLocalLoad(srcVar->spec.symType->dType, srcVar->spec.symType->alignment, srcVar->varIdx);
-            }
-            else
-            {
-                uint64_t arrayCount = GetArrayOrder(&srcVar->decl.accArr);
-                std::vector<uint64_t>  indicies(arrayCount, 0);
-                src.id = codeGen.EmitLocalArrGetElemPtr(&srcVar->decl.accArr, src.typenameView, srcVar->varIdx, indicies);
-            }
-            src.var = nullptr;
-        }
-        else
-        {
-            src.id = codeGen.EmitLocalLoad(GetBuiltInName(src.type), GetBuiltInAlignment(src.type), src.id);
-        }
-    }
 
     if(dst.internalPtrCount == 0)
     {
+        if(src.isPtr && src.type != BuiltIn::string)
+        {
+            src.isPtr = 0;
+            if(src.id == EXPR_ID_VAR)
+            {
+                const SymbolVariable* srcVar = src.var;
+                if(!src.isArray)
+                {
+                    src.id = codeGen.EmitLocalLoad(srcVar->spec.symType->dType, srcVar->spec.symType->alignment, srcVar->varIdx);
+                }
+                else
+                {
+                    uint64_t arrayCount = GetArrayOrder(&srcVar->decl.accArr);
+                    std::vector<uint64_t>  indicies(arrayCount, 0);
+                    src.id = codeGen.EmitLocalArrGetElemPtr(&srcVar->decl.accArr, src.typenameView, srcVar->varIdx, indicies);
+                }
+                src.var = nullptr;
+            }
+            else
+            {
+                src.id = codeGen.EmitLocalLoad(GetBuiltInName(src.type), GetBuiltInAlignment(src.type), src.id);
+            }
+        }
+
         return HandleSimpleAssignment(&dst, &src);
     }
     else
@@ -2364,7 +2366,7 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
 {
     // system here is bit simplified as only 32 and 64 bit values in
     //  linux style convention are considered
-    Typed::Number num;
+    Typed::Number num = {};
     BuiltIn::Type type;
     std::string_view str = GetViewForToken(constant->token, manager);
     if(constant->token.isFloat)
@@ -2514,9 +2516,10 @@ ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
         {
             if(value.id == EXPR_ID_CONST)
             {
-                value.type = BuiltIn::ptr;
                 value.num.uint64 = Typed::CastTo<uint64_t>(value.num);
                 value.num.type = Typed::d_uint64_t;
+                value.internalPtrCount = GetInternalPtrCount(decl.accArr);
+                value.isArray = IsArray(&decl.accArr);
             }
         }
         else
@@ -2684,21 +2687,28 @@ ExprRet SemanticAnalyzer::HandlePointerAssignment(const ExprRet *dst, const Expr
     {
         IssueWarning(nullptr, "Incorrect type hints")
     }
-
+    // add case when pointer is global variable
     int64_t dstId = dst->id;
     if(dst->id == EXPR_ID_VAR)
     {
         dstId = dst->var->varIdx;
     }
 
-    if( src->id == EXPR_ID_VAR || src->id == EXPR_ID_FN)
+    if( (src->id == EXPR_ID_VAR && src->var->varIdx == EXPR_ID_GLOBAL) || src->id == EXPR_ID_FN)
     {
         const Declarator* decl = src->id == EXPR_ID_FN ? &src->fn->decl :  &src->var->decl;
         codeGen.EmitLocalNamedStore(src->type, GetBuiltInAlignment(src->type), dstId, decl->name);
     }
-    else if(src->id == EXPR_ID_CONST && src->num.uint64 == 0)
+    else if(src->id == EXPR_ID_CONST)
     {
-        codeGen.EmitLocalNullStorage(dstId);
+        if(src->num.uint64 == 0)
+        {
+            codeGen.EmitLocalNullStorage(dstId);
+        }
+        else
+        {
+            exit(-20000);
+        }
     }
     else if(src->type == BuiltIn::string)
     {
