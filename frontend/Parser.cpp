@@ -1566,6 +1566,7 @@ Ast::Node* Parser::PostfixExpression()
 
 Ast::Node* Parser::UnaryExpression()
 {
+    // TODO: test move parsing nested asm expression here
     constexpr std::array<TokenType::Type, 7> tokTypes = 
         {TokenType::ampersand, TokenType::star, TokenType::plus, 
          TokenType::minus, TokenType::tilde, TokenType::bang};

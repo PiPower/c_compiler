@@ -2801,14 +2801,42 @@ void SemanticAnalyzer::HandleTypePromotion(const ExprRet *left, const ExprRet *r
         *outRight = HandleTypeConversion(right, newRight);
         return;
     }
-    else if(isFloat(left->type) && isFloat(right->type))
+
+    // if true this means both are the same floats
+    if(left->type == right->type)
     {
-        if(left->type == right->type)
-        {
-            *outLeft = HandleTypeConversion(left, left->type);
-            *outRight = HandleTypeConversion(right, left->type);
-        }
+        *outLeft = *left;
+        *outRight = *right;
     }
+
+    ExprRet leftTmp = isSmallInteger(left->type) ?
+            HandleTypeConversion(left, BuiltIn::s_int_32) : 
+            *left;
+    
+    ExprRet rightTmp = isSmallInteger(right->type) ? 
+            HandleTypeConversion(right, BuiltIn::s_int_32):
+            *right;
+    // case float/integer or integer/float
+    if(isInteger(leftTmp.type) || isFloat(rightTmp.type))
+    {
+        *outLeft = HandleTypeConversion(&leftTmp, rightTmp.type);
+        *outRight = rightTmp;
+        return;
+    }
+
+    if(isInteger(rightTmp.type) || isFloat(leftTmp.type))
+    {
+        *outLeft = leftTmp;
+        *outRight = HandleTypeConversion(&rightTmp, leftTmp.type);
+        return;
+    }
+
+    // float/float case
+    BuiltIn::Type resultingType = getStrongerFLoat(rightTmp.type,  leftTmp.type);
+    *outLeft = HandleTypeConversion(&leftTmp, resultingType);
+    *outRight = HandleTypeConversion(&rightTmp, resultingType);
+    return;
+    
 }
 
 ExprRet SemanticAnalyzer::HandleTypeConversion(const ExprRet *src, BuiltIn::Type newType)
@@ -2821,17 +2849,34 @@ ExprRet SemanticAnalyzer::HandleTypeConversion(const ExprRet *src, BuiltIn::Type
     ExprRet out = {};
     out.type = newType;
 
+    if(src->id == EXPR_ID_CONST)
+    {
+        out.id = EXPR_ID_CONST;
+        out.num = CastTypedNumber(newType, src->num);
+        return out;
+    }
     // if values have the same rank then they signed/unsigned with the same bit lengths,
     // in this case no extension code is to be generated
-    if(src->id != EXPR_ID_CONST && isFloat(newType))
+    if(isFloat(newType))
     {
-        if(src->type == newType)
+        // float/integer -> float
+        if(isInteger(src->type))
         {
-            out.id = src->id;
+            out.id = codeGen.EmitLocalIntToFloatConv(src->type, newType, src->id);
+        }
+        else
+        {
+            out.id = codeGen.EmitLocalFloatToFloatConv(src->type, newType, src->id);
         }
     }
-    else if(src->id != EXPR_ID_CONST && isInteger(src->type) && isInteger(newType))
+    else if(isFloat(src->type))
     {
+        // float -> integer
+        out.id = codeGen.EmitLocalFloatToIntConv(src->type, newType, src->id);
+    }
+    else
+    {
+        // ingeter -> integer
         int rankSrc = GetIntRank(src->type), rankNewType = GetIntRank(newType);
         if(rankSrc == rankNewType)
         {
@@ -2849,11 +2894,6 @@ ExprRet SemanticAnalyzer::HandleTypeConversion(const ExprRet *src, BuiltIn::Type
         {
             out.id = codeGen.EmitLocalZeroExt(newType, src->type, src->id);
         }
-    }
-    else
-    {
-        out.id = EXPR_ID_CONST;
-        out.num = CastTypedNumber(newType, src->num);
     }
 
     return out;

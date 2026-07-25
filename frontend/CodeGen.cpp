@@ -848,13 +848,13 @@ void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t d
     case BuiltIn::Type::float_32:
     {
         WriteCharData("\n\tstore float 0x");
-        WriteFloatingPointToCurrBuffer(Typed::CastTo<double>(num), false);
+        WriteFloatingPointToCurrBuffer(Typed::CastTo<double>(num), true);
         WriteCharData(", ptr %%%v, align %v",VIEW(strIdx), VIEW(strAlign));
     } break;
     case BuiltIn::Type::double_64:
     {
         WriteCharData("\n\tstore double 0x");
-        WriteFloatingPointToCurrBuffer(Typed::CastTo<double>(num), true);
+        WriteFloatingPointToCurrBuffer(Typed::CastTo<double>(num), false);
         WriteCharData(", ptr %%%v, align %v",VIEW(strIdx), VIEW(strAlign));
     } break;
     case BuiltIn::Type::long_double:
@@ -1002,6 +1002,60 @@ void CodeGen::EmitLocalSwitch(
     }
     WriteCharData("\n\t]");
     return;
+}
+
+int64_t CodeGen::EmitLocalFloatToIntConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx)
+{
+    if(!isFloat(srcType))
+    {
+        IssueWarning(nullptr, "Performing float->int conversion but src is not float")
+    }
+    if(!isInteger(dstType))
+    {
+        IssueWarning(nullptr, "Performing float->int conversion but dst is not int")
+    }
+
+    BindLocalBuffer();
+    int64_t idx = GetIdxForLocalVar();
+    std::string_view convOp =  isSigned(srcType)? "fptosi" : "fptoui";
+
+    WriteCharData("\n\t%%%l = %v %v %%%l to %v", idx, convOp, GetBuiltInName(srcType), loadIdx, GetBuiltInName(dstType));
+    return idx;
+}
+
+int64_t CodeGen::EmitLocalFloatToFloatConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx)
+{
+    if(!isFloat(srcType))
+    {
+        IssueWarning(nullptr, "Performing float->float conversion but src is not float")
+    }
+    if(!isFloat(dstType))
+    {
+        IssueWarning(nullptr, "Performing float->float conversion but dst is not float")
+    }
+    BindLocalBuffer();
+    int64_t idx = GetIdxForLocalVar();
+    std::string_view convOp = srcType > dstType ? "fptrunc" : "fpext";
+
+    WriteCharData("\n\t%%%l = %v %v %%%l to %v", idx, convOp, GetBuiltInName(srcType), loadIdx, GetBuiltInName(dstType));
+    return idx;
+}
+
+int64_t CodeGen::EmitLocalIntToFloatConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx)
+{
+    if(!isInteger(srcType))
+    {
+        IssueWarning(nullptr, "Performing int->float conversion but src is not int")
+    }
+    if(!isFloat(dstType))
+    {
+        IssueWarning(nullptr, "Performing int->float conversion but dst is not float")
+    }
+    BindLocalBuffer();
+    int64_t idx = GetIdxForLocalVar();
+    std::string_view convOp = isSigned(srcType)? "sitofp" : "uitofp";
+    WriteCharData("\n\t%%%l = %v %v %%%l to %v", idx, convOp, GetBuiltInName(srcType), loadIdx, GetBuiltInName(dstType));
+    return idx;
 }
 
 int64_t CodeGen::EmitLocalGlLoad(BuiltIn::Type type, int32_t alignment, const std::string_view &varName)

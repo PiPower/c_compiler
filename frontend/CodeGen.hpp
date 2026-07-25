@@ -124,6 +124,9 @@ struct CodeGen
         const std::vector<int64_t>& caseLabels,
         const std::vector<Typed::Number>& labelValues);
 
+    int64_t EmitLocalFloatToIntConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx);  
+    int64_t EmitLocalFloatToFloatConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx);  
+    int64_t EmitLocalIntToFloatConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx);
     int64_t EmitLocalGlLoad(BuiltIn::Type type, int32_t alignment, const std::string_view& varName);
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalLoad(const std::string_view& typeView, int32_t alignment, int64_t loadIdx);
