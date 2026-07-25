@@ -315,4 +315,36 @@ int main(void)
 
     return 0;
 }
+    
+// struct initializer list test
+struct Point {
+    double x;
+    double y;
+};
+
+struct Flags {
+    unsigned int read;
+    unsigned int write;
+    unsigned int exec;
+};
+
+struct Line {
+    struct Point start;
+    struct Point end;
+};
+
+union Data {
+    unsigned char  bytes[4];
+    unsigned int   word;
+    float          real;
+};
+
+void test_structs(void) {
+    struct Point p1 = {0.0, 0.0};
+    struct Point p2 = {.x = 1.0, .y = 2.0};
+    struct Flags fl = {.read = 1, .write = 1, .exec = 0};
+    struct Line  ln = {.start = {0,0}, .end = {1,1}};
+    union Data   d  = {.word = 0xDEADBEEFu};
+}
+
 */

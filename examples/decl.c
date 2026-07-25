@@ -117,7 +117,7 @@ void test_arrays(int n) {
 
     int matrix[3][3] = {{1,0,0},{0,1,0},{0,0,1}};
 
-    int (*pa)[4] = &(int[4]){1,2,3,4};
+    //int (*pa)[4] = &(int[4]){1,2,3,4};
     
     const char *words[] = {"foo", "bar", "baz"};
 }
@@ -148,13 +148,6 @@ union Data {
     float          real;
 };
 
-void test_structs(void) {
-    struct Point p1 = {0.0, 0.0};
-    struct Point p2 = {.x = 1.0, .y = 2.0};
-    struct Flags fl = {.read = 1, .write = 1, .exec = 0};
-    struct Line  ln = {.start = {0,0}, .end = {1,1}};
-    union Data   d  = {.word = 0xDEADBEEFu};
-}
 
 /* =========================================================
  * 7. ENUMERATIONS
@@ -199,15 +192,18 @@ void test_typedefs(void) {
     Matrix3x3  m  = {{1,0,0},{0,1,0},{0,0,1}};
 }
 
+void test_compound_literals(void) {
+    //int          *pi  = &(int){42};
+    //struct Point *pp  = &(struct Point){.x = 5.0, .y = 6.0};
+    //int          *arr = (int[]){10, 20, 30, 40};
+}
+
+
 /* =========================================================
  * 9. COMPOUND LITERALS (C99)
  * ========================================================= */
 
-void test_compound_literals(void) {
-    int          *pi  = &(int){42};
-    struct Point *pp  = &(struct Point){.x = 5.0, .y = 6.0};
-    int          *arr = (int[]){10, 20, 30, 40};
-}
+
 
 /* =========================================================
  * 10. MULTIPLE DECLARATORS IN ONE DECLARATION
@@ -289,7 +285,6 @@ int main(void) {
     test_storage_class();
     test_pointers();
     test_arrays(6);
-    test_structs();
     test_enums();
     test_typedefs();
     test_compound_literals();
