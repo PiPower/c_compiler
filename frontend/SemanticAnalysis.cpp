@@ -1763,13 +1763,15 @@ void SemanticAnalyzer::InitArray(
             if(nextAcc.count == 0 || (nextAcc.ptr[0].type == ACC_POINTER))
             {   
 
-                ExprRet src = AnalyzeInitializer(isGlobal, spec, &nextAcc, initExpr->lChild->lChild, false);
+                const Ast::Node* initializer =  pairs[currentPair].initializerList->lChild;
+                ExprRet src = AnalyzeInitializer(isGlobal, spec, &nextAcc, initializer->lChild, false);
 
                 ExprRet target = {};
-                target.type = IsPointer(&symVar->decl.accArr) ? BuiltIn::ptr : symVar->spec.symType->dType;
+                target.type = symVar->spec.symType->dType;
                 parentPosition->push_back(i);
                 target.isPtr = 1;
                 target.id = codeGen.EmitLocalArrGetElemPtr(&decl->accArr, spec->typenameView, symVar->varIdx, *parentPosition);
+                target.internalPtrCount = GetInternalPtrCount(nextAcc);
                 parentPosition->pop_back();
                 ResolveAssignment(target, src);
                 //HandleAssignment
@@ -2677,6 +2679,7 @@ ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprR
         // TODO add float conversion code
         codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignment(localDst.type), localDst.id, localSrc.id);
     }
+
     return *src;
 }
 
