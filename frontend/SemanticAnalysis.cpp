@@ -2658,6 +2658,7 @@ ExprRet SemanticAnalyzer::HandleArrayAccess(const Ast::Node *root)
     {
         ExprRet arrayOffset = AnalyzeExpr(root->rChild);
         arrayOffset = LoadVariable(arrayOffset);
+        arrayOffset = HandleTypeConversion(&arrayOffset, BuiltIn::u_int_64);
         std::vector<Operator> access({{arrayOffset.id, arrayOffset.num}});
         //making codegen type emitor to emit proper type info for get elem ptr;
         // if arrayLoc.internalPtrCount > 1 then resulting type is pointer not pointer type
