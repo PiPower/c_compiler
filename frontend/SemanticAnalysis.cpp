@@ -986,7 +986,7 @@ ElemPtrInfo SemanticAnalyzer::LoadElemPtr(
     {
         if(structDesc.memberNames[i] == element)
         {
-            std::vector<uint64_t> indicies({i});
+            std::vector<uint64_t> indicies({0, i});
             ElemPtrInfo out = {};
             out.id = codeGen.EmitLocalArrGetElemPtr(&structDesc.memberList[i].accArr, 
                             typenameView, varIdx, indicies, true, true);
@@ -1064,6 +1064,35 @@ ExprRet SemanticAnalyzer::LoadVariable(const ExprRet &ret)
     }
 
     return out;
+}
+
+ExprRet SemanticAnalyzer::LoadPtr(const ExprRet &ret)
+{
+    ExprRet src = ret;
+    src.isPtr = 0;
+    BuiltIn::Type type = src.internalPtrCount > 0 ? BuiltIn::ptr : src.type;
+    if(src.id == EXPR_ID_VAR)
+    {
+        const SymbolVariable* srcVar = src.var;
+        int32_t alignment = src.internalPtrCount > 0 ?  GetBuiltInAlignment(type) : srcVar->spec.symType->alignment;
+        if(!src.isArray)
+        {
+            src.id = codeGen.EmitLocalLoad(type, alignment, srcVar->varIdx);
+        }
+        else
+        {
+            uint64_t arrayCount = GetArrayOrder(&srcVar->decl.accArr);
+            std::vector<uint64_t>  indicies(arrayCount + 1, 0);
+            src.id = codeGen.EmitLocalArrGetElemPtr(&srcVar->decl.accArr, src.typenameView, srcVar->varIdx, indicies);
+        }
+        src.var = nullptr;
+    }
+    else
+    {
+        src.id = codeGen.EmitLocalLoad(GetBuiltInName(type), GetBuiltInAlignment(type), src.id);
+    }
+
+    return src;
 }
 
 void SemanticAnalyzer::WriteCodeToFile(const char *filename)
@@ -1276,7 +1305,7 @@ int64_t SemanticAnalyzer::PointerArg(const FunctionParams& param, const ExprRet&
             return result.type == BuiltIn::ptr ? 
                 codeGen.EmitLocalLoad(BuiltIn::ptr, 8, id) : 
                 codeGen.EmitLocalArrGetElemPtr(&result.var->decl.accArr, result.var->spec.typenameView,
-                    result.var->varIdx, std::vector<uint64_t>(arrayOrder, 0) );
+                    result.var->varIdx, std::vector<uint64_t>(arrayOrder + 1, 0) );
         }
     }
 
@@ -1324,7 +1353,7 @@ void SemanticAnalyzer::StructArg(
             //int64_t tmp = codeGen.AllocatePassByTmpStruct(desc.lType, desc.rType, structAlignment);
             //codeGen.EmitLocalIntMemcpy(structAlignment, structAlignment, tmp, result.var->varIdx, param.spec.symType->size);
             // TODO: Verify if there needs to be a copy of source type
-            std::vector<uint64_t> indicies({0});
+            std::vector<uint64_t> indicies({0, 0});
             int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
             int64_t l = codeGen.EmitLocalLoad(desc.lType, param.spec.symType->alignment, lPtr);
             indicies[0] = 1;
@@ -1774,8 +1803,6 @@ void SemanticAnalyzer::InitArray(
                 target.internalPtrCount = GetInternalPtrCount(nextAcc);
                 parentPosition->pop_back();
                 ResolveAssignment(target, src);
-                //HandleAssignment
-                //int x = 2;
             }
             else
             {
@@ -2122,7 +2149,7 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
     }
     else
     {
-        std::vector<uint64_t> nestedIndicies;
+        std::vector<uint64_t> nestedIndicies({0});
         InitArray(&symVar->decl.accArr, symVar->decl.initExpr, symVar, &nestedIndicies);
     }
 }
@@ -2157,26 +2184,7 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
     {
         if(src.isPtr && src.type != BuiltIn::string)
         {
-            src.isPtr = 0;
-            if(src.id == EXPR_ID_VAR)
-            {
-                const SymbolVariable* srcVar = src.var;
-                if(!src.isArray)
-                {
-                    src.id = codeGen.EmitLocalLoad(srcVar->spec.symType->dType, srcVar->spec.symType->alignment, srcVar->varIdx);
-                }
-                else
-                {
-                    uint64_t arrayCount = GetArrayOrder(&srcVar->decl.accArr);
-                    std::vector<uint64_t>  indicies(arrayCount, 0);
-                    src.id = codeGen.EmitLocalArrGetElemPtr(&srcVar->decl.accArr, src.typenameView, srcVar->varIdx, indicies);
-                }
-                src.var = nullptr;
-            }
-            else
-            {
-                src.id = codeGen.EmitLocalLoad(GetBuiltInName(src.type), GetBuiltInAlignment(src.type), src.id);
-            }
+            src = LoadPtr(src);
         }
 
         return HandleSimpleAssignment(&dst, &src);
@@ -2263,6 +2271,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     }
     switch (root->type)
     {
+    case Ast::array_access: return HandleArrayAccess(root);
     case Ast::ptr_access: return HandlePtrAccess(root);
     case Ast::struct_access: return HandleStructAccess(root);
     case Ast::ptr_struct_access: return HandlePtrStructAccess(root);
@@ -2636,6 +2645,31 @@ ExprRet SemanticAnalyzer::HandleOpMinus(const Ast::Node *root)
     }
     
     return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+}
+
+ExprRet SemanticAnalyzer::HandleArrayAccess(const Ast::Node *root)
+{
+    ExprRet arrayLoc = AnalyzeExpr(root->lChild);
+    if(arrayLoc.isPtr)
+    {
+        arrayLoc = LoadPtr(arrayLoc);
+    }
+    if(arrayLoc.internalPtrCount > 0 && !arrayLoc.isArray)
+    {
+        ExprRet arrayOffset = AnalyzeExpr(root->rChild);
+        arrayOffset = LoadVariable(arrayOffset);
+        std::vector<Operator> access({{arrayOffset.id, arrayOffset.num}});
+        // needed to emit typename of getelement
+        AccessArray accArr = {};
+        // array Transforms outermost pointer into isPtr 
+        ExprRet out = arrayLoc;
+        out.internalPtrCount--;
+        out.isPtr = 1;
+        out.id = codeGen.EmitLocalArrGetElemPtr(&accArr, arrayOffset.typenameView, arrayLoc.id, access);
+        return out;
+    }
+    IssueWarning(nullptr, "this type of array accessing is not supported")
+    return ExprRet();
 }
 
 ExprRet SemanticAnalyzer::HandleAssignment(const Ast::Node *root)

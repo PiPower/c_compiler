@@ -934,10 +934,51 @@ int64_t CodeGen::EmitLocalArrGetElemPtr(
         WriteCharData("%v", typeName);
     }
     std::string_view type = use32BitOffset ? "i32" : "i64";
-    WriteCharData(", ptr %%%l, %v 0", arrayIdx, type);
+    WriteCharData(", ptr %%%l", arrayIdx);
     for(uint64_t idx : indicies)
     {
         WriteCharData(", %v %lu", type, idx);
+    }
+
+    return result;
+}
+
+int64_t CodeGen::EmitLocalArrGetElemPtr(
+        const AccessArray* acc, 
+        const std::string_view& typeName, 
+        int64_t arrayIdx, 
+        const std::vector<Operator>& operators,
+        bool use32BitOffset,
+        bool isNUW)
+{
+    BindLocalBuffer();
+    int64_t result = GetIdxForLocalVar();
+    WriteCharData("\n\t%%%l = getelementptr inbounds ", result);
+    if(isNUW)
+    {
+        WriteCharData("nuw ");
+    }
+    if(acc)
+    {
+        EmitDeclarator(acc, &typeName);
+    }
+    else
+    {
+        WriteCharData("%v", typeName);
+    }
+    std::string_view type = use32BitOffset ? "i32" : "i64";
+    WriteCharData(", ptr %%%l", arrayIdx);
+    for(const Operator& opr : operators)
+    {
+        if(opr.idx == EXPR_ID_CONST)
+        {
+            uint64_t value = Typed::CastTo<uint64_t>(opr.num);
+            WriteCharData(", %v %lu", type, value);
+        }
+        else
+        {
+            WriteCharData(", %v %%%l", type, opr.idx);
+        }
     }
 
     return result;

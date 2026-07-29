@@ -107,6 +107,7 @@ struct SemanticAnalyzer
     ExprRet HandleStructAccess(const Ast::Node* root);
     ExprRet HandlePtrStructAccess(const Ast::Node* root);
     ExprRet HandleOpMinus(const Ast::Node* root);
+    ExprRet HandleArrayAccess(const Ast::Node* root);
     ExprRet HandleAssignment(const Ast::Node* root);
     ExprRet HandleSimpleAssignment(const ExprRet* dst, const ExprRet* src);
     ExprRet HandlePointerAssignment(const ExprRet* dst, const ExprRet* src);
@@ -135,6 +136,7 @@ struct SemanticAnalyzer
         int64_t varIdx);
     int TryEmitValueStruct(const StructDesc& str, bool isLast, int usedValueCount, ParamDesc* paramDesc);
     ExprRet LoadVariable(const ExprRet& ret);
+    ExprRet LoadPtr(const ExprRet& ret);
     void WriteCodeToFile(const char* filename);
     void HandleNotZeroComparison(const ExprRet& cond, int64_t bodyLabel, int64_t exitLabel);
     bool CompareParams(size_t paramCount, const FunctionParams* p1, const FunctionParams* p2);

@@ -105,11 +105,20 @@ struct CodeGen
         uint64_t alignment,
         int64_t lIdx, 
         int64_t rIdx);
+        
     int64_t EmitLocalArrGetElemPtr(
         const AccessArray* acc, 
         const std::string_view& typeName, 
         int64_t arrayIdx, 
         const std::vector<uint64_t>& indicies,
+        bool use32BitOffset = false,
+        bool isNUW = false);
+
+    int64_t EmitLocalArrGetElemPtr(
+        const AccessArray* acc, 
+        const std::string_view& typeName, 
+        int64_t arrayIdx, 
+        const std::vector<Operator>& operators,
         bool use32BitOffset = false,
         bool isNUW = false);
 
