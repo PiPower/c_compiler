@@ -2659,13 +2659,22 @@ ExprRet SemanticAnalyzer::HandleArrayAccess(const Ast::Node *root)
         ExprRet arrayOffset = AnalyzeExpr(root->rChild);
         arrayOffset = LoadVariable(arrayOffset);
         std::vector<Operator> access({{arrayOffset.id, arrayOffset.num}});
-        // needed to emit typename of getelement
+        //making codegen type emitor to emit proper type info for get elem ptr;
+        // if arrayLoc.internalPtrCount > 1 then resulting type is pointer not pointer type
+        AccessType ptrType = {};
+        ptrType.type = ACC_POINTER;
+
         AccessArray accArr = {};
+        if(arrayLoc.internalPtrCount > 1)
+        {
+            accArr.count = 1;
+            accArr.ptr = &ptrType;
+        }
         // array Transforms outermost pointer into isPtr 
         ExprRet out = arrayLoc;
         out.internalPtrCount--;
         out.isPtr = 1;
-        out.id = codeGen.EmitLocalArrGetElemPtr(&accArr, arrayOffset.typenameView, arrayLoc.id, access);
+        out.id = codeGen.EmitLocalArrGetElemPtr(&accArr, arrayLoc.typenameView, arrayLoc.id, access);
         return out;
     }
     IssueWarning(nullptr, "this type of array accessing is not supported")
