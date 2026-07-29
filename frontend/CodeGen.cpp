@@ -810,6 +810,17 @@ void CodeGen::EmitLocalNamedStore(BuiltIn::Type type, int32_t alignment, int64_t
     WriteCharData("\n\tstore %v @%v, ptr %%%v, align 8", typeView, name, VIEW(strDest));
 }
 
+int64_t CodeGen::EmitLocalNamedLoad(BuiltIn::Type type, int32_t alignment, const std::string_view &name)
+{
+    BindLocalBuffer();
+    int64_t targetIdx = GetIdxForLocalVar();
+    uint64_t alignmentV =  alignment;
+    WriteCharData("\n\t%%%l = load %v, ptr @%v, align %lu",
+            targetIdx, GetBuiltInName(type), name, alignmentV);
+
+    return targetIdx;
+}
+
 void CodeGen::EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num)
 {
     BindLocalBuffer();

@@ -96,6 +96,7 @@ struct CodeGen
     void EmitLocalStrStorage(int64_t destIdx, int64_t strIdx);
     void EmitLocalNullStorage(int64_t destIdx);
     void EmitLocalNamedStore(BuiltIn::Type type, int32_t alignment, int64_t dstIdx, const std::string_view& name);
+    int64_t EmitLocalNamedLoad(BuiltIn::Type type, int32_t alignment, const std::string_view& name);
     void EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num);
     void CopyPassTmpStructToStruct(
         int64_t destIdx, 
@@ -105,7 +106,7 @@ struct CodeGen
         uint64_t alignment,
         int64_t lIdx, 
         int64_t rIdx);
-        
+
     int64_t EmitLocalArrGetElemPtr(
         const AccessArray* acc, 
         const std::string_view& typeName, 

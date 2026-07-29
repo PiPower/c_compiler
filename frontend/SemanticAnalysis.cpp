@@ -1294,9 +1294,7 @@ int64_t SemanticAnalyzer::PointerArg(const FunctionParams& param, const ExprRet&
         }
         else if(result.id == EXPR_ID_FN)
         {
-            int64_t store = codeGen.GetIdxForLocalVar();
-            codeGen.EmitLocalNamedStore(BuiltIn::ptr, 8, store, result.fn->decl.name);
-            return codeGen.EmitLocalLoad(BuiltIn::ptr, 8, store);
+            return codeGen.EmitLocalNamedLoad(BuiltIn::ptr, 8, result.fn->decl.name);
         }
         else
         {
@@ -1354,10 +1352,10 @@ void SemanticAnalyzer::StructArg(
             //codeGen.EmitLocalIntMemcpy(structAlignment, structAlignment, tmp, result.var->varIdx, param.spec.symType->size);
             // TODO: Verify if there needs to be a copy of source type
             std::vector<uint64_t> indicies({0, 0});
-            int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
+            int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies, true);
             int64_t l = codeGen.EmitLocalLoad(desc.lType, param.spec.symType->alignment, lPtr);
             indicies[0] = 1;
-            int64_t rPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies);
+            int64_t rPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies, true);
             int64_t r = codeGen.EmitLocalLoad(desc.rType, param.spec.symType->alignment, rPtr);
             left->paramType = GetBuiltInType(desc.lType);
             left->op = {l};
@@ -1663,7 +1661,8 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
 
         if(result.internalPtrCount > 0 ||
            result.type == BuiltIn::string ||
-           result.isArray)
+           result.isArray ||
+           result.id == EXPR_ID_FN)
         {
             argDesc.paramType = result.type == BuiltIn::string ? BuiltIn::string : BuiltIn::ptr;
             argDesc.op.idx = PointerArg(params[i], result);
