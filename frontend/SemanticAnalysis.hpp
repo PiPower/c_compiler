@@ -114,7 +114,7 @@ struct SemanticAnalyzer
     ExprRet HandleGetAddr(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
     ExprRet HandleIdentifier(const std::string_view& name);
-    int64_t HandleNotEqZero(const ExprRet& res);
+    int64_t HandleNotEqZero(ExprRet res);
     void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
     ExprRet HandleTypeConversion(const ExprRet* src, BuiltIn::Type newType);
     // statement

@@ -2841,8 +2841,9 @@ ExprRet SemanticAnalyzer::HandleIdentifier(const std::string_view &name)
     }
 }
 
-int64_t SemanticAnalyzer::HandleNotEqZero(const ExprRet &res)
+int64_t SemanticAnalyzer::HandleNotEqZero(ExprRet res)
 {
+    res = LoadVariable(res);
     Typed::Number num = {};
     num.type = BuiltInToNum(res.type);
     return codeGen.EmitLocalCmpNotEq(res.type, {res.id, res.num}, {EXPR_ID_CONST, num});
