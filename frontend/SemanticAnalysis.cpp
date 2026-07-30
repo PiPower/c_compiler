@@ -2159,6 +2159,7 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
     else
     {
         std::vector<uint64_t> nestedIndicies({0});
+        
         InitArray(&symVar->decl.accArr, symVar->decl.initExpr, symVar, &nestedIndicies);
     }
 }
@@ -2753,7 +2754,13 @@ ExprRet SemanticAnalyzer::HandlePointerAssignment(const ExprRet *dst, const Expr
     else
     {
         BuiltIn::Type type = dst->internalPtrCount > 0 ? BuiltIn::ptr : dst->type;
-        codeGen.EmitLocalStorage(type, GetBuiltInAlignment(type), dstId, src->id); 
+        ExprRet ret = *src;
+        if(src->isPtr)
+        {
+            ret = LoadPtr(ret);
+        }
+        codeGen.EmitLocalStorage(type, GetBuiltInAlignment(type), dstId, ret.id); 
+        return ret;
     }
     return *src;
 }
