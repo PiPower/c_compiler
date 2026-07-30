@@ -11,6 +11,7 @@
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 constexpr StructDesc emptyDesc = {NOT_EMITTED, 0, nullptr, nullptr, nullptr};
 typedef const Ast::Node Node;
+constexpr uint8_t ptrSize = 8;
 
 constexpr inline bool canEmitPassByValue(bool usesRightValue, int usedIntRegs)
 {
@@ -2159,7 +2160,10 @@ void SemanticAnalyzer::InitLocalVariable(const SymbolVariable* symVar)
     else
     {
         std::vector<uint64_t> nestedIndicies({0});
-        
+        ArraySize arraySize = GetArrayElemCount(&symVar->decl.accArr, &logger, &ne);
+        uint64_t elementSize = arraySize.hitPointer ? ptrSize : symVar->spec.symType->size;
+
+        codeGen.EmitLocalIntMemset(symVar->varIdx, symVar->spec.symType->alignment, 0, arraySize.elementCount * elementSize, false);
         InitArray(&symVar->decl.accArr, symVar->decl.initExpr, symVar, &nestedIndicies);
     }
 }

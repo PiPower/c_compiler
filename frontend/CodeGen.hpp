@@ -45,7 +45,8 @@ struct Operator
 
 enum class Intrinsic
 {
-    llvm_memcpy
+    llvm_memcpy,
+    llvm_memset
 };
 
 struct ByValueStructDesc
@@ -181,6 +182,8 @@ struct CodeGen
     int64_t EmitString(const Ast::Node* string);
     //intrinsics
     void EmitLocalIntMemcpy(uint64_t lAlign, uint64_t rAlign, int64_t dest, int64_t src, uint64_t size);
+    void EmitLocalIntMemset(int64_t dest, uint64_t destAling, int8_t val, uint64_t len, bool isVolatile);
+
     // misc
     void AddSymbolToEmitQueue(SymbolType* symType, const std::string_view& name);
     void FlushTypeQueue();

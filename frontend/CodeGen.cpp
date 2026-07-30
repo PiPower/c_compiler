@@ -24,8 +24,9 @@ constexpr uint8_t ALLOCA_BUFFER = 7;
 constexpr int FIRST_VALUE = -1;
 constexpr int nr_of_pages = 7;
 constexpr uint64_t INST_BUFF_SIZE = nr_of_pages * CPU_PAGE_SIZE;
-const char* ptrAlignment = "8";
-const char* memcpyIntr = "\ndeclare void @llvm.memcpy.p0.p0.i64(ptr noalias writeonly captures(none), ptr noalias readonly captures(none), i64, i1 immarg) #%l";
+static const char* ptrAlignment = "8";
+static const char* memcpyIntr = "\ndeclare void @llvm.memcpy.p0.p0.i64(ptr noalias writeonly captures(none), ptr noalias readonly captures(none), i64, i1 immarg) #%l";
+static const char* memsetIntr = "\ndeclare void @llvm.memset.p0.i64(ptr writeonly captures(none), i8, i64, i1 immarg) #%l";
 
 
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
@@ -1463,6 +1464,16 @@ void CodeGen::EmitLocalIntMemcpy(uint64_t lAlign, uint64_t rAlign, int64_t dest,
     DeclareIntrinsic(Intrinsic::llvm_memcpy);
 }
 
+void CodeGen::EmitLocalIntMemset(int64_t dest, uint64_t destAling, int8_t val, uint64_t len, bool isVolatile)
+{
+    BindLocalBuffer();
+    std::string_view volatileKw = isVolatile ? "true" : "false";
+    uint64_t valueCasted = val;
+    WriteCharData("\n\tcall void @llvm.memset.p0.p0.i64(ptr align %lu %%%l, i8 %lu, i64 %lu, i1 %v)", 
+            destAling, dest, valueCasted, len, volatileKw);
+    DeclareIntrinsic(Intrinsic::llvm_memset);
+}
+
 void CodeGen::AddSymbolToEmitQueue(SymbolType *symType, const std::string_view &name)
 {
     typeQueue.push({symType, name});
@@ -1722,7 +1733,19 @@ void CodeGen::DeclareIntrinsic(Intrinsic intr)
             WriteCharData("\nattributes #%l = { nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }", attr);
         }
     }break;
-    
+    case Intrinsic::llvm_memset:
+    {
+        static bool memsetEmitted = false;
+        if(!memsetEmitted)
+        {
+            memsetEmitted = true;
+            BindIntrinsicBuffer();
+            int64_t attr = attrCtr++;
+            WriteCharData(memsetIntr, attr);
+            BindAttrBuffer();
+            WriteCharData("\nattributes #%l = { nocallback nofree nounwind willreturn memory(argmem: write) }", attr);
+        }
+    }break;
     default:
         break;
     }
