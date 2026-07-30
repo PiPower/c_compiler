@@ -4,9 +4,16 @@
 template<typename OP>
 ExprRet BinaryOp(SemanticAnalyzer* sema, CodeGen* cg, const Ast::Node* root)
 {
-    ExprRet left = {}, right = {}, out = {};
     ExprRet oldLeft = sema->LoadVariable(sema->AnalyzeExpr(root->lChild));
     ExprRet oldRight = sema->LoadVariable(sema->AnalyzeExpr(root->rChild));
+
+    return BinaryOp<OP>(sema, cg, oldLeft, oldRight);
+}
+
+template<typename OP>
+ExprRet BinaryOp(SemanticAnalyzer* sema, CodeGen* cg, const ExprRet& oldLeft, const ExprRet& oldRight)
+{
+    ExprRet left = {}, right = {}, out = {};
     sema->HandleTypePromotion(&oldLeft, &oldRight, &left, &right);
 
     if constexpr(OP::forcedOutput == BuiltIn::none)

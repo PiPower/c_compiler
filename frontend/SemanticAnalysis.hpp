@@ -157,6 +157,7 @@ struct SemanticAnalyzer
         ArgDesc* right,
         int usedIntRegs);
     Operator ValueArg(const FunctionParams& param, const ExprRet& result);
+    ExprRet ConstructConstantExprRet(BuiltIn::Type type, const Typed::Number& num);
 
     SymbolTable* symTab;
     FileManager* manager;

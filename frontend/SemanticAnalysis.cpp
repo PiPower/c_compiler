@@ -1389,6 +1389,16 @@ Operator SemanticAnalyzer::ValueArg(const FunctionParams &param, const ExprRet &
     return {result.id, result.num};
 }
 
+ExprRet SemanticAnalyzer::ConstructConstantExprRet(BuiltIn::Type type, const Typed::Number &num)
+{
+    ExprRet out = {};
+    out.id = EXPR_ID_CONST;
+    out.isPtr = 0;
+    out.type = type;
+    out.num = num;
+    return out;
+}
+
 bool SemanticAnalyzer::NamesAType(const std::string_view& identifier)
 {
     return (symTab->QuerySymKinds(identifier) & (Sym::TYPEDEF | Sym::TYPE) ) > 0;
@@ -2620,30 +2630,10 @@ ExprRet SemanticAnalyzer::HandlePtrStructAccess(const Ast::Node *root)
 ExprRet SemanticAnalyzer::HandleOpMinus(const Ast::Node *root)
 {
     ExprRet expr = AnalyzeExpr(root->lChild);
-    if (expr.id == EXPR_ID_CONST)
-    {
-        Typed::Number neg;
-        neg.type = expr.num.type;
-        switch (neg.type)
-        {
-            case Typed::d_int8_t:   neg.int8   = -1; break;
-            case Typed::d_int16_t:  neg.int16  = -1; break;
-            case Typed::d_int32_t:  neg.int32  = -1; break;
-            case Typed::d_int64_t:  neg.int64  = -1; break;
-            case Typed::d_uint8_t:  neg.uint8  = -1; break;
-            case Typed::d_uint16_t: neg.uint16 = -1; break;
-            case Typed::d_uint32_t: neg.uint32 = -1; break;
-            case Typed::d_uint64_t: neg.uint64 = -1; break;
-            case Typed::d_float:    neg.float32 = -1; break;
-            case Typed::d_double:   neg.float64 = -1; break;
-            case Typed::d_l_double: neg.lFloat  = -1;  break;
-            default: break;
-        }
-        expr.num = Typed::TypedBinOp<std::multiplies>(neg, expr.num);
-        return expr;
-    }
-    
-    return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+    expr = LoadVariable(expr);
+    Typed::Number num = { .int32 = -1, .type = Typed::d_int32_t};
+    ExprRet constNegative = ConstructConstantExprRet(BuiltIn::s_int_32, num);
+    return  BinaryOp<BinaryMultiplication>(this, &codeGen, constNegative, expr);
 }
 
 ExprRet SemanticAnalyzer::HandleArrayAccess(const Ast::Node *root)
@@ -2653,7 +2643,7 @@ ExprRet SemanticAnalyzer::HandleArrayAccess(const Ast::Node *root)
     {
         arrayLoc = LoadPtr(arrayLoc);
     }
-    if(arrayLoc.internalPtrCount > 0 && !arrayLoc.isArray)
+    if(arrayLoc.internalPtrCount > 0)
     {
         ExprRet arrayOffset = AnalyzeExpr(root->rChild);
         arrayOffset = LoadVariable(arrayOffset);
