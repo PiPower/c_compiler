@@ -95,6 +95,7 @@ struct SemanticAnalyzer
     // expressions
     ExprRet AnalyzeInitializer(bool isGlobal, const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType);
     ExprRet AnalyzeExpr(const Ast::Node* root);
+    ExprRet HandleUpdateOp(const Ast::Node* root, bool increment, bool post);
     ExprRet HandlePtrAccess(const Ast::Node* root);
     ExprRet CompoundLiteral(const Ast::Node* literal);
     ExprRet LoadCharacter(const Ast::Node* character);

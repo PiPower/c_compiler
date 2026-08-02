@@ -2285,6 +2285,8 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     }
     switch (root->type)
     {
+    case Ast::op_post_dec:  return HandleUpdateOp(root, false, true);
+    case Ast::op_post_inc:  return HandleUpdateOp(root, true, true);
     case Ast::array_access: return HandleArrayAccess(root);
     case Ast::ptr_access: return HandlePtrAccess(root);
     case Ast::struct_access: return HandleStructAccess(root);
@@ -2330,13 +2332,48 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
             AnalyzeExpr(expr->lChild);
             expr = expr->rChild;
         }
-        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};  break;
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE}; 
     }break;
-    default: return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};  break;
     }
 
     return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
 }
+
+ExprRet SemanticAnalyzer::HandleUpdateOp(const Ast::Node *root, bool increment, bool post)
+{
+    ExprRet expr = AnalyzeExpr(root->lChild);
+    if(!expr.isPtr)
+    {
+        IssueWarning(&root->token, "Cannot apply post increment to non l-value")
+    }
+    if(expr.id == EXPR_ID_VAR)
+    {
+        ExprRet value = LoadVariable(expr);
+        
+        Typed::Number num = { .int32 = 1, .type = Typed::d_int32_t};
+        num = CastTypedNumber(expr.type, num);
+        ExprRet constVal = ConstructConstantExprRet(expr.type, num);
+        ExprRet updated;
+        if(increment)
+        {
+            updated = BinaryOp<BinaryAddition>(this, &codeGen, constVal, value);
+        }
+        else
+        {
+            updated = BinaryOp<BinarySubtraction>(this, &codeGen, constVal, value);
+        }
+        codeGen.EmitLocalStorage(expr.type, GetBuiltInAlignment(expr.type), expr.var->varIdx, updated.id);
+        if(post)
+        {
+            return value;
+        }
+        return updated;
+    }
+
+    IssueWarning(&root->token, "Unsupported case")
+    return expr;
+}
+
 
 ExprRet SemanticAnalyzer::HandlePtrAccess(const Ast::Node *root)
 {
