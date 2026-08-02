@@ -1076,7 +1076,11 @@ ExprRet SemanticAnalyzer::LoadPtr(const ExprRet &ret)
     {
         const SymbolVariable* srcVar = src.var;
         int32_t alignment = src.internalPtrCount > 0 ?  GetBuiltInAlignment(type) : srcVar->spec.symType->alignment;
-        if(!src.isArray)
+        if(srcVar->varIdx == EXPR_ID_GLOBAL && !src.isArray)
+        {
+            src.id = codeGen.EmitLocalNamedLoad(type, alignment, srcVar->decl.name);
+        }
+        else if(!src.isArray)
         {
             src.id = codeGen.EmitLocalLoad(type, alignment, srcVar->varIdx);
         }
