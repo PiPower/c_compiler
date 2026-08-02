@@ -97,6 +97,7 @@ struct CodeGen
     void EmitLocalStrStorage(int64_t destIdx, int64_t strIdx);
     void EmitLocalNullStorage(int64_t destIdx);
     void EmitLocalNamedStore(BuiltIn::Type type, int32_t alignment, int64_t dstIdx, const std::string_view& name);
+    void EmitLocalNamedStore(BuiltIn::Type type, int32_t alignment, const std::string_view& dstName, int64_t srcIdx);
     int64_t EmitLocalNamedLoad(BuiltIn::Type type, int32_t alignment, const std::string_view& name);
     void EmitLocalConstAsm(BuiltIn::Type type, int32_t alignment, int64_t destIdx, const Typed::Number& num);
     void CopyPassTmpStructToStruct(

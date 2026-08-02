@@ -2362,7 +2362,15 @@ ExprRet SemanticAnalyzer::HandleUpdateOp(const Ast::Node *root, bool increment, 
         {
             updated = BinaryOp<BinarySubtraction>(this, &codeGen, constVal, value);
         }
-        codeGen.EmitLocalStorage(expr.type, GetBuiltInAlignment(expr.type), expr.var->varIdx, updated.id);
+
+        if(expr.var->varIdx == EXPR_ID_GLOBAL)
+        {
+            codeGen.EmitLocalNamedStore(expr.type, GetBuiltInAlignment(expr.type),  expr.var->decl.name , updated.id);
+        }
+        else
+        {
+            codeGen.EmitLocalStorage(expr.type, GetBuiltInAlignment(expr.type), expr.var->varIdx, updated.id);
+        }
         if(post)
         {
             return value;
