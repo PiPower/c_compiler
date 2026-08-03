@@ -332,6 +332,7 @@ uint32_t GetBuiltInAlignment(const BuiltIn::Type type)
 {
     switch (type)
     {
+    case BuiltIn::int_1:    return 1;
     case BuiltIn::bool_t:      return 1;
     case BuiltIn::s_char_8:    return 1;
     case BuiltIn::u_char_8:    return 1;

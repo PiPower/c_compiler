@@ -101,6 +101,7 @@ struct SemanticAnalyzer
     ExprRet LoadCharacter(const Ast::Node* character);
     ExprRet LoadConstant(const Ast::Node* constant);
     ExprRet LoadStringLiteral(const Ast::Node* string);
+    ExprRet HandleLogicalOps(const Ast::Node* root);
     ExprRet HandleInitExpr(const Ast::Node* root);
     ExprRet HandleFunctionCall(const Ast::Node* root);
     ExprRet HandleNegate(const Ast::Node* root);

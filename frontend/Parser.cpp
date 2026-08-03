@@ -43,7 +43,7 @@ static Ast::Node* ParseBinExpr(
     {
         p->ConsumeToken();
 
-        Ast::Node* node =  p->AllocateAstNodes();
+        Ast::Node* node = p->AllocateAstNodes();
         node->type = ResolveNodeType(token.type, operators, nodeOps);
         node->lChild = expr;
         node->rChild = (*p.*pFn)();

@@ -2289,6 +2289,8 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     }
     switch (root->type)
     {
+    case Ast::op_log_and: 
+    case Ast::op_log_or: return HandleLogicalOps(root);
     case Ast::op_post_dec:  return HandleUpdateOp(root, false, true);
     case Ast::op_post_inc:  return HandleUpdateOp(root, true, true);
     case Ast::array_access: return HandleArrayAccess(root);
@@ -2338,6 +2340,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
         }
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE}; 
     }break;
+    default: break;// skip compiler warnings
     }
 
     return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
@@ -2515,6 +2518,65 @@ ExprRet SemanticAnalyzer::LoadStringLiteral(const Ast::Node *string)
     out.id = codeGen.EmitString(string);
     out.isPtr = 1;
     return out;
+}
+
+ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)
+{
+    // the earliest node is stored in the leftmost child with
+    // the same node type as root
+    std::stack<const Ast::Node*> logNodes;
+    const Ast::Node *currNode = root;
+    while (currNode->type == root->type)
+    {
+        logNodes.push(currNode->rChild);
+        currNode = currNode->lChild;
+    }
+    logNodes.push(currNode);
+    
+
+    ExprRet logicalResult = {};
+    logicalResult.type = BuiltIn::int_1;
+    logicalResult.id = codeGen.GetIdxForLocalVar();
+    logicalResult.isPtr = 1;
+
+    int64_t falseBlock = codeGen.GetIdxForLocalVar(); // writes zero to intermidiate result
+    int64_t trueBlock = codeGen.GetIdxForLocalVar(); // writes one to intermidiate result
+    int64_t intermidiateLocation = codeGen.AllocateLocalVariable(BuiltIn::u_char_8);
+
+    while (logNodes.size() > 0)
+    {
+        const Ast::Node* currNode = logNodes.top();
+        logNodes.pop();
+        
+        ExprRet cond = AnalyzeExpr(currNode->lChild);
+        cond.id = HandleNotEqZero(cond);
+        cond.type = BuiltIn::int_1;
+        int64_t nextBlockLabel = 0;
+
+        if(root->type == Ast::op_log_and)
+        {
+            // if cond != 0 continue testing for cases else break 
+            nextBlockLabel = logNodes.size() == 0 ? trueBlock : codeGen.GetIdxForLocalVar();
+            codeGen.EmitLocalCondJump(cond.id, nextBlockLabel, falseBlock);
+        }
+        else
+        {
+            nextBlockLabel = logNodes.size() == 0 ? falseBlock : codeGen.GetIdxForLocalVar();
+            codeGen.EmitLocalCondJump(cond.id, trueBlock, nextBlockLabel);
+        }
+
+        if(logNodes.size() != 0)
+        {
+            codeGen.EmitLocalLabel(nextBlockLabel);
+        }
+    }
+
+    int64_t exitBlock = codeGen.GetIdxForLocalVar(); // writes one to intermidiate result
+    codeGen.EmitLocalLabel(trueBlock);
+    codeGen.EmitLocalLabel(falseBlock);
+    codeGen.EmitLocalLabel(exitBlock);
+
+    return logicalResult;
 }
 
 ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
