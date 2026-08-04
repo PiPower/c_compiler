@@ -2185,19 +2185,6 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
 
-    if(dst.isPtr)
-    {
-        if(dst.id == EXPR_ID_VAR)
-        {
-            dst.id = dst.var->varIdx;
-            dst.var = nullptr;
-        }
-    }
-    else
-    {
-        IssueWarning(nullptr, "Only l-value can be assigned a value")
-    }
-
     if(dst.internalPtrCount == 0)
     {
         if(src.isPtr && src.type != BuiltIn::string)
@@ -2209,6 +2196,16 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
     }
     else
     {
+        // temporary code, to be fixed later
+        if(dst.isPtr)
+        {
+            if(dst.id == EXPR_ID_VAR)
+            {
+                dst.id = dst.var->varIdx;
+                dst.var = nullptr;
+            }
+        }
+
         return HandlePointerAssignment(&dst, &src);
     }
     return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
@@ -2370,14 +2367,8 @@ ExprRet SemanticAnalyzer::HandleUpdateOp(const Ast::Node *root, bool increment, 
             updated = BinaryOp<BinarySubtraction>(this, &codeGen, constVal, value);
         }
 
-        if(expr.var->varIdx == EXPR_ID_GLOBAL)
-        {
-            codeGen.EmitLocalNamedStore(expr.type, GetBuiltInAlignment(expr.type),  expr.var->decl.name , updated.id);
-        }
-        else
-        {
-            codeGen.EmitLocalStorage(expr.type, GetBuiltInAlignment(expr.type), expr.var->varIdx, updated.id);
-        }
+        ResolveAssignment(expr, updated);
+
         if(post)
         {
             return value;
@@ -2535,13 +2526,12 @@ ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)
     
 
     ExprRet logicalResult = {};
-    logicalResult.type = BuiltIn::int_1;
-    logicalResult.id = codeGen.GetIdxForLocalVar();
+    logicalResult.type = BuiltIn::u_char_8;
+    logicalResult.id = codeGen.AllocateLocalVariable(BuiltIn::u_char_8);
     logicalResult.isPtr = 1;
 
     int64_t falseBlock = codeGen.GetIdxForLocalVar(); // writes zero to intermidiate result
     int64_t trueBlock = codeGen.GetIdxForLocalVar(); // writes one to intermidiate result
-    int64_t intermidiateLocation = codeGen.AllocateLocalVariable(BuiltIn::u_char_8);
 
     while (logNodes.size() > 0)
     {
@@ -2572,8 +2562,17 @@ ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)
     }
 
     int64_t exitBlock = codeGen.GetIdxForLocalVar(); // writes one to intermidiate result
+    // true block
     codeGen.EmitLocalLabel(trueBlock);
+    codeGen.EmitLocalConstAsm(BuiltIn::u_char_8, GetBuiltInAlignment(BuiltIn::u_char_8), 
+                                        logicalResult.id, {.uint8 = 1, .type = Typed::d_uint8_t});
+    codeGen.EmitLocalJump(exitBlock);
+    // false block
     codeGen.EmitLocalLabel(falseBlock);
+    codeGen.EmitLocalConstAsm(BuiltIn::u_char_8, GetBuiltInAlignment(BuiltIn::u_char_8), 
+                                        logicalResult.id, {.uint8 = 0, .type = Typed::d_uint8_t});
+    codeGen.EmitLocalJump(exitBlock);
+    // exit
     codeGen.EmitLocalLabel(exitBlock);
 
     return logicalResult;
@@ -2797,9 +2796,18 @@ ExprRet SemanticAnalyzer::HandleAssignment(const Ast::Node *root)
 
 ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprRet *src)
 {
+    int64_t dstId = dst->id == EXPR_ID_VAR ? dst->var->varIdx : dst->id ;
+
     if(src->id == EXPR_ID_CONST)
     {
-        codeGen.EmitLocalConstAsm(dst->type, GetBuiltInAlignment(dst->type), dst->id, src->num);
+        if(dstId == EXPR_ID_GLOBAL)
+        {
+            IssueWarning(nullptr, "constant -> global assignment is not supported")
+        }
+        else
+        {
+            codeGen.EmitLocalConstAsm(dst->type, GetBuiltInAlignment(dst->type), dstId, src->num);
+        }
         return *src;
     }
 
@@ -2819,14 +2827,29 @@ ExprRet SemanticAnalyzer::HandleSimpleAssignment(const ExprRet *dst, const ExprR
             localSrc.id = codeGen.EmitLocalIntTruncate(dst->type, src->type, {src->id, src->num});
         }
 
-        codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignment(localDst.type), localDst.id, localSrc.id);
+        if(dstId == EXPR_ID_GLOBAL)
+        {
+            codeGen.EmitLocalNamedStore(src->type, GetBuiltInAlignment(src->type), localDst.var->decl.name, localSrc.id);
+        }
+        else
+        {
+            codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignment(localDst.type), dstId, localSrc.id);
+        }
     }
     else if(isFloat(dst->type) && isFloat(src->type))
     {
         ExprRet localDst = *dst, localSrc = *src;
 
         // TODO add float conversion code
-        codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignment(localDst.type), localDst.id, localSrc.id);
+        if(dstId == EXPR_ID_GLOBAL)
+        {
+            codeGen.EmitLocalNamedStore(src->type, GetBuiltInAlignment(src->type), localDst.var->decl.name, localSrc.id);
+        }
+        else
+        {
+            codeGen.EmitLocalStorage(localDst.type, GetBuiltInAlignment(localDst.type), dstId, localSrc.id);
+        }
+
     }
 
     return *src;

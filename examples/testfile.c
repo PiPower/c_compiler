@@ -15,7 +15,7 @@ int main(void) {
     const int ci = 42;
     volatile int vi = 0;
     
-    if (a < b && b > 0 || !flag) {
+    if (a * b < 22 || a < b &&  b > 0 && b < 11 || !flag ) {
         a += 1; b -= 1; c++; d--;
     }
     else {
