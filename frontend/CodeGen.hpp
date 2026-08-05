@@ -75,6 +75,7 @@ struct CodeGen
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl, bool declareFunc);
     void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, int8_t flags, int64_t argIdx = EXPR_ID_IGNORE);
     void EmitFunctionType(BuiltIn::Type type, int8_t flags, Operator op);
+    void EmitFunctionParam(const std::string_view& functionName, int8_t flags);
     void EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op);
     void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, int8_t flags, int64_t idx);
     void CloseParamList(bool isDeclaration);

@@ -29,6 +29,7 @@ struct CurrentFunction
 struct ArgDesc
 {
     Operator op;
+    const SymbolFunction* symFn;
     BuiltIn::Type paramType;
     size_t parmIdx; 
 };

@@ -456,6 +456,17 @@ void CodeGen::EmitFunctionType(BuiltIn::Type type, int8_t flags, Operator op)
     }
 }
 
+void CodeGen::EmitFunctionParam(const std::string_view &functionName, int8_t flags)
+{
+    BindLocalBuffer(); 
+    WriteCharData("ptr noundef @%v", functionName);
+
+    if((flags & fpIsLast) == 0 )
+    {
+        WriteCharData(", ");
+    }
+}
+
 void CodeGen::EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op)
 {
     if((flags & fpIsUsedInCall) > 0 )

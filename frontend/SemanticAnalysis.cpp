@@ -1680,7 +1680,14 @@ std::vector<ArgDesc> SemanticAnalyzer::AnalyzeFnCallArgs(const Ast::Node* callRo
            result.id == EXPR_ID_FN)
         {
             argDesc.paramType = result.type == BuiltIn::string ? BuiltIn::string : BuiltIn::ptr;
-            argDesc.op.idx = PointerArg(params[i], result);
+            if(result.id == EXPR_ID_FN)
+            {
+                argDesc.symFn = result.fn;
+            }
+            else
+            {
+                argDesc.op.idx = PointerArg(params[i], result);
+            }
             usedIntRegs += isEllipsis;
         }
         else if(isStructOrUnion(result.type))
@@ -2627,7 +2634,7 @@ ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)
 ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
 {
     ExprRet* destHandle = (ExprRet*)root->rChild;
-    if(isStructOrUnion(destHandle->type))
+    if(destHandle->internalPtrCount == 0  && isStructOrUnion(destHandle->type))
     {
         HandleStructInit(*destHandle, root->lChild);
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
@@ -2650,16 +2657,23 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
         maybeUndefinedFuncs.insert(symFn);
     }
     std::vector<ArgDesc> args = AnalyzeFnCallArgs(root, symFn);
-
     int64_t id = AnalyzeFnCallStart(root, symFn, fnName);
+
     for(size_t i =0; i < args.size(); i++)
     {
         const ArgDesc& arg = args[i];
         int8_t flags = fpIsUsedInCall;
         flags += i == args.size() - 1 ? fpIsLast : 0; 
         if(!isStructOrUnion(arg.paramType))
-        {
-            codeGen.EmitFunctionParam(arg.paramType, flags, arg.op);
+        {   
+            if(arg.symFn)
+            {
+                codeGen.EmitFunctionParam(arg.symFn->decl.name, flags);
+            }
+            else
+            {
+                codeGen.EmitFunctionParam(arg.paramType, flags, arg.op);
+            }
         }
         else
         {
