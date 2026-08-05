@@ -2511,6 +2511,32 @@ ExprRet SemanticAnalyzer::LoadStringLiteral(const Ast::Node *string)
     return out;
 }
 
+void SemanticAnalyzer::HandleStructInit(const ExprRet &structDesc, const Ast::Node *initializerList)
+{
+    const SymbolVariable* var = structDesc.var;
+    int64_t varIdx = var->varIdx;
+    const StructDesc* desc = &var->spec.symType->str;
+    uint64_t elemCount = 0;
+    memcpy(&elemCount, &initializerList->rChild, sizeof(Ast::Node*));
+
+    for(uint64_t i =0; i < elemCount; i++)
+    {
+        const Ast::Node* initAst= initializerList->lChild[i].lChild;
+        ExprRet init = AnalyzeExpr(initAst);
+        ElemPtrInfo info = LoadElemPtr(*desc, desc->memberNames[i], var->spec.typenameView, varIdx);
+        ExprRet memberRet = {};
+        memberRet.id = info.id;
+        memberRet.type = info.type;
+        memberRet.isPtr = 1;
+        memberRet.internalPtrCount = info.internalPtrCount;
+        memberRet.symType = info.symType;
+        memberRet.typenameView = info.typeName;
+        ResolveAssignment(memberRet, init);
+
+    }
+    return;
+}
+
 ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)
 {
     // the earliest node is stored in the leftmost child with
@@ -2581,6 +2607,11 @@ ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)
 ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
 {
     ExprRet* destHandle = (ExprRet*)root->rChild;
+    if(isStructOrUnion(destHandle->type))
+    {
+        HandleStructInit(*destHandle, root->lChild);
+        return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+    }
     ExprRet source = AnalyzeExpr(root->lChild);
     return ResolveAssignment(*destHandle, source);
 }

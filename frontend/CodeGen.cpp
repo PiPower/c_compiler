@@ -916,7 +916,8 @@ void CodeGen::CopyPassTmpStructToStruct(
     }
     else
     {
-        int64_t passIdx = AllocatePassByTmpStruct(GetBuiltInName(left), GetBuiltInName(right), alignment);
+        uint64_t tmpStructAlign = std::max(GetBuiltInAlignment(left), GetBuiltInAlignment(right));
+        int64_t passIdx = AllocatePassByTmpStruct(GetBuiltInName(left), GetBuiltInName(right), tmpStructAlign);
         BindLocalBuffer();
         int64_t firstTypeIdx = GetIdxForLocalVar();
         int64_t secondTypeIdx = GetIdxForLocalVar();
