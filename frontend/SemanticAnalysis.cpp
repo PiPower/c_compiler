@@ -1359,7 +1359,7 @@ void SemanticAnalyzer::StructArg(
             std::vector<uint64_t> indicies({0, 0});
             int64_t lPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies, true);
             int64_t l = codeGen.EmitLocalLoad(desc.lType, param.spec.symType->alignment, lPtr);
-            indicies[0] = 1;
+            indicies[1] = 1;
             int64_t rPtr = codeGen.EmitLocalArrGetElemPtr(nullptr, retName,  result.var->varIdx, indicies, true);
             int64_t r = codeGen.EmitLocalLoad(desc.rType, param.spec.symType->alignment, rPtr);
             left->paramType = GetBuiltInType(desc.lType);
