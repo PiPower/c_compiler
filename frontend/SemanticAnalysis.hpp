@@ -93,6 +93,10 @@ struct SemanticAnalyzer
     void InitLocalVariable(const SymbolVariable* symVar);
     ExprRet ResolveAssignment(ExprRet dst, ExprRet src);
     // expressions
+    int64_t HandleNotEqZero(ExprRet res);
+    void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
+    void HandleStructInit(const ExprRet& structDesc, const Ast::Node* initializerList);
+    void HandleStructAssignment(const ExprRet& dst, const ExprRet& src);
     ExprRet AnalyzeInitializer(bool isGlobal, const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType);
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet HandleUpdateOp(const Ast::Node* root, bool increment, bool post);
@@ -101,7 +105,6 @@ struct SemanticAnalyzer
     ExprRet LoadCharacter(const Ast::Node* character);
     ExprRet LoadConstant(const Ast::Node* constant);
     ExprRet LoadStringLiteral(const Ast::Node* string);
-    void    HandleStructInit(const ExprRet& structDesc, const Ast::Node* initializerList);
     ExprRet HandleLogicalOps(const Ast::Node* root);
     ExprRet HandleInitExpr(const Ast::Node* root);
     ExprRet HandleFunctionCall(const Ast::Node* root);
@@ -117,8 +120,6 @@ struct SemanticAnalyzer
     ExprRet HandleGetAddr(const Ast::Node* root);
     ExprRet HandleIdentifier(const Ast::Node* root);
     ExprRet HandleIdentifier(const std::string_view& name);
-    int64_t HandleNotEqZero(ExprRet res);
-    void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
     ExprRet HandleTypeConversion(const ExprRet* src, BuiltIn::Type newType);
     // statement
     void SwitchStatement(const Ast::Node* root);

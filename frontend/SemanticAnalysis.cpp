@@ -1530,7 +1530,7 @@ int64_t SemanticAnalyzer::AnalyzeFnCallStart(const Ast::Node* callRoot, const Sy
             flags += fpIsLast;
         }
         codeGen.EmitReturnByPtr(symFn->spec.symType, symFn->spec.typenameView, flags, tmp);
-        return id;
+        return tmp;
     }
 }
 
@@ -2179,9 +2179,10 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
 
-    if(dst.internalPtrCount == 0  && 
-       (dst.type == BuiltIn::struct_t || dst.type == BuiltIn::union_t) )
+    if(dst.internalPtrCount == 0  && src.internalPtrCount == 0 &&
+        isStructOrUnion(dst.type) && isStructOrUnion(src.type))
     {
+        HandleStructAssignment(dst, src);
         return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
     }
 
@@ -2539,9 +2540,21 @@ void SemanticAnalyzer::HandleStructInit(const ExprRet &structDesc, const Ast::No
         memberRet.symType = info.symType;
         memberRet.typenameView = info.typeName;
         ResolveAssignment(memberRet, init);
-
     }
     return;
+}
+
+void SemanticAnalyzer::HandleStructAssignment(const ExprRet &dst, const ExprRet &src)
+{
+    int64_t dstIdx = dst.id == EXPR_ID_VAR ?  dst.var->varIdx : dst.id; 
+    int64_t srcIdx = src.id == EXPR_ID_VAR ?  src.var->varIdx : src.id; 
+    uint64_t alignment = dst.var->spec.symType->alignment;
+    uint64_t size = dst.var->spec.symType->size;
+    //(src.isPtr == 0)
+    //
+    //  codeGen.AllocateLocalVariable(BuiltIn::struct_t, dst.var->spec.symType, )
+    //
+    codeGen.EmitLocalIntMemcpy(alignment, alignment, dstIdx, srcIdx, size);
 }
 
 ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)
@@ -2659,6 +2672,10 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
     ExprRet out = {};
     out.id = id;
     out.type = symFn->retType;
+    out.isPtr = symFn->spec.symType->passByValue == 0;
+    out.symType = symFn->spec.symType;
+    out.typenameView = symFn->spec.typenameView;
+
     return out;
 }
 
