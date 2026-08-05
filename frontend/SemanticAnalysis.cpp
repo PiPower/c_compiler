@@ -2519,6 +2519,13 @@ void SemanticAnalyzer::HandleStructInit(const ExprRet &structDesc, const Ast::No
     uint64_t elemCount = 0;
     memcpy(&elemCount, &initializerList->rChild, sizeof(Ast::Node*));
 
+    if(elemCount == 0)
+    {
+        codeGen.EmitLocalIntMemset(varIdx, var->spec.symType->alignment, 0, 
+                    var->spec.symType->size, var->spec.declType.qual.volatile_);
+        return;
+    }
+
     for(uint64_t i =0; i < elemCount; i++)
     {
         const Ast::Node* initAst= initializerList->lChild[i].lChild;
