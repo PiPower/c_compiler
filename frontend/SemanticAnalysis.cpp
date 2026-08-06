@@ -8,6 +8,7 @@
 #include "../utils/Logger.hpp"
 #include "../utils/Misc.hpp"
 #include "ExpressionTypes.hpp"
+
 #define IssueWarning(tokenPtr, errorMsg, ...) logger.IssueWarningImpl(tokenPtr, errorMsg __VA_OPT__(,) __VA_ARGS__); exit(-1);
 constexpr StructDesc emptyDesc = {NOT_EMITTED, 0, nullptr, nullptr, nullptr};
 typedef const Ast::Node Node;
@@ -2557,10 +2558,34 @@ void SemanticAnalyzer::HandleStructAssignment(const ExprRet &dst, const ExprRet 
     int64_t srcIdx = src.id == EXPR_ID_VAR ?  src.var->varIdx : src.id; 
     uint64_t alignment = dst.var->spec.symType->alignment;
     uint64_t size = dst.var->spec.symType->size;
-    //(src.isPtr == 0)
-    //
-    //  codeGen.AllocateLocalVariable(BuiltIn::struct_t, dst.var->spec.symType, )
-    //
+    // this means its aggregate type 
+    if(src.isPtr == 0)
+    {
+        ByValueStructDesc desc = codeGen.BuildValueStruct(src.symType->str);
+        uint64_t tmpStructAlignment = GetBuiltInAlignment(GetBuiltInType(desc.lType));
+        if(desc.rType != "")
+        {
+            tmpStructAlignment = std::max<uint64_t>(tmpStructAlignment, GetBuiltInAlignment(GetBuiltInType(desc.rType)));
+        }
+        uint64_t storeAlignment = std::min(tmpStructAlignment, alignment);
+        std::string retName = codeGen.getRetName(&dst.var->spec, nullptr);
+        std::vector<uint64_t> indicies({0, 0});
+
+        int64_t strutMemIdx = codeGen.AllocatePassByTmpStruct(desc.lType, desc.rType, tmpStructAlignment);
+        int64_t localIdx = codeGen.EmitLocalArrGetElemPtr(nullptr, retName, strutMemIdx, indicies, true);
+        int64_t elemIdx = codeGen.EmitLocalExtractValue(retName, srcIdx, 0);
+        codeGen.EmitLocalStorage(GetBuiltInType(desc.lType), storeAlignment, localIdx, elemIdx);
+        if(desc.rType != "")
+        {
+            indicies[1] = 1;
+            localIdx = codeGen.EmitLocalArrGetElemPtr(nullptr, retName, strutMemIdx, indicies, true);
+            elemIdx = codeGen.EmitLocalExtractValue(retName, srcIdx, 1);
+            codeGen.EmitLocalStorage(GetBuiltInType(desc.lType), storeAlignment, localIdx, elemIdx);
+        }
+
+        srcIdx = strutMemIdx;
+    }
+
     codeGen.EmitLocalIntMemcpy(alignment, alignment, dstIdx, srcIdx, size);
 }
 

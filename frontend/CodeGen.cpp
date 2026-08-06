@@ -1077,6 +1077,14 @@ void CodeGen::EmitLocalSwitch(
     return;
 }
 
+int64_t CodeGen::EmitLocalExtractValue(const std::string_view &typeName, int64_t srcIdx, uint64_t element)
+{
+    BindLocalBuffer();
+    int64_t retIdx = GetIdxForLocalVar();
+    WriteCharData("\n\t%%%l = extractvalue %v %%%l, %lu", retIdx, typeName, srcIdx, element);
+    return retIdx;
+}
+
 int64_t CodeGen::EmitLocalFloatToIntConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx)
 {
     if(!isFloat(srcType))

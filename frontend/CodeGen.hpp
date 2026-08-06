@@ -136,7 +136,7 @@ struct CodeGen
         int64_t exitLabel, 
         const std::vector<int64_t>& caseLabels,
         const std::vector<Typed::Number>& labelValues);
-
+    int64_t EmitLocalExtractValue(const std::string_view& typeName, int64_t srcIdx, uint64_t element);
     int64_t EmitLocalFloatToIntConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx);  
     int64_t EmitLocalFloatToFloatConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx);  
     int64_t EmitLocalIntToFloatConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx);
