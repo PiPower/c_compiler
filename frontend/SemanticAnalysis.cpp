@@ -2529,10 +2529,10 @@ void SemanticAnalyzer::HandleStructInit(const ExprRet &structDesc, const Ast::No
     uint64_t elemCount = 0;
     memcpy(&elemCount, &initializerList->rChild, sizeof(Ast::Node*));
 
+    codeGen.EmitLocalIntMemset(varIdx, var->spec.symType->alignment, 0, 
+                    var->spec.symType->size, var->spec.declType.qual.volatile_);
     if(elemCount == 0)
     {
-        codeGen.EmitLocalIntMemset(varIdx, var->spec.symType->alignment, 0, 
-                    var->spec.symType->size, var->spec.declType.qual.volatile_);
         return;
     }
 
