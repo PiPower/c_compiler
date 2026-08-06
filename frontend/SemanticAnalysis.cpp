@@ -871,7 +871,7 @@ std::vector<bool> SemanticAnalyzer::AnalyzeFunctionParams(const DeclSpecs *declS
         {
             flag += fpIsLast;
         }
-        codeGen.EmitReturnByPtr(declSpec->symType, declSpec->typenameView, flag);
+        codeGen.EmitReturnByPtr(declSpec->symType, declSpec->typenameView, flag, declSpec->symType->alignment);
         usedIntegerValues++;
     }
 
@@ -1523,14 +1523,15 @@ int64_t SemanticAnalyzer::AnalyzeFnCallStart(const Ast::Node* callRoot, const Sy
     else
     {
         int64_t tmp = codeGen.AllocateLocalVariable(symFn->retType, symFn->spec.symType, symFn->spec.typenameView);
-        int id = codeGen.EmitOpenFnCall(BuiltIn::void_t, fnName, nullptr, paramList.size(), paramList.data());
+        // function returns void so no need to keep return idx
+        codeGen.EmitOpenFnCall(BuiltIn::void_t, fnName, nullptr, paramList.size(), paramList.data());
         int64_t flags = fpIsUsedInCall;
         const std::string_view firstParamTypeName = symFn->decl.accArr.ptr[0].fnDecl.paramTypeList[0].spec.typenameView;
         if(isVoidCall(symFn->paramCount, &symFn->decl.accArr, firstParamTypeName))
         {
             flags += fpIsLast;
         }
-        codeGen.EmitReturnByPtr(symFn->spec.symType, symFn->spec.typenameView, flags, tmp);
+        codeGen.EmitReturnByPtr(symFn->spec.symType, symFn->spec.typenameView, flags, symFn->spec.symType->alignment, tmp);
         return tmp;
     }
 }
@@ -1586,7 +1587,7 @@ ParamTuple SemanticAnalyzer::IterateOverParams(const FnDecl* paramDecl, int* use
                 (usedValueSlots = TryEmitValueStruct(param->spec.symType->str, isLast, *usedInts, &desc)) == 0 )
             {
                 int64_t idx = codeGen.GetIdxForLocalVar();
-                codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, isLast, idx);
+                codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, isLast, idx, param->spec.symType->alignment);
                 desc = {BuiltIn::struct_t, BuiltIn::none, idx, INDEX_INVALID};
             }
             passByValue.push_back(desc.lType != BuiltIn::struct_t);
@@ -2703,7 +2704,7 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
         else
         {
             FunctionParams* param = &symFn->params[arg.parmIdx];
-            codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, flags, arg.op.idx);
+            codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, flags, arg.op.idx, param->spec.symType->alignment);
         }
     }
     codeGen.EmitCloseFnCall();

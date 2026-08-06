@@ -395,7 +395,7 @@ void CodeGen::EmitFunctionName(const DeclSpecs *spec, const Declarator *decl, bo
 
 }
 
-void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, int8_t flags, int64_t argIdx)
+void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, int8_t flags,  uint64_t alignment, int64_t argIdx)
 {
     if((flags & fpIsUsedInCall) > 0)
     {
@@ -410,12 +410,12 @@ void CodeGen::EmitReturnByPtr(SymbolType* symType, const std::string_view& typen
     EmitTypename(symType, typenameView, true);
     if(!(flags & fpIsUsedInCall))
     {
-        WriteCharData(") align 8 %%0");
+        WriteCharData(") align %lu %%0", alignment);
         GetIdxForLocalVar();
     }
     else
     {
-        WriteCharData(") align 8 %%%l", argIdx);
+        WriteCharData(") align %lu %%%l", alignment, argIdx);
     }
 
     if((flags & fpIsLast) == 0)
@@ -509,7 +509,7 @@ void CodeGen::EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op)
     }
 }
 
-void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typeName, int8_t flags, int64_t idx)
+void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typeName, int8_t flags, int64_t idx, uint64_t alignment)
 {
     if((flags & fpIsUsedInCall) > 0 )
     {
@@ -522,7 +522,7 @@ void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typ
     
     WriteCharData("ptr noundef byval(");
     EmitTypename(symType, typeName);
-    WriteCharData(") align 8 %%%l", idx);
+    WriteCharData(") align %lu %%%l", alignment, idx);
 
     if((flags & fpIsLast) == 0 )
     {

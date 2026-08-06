@@ -73,11 +73,11 @@ struct CodeGen
     void EmitUnionStruct(SymbolType* symType, const std::string_view& name, bool flushQueue = true);
     // Function stuff
     void EmitFunctionName(const DeclSpecs* spec, const Declarator* decl, bool declareFunc);
-    void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, int8_t flags, int64_t argIdx = EXPR_ID_IGNORE);
+    void EmitReturnByPtr(SymbolType* symType, const std::string_view& typenameView, int8_t flags, uint64_t alignment, int64_t argIdx = EXPR_ID_IGNORE);
     void EmitFunctionType(BuiltIn::Type type, int8_t flags, Operator op);
     void EmitFunctionParam(const std::string_view& functionName, int8_t flags);
     void EmitFunctionParam(BuiltIn::Type type, int8_t flags, Operator op);
-    void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, int8_t flags, int64_t idx);
+    void EmitFunctionParam(SymbolType* symType, const std::string_view& typeName, int8_t flags, int64_t idx, uint64_t alignment);
     void CloseParamList(bool isDeclaration);
     void EmitFunctionBodyStart();
     void EmitFunctionBodyClose(BuiltIn::Type retType, int64_t retIdx, int64_t retVal, DeclSpecs* retSpec);
