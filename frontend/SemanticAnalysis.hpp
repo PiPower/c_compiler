@@ -98,6 +98,12 @@ struct SemanticAnalyzer
     void HandleTypePromotion(const ExprRet* left, const ExprRet* right, ExprRet* outLeft, ExprRet* outRight);
     void HandleStructInit(const ExprRet& structDesc, const Ast::Node* initializerList);
     void HandleStructAssignment(const ExprRet& dst, const ExprRet& src);
+    ElemPtrInfo GetPtrInfoFromDesignator(    
+        const StructDesc &structDesc,
+        const std::string_view& typenameView,
+        const Ast::Node* designator, 
+        int64_t varIdx,
+        int64_t prevMemberIdx);
     ExprRet AnalyzeInitializer(bool isGlobal, const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType);
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet HandleUpdateOp(const Ast::Node* root, bool increment, bool post);

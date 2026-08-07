@@ -2536,11 +2536,31 @@ void SemanticAnalyzer::HandleStructInit(const ExprRet &structDesc, const Ast::No
         return;
     }
 
+    bool useDesignators = initializerList->lChild[0].rChild;
     for(uint64_t i =0; i < elemCount; i++)
     {
-        const Ast::Node* initAst= initializerList->lChild[i].lChild;
+        const Ast::Node* initAst = initializerList->lChild[i].lChild;
+        const Ast::Node* designator = initializerList->lChild[i].rChild;
         ExprRet init = AnalyzeExpr(initAst);
-        ElemPtrInfo info = LoadElemPtr(*desc, desc->memberNames[i], var->spec.typenameView, varIdx);
+        uint64_t memberIdx = i;
+        ElemPtrInfo info  = {};
+        if(useDesignators)
+        {
+            if(!designator)
+            {
+                IssueWarning(&initializerList->lChild[i].token, "It is not allowed skip designator in designator initialization")
+            }
+            info = GetPtrInfoFromDesignator(*desc, var->spec.typenameView, designator, varIdx, i == 0 ? -1 : i);
+        }
+        else
+        {
+            if(designator)
+            {
+                IssueWarning(&initializerList->lChild[i].token, "It is not allowed to use designator in non designator initialization")
+            }
+            info = LoadElemPtr(*desc, desc->memberNames[memberIdx], var->spec.typenameView, varIdx);
+        }
+
         ExprRet memberRet = {};
         memberRet.id = info.id;
         memberRet.type = info.type;
@@ -2588,6 +2608,16 @@ void SemanticAnalyzer::HandleStructAssignment(const ExprRet &dst, const ExprRet 
     }
 
     codeGen.EmitLocalIntMemcpy(alignment, alignment, dstIdx, srcIdx, size);
+}
+
+ElemPtrInfo SemanticAnalyzer::GetPtrInfoFromDesignator(        
+    const StructDesc &structDesc,
+    const std::string_view& typenameView, 
+    const Ast::Node* designator,
+    int64_t varIdx,
+    int64_t prevMemberIdx)
+{
+    return ElemPtrInfo();
 }
 
 ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)
