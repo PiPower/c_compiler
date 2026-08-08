@@ -236,7 +236,7 @@ label_9:
 	%18 = add nsw i32 %12, %17
 	store i32 %18, ptr %6, align 4
 	%19 = load i32, ptr %7, align 4
-	%20 = add nsw i32 1, %19
+	%20 = add nsw i32 %19, 1
 	store i32 %20, ptr %7, align 4
 	br label %label_11
 
@@ -505,7 +505,7 @@ label_3:
 define dso_local i32 @bump() #0 {
 	%1 = alloca i32, align 4
 	%2 = load i32, ptr @counter, align 4
-	%3 = add nsw i32 1, %2
+	%3 = add nsw i32 %2, 1
 	store i32 %3, ptr @counter, align 4
 	%4 = load i32, ptr @counter, align 4
 	store i32 %4, ptr %1, align 4
@@ -537,7 +537,7 @@ label_6:
 label_8:
 	%13 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.2, i32 noundef 235)
 	%14 = load i32, ptr @failures, align 4
-	%15 = add nsw i32 1, %14
+	%15 = add nsw i32 %14, 1
 	store i32 %15, ptr @failures, align 4
 	br label %label_7
 
@@ -557,7 +557,7 @@ label_17:
 label_19:
 	%20 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.3, i32 noundef 236)
 	%21 = load i32, ptr @failures, align 4
-	%22 = add nsw i32 1, %21
+	%22 = add nsw i32 %21, 1
 	store i32 %22, ptr @failures, align 4
 	br label %label_18
 
@@ -577,7 +577,7 @@ label_28:
 label_30:
 	%27 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.4, i32 noundef 237)
 	%28 = load i32, ptr @failures, align 4
-	%29 = add nsw i32 1, %28
+	%29 = add nsw i32 %28, 1
 	store i32 %29, ptr @failures, align 4
 	br label %label_29
 
@@ -597,7 +597,7 @@ label_39:
 label_41:
 	%34 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.5, i32 noundef 239)
 	%35 = load i32, ptr @failures, align 4
-	%36 = add nsw i32 1, %35
+	%36 = add nsw i32 %35, 1
 	store i32 %36, ptr @failures, align 4
 	br label %label_40
 
@@ -617,7 +617,7 @@ label_50:
 label_52:
 	%41 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.6, i32 noundef 244)
 	%42 = load i32, ptr @failures, align 4
-	%43 = add nsw i32 1, %42
+	%43 = add nsw i32 %42, 1
 	store i32 %43, ptr @failures, align 4
 	br label %label_51
 
@@ -653,7 +653,7 @@ label_71:
 label_73:
 	%59 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.7, i32 noundef 252)
 	%60 = load i32, ptr @failures, align 4
-	%61 = add nsw i32 1, %60
+	%61 = add nsw i32 %60, 1
 	store i32 %61, ptr @failures, align 4
 	br label %label_72
 
@@ -673,7 +673,7 @@ label_83:
 label_85:
 	%66 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.8, i32 noundef 254)
 	%67 = load i32, ptr @failures, align 4
-	%68 = add nsw i32 1, %67
+	%68 = add nsw i32 %67, 1
 	store i32 %68, ptr @failures, align 4
 	br label %label_84
 
@@ -693,7 +693,7 @@ label_94:
 label_96:
 	%73 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.9, i32 noundef 255)
 	%74 = load i32, ptr @failures, align 4
-	%75 = add nsw i32 1, %74
+	%75 = add nsw i32 %74, 1
 	store i32 %75, ptr @failures, align 4
 	br label %label_95
 
@@ -713,7 +713,7 @@ label_105:
 label_107:
 	%80 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.10, i32 noundef 257)
 	%81 = load i32, ptr @failures, align 4
-	%82 = add nsw i32 1, %81
+	%82 = add nsw i32 %81, 1
 	store i32 %82, ptr @failures, align 4
 	br label %label_106
 
@@ -733,7 +733,7 @@ label_116:
 label_118:
 	%87 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.11, i32 noundef 258)
 	%88 = load i32, ptr @failures, align 4
-	%89 = add nsw i32 1, %88
+	%89 = add nsw i32 %88, 1
 	store i32 %89, ptr @failures, align 4
 	br label %label_117
 
@@ -779,7 +779,7 @@ label_149:
 label_151:
 	%112 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.12, i32 noundef 264)
 	%113 = load i32, ptr @failures, align 4
-	%114 = add nsw i32 1, %113
+	%114 = add nsw i32 %113, 1
 	store i32 %114, ptr @failures, align 4
 	br label %label_150
 
@@ -800,7 +800,7 @@ label_161:
 label_163:
 	%120 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.13, i32 noundef 265)
 	%121 = load i32, ptr @failures, align 4
-	%122 = add nsw i32 1, %121
+	%122 = add nsw i32 %121, 1
 	store i32 %122, ptr @failures, align 4
 	br label %label_162
 
@@ -824,7 +824,7 @@ label_173:
 label_175:
 	%131 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.14, i32 noundef 266)
 	%132 = load i32, ptr @failures, align 4
-	%133 = add nsw i32 1, %132
+	%133 = add nsw i32 %132, 1
 	store i32 %133, ptr @failures, align 4
 	br label %label_174
 
@@ -844,7 +844,7 @@ label_188:
 label_190:
 	%138 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.15, i32 noundef 268)
 	%139 = load i32, ptr @failures, align 4
-	%140 = add nsw i32 1, %139
+	%140 = add nsw i32 %139, 1
 	store i32 %140, ptr @failures, align 4
 	br label %label_189
 
@@ -865,7 +865,7 @@ label_199:
 label_201:
 	%146 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.16, i32 noundef 270)
 	%147 = load i32, ptr @failures, align 4
-	%148 = add nsw i32 1, %147
+	%148 = add nsw i32 %147, 1
 	store i32 %148, ptr @failures, align 4
 	br label %label_200
 
@@ -885,7 +885,7 @@ label_211:
 label_213:
 	%153 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.17, i32 noundef 272)
 	%154 = load i32, ptr @failures, align 4
-	%155 = add nsw i32 1, %154
+	%155 = add nsw i32 %154, 1
 	store i32 %155, ptr @failures, align 4
 	br label %label_212
 
@@ -905,7 +905,7 @@ label_222:
 label_224:
 	%160 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.18, i32 noundef 273)
 	%161 = load i32, ptr @failures, align 4
-	%162 = add nsw i32 1, %161
+	%162 = add nsw i32 %161, 1
 	store i32 %162, ptr @failures, align 4
 	br label %label_223
 
@@ -925,7 +925,7 @@ label_233:
 label_235:
 	%167 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.19, i32 noundef 274)
 	%168 = load i32, ptr @failures, align 4
-	%169 = add nsw i32 1, %168
+	%169 = add nsw i32 %168, 1
 	store i32 %169, ptr @failures, align 4
 	br label %label_234
 
@@ -947,7 +947,7 @@ label_244:
 label_246:
 	%176 = call i32 (ptr, ...) @printf(ptr @.str.1, ptr @.str.20, i32 noundef 276)
 	%177 = load i32, ptr @failures, align 4
-	%178 = add nsw i32 1, %177
+	%178 = add nsw i32 %177, 1
 	store i32 %178, ptr @failures, align 4
 	br label %label_245
 

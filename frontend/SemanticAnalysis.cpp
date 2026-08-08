@@ -2370,11 +2370,11 @@ ExprRet SemanticAnalyzer::HandleUpdateOp(const Ast::Node *root, bool increment, 
         ExprRet updated;
         if(increment)
         {
-            updated = BinaryOp<BinaryAddition>(this, &codeGen, constVal, value);
+            updated = BinaryOp<BinaryAddition>(this, &codeGen, value, constVal);
         }
         else
         {
-            updated = BinaryOp<BinarySubtraction>(this, &codeGen, constVal, value);
+            updated = BinaryOp<BinarySubtraction>(this, &codeGen, value, constVal);
         }
 
         ResolveAssignment(expr, updated);
@@ -2677,7 +2677,7 @@ ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)
         const Ast::Node* currNode = logNodes.top();
         logNodes.pop();
         
-        ExprRet cond = AnalyzeExpr(currNode->lChild);
+        ExprRet cond = AnalyzeExpr(currNode);
         cond.id = HandleNotEqZero(cond);
         cond.type = BuiltIn::int_1;
         int64_t nextBlockLabel = 0;
@@ -2782,6 +2782,7 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
 ExprRet SemanticAnalyzer::HandleNegate(const Ast::Node *root)
 {
     ExprRet ret = AnalyzeExpr(root->lChild);
+    ret = LoadVariable(ret);
     Typed::Number num;
     num.int8 = 1;
     num.type = Typed::d_int8_t;
