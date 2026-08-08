@@ -356,7 +356,7 @@ define dso_local { i64, i64 } @make_pair(i32 noundef %0, i32 noundef %1, i64 nou
 	br i1 %23, label %label_20, label %label_19
 
 label_20:
-	call void @llvm.memset.p0.p0.i64(ptr align 4 %14, i8 0, i64 16, i1 false)
+	call void @llvm.memset.p0.i64(ptr align 4 %14, i8 0, i64 16, i1 false)
 	%24 = getelementptr inbounds nuw %struct.Pair, ptr %14, i32 0, i32 0
 	store i32 2, ptr %24, align 4
 	%25 = getelementptr inbounds nuw %struct.Pair, ptr %14, i32 0, i32 1
@@ -401,7 +401,7 @@ define dso_local void @make_pair2(ptr dead_on_unwind noalias writable sret(%stru
 	br i1 %20, label %label_17, label %label_16
 
 label_17:
-	call void @llvm.memset.p0.p0.i64(ptr align 8 %13, i8 0, i64 32, i1 false)
+	call void @llvm.memset.p0.i64(ptr align 8 %13, i8 0, i64 32, i1 false)
 	%21 = getelementptr inbounds nuw %struct.Pair3, ptr %13, i32 0, i32 0
 	store i32 2, ptr %21, align 4
 	%22 = getelementptr inbounds nuw %struct.Pair3, ptr %13, i32 0, i32 1
@@ -741,7 +741,7 @@ label_117:
 	br label %label_115
 
 label_115:
-	call void @llvm.memset.p0.p0.i64(ptr align 4 %4, i8 0, i64 12, i1 false)
+	call void @llvm.memset.p0.i64(ptr align 4 %4, i8 0, i64 12, i1 false)
 	%90 = getelementptr inbounds { i64, i32 }, ptr %4, i32 0, i32 0
 	%91 = load i64, ptr %90, align 4
 	%92 = getelementptr inbounds { i64, i32 }, ptr %4, i32 0, i32 1
@@ -758,7 +758,7 @@ label_115:
 	%102 = extractvalue { i64, i64 } %98, 1
 	store i64 %102, ptr %101, align 4
 	call void @llvm.memcpy.p0.p0.i64(ptr align 4 %3, ptr align 4 %5, i64 16, i1 false)
-	call void @llvm.memset.p0.p0.i64(ptr align 8 %6, i8 0, i64 32, i1 false)
+	call void @llvm.memset.p0.i64(ptr align 8 %6, i8 0, i64 32, i1 false)
 	%103 = getelementptr inbounds { i64, i32 }, ptr %4, i32 0, i32 0
 	%104 = load i64, ptr %103, align 4
 	%105 = getelementptr inbounds { i64, i32 }, ptr %4, i32 0, i32 1
