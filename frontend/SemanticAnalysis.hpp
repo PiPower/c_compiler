@@ -103,7 +103,8 @@ struct SemanticAnalyzer
         const std::string_view& typenameView,
         const Ast::Node* designator, 
         int64_t varIdx,
-        int64_t prevMemberIdx);
+        int64_t prevMemberIdx,
+        int64_t* memberIdx);
     ExprRet AnalyzeInitializer(bool isGlobal, const DeclSpecs *spec, const AccessArray *accArr, const Ast::Node *initializer, bool isComplexType);
     ExprRet AnalyzeExpr(const Ast::Node* root);
     ExprRet HandleUpdateOp(const Ast::Node* root, bool increment, bool post);

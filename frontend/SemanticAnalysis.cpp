@@ -2537,6 +2537,7 @@ void SemanticAnalyzer::HandleStructInit(const ExprRet &structDesc, const Ast::No
     }
 
     bool useDesignators = initializerList->lChild[0].rChild;
+    int64_t prevIdx = -1;
     for(uint64_t i =0; i < elemCount; i++)
     {
         const Ast::Node* initAst = initializerList->lChild[i].lChild;
@@ -2550,7 +2551,7 @@ void SemanticAnalyzer::HandleStructInit(const ExprRet &structDesc, const Ast::No
             {
                 IssueWarning(&initializerList->lChild[i].token, "It is not allowed skip designator in designator initialization")
             }
-            info = GetPtrInfoFromDesignator(*desc, var->spec.typenameView, designator, varIdx, i == 0 ? -1 : i);
+            info = GetPtrInfoFromDesignator(*desc, var->spec.typenameView, designator, varIdx, prevIdx, &prevIdx);
         }
         else
         {
@@ -2615,9 +2616,38 @@ ElemPtrInfo SemanticAnalyzer::GetPtrInfoFromDesignator(
     const std::string_view& typenameView, 
     const Ast::Node* designator,
     int64_t varIdx,
-    int64_t prevMemberIdx)
+    int64_t prevMemberIdx,
+    int64_t* memberIdx)
 {
-    return ElemPtrInfo();
+
+    const Ast::Node* designatorVal = designator->rChild;
+    std::string_view desName = GetViewForToken(designatorVal->token, manager);
+
+    size_t i;
+    for(i = 0; i < structDesc.argCount; i++)
+    {
+        if(structDesc.memberNames[i] == desName)
+        {
+            break;
+        }
+    }
+
+    if(prevMemberIdx > -1 && prevMemberIdx > (int64_t)i)
+    {
+        IssueWarning(&designatorVal->token, "Member fields can only be accessed in declaration order if using designators")
+    }
+
+    if(memberIdx)
+    {
+        *memberIdx = i;
+    }
+
+    if(i == structDesc.argCount)
+    {
+        IssueWarning(&designatorVal->token, "Requested member field does not exist")
+    }
+
+    return LoadElemPtr(structDesc, structDesc.memberNames[i], typenameView, varIdx);
 }
 
 ExprRet SemanticAnalyzer::HandleLogicalOps(const Ast::Node *root)

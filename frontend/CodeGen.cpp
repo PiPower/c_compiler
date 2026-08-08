@@ -1497,7 +1497,7 @@ void CodeGen::EmitLocalIntMemset(int64_t dest, uint64_t destAling, int8_t val, u
     BindLocalBuffer();
     std::string_view volatileKw = isVolatile ? "true" : "false";
     uint64_t valueCasted = val;
-    WriteCharData("\n\tcall void @llvm.memset.p0.p0.i64(ptr align %lu %%%l, i8 %lu, i64 %lu, i1 %v)", 
+    WriteCharData("\n\tcall void @llvm.memset.p0.i64(ptr align %lu %%%l, i8 %lu, i64 %lu, i1 %v)", 
             destAling, dest, valueCasted, len, volatileKw);
     DeclareIntrinsic(Intrinsic::llvm_memset);
 }
