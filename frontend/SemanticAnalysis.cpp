@@ -1053,7 +1053,9 @@ ExprRet SemanticAnalyzer::LoadVariable(const ExprRet &ret)
         }
         else
         {
-            out.id = codeGen.EmitLocalLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->varIdx);
+            BuiltIn::Type type = ret.internalPtrCount > 0 ? BuiltIn::ptr : symVar->spec.symType->dType ;
+            int32_t alignment = type == BuiltIn::ptr  ?  GetBuiltInAlignment(BuiltIn::ptr) : symVar->spec.symType->alignment ;
+            out.id = codeGen.EmitLocalLoad(type, alignment, symVar->varIdx);
             out.var = nullptr;
         }
     }
@@ -2814,7 +2816,7 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node* root, SymbolFuncti
     std::vector<ArgDesc> args = AnalyzeFnCallArgs(root, symFn);
     std::string globalName;
     globalName.reserve(fnName.size() + 1);
-    globalName[0] = '@';
+    globalName += '@';
     globalName.append(fnName.data(), fnName.size());
 
     int64_t id = AnalyzeFnCallStart(root, symFn, globalName);
