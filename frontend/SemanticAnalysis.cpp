@@ -1045,6 +1045,7 @@ ExprRet SemanticAnalyzer::LoadVariable(const ExprRet &ret)
     if(out.id == EXPR_ID_VAR)
     {
         const SymbolVariable* symVar = out.var; 
+        out.pointerFn = symVar->pointerFn;
         if(symVar->varIdx == EXPR_ID_GLOBAL)
         {
             out.id = codeGen.EmitLocalGlLoad(symVar->spec.symType->dType, symVar->spec.symType->alignment, symVar->decl.name);
@@ -2206,6 +2207,21 @@ ExprRet SemanticAnalyzer::ResolveAssignment(ExprRet dst, ExprRet src)
     }
     else
     {
+        // update refrences to pointer symbol functions if symbol function
+        if(src.id == EXPR_ID_FN)
+        {
+            SymbolVariable* symVar = symTab->QueryVarSymbolFromScope(dst.var->decl.name, dst.var->owner);
+            symVar->pointerFn = src.fn;
+            dst.pointerFn = src.fn;
+        }
+
+        if(src.id == EXPR_ID_VAR && src.pointerFn)
+        {
+            SymbolVariable* symVar = symTab->QueryVarSymbolFromScope(dst.var->decl.name, dst.var->owner);
+            symVar->pointerFn = src.pointerFn;
+            dst.pointerFn = src.pointerFn;
+        }
+
         // temporary code, to be fixed later
         if(dst.isPtr)
         {
@@ -2424,7 +2440,7 @@ ExprRet SemanticAnalyzer::CompoundLiteral(const Ast::Node *literal)
         decl.name = tmpName;
     }
     VariableOpts opts = {.isEnumerator = 0, .isConst = 0, .isEmitted = 0};
-    SymbolVariable localVar(Sym::Kind::VAR, symTab->currentTable->scopeType, &spec, &decl, &opts, varIdx);
+    SymbolVariable localVar(Sym::Kind::VAR, symTab->currentTable,  symTab->currentTable->scopeType, &spec, &decl, &opts, varIdx);
     codeGen.EmitLocalVariable(&localVar);
     InitLocalVariable(&localVar);
 
@@ -2731,6 +2747,12 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
 
 ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
 {
+    ExprRet fnCallSrc = AnalyzeExpr(root->lChild);
+    if(fnCallSrc.id == EXPR_ID_VAR || fnCallSrc.id > 0)
+    {
+        return HandlePtrCall(root, fnCallSrc);
+    }
+    // in this case its simple function call
     std::string_view fnName = GetViewForToken(root->lChild->token, manager);
     SymbolFunction* symFn = symTab->QueryFunctionSymbol(fnName);
     if(!symFn)
@@ -2738,12 +2760,64 @@ ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
         int len = fnName.length();
         IssueWarning(&root->token, "Function '%.*s' is not declared", len, fnName.data());
     }
+    return HandleFunctionCall(root, symFn, fnName);
+}
+
+ExprRet SemanticAnalyzer::HandlePtrCall(const Ast::Node *root, const ExprRet& fnExpr)
+{
+    ExprRet fn = LoadVariable(fnExpr);
+    const SymbolFunction* symFn = fn.pointerFn;
+
+    std::vector<ArgDesc> args = AnalyzeFnCallArgs(root, symFn);
+    std::string ptrName = '%' + std::to_string(fn.id);
+    int64_t id = AnalyzeFnCallStart(root, symFn, ptrName);
+
+    for(size_t i =0; i < args.size(); i++)
+    {
+        const ArgDesc& arg = args[i];
+        int8_t flags = fpIsUsedInCall;
+        flags += i == args.size() - 1 ? fpIsLast : 0; 
+        if(!isStructOrUnion(arg.paramType))
+        {   
+            if(arg.symFn)
+            {
+                codeGen.EmitFunctionParam(arg.symFn->decl.name, flags);
+            }
+            else
+            {
+                codeGen.EmitFunctionParam(arg.paramType, flags, arg.op);
+            }
+        }
+        else
+        {
+            FunctionParams* param = &symFn->params[arg.parmIdx];
+            codeGen.EmitFunctionParam(param->spec.symType, param->spec.typenameView, flags, arg.op.idx, param->spec.symType->alignment);
+        }
+    }
+    codeGen.EmitCloseFnCall();
+
+    ExprRet out = {};
+    out.id = id;
+    out.type = symFn->retType;
+    out.isPtr = symFn->spec.symType->passByValue == 0;
+    out.symType = symFn->spec.symType;
+    out.typenameView = symFn->spec.typenameView;
+    return out;
+}
+
+ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node* root, SymbolFunction* symFn, const std::string_view& fnName)
+{
     if(symFn->isDefined == 0)
     {
         maybeUndefinedFuncs.insert(symFn);
     }
     std::vector<ArgDesc> args = AnalyzeFnCallArgs(root, symFn);
-    int64_t id = AnalyzeFnCallStart(root, symFn, fnName);
+    std::string globalName;
+    globalName.reserve(fnName.size() + 1);
+    globalName[0] = '@';
+    globalName.append(fnName.data(), fnName.size());
+
+    int64_t id = AnalyzeFnCallStart(root, symFn, globalName);
 
     for(size_t i =0; i < args.size(); i++)
     {
@@ -3038,7 +3112,7 @@ ExprRet SemanticAnalyzer::HandlePointerAssignment(const ExprRet *dst, const Expr
         }
         else
         {
-            exit(-20000);
+            IssueWarning(nullptr, "Non zero pointer assignment is not supported")
         }
     }
     else if(src->type == BuiltIn::string)

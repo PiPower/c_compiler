@@ -237,15 +237,17 @@ struct StructDeclaration
     std::vector<StructDeclarator> declarators;
 };
 
-
+struct ScopedSymbolTable;
 struct Symbol
 {
     Sym::Kind kind;
+    const ScopedSymbolTable* owner;
 };
 
 struct SymbolTypedef
 {
     Sym::Kind kind;
+    const ScopedSymbolTable* owner;
     std::string_view refrencedType;
     Qualifiers qual;
     AccessArray accArr;
@@ -273,6 +275,7 @@ struct PointerDesc
 struct SymbolType
 {
     Sym::Kind kind;
+    const ScopedSymbolTable* owner;
     BuiltIn::Type dType;
     uint8_t isDefined : 1;
     uint8_t passByValue : 1; // if value is larger than 16 bytes or unaligned pass by stack else by value
@@ -286,24 +289,26 @@ struct SymbolType
     };
         // Constructor for StructDesc
     SymbolType(Sym::Kind k,
+               const ScopedSymbolTable* owner,
                BuiltIn::Type dt,
                bool def,
                bool passByValue,
                uint64_t s,
                uint32_t align,
                const StructDesc& sd)
-        : kind(k), dType(dt), isDefined(def), passByValue(passByValue), size(s), alignment(align), str(sd)
+        : kind(k), owner(owner), dType(dt), isDefined(def), passByValue(passByValue), size(s), alignment(align), str(sd)
         {}
 
     // Constructor for PointerDesc
     SymbolType(Sym::Kind k,
+               const ScopedSymbolTable* owner,
                BuiltIn::Type dt,
                bool def,
                bool passByValue,
                uint64_t s,
                uint32_t align,
                const PointerDesc& pd)
-        : kind(k), dType(dt), isDefined(def), passByValue(passByValue), size(s), alignment(align), ptr(pd)
+        : kind(k), owner(owner), dType(dt), isDefined(def), passByValue(passByValue), size(s), alignment(align), ptr(pd)
         {}
 
 
@@ -312,6 +317,7 @@ struct SymbolType
 struct SymbolFunction
 {
     Sym::Kind kind;
+    const ScopedSymbolTable* owner;
     DeclSpecs spec;
     Declarator decl;
     uint32_t paramCount;
@@ -335,10 +341,12 @@ struct VariableOpts
 struct SymbolVariable
 {
     Sym::Kind kind;
+    const ScopedSymbolTable* owner;
     Scope::Type scope;
     DeclSpecs spec;
     Declarator decl;
     VariableOpts opts;
+    const SymbolFunction* pointerFn;
     // if idx == -1 unused
     // if isEnumerator == 1 then it represents value of that enumerator
     // otherwise its index in codegen in local scope
@@ -346,13 +354,14 @@ struct SymbolVariable
 
     SymbolVariable(
         Sym::Kind kind,  
+        const ScopedSymbolTable* owner,
         Scope::Type scope, 
         const DeclSpecs* spec,
         const Declarator* decl, 
         const VariableOpts* opts,
         int64_t idx) 
     :
-    kind(kind), scope(scope), spec(*spec), decl(*decl), opts(*opts), varIdx(idx) {}
+    kind(kind), owner(owner), scope(scope), spec(*spec), decl(*decl), opts(*opts), varIdx(idx) {}
 };
 
 struct ScopedSymbolTable

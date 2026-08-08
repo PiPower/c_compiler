@@ -64,8 +64,8 @@ int main(void) {
     // String literals
     char str1[] = "Hello, World!";
     char str2[] = "Escaped chars: \t \n \" \\";
-    char str3[] = "Concatenated "
-                  "string literal";
+    char str3[] = "Concatenated ";
+ //                 "string literal";
 
     struct Point p = { .x = 10, .y = 20 };
     union Data data;

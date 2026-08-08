@@ -175,6 +175,19 @@ bool SymbolTable::IsCurrentScopeGlobal()
     return currentTable == globalTable;
 }
 
+SymbolVariable *SymbolTable::QueryVarSymbolFromScope(
+    const std::string_view &name, 
+    const ScopedSymbolTable *scope)
+{
+    auto element = scope->tables[var].find(name);
+    if(element ==  scope->tables[var].cend())
+    {
+        return nullptr;
+    }
+
+    return (SymbolVariable*)element->second;
+}
+
 SymbolVariable *SymbolTable::QueryVarSymbol(const std::string_view &name, int64_t* scopeId, uint8_t *scopeType, uint8_t *prevScope)
 {
     return (SymbolVariable*)QuerySymbolGeneric(name, var, scopeId, scopeType, prevScope);

@@ -24,6 +24,7 @@ struct ExprRet
     uint32_t internalPtrCount; // pointers defined from c code are defined here
     std::string_view typenameView; 
     const SymbolType* symType;
+    const SymbolFunction* pointerFn; // if ExprRet is function pointer it stores pointed function 
     union
     {
         const SymbolVariable* var;
@@ -31,9 +32,9 @@ struct ExprRet
     };
 
     ExprRet() 
-    : type(BuiltIn::none), num({}), id(0), isPtr(0), isArray(0), internalPtrCount(0), typenameView(""), symType(nullptr), var(nullptr){};
+    : type(BuiltIn::none), num({}), id(0), isPtr(0), isArray(0), internalPtrCount(0), typenameView(""), symType(nullptr), pointerFn(nullptr), var(nullptr){};
     ExprRet(BuiltIn::Type type, const Typed::Number& num, int64_t id, uint8_t isPtr = 0, uint32_t internalPtrCount = 0) 
     : type(type), num(num), id(id), isPtr(isPtr), isArray(0), internalPtrCount(internalPtrCount), 
-      typenameView(""), symType(nullptr), var(nullptr){}
+      typenameView(""), symType(nullptr), pointerFn(nullptr), var(nullptr){}
 
 };

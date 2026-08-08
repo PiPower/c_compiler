@@ -116,6 +116,8 @@ struct SemanticAnalyzer
     ExprRet HandleLogicalOps(const Ast::Node* root);
     ExprRet HandleInitExpr(const Ast::Node* root);
     ExprRet HandleFunctionCall(const Ast::Node* root);
+    ExprRet HandlePtrCall(const Ast::Node* root, const ExprRet& fnExpr);
+    ExprRet HandleFunctionCall(const Ast::Node* root, SymbolFunction* symFn, const std::string_view& fnName);
     ExprRet HandleNegate(const Ast::Node* root);
     ExprRet HandleCast(const Ast::Node* root);
     ExprRet HandleStructAccess(const Ast::Node* root);

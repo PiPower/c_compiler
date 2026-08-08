@@ -1322,7 +1322,7 @@ int64_t CodeGen::EmitOpenFnCall(BuiltIn::Type ret, std::string_view fnName, cons
         }
         WriteCharData("...)");
     }
-    WriteCharData(" @%v(", fnName);
+    WriteCharData(" %v(", fnName);
 
     return id;
 }

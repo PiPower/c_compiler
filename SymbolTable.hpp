@@ -42,6 +42,10 @@ struct SymbolTable
     uint16_t QuerySymKinds(const std::string_view& name);
     bool IsCurrentScopeGlobal();
 
+    SymbolVariable* QueryVarSymbolFromScope(
+        const std::string_view& name,
+        const ScopedSymbolTable* scope);
+
     SymbolVariable* QueryVarSymbol(
         const std::string_view& name,
         int64_t* scopeId = nullptr,
@@ -99,6 +103,6 @@ template <typename Kind, typename... Args>
 void SymbolTable::AddSymbol(const std::string_view& name, Args &&...args)
 {
     Sym::Kind symKind = SymbolKindTraits<Kind>::value;
-    Kind* symbol = new Kind(symKind, std::forward<const Args>(args)...);
+    Kind* symbol = new Kind(symKind, currentTable, std::forward<const Args>(args)...);
     AddSymbolImpl(name, (Symbol*) symbol);
 }
