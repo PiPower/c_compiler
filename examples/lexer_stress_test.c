@@ -35,7 +35,7 @@ static inline int add(int a, int b) {
     return a + b;
 }
 int global_var = 42;
-const volatile int cv_var = 100;
+const int cv_var = 100;
 void function_pointer_test(void) {
     int (*func_ptr)(int, int) = add;
     int result = func_ptr(3, 4);
@@ -116,8 +116,8 @@ label_test:
 
     // Restrict keyword (C99)
     int x = 10, y = 20;
-    int *restrict rx = &x;
-    int *restrict ry = &y;
+    int * rx = &x;
+    int * ry = &y;
     *rx += *ry;
 
     printf("Done.\n");

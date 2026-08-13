@@ -2924,9 +2924,20 @@ ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
         }
         else
         {
+            //HandleTypeConversion();
             if(spec.typenameView == "void")
             {
                 return ExprRet{BuiltIn::none, {}, EXPR_ID_IGNORE};
+            }
+
+            if(isStructOrUnion(spec.symType->dType) || isStructOrUnion(value.type) )
+            {
+                IssueWarning(nullptr, "Conversions from or to struct are not allowed")
+            }
+            if(decl.accArr.count == 0)
+            {
+                value = LoadVariable(value);
+                value = HandleTypeConversion(&value, spec.symType->dType);
             }
         }
         castNode = castNode->rChild;
