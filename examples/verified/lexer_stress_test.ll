@@ -109,215 +109,213 @@ define dso_local i32 @main() #0 {
 	store i32 10, ptr %37, align 4
 	%38 = getelementptr inbounds nuw %struct.Point, ptr %18, i32 0, i32 1
 	store i32 20, ptr %38, align 4
-	%39 = getelementptr inbounds nuw %union.Data, ptr %19, i32 0, i32 1
-	store float 0x40091EB860000000, ptr %39, align 4
 	call void @llvm.memset.p0.i64(ptr align 4 %20, i8 0, i64 20, i1 false)
-	%40 = getelementptr inbounds [5 x i32], ptr %20, i64 0, i64 0
-	store i32 1, ptr %40, align 4
-	%41 = getelementptr inbounds [5 x i32], ptr %20, i64 0, i64 3
-	store i32 4, ptr %41, align 4
+	%39 = getelementptr inbounds [5 x i32], ptr %20, i64 0, i64 0
+	store i32 1, ptr %39, align 4
+	%40 = getelementptr inbounds [5 x i32], ptr %20, i64 0, i64 3
+	store i32 4, ptr %40, align 4
 	call void @llvm.memset.p0.i64(ptr align 4 %21, i8 0, i64 16, i1 false)
-	%42 = getelementptr inbounds [2 x [2 x i32]], ptr %21, i64 0, i64 0, i64 0
-	store i32 1, ptr %42, align 4
-	%43 = getelementptr inbounds [2 x [2 x i32]], ptr %21, i64 0, i64 0, i64 1
-	store i32 2, ptr %43, align 4
-	%44 = getelementptr inbounds [2 x [2 x i32]], ptr %21, i64 0, i64 1, i64 0
-	store i32 3, ptr %44, align 4
-	%45 = getelementptr inbounds [2 x [2 x i32]], ptr %21, i64 0, i64 1, i64 1
-	store i32 4, ptr %45, align 4
+	%41 = getelementptr inbounds [2 x [2 x i32]], ptr %21, i64 0, i64 0, i64 0
+	store i32 1, ptr %41, align 4
+	%42 = getelementptr inbounds [2 x [2 x i32]], ptr %21, i64 0, i64 0, i64 1
+	store i32 2, ptr %42, align 4
+	%43 = getelementptr inbounds [2 x [2 x i32]], ptr %21, i64 0, i64 1, i64 0
+	store i32 3, ptr %43, align 4
+	%44 = getelementptr inbounds [2 x [2 x i32]], ptr %21, i64 0, i64 1, i64 1
+	store i32 4, ptr %44, align 4
 	store i32 5, ptr %22, align 4
 	store i32 2, ptr %23, align 4
-	%46 = load i32, ptr %22, align 4
-	%47 = load i32, ptr %23, align 4
-	%48 = add nsw i32 %46, %47
-	%49 = load i32, ptr %22, align 4
-	%50 = load i32, ptr %23, align 4
-	%51 = mul nsw i32 %49, %50
-	%52 = load i32, ptr %23, align 4
-	%53 = sdiv i32 %51, %52
-	%54 = load i32, ptr %22, align 4
-	%55 = srem i32 %53, %54
-	%56 = sub nsw i32 %48, %55
-	store i32 %56, ptr %24, align 4
-	%57 = load i32, ptr %22, align 4
-	%58 = load i32, ptr %23, align 4
-	%59 = icmp sgt i32 %57, %58
-	%60 = icmp ne i1 %59, 0
-	br i1 %60, label %label_57, label %label_51
+	%45 = load i32, ptr %22, align 4
+	%46 = load i32, ptr %23, align 4
+	%47 = add nsw i32 %45, %46
+	%48 = load i32, ptr %22, align 4
+	%49 = load i32, ptr %23, align 4
+	%50 = mul nsw i32 %48, %49
+	%51 = load i32, ptr %23, align 4
+	%52 = sdiv i32 %50, %51
+	%53 = load i32, ptr %22, align 4
+	%54 = srem i32 %52, %53
+	%55 = sub nsw i32 %47, %54
+	store i32 %55, ptr %24, align 4
+	%56 = load i32, ptr %22, align 4
+	%57 = load i32, ptr %23, align 4
+	%58 = icmp sgt i32 %56, %57
+	%59 = icmp ne i1 %58, 0
+	br i1 %59, label %label_56, label %label_50
 
-label_57:
-	%61 = load i32, ptr %23, align 4
-	%62 = icmp slt i32 %61, 10
-	%63 = icmp ne i1 %62, 0
-	br i1 %63, label %label_52, label %label_51
-
-label_52:
-	store i8 1, ptr %27, align 1
-	br label %label_61
+label_56:
+	%60 = load i32, ptr %23, align 4
+	%61 = icmp slt i32 %60, 10
+	%62 = icmp ne i1 %61, 0
+	br i1 %62, label %label_51, label %label_50
 
 label_51:
+	store i8 1, ptr %27, align 1
+	br label %label_60
+
+label_50:
 	store i8 0, ptr %27, align 1
-	br label %label_61
+	br label %label_60
 
-label_61:
-	%64 = load i8, ptr %27, align 1
-	%65 = icmp ne i8 %64, 0
-	br i1 %65, label %label_49, label %label_64
+label_60:
+	%63 = load i8, ptr %27, align 1
+	%64 = icmp ne i8 %63, 0
+	br i1 %64, label %label_48, label %label_63
 
-label_64:
-	%66 = load i32, ptr %22, align 4
-	%67 = load i32, ptr %23, align 4
-	%68 = icmp eq i32 %66, %67
-	%69 = xor i1 %68, 1
-	%70 = icmp ne i1 %69, 0
-	br i1 %70, label %label_49, label %label_48
-
-label_49:
-	store i8 1, ptr %26, align 1
-	br label %label_70
+label_63:
+	%65 = load i32, ptr %22, align 4
+	%66 = load i32, ptr %23, align 4
+	%67 = icmp eq i32 %65, %66
+	%68 = xor i1 %67, 1
+	%69 = icmp ne i1 %68, 0
+	br i1 %69, label %label_48, label %label_47
 
 label_48:
-	store i8 0, ptr %26, align 1
-	br label %label_70
+	store i8 1, ptr %26, align 1
+	br label %label_69
 
-label_70:
-	%71 = load i8, ptr %26, align 1
-	%72 = zext i8 %71 to i32
-	store i32 %72, ptr %25, align 4
-	%73 = load i32, ptr %22, align 4
-	%74 = load i32, ptr %23, align 4
-	%75 = and i32 %73, %74
-	%76 = load i32, ptr %22, align 4
-	%77 = load i32, ptr %23, align 4
-	%78 = xor i32 %76, %77
-	%79 = shl i32 %78, 1
-	%80 = ashr i32 %79, 1
-	%81 = or i32 %75, %80
-	store i32 %81, ptr %28, align 4
-	%82 = load i32, ptr %22, align 4
-	%83 = load i32, ptr %23, align 4
-	%84 = icmp sgt i32 %82, %83
-	%85 = icmp ne i1 %84, 0
-	br i1 %85, label %label_84, label %label_85
+label_47:
+	store i8 0, ptr %26, align 1
+	br label %label_69
+
+label_69:
+	%70 = load i8, ptr %26, align 1
+	%71 = zext i8 %70 to i32
+	store i32 %71, ptr %25, align 4
+	%72 = load i32, ptr %22, align 4
+	%73 = load i32, ptr %23, align 4
+	%74 = and i32 %72, %73
+	%75 = load i32, ptr %22, align 4
+	%76 = load i32, ptr %23, align 4
+	%77 = xor i32 %75, %76
+	%78 = shl i32 %77, 1
+	%79 = ashr i32 %78, 1
+	%80 = or i32 %74, %79
+	store i32 %80, ptr %28, align 4
+	%81 = load i32, ptr %22, align 4
+	%82 = load i32, ptr %23, align 4
+	%83 = icmp sgt i32 %81, %82
+	%84 = icmp ne i1 %83, 0
+	br i1 %84, label %label_83, label %label_84
+
+label_83:
+	%85 = load i32, ptr %22, align 4
+	br label %label_85
 
 label_84:
-	%86 = load i32, ptr %22, align 4
-	br label %label_86
+	%86 = load i32, ptr %23, align 4
+	br label %label_85
 
 label_85:
-	%87 = load i32, ptr %23, align 4
-	br label %label_86
-
-label_86:
-	%88 = phi i32 [ %86, %label_84 ], [ %87, %label_85 ]
-	store i32 %88, ptr %29, align 4
-	%89 = load i32, ptr %22, align 4
-	%90 = icmp sgt i32 %89, 0
-	%91 = icmp ne i1 %90, 0
-	br i1 %91, label %label_95, label %label_96
-
-label_95:
-	store i32 0, ptr %30, align 4
-	br label %label_103
-
-label_103:
-	%92 = load i32, ptr %30, align 4
-	%93 = icmp slt i32 %92, 5
-	%94 = icmp ne i1 %93, 0
-	br i1 %94, label %label_100, label %label_101
-
-label_100:
-	%95 = load i32, ptr %30, align 4
-	%96 = call i32 (ptr, ...) @printf(ptr @.str.5, i32 noundef %95)
-	%97 = load i32, ptr %30, align 4
-	%98 = add nsw i32 %97, 1
-	store i32 %98, ptr %30, align 4
-	br label %label_103
-
-label_101:
-	br label %label_94
-
-label_96:
-	%99 = load i32, ptr %22, align 4
-	%100 = icmp eq i32 %99, 0
-	%101 = icmp ne i1 %100, 0
-	br i1 %101, label %label_111, label %label_112
-
-label_111:
-	%102 = call i32 (ptr, ...) @printf(ptr @.str.6)
-	br label %label_94
-
-label_112:
-	%103 = call i32 (ptr, ...) @printf(ptr @.str.7)
-	br label %label_94
+	%87 = phi i32 [ %85, %label_83 ], [ %86, %label_84 ]
+	store i32 %87, ptr %29, align 4
+	%88 = load i32, ptr %22, align 4
+	%89 = icmp sgt i32 %88, 0
+	%90 = icmp ne i1 %89, 0
+	br i1 %90, label %label_94, label %label_95
 
 label_94:
-	%104 = load i32, ptr %22, align 4
-	switch i32 %104, label %label_121 [
-		 i32 1, label %label_119
-		 i32 5, label %label_120
+	store i32 0, ptr %30, align 4
+	br label %label_102
+
+label_102:
+	%91 = load i32, ptr %30, align 4
+	%92 = icmp slt i32 %91, 5
+	%93 = icmp ne i1 %92, 0
+	br i1 %93, label %label_99, label %label_100
+
+label_99:
+	%94 = load i32, ptr %30, align 4
+	%95 = call i32 (ptr, ...) @printf(ptr @.str.5, i32 noundef %94)
+	%96 = load i32, ptr %30, align 4
+	%97 = add nsw i32 %96, 1
+	store i32 %97, ptr %30, align 4
+	br label %label_102
+
+label_100:
+	br label %label_93
+
+label_95:
+	%98 = load i32, ptr %22, align 4
+	%99 = icmp eq i32 %98, 0
+	%100 = icmp ne i1 %99, 0
+	br i1 %100, label %label_110, label %label_111
+
+label_110:
+	%101 = call i32 (ptr, ...) @printf(ptr @.str.6)
+	br label %label_93
+
+label_111:
+	%102 = call i32 (ptr, ...) @printf(ptr @.str.7)
+	br label %label_93
+
+label_93:
+	%103 = load i32, ptr %22, align 4
+	switch i32 %103, label %label_120 [
+		 i32 1, label %label_118
+		 i32 5, label %label_119
 	]
 
+label_118:
+	br label %label_117
+
 label_119:
-	br label %label_118
+	br label %label_122
 
 label_120:
-	br label %label_123
+	br label %label_117
 
-label_121:
-	br label %label_118
+label_117:
+	br label %label_122
 
-label_118:
+label_122:
 	br label %label_123
 
 label_123:
-	br label %label_124
+	%104 = load i32, ptr %23, align 4
+	%105 = sub nsw i32 %104, 1
+	store i32 %105, ptr %23, align 4
+	%106 = icmp ne i32 %104, 0
+	br i1 %106, label %label_124, label %label_125
 
 label_124:
-	%105 = load i32, ptr %23, align 4
-	%106 = sub nsw i32 %105, 1
-	store i32 %106, ptr %23, align 4
-	%107 = icmp ne i32 %105, 0
-	br i1 %107, label %label_125, label %label_126
+	br label %label_123
 
 label_125:
-	br label %label_124
-
-label_126:
-	br label %label_131
-
-label_131:
-	%108 = load i32, ptr %22, align 4
-	%109 = sub nsw i32 %108, 1
-	store i32 %109, ptr %22, align 4
-	%110 = load i32, ptr %22, align 4
-	%111 = icmp sgt i32 %110, 0
-	%112 = icmp ne i1 %111, 0
-	br i1 %112, label %label_131, label %label_130
+	br label %label_130
 
 label_130:
+	%107 = load i32, ptr %22, align 4
+	%108 = sub nsw i32 %107, 1
+	store i32 %108, ptr %22, align 4
+	%109 = load i32, ptr %22, align 4
+	%110 = icmp sgt i32 %109, 0
+	%111 = icmp ne i1 %110, 0
+	br i1 %111, label %label_130, label %label_129
+
+label_129:
 	store i64 8, ptr %31, align 8
-	%113 = load i32, ptr %22, align 4
-	%114 = sitofp i32 %113 to double
-	store double %114, ptr %32, align 8
+	%112 = load i32, ptr %22, align 4
+	%113 = sitofp i32 %112 to double
+	store double %113, ptr %32, align 8
 	store i32 10, ptr %33, align 4
 	store i32 20, ptr %34, align 4
 	store ptr %33, ptr %35, align 8
 	store ptr %34, ptr %36, align 8
-	%115 = load ptr, ptr %35, align 8
-	%116 = load i32, ptr %115, align 4
-	%117 = load ptr, ptr %36, align 8
-	%118 = load i32, ptr %117, align 4
-	%119 = add nsw i32 %116, %118
-	%120 = load ptr, ptr %35, align 8
-	store i32 %119, ptr %120, align 4
-	%121 = call i32 (ptr, ...) @printf(ptr @.str.8)
+	%114 = load ptr, ptr %35, align 8
+	%115 = load i32, ptr %114, align 4
+	%116 = load ptr, ptr %36, align 8
+	%117 = load i32, ptr %116, align 4
+	%118 = add nsw i32 %115, %117
+	%119 = load ptr, ptr %35, align 8
+	store i32 %118, ptr %119, align 4
+	%120 = call i32 (ptr, ...) @printf(ptr @.str.8)
 	store i32 0, ptr %1, align 4
 	br label %label_1
 
 label_1:
-	%122 = load i32, ptr %1, align 4
-	ret i32 %122
+	%121 = load i32, ptr %1, align 4
+	ret i32 %121
 }
 
 declare i32 @printf(ptr noundef %0, ...) #1
