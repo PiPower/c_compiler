@@ -457,15 +457,15 @@ define dso_local i64 @mixed(i8 noundef %0, i16 noundef %1, i32 noundef %2, i64 n
 	store i32 %2, ptr %7, align 4
 	store i64 %3, ptr %8, align 8
 	%10 = load i8, ptr %5, align 1
-	%11 = load i16, ptr %6, align 2
-	%12 = sext i8 %10 to i32
-	%13 = sext i16 %11 to i32
-	%14 = add nsw i32 %12, %13
+	%11 = sext i8 %10 to i64
+	%12 = load i16, ptr %6, align 2
+	%13 = sext i16 %12 to i64
+	%14 = add nsw i64 %11, %13
 	%15 = load i32, ptr %7, align 4
-	%16 = add nsw i32 %14, %15
-	%17 = load i64, ptr %8, align 8
-	%18 = sext i32 %16 to i64
-	%19 = add nsw i64 %18, %17
+	%16 = sext i32 %15 to i64
+	%17 = add nsw i64 %14, %16
+	%18 = load i64, ptr %8, align 8
+	%19 = add nsw i64 %17, %18
 	store i64 %19, ptr %9, align 8
 	br label %label_9
 

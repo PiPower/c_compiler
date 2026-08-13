@@ -762,11 +762,11 @@ define dso_local i32 @test_int_mixed() #0 {
 	store i32 %15, ptr %2, align 4
 	%16 = load i32, ptr %2, align 4
 	%17 = load i32, ptr %3, align 4
-	%18 = add i32 %16, %17
+	%18 = add nsw i32 %16, %17
 	store i32 %18, ptr %2, align 4
 	%19 = load i32, ptr %2, align 4
 	%20 = load i32, ptr %3, align 4
-	%21 = sub i32 %19, %20
+	%21 = sub nsw i32 %19, %20
 	store i32 %21, ptr %2, align 4
 	%22 = load i32, ptr %2, align 4
 	store i32 %22, ptr %1, align 4
@@ -966,11 +966,11 @@ define dso_local i64 @test_ll_mixed() #0 {
 	store i64 %12, ptr %2, align 8
 	%13 = load i64, ptr %2, align 8
 	%14 = load i64, ptr %3, align 8
-	%15 = udiv i64 %13, %14
+	%15 = sdiv i64 %13, %14
 	store i64 %15, ptr %2, align 8
 	%16 = load i64, ptr %2, align 8
 	%17 = load i64, ptr %3, align 8
-	%18 = add i64 %16, %17
+	%18 = add nsw i64 %16, %17
 	store i64 %18, ptr %2, align 8
 	%19 = load i64, ptr %2, align 8
 	store i64 %19, ptr %1, align 8
@@ -1105,17 +1105,16 @@ define dso_local float @test_float_int_mixed() #0 {
 	store float %26, ptr %2, align 4
 	%27 = load float, ptr %2, align 4
 	%28 = load i8, ptr %4, align 1
-	%29 = zext i8 %28 to i32
-	%30 = sitofp i32 %29 to float
-	%31 = fadd float %27, %30
-	store float %31, ptr %2, align 4
-	%32 = load float, ptr %2, align 4
-	store float %32, ptr %1, align 4
+	%29 = uitofp i8 %28 to float
+	%30 = fadd float %27, %29
+	store float %30, ptr %2, align 4
+	%31 = load float, ptr %2, align 4
+	store float %31, ptr %1, align 4
 	br label %label_1
 
 label_1:
-	%33 = load float, ptr %1, align 4
-	ret float %33
+	%32 = load float, ptr %1, align 4
+	ret float %32
 }
 
 define dso_local x86_fp80 @test_long_double_mixed() #0 {

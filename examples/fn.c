@@ -230,7 +230,7 @@ int bump(void)
 int main(void)
 {
     int arr[5];
-    struct Pair p;
+    struct Pair p = {};
 
     CHECK(f0() == 123);
     CHECK(f1(41) == 42);
