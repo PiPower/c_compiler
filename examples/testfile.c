@@ -13,7 +13,7 @@ int main(void) {
     char c = 'Z';
     _Bool flag = 1;
     const int ci = 42;
-    volatile int vi = 0;
+    int vi = 0;
     
     if (a * b < 22 || a < b &&  b > 0 && b < 11 || !flag ) {
         a += 1; b -= 1; c++; d--;
