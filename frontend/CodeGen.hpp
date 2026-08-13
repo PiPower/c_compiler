@@ -31,6 +31,7 @@ struct FunctionContext
 {
     int64_t variableIdx;
     int64_t startRemapIdx;
+    int64_t currLabelId;
     std::string_view fnName;
     bool inFunction;
     bool isBlockTerminated;
@@ -88,6 +89,7 @@ struct CodeGen
     void EmitGLobalArrayAlignment(bool isPtr, uint32_t alignment);
     void EmitInitializer(const DeclSpecs* spec, const Ast::Node* initializer, bool isComplexType);
     // Local stuff
+    int64_t GetCurrLabel();
     int64_t AllocatePassByTmpStruct(const std::string_view& left, const std::string_view& right, uint64_t alignment);
     void EmitSimpleReturn(BuiltIn::Type dType, Operator ret);
     void EmitLocalVariable(const SymbolVariable* symVar);
@@ -142,6 +144,7 @@ struct CodeGen
     int64_t EmitLocalIntToFloatConv(BuiltIn::Type srcType, BuiltIn::Type dstType, int64_t loadIdx);
     int64_t EmitLocalGlLoad(BuiltIn::Type type, int32_t alignment, const std::string_view& varName);
     int64_t EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t loadIdx);
+    int64_t EmitLocalPhiNode(BuiltIn::Type type, const std::vector<Operator>& operators, const std::vector<int64_t>& labels) ;
     int64_t EmitLocalLoad(const std::string_view& typeView, int32_t alignment, int64_t loadIdx);
     int64_t EmitLocalSignExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);
     int64_t EmitLocalZeroExt(BuiltIn::Type dstType, BuiltIn::Type srcType, int64_t loadIdx);

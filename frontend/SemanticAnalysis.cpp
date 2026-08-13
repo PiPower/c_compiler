@@ -2314,6 +2314,7 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     }
     switch (root->type)
     {
+    case Ast::cond_expression: return HandleCondExpr(root);
     case Ast::op_sizeof: return HandleSizeof(root);
     case Ast::op_log_and: 
     case Ast::op_log_or: return HandleLogicalOps(root);
@@ -2903,6 +2904,51 @@ ExprRet SemanticAnalyzer::HandleNegate(const Ast::Node *root)
     return out;
 }
 
+ExprRet SemanticAnalyzer::HandleCondExpr(const Ast::Node *root)
+{
+    const Ast::Node* condition = &root->lChild[0];
+    const Ast::Node* condOnTrue = &root->lChild[1];
+    const Ast::Node* condOnFalse = root->rChild;
+
+    int64_t trueLabel = codeGen.GetIdxForLocalVar();
+    int64_t falseLabel = codeGen.GetIdxForLocalVar();
+    int64_t exitLabel = codeGen.GetIdxForLocalVar();
+
+
+    ExprRet condExpr = AnalyzeExpr(condition);
+    int64_t condId = HandleNotEqZero(condExpr);
+    codeGen.EmitLocalCondJump(condId, trueLabel, falseLabel);
+
+    codeGen.EmitLocalLabel(trueLabel);
+    ExprRet outTrue = AnalyzeExpr(condOnTrue);
+    outTrue = LoadVariable(outTrue);
+    // condOnTrue might contain cond_expr so we need to update to the latest label
+    trueLabel = codeGen.GetCurrLabel();
+    codeGen.EmitLocalJump(exitLabel);
+
+
+    codeGen.EmitLocalLabel(falseLabel);
+    ExprRet outFalse = AnalyzeExpr(condOnFalse);
+    outFalse = LoadVariable(outFalse);
+    // condOnFalse might contain cond_expr so we need to update to the latest label
+    falseLabel = codeGen.GetCurrLabel(); 
+    codeGen.EmitLocalJump(exitLabel);
+
+    codeGen.EmitLocalLabel(exitLabel);
+
+    if(outFalse.type != outTrue.type)
+    {
+        IssueWarning(nullptr, "Currenlty both results of conditional expr MUST have the same type")
+    }
+
+    ExprRet out = {};
+    out.type = outFalse.type;
+    out.id = codeGen.EmitLocalPhiNode(out.type, {{outTrue.id, outTrue.num}, {outFalse.id, outFalse.num}}, {trueLabel, falseLabel});
+    out.typenameView = GetBuiltInName(out.type);
+    out.symType = symTab->QueryTypeSymbol(out.typenameView);
+    return out;
+}
+
 ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
 {
     ExprRet value = AnalyzeExpr(root->lChild);
@@ -2938,6 +2984,8 @@ ExprRet SemanticAnalyzer::HandleCast(const Ast::Node *root)
             {
                 value = LoadVariable(value);
                 value = HandleTypeConversion(&value, spec.symType->dType);
+                value.typenameView = GetBuiltInName(value.type);
+                value.symType = symTab->QueryTypeSymbol(value.typenameView);
             }
         }
         castNode = castNode->rChild;

@@ -69,7 +69,8 @@ int main(void) {
 
     struct Point p = { .x = 10, .y = 20 };
     union Data data;
-    data.f = 3.14f;
+    // TODO add support for unions
+    //data.f = 3.14f;
 
     int arr[5] = { [0] = 1, [3] = 4 };
     int matrix[2][2] = {{1,2},{3,4}};

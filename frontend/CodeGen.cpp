@@ -31,7 +31,7 @@ static const char* memsetIntr = "\ndeclare void @llvm.memset.p0.i64(ptr writeonl
 
 CodeGen::CodeGen(SymbolTable* symTab,  FileManager* manager, NodeExecutor* ne)
 :
-chosenBuffer(TYPE_BUFFER), currFn(-1, -1, "", false, false), attrCtr(0), typeHeap(nr_of_pages), symTab(symTab),
+chosenBuffer(TYPE_BUFFER), currFn(-1, -1, -1, "", false, false), attrCtr(0), typeHeap(nr_of_pages), symTab(symTab),
 manager(manager), nodeExec(ne), logger(manager, "Code Gen")
 {
     for(size_t i =0 ; i < writableBufferArr.size(); i++)
@@ -530,7 +530,12 @@ void CodeGen::EmitFunctionParam(SymbolType* symType, const std::string_view &typ
     }
 }
 
-int64_t CodeGen::AllocatePassByTmpStruct(const std::string_view& left, const std::string_view& right, uint64_t alignment)
+int64_t CodeGen::GetCurrLabel()
+{
+    return currFn.currLabelId;
+}
+
+int64_t CodeGen::AllocatePassByTmpStruct(const std::string_view &left, const std::string_view &right, uint64_t alignment)
 {
     BindAllocaBuffer();
     int64_t idx = GetIdxForLocalVar();
@@ -589,6 +594,7 @@ void CodeGen::EmitFunctionBodyStart()
     WriteCharData(" {");
     // starting from the next index every value after % will be remapped to linearly growing addresses
     currFn.startRemapIdx = currFn.variableIdx;
+    currFn.currLabelId = -1;
 }
 
 void CodeGen::EmitInitializer(const DeclSpecs *spec, const Ast::Node *initializer, bool isComplexType)
@@ -1020,6 +1026,7 @@ void CodeGen::EmitLocalLabel(int64_t label)
 {
     BindLocalBuffer();
     currFn.isBlockTerminated = false;
+    currFn.currLabelId = label;
     WriteCharData("\n\nlabel_%l:", label);
 }
 
@@ -1046,6 +1053,7 @@ int64_t CodeGen::EmitLocalLabel()
     int64_t label = GetIdxForLocalVar();
     WriteCharData("\nlabel_%l:", label);
     currFn.isBlockTerminated = false;
+    currFn.currLabelId = label;
     return label;
 }
 
@@ -1154,6 +1162,37 @@ int64_t CodeGen::EmitLocalLoad(BuiltIn::Type type, int32_t alignment, int64_t lo
 {
     std::string_view srcType = GetBuiltInName(type);
     return EmitLocalLoad(srcType, alignment, loadIdx);
+}
+
+int64_t CodeGen::EmitLocalPhiNode(BuiltIn::Type type, const std::vector<Operator> &operators, const std::vector<int64_t> &labels)
+{
+    BindLocalBuffer();
+    int64_t targetIdx = GetIdxForLocalVar();
+    WriteCharData("\n\t%%%l = phi %v ", targetIdx, GetBuiltInName(type));
+    if(operators.size() != labels.size())
+    {
+        IssueWarning(nullptr, "PhiNode: Number of nodes does not equals number of operators")
+    }
+
+    for(size_t i = 0; i < operators.size(); i++)
+    {
+        WriteCharData("[ ");
+        if(operators[i].idx == EXPR_ID_CONST)
+        {
+            EmitConstant(false, type, operators[i].num);
+        }
+        else
+        {
+            WriteCharData("%%%l", operators[i].idx);
+        }
+        WriteCharData(", %%label_%l ]", labels[i]);
+
+        if(i != operators.size() - 1)
+        {
+            WriteCharData(", ");
+        }
+    }
+    return targetIdx;
 }
 
 int64_t CodeGen::EmitLocalLoad(const std::string_view &typeView, int32_t alignment, int64_t loadIdx)
