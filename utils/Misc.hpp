@@ -113,6 +113,11 @@ constexpr inline bool isStructOrUnion(BuiltIn::Type type)
     return type == BuiltIn::struct_t || type == BuiltIn::union_t;
 }
 
+constexpr inline bool isPostOpAst(Ast::NodeType type)
+{
+    return type == Ast::op_post_dec || type == Ast::op_post_inc;
+}
+
 constexpr inline BuiltIn::Type getStrongerFLoat(BuiltIn::Type t1, BuiltIn::Type t2)
 {
     // floats are enums in Type that are ordered by "strength"

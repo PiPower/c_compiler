@@ -62,9 +62,9 @@ int main(void) {
     char c3 = '\x41';
 
     // String literals
-    char str1[] = "Hello, World!";
-    char str2[] = "Escaped chars: \t \n \" \\";
-    char str3[] = "Concatenated ";
+    const char* str1 = "Hello, World!";
+    const char* str2 = "Escaped chars: \t \n \" \\";
+    const char* str3 = "Concatenated ";
  //                 "string literal";
 
     struct Point p = { .x = 10, .y = 20 };

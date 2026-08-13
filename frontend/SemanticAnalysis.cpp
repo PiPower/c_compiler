@@ -2314,8 +2314,11 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
     }
     switch (root->type)
     {
+    case Ast::op_sizeof: return HandleSizeof(root);
     case Ast::op_log_and: 
     case Ast::op_log_or: return HandleLogicalOps(root);
+    case Ast::op_pre_dec:  return HandleUpdateOp(root, false, false);
+    case Ast::op_pre_inc:  return HandleUpdateOp(root, true, false);
     case Ast::op_post_dec:  return HandleUpdateOp(root, false, true);
     case Ast::op_post_inc:  return HandleUpdateOp(root, true, true);
     case Ast::array_access: return HandleArrayAccess(root);
@@ -2373,10 +2376,11 @@ ExprRet SemanticAnalyzer::AnalyzeExpr(const Ast::Node *root)
 
 ExprRet SemanticAnalyzer::HandleUpdateOp(const Ast::Node *root, bool increment, bool post)
 {
-    ExprRet expr = AnalyzeExpr(root->lChild);
+    const Ast::Node* src =  isPostOpAst(root->type) ? root->lChild : root->rChild;
+    ExprRet expr = AnalyzeExpr(src);
     if(!expr.isPtr)
     {
-        IssueWarning(&root->token, "Cannot apply post increment to non l-value")
+        IssueWarning(&root->token, "Cannot apply pre/post increment/decrement to non l-value")
     }
     if(expr.id == EXPR_ID_VAR)
     {
@@ -2745,6 +2749,35 @@ ExprRet SemanticAnalyzer::HandleInitExpr(const Ast::Node *root)
     }
     ExprRet source = AnalyzeExpr(root->lChild);
     return ResolveAssignment(*destHandle, source);
+}
+
+ExprRet SemanticAnalyzer::HandleSizeof(const Ast::Node *root)
+{
+    const Ast::Node* abstractDecl = root->lChild->lChild;
+    if(abstractDecl->rChild || abstractDecl->lChild)
+    {
+        IssueWarning(&root->token, "abstract declarator is not supported in sizeof")
+    }
+
+    /*
+        spec needs to be validated because it should be restricted only to 
+        type-specifier and type-qualifier as standard holds for typename
+    */
+    DeclSpecs spec = AnalyzeDeclSpec(root->lChild->rChild);
+    if(spec.declType.isEllipsis || spec.declType.storageFlags)
+    {
+        IssueWarning(&root->token, "forbiden keyword used in sizeof")
+    }
+  
+    Typed::Number sizeofValue = {};
+    sizeofValue.type = Typed::d_int32_t;
+    sizeofValue.int32 = (int)spec.symType->size;
+
+    ExprRet out = {};
+    out.type = BuiltIn::s_int_32;
+    out.num = sizeofValue;
+    out.id = EXPR_ID_CONST;
+    return out;
 }
 
 ExprRet SemanticAnalyzer::HandleFunctionCall(const Ast::Node *root)
