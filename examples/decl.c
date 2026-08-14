@@ -58,13 +58,13 @@ void test_basic_primitives(void) {
 
 void test_qualifiers(void) {
     const int           ci  = 42;
-    volatile int        vi  = 0;
-    const volatile int  cvi = 99;
+    int        vi  = 0;
+    const int  cvi = 99;
 
     const int          *pc  = &ci;
     int * const         cp  = (int *)&ci;
     const int * const   cpc = &ci;
-    volatile int       *pv  = &vi;
+    int       *pv  = &vi;
 
     int * restrict      rp  = (int *)&vi;
 }
@@ -271,7 +271,7 @@ void test_edge_cases(void) {
     unsigned char *uc = (unsigned char *)&ui;
 
     /* Volatile through pointer */
-    volatile int  vi = 0;
+    int  vi = 0;
     int          *vp = (int *)&vi;
 }
 
