@@ -541,7 +541,7 @@ void SemanticAnalyzer::AnalyzeTypedef(DeclSpecs* declSpec, const Ast::Node *init
             PointerDesc ptrDesc;
             ptrDesc.accessTypes = decl.accArr;
             ptrDesc.spec = *declSpec;
-            symTab->AddSymbol<SymbolType>(decl.name, BuiltIn::ptr, true, true, 8, 8, ptrDesc);
+            symTab->AddSymbol<SymbolType>(decl.name, declSpec->symType->dType, true, true, 8, 8, ptrDesc);
         }
         else
         {
@@ -2102,10 +2102,10 @@ DeclSpecs SemanticAnalyzer::AnalyzeDeclSpec(const Ast::Node *declSpecs)
                 // it is safe to fetch typename from token
                 spec.typenameView = GetViewForToken(currNode->token, manager);
                 spec.symType = symTab->QueryTypeSymbol(spec.typenameView);
-                if(spec.symType->dType != BuiltIn::ptr)
-                {
-                    IssueWarning(nullptr, "Internal: spec.symType->dType != BuiltIn::ptr")
-                }
+                //if(spec.symType->dType != BuiltIn::ptr)
+                //{
+                //    IssueWarning(nullptr, "Internal: spec.symType->dType != BuiltIn::ptr")
+                //}
                 spec.accArr = &spec.symType->ptr.accessTypes;
                 
                 
