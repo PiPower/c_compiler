@@ -525,6 +525,7 @@ define dso_local i32 @main() #0 {
 	%6 = alloca %struct.Pair3, align 8
 	%7 = alloca %struct.Pair, align 4 
 	%8 = alloca %struct.Pair3, align 8 
+	store i32 0, ptr %1, align 4
 	call void @llvm.memset.p0.i64(ptr align 4 %3, i8 0, i64 16, i1 false)
 	br label %label_6
 

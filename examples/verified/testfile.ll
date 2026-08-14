@@ -24,6 +24,7 @@ define dso_local i32 @main() #0 {
 	%16 = alloca i8, align 1
 	%17 = alloca %struct.Point, align 4
 	%18 = alloca ptr, align 8
+	store i32 0, ptr %1, align 4
 	store i32 939, ptr %2, align 4
 	store i32 395995, ptr %3, align 4
 	store i8 92, ptr %4, align 1

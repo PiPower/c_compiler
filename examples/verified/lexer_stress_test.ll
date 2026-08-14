@@ -88,6 +88,7 @@ define dso_local i32 @main() #0 {
 	%34 = alloca i32, align 4
 	%35 = alloca ptr, align 8
 	%36 = alloca ptr, align 8
+	store i32 0, ptr %1, align 4
 	store i32 123, ptr %2, align 4
 	store i32 123, ptr %3, align 4
 	store i32 0, ptr %4, align 4

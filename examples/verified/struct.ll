@@ -16,6 +16,7 @@ define dso_local i32 @main() #0 {
 	%4 = alloca ptr, align 8
 	%5 = alloca %struct.Line, align 4
 	%6 = alloca ptr, align 8
+	store i32 0, ptr %1, align 4
 	%7 = getelementptr inbounds nuw %struct.Point, ptr %2, i32 0, i32 0
 	store i32 1, ptr %7, align 4
 	%8 = getelementptr inbounds nuw %struct.Point, ptr %2, i32 0, i32 1

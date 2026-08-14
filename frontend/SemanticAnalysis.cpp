@@ -242,6 +242,14 @@ void SemanticAnalyzer::AnalyzeFunctionDef(const Ast::Node *decl, const Ast::Node
     StartFunction(fnSym, false);
     // emit function body
     const Ast::Node* bodyNode = body->rChild;
+    // store 0 in main as standard says
+    if(fnSym->decl.name == "main" && fnSym->retType == BuiltIn::s_int_32)
+    {
+        Typed::Number num;
+        num.type = Typed::d_int32_t;
+        num.int32 = 0;
+        codeGen.EmitLocalConstAsm(BuiltIn::s_int_32, GetBuiltInAlignment(BuiltIn::s_int_32), currFn.retVal, num);
+    }
     while (bodyNode)
     {
         Analyze(bodyNode->lChild);
