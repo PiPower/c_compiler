@@ -181,6 +181,11 @@ typedef int           *int_ptr_t;
 typedef void         (*callback_t)(int);
 typedef struct Point   Point2D;
 typedef int            Matrix3x3[3][3];
+typedef int A[4];
+typedef int *B;
+typedef int (*C)(int);
+typedef int D[4][5];
+typedef int (*E)[5];
 
 void dummy_cb(int x) {}
 
@@ -190,6 +195,13 @@ void test_typedefs(void) {
     //callback_t cb = dummy_cb;
     Point2D    pt = {3.0, 4.0};
     Matrix3x3  m  = {{1,0,0},{0,1,0},{0,0,1}};
+    {
+        A a;
+        B b;
+        C c;
+        D d;
+        E e;
+    }
 }
 
 void test_compound_literals(void) {
@@ -273,6 +285,12 @@ void test_edge_cases(void) {
     /* Volatile through pointer */
     int  vi = 0;
     int          *vp = (int *)&vi;
+}
+
+void test_array_decay(void)
+{
+    int a[4] = {1, 2, 3, 4};
+    int *p = a;
 }
 
 /* =========================================================
