@@ -426,6 +426,13 @@ FunctionParams *SemanticAnalyzer::ProcessFnParams(const Ast::Node *paramsNode, s
             param.spec = AnalyzeDeclSpec(paramNode->lChild->rChild);
             // TODO validate whethere decl does not contain FN_CALL
             param.decl = AnalyzeDeclarator(paramNode->rChild, param.spec.accArr, nullptr); 
+            if(IsArray(&param.decl.accArr))
+            {
+                Qualifiers quals = param.decl.accArr.ptr[param.decl.accArr.count - 1].array.quals;
+                param.decl.accArr.count = 1;
+                param.decl.accArr.ptr->type = ACC_POINTER;
+                param.decl.accArr.ptr->ptr.quals = quals;
+            }
             params.push_back(param);
         }
         glueNode = glueNode->rChild;
