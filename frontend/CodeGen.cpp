@@ -1106,7 +1106,7 @@ int64_t CodeGen::EmitLocalFloatToIntConv(BuiltIn::Type srcType, BuiltIn::Type ds
 
     BindLocalBuffer();
     int64_t idx = GetIdxForLocalVar();
-    std::string_view convOp =  isSigned(srcType)? "fptosi" : "fptoui";
+    std::string_view convOp =  isSigned(dstType)? "fptosi" : "fptoui";
 
     WriteCharData("\n\t%%%l = %v %v %%%l to %v", idx, convOp, GetBuiltInName(srcType), loadIdx, GetBuiltInName(dstType));
     return idx;
