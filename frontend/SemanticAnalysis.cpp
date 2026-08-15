@@ -2509,7 +2509,8 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
     }
     else if(constant->token.u)
     {
-        uint64_t value = stringToUint64(str.data(), str.length(), MODE_DEC); 
+        uint8_t mode = getTokenValueMode(constant->token);
+        uint64_t value = stringToUint64(str.data(), str.length(), mode); 
         if(constant->token.l == 0 && value <= UINT32_MAX)
         {
             type = BuiltIn::u_int_32;
@@ -2525,7 +2526,8 @@ ExprRet SemanticAnalyzer::LoadConstant(const Ast::Node *constant)
     }
     else
     {
-        int64_t value = stringToInt64(str, MODE_DEC);
+        uint8_t mode = getTokenValueMode(constant->token);
+        int64_t value = stringToInt64(str, mode);
 
         if (constant->token.l == 0 &&
             value >= INT32_MIN &&

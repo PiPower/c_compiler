@@ -2,7 +2,7 @@
 #include "../LangTypes.hpp"
 #include "../frontend/NodeExecutor.hpp"
 #include "PagedHeap.hpp"
-
+#include "DataEncoder.hpp"
 struct ArrayInitPair
 {
     uint64_t idx;
@@ -122,6 +122,27 @@ constexpr inline BuiltIn::Type getStrongerFLoat(BuiltIn::Type t1, BuiltIn::Type 
 {
     // floats are enums in Type that are ordered by "strength"
     return t1 > t2 ? t1 : t2;
+}
+
+constexpr inline uint8_t getTokenValueMode(const Token& token)
+{
+    if(token.isDec)
+    {
+        return MODE_DEC;
+    }
+    if(token.isBin)
+    {
+        return MODE_BIN;
+    }
+    if(token.isHex)
+    {
+        return MODE_HEX;
+    }
+    if(token.isOct)
+    {
+        return MODE_OCT;
+    }
+    return 0xFF;
 }
 
 inline Typed::Number CastTypedNumber(BuiltIn::Type type, const Typed::Number& num)

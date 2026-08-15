@@ -1,6 +1,22 @@
 #include "DataEncoder.hpp"
 #include <math.h>
 #include <string.h>
+
+
+static int64_t hexCharToDec(char c)
+{
+    if(c >= '0' && c <= '9')
+    {
+        return c - '0';
+    }
+    if(c > 'F')
+    {
+        c -= 'f' - 'F';
+    }
+
+    return c - 'A' + 10;
+}
+
 static long double decStringToLongDouble(const char *data, int32_t len)
 {
     long double x = 0;
@@ -45,6 +61,25 @@ static uint64_t decStringToUint64(const char *data, int32_t len)
     return x;
 }
 
+static uint64_t hexStringToUint64(const char *data, int32_t len)
+{
+    int64_t x = 0;
+    int64_t i = 0;
+
+    i++; //skip 0
+    i++; // ski x
+    int64_t v = hexCharToDec(data[i]);
+    while (i < len && v >= 0 && v <= 15)
+    {   
+        x *= 16;
+        i++;
+        x+= v;
+        v = hexCharToDec(data[i]); 
+    }
+    
+    return x;
+}
+
 static int64_t decStringToInt64(const char *data, int32_t len)
 {
     int64_t x = 0;
@@ -68,6 +103,33 @@ static int64_t decStringToInt64(const char *data, int32_t len)
     return sign * x;
 }
 
+static int64_t hexStringToInt64(const char *data, int32_t len)
+{
+    int64_t x = 0;
+    int64_t i = 0;
+    int64_t sign = 1;
+
+    if(i < len && data[i] == '-')
+    {
+        sign = -1;
+        i++;
+    }
+
+    i++; //skip 0
+    i++; // ski x
+    int64_t v = hexCharToDec(data[i]);
+    while (i < len && v >= 0 && v <= 15)
+    {   
+        x *= 16;
+        i++;
+        x+= v;
+        v = hexCharToDec(data[i]); 
+    }
+    
+    return sign * x;
+}
+
+
 long double stringToLongDouble(const char *data, int32_t len, uint8_t mode)
 {
     if(mode == MODE_DEC)
@@ -89,6 +151,10 @@ int64_t stringToInt64(const char *data, int32_t len, uint8_t mode)
     {
         return decStringToInt64(data, len);
     }
+    else if(mode == MODE_HEX)
+    {   
+        return hexStringToInt64(data, len);
+    }
     return 0;
 }
 
@@ -97,6 +163,10 @@ uint64_t stringToUint64(const char *data, int32_t len, uint8_t mode)
     if(mode == MODE_DEC)
     {
         return decStringToUint64(data, len);
+    }
+    else if(mode == MODE_HEX)
+    {   
+        return hexStringToUint64(data, len);
     }
     return 0;
 }

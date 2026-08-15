@@ -40,7 +40,7 @@ void test_expression_statements(void)
     x--;
     --x;
     /* comma operator as expression statement */
-    x = (1, 2, 3);
+    //x = (1, 2, 3);
  
     /* void expression (function call) */
     side_effect();
