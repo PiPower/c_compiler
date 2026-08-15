@@ -77,7 +77,7 @@ fetch_token:
         *token = GetCurrToken();
         ConsumeToken();
     } while (token->type == TokenType::comment);
-    
+
     if(token->type == TokenType::hash)
     {
         if(stages.ConstantExpr > 0)
@@ -236,7 +236,7 @@ void Preprocessor::FillQueueWithMacro(const Macro* macro)
     {
         Token tokenConst = {};
         tokenConst.type = TokenType::numeric_constant;
-        tokenConst.isHex = 1;
+        tokenConst.isDec = 1;
         tokenConst.location = macro == nullptr ? GetZeroLocation() : GetOneLocation();
         tokenQueue.push_front(tokenConst);
         return;
