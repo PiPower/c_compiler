@@ -20,6 +20,7 @@ struct CurrentFunction
 {
     SymbolFunction* symFn;
     std::stack<int64_t> labels;
+    std::stack<int64_t> contLabel;
     std::unordered_map<std::string_view, int64_t> namedLabels;
     int64_t retIdx;
     int64_t retVal;

@@ -268,7 +268,7 @@ define dso_local void @test_typedefs() #0 {
 	%7 = alloca ptr, align 8
 	%8 = alloca [4 x [5 x i32]], align 8
 	%9 = alloca ptr, align 8
-	store i8 0, ptr %1, align 1
+	store i8 -85, ptr %1, align 1
 	store ptr %1, ptr %2, align 8
 	call void @llvm.memset.p0.i64(ptr align 8 %3, i8 0, i64 16, i1 false)
 	%10 = getelementptr inbounds nuw %struct.Point, ptr %3, i32 0, i32 0
@@ -335,42 +335,48 @@ define dso_local void @test_for_init_decl() #0 {
 	%2 = alloca i32, align 4
 	%3 = alloca i32, align 4
 	store i32 0, ptr %1, align 4
-	br label %label_5
+	br label %label_6
 
-label_5:
+label_6:
 	%4 = load i32, ptr %1, align 4
 	%5 = icmp slt i32 %4, 10
 	%6 = icmp ne i1 %5, 0
 	br i1 %6, label %label_2, label %label_3
 
 label_2:
+	br label %label_4
+
+label_4:
 	%7 = load i32, ptr %1, align 4
 	%8 = add nsw i32 %7, 1
 	store i32 %8, ptr %1, align 4
-	br label %label_5
+	br label %label_6
 
 label_3:
 	store i32 0, ptr %2, align 4
 	store i32 10, ptr %3, align 4
-	br label %label_15
+	br label %label_17
 
-label_15:
+label_17:
 	%9 = load i32, ptr %2, align 4
 	%10 = load i32, ptr %3, align 4
 	%11 = icmp slt i32 %9, %10
 	%12 = icmp ne i1 %11, 0
-	br i1 %12, label %label_13, label %label_14
+	br i1 %12, label %label_14, label %label_15
 
-label_13:
+label_14:
+	br label %label_16
+
+label_16:
 	%13 = load i32, ptr %2, align 4
 	%14 = add nsw i32 %13, 1
 	store i32 %14, ptr %2, align 4
 	%15 = load i32, ptr %3, align 4
 	%16 = sub nsw i32 %15, 1
 	store i32 %16, ptr %3, align 4
-	br label %label_15
+	br label %label_17
 
-label_14:
+label_15:
 	br label %label_1
 
 label_1:
@@ -422,7 +428,7 @@ define dso_local void @test_edge_cases() #0 {
 	%6 = alloca ptr, align 8
 	store i32 5, ptr %1, align 4
 	store i8 1, ptr %2, align 1
-	store i32 0, ptr %3, align 4
+	store i32 57005, ptr %3, align 4
 	store ptr %3, ptr %4, align 8
 	store i32 0, ptr %5, align 4
 	store ptr %5, ptr %6, align 8

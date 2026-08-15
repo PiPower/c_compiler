@@ -176,6 +176,14 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
     {
         DoWhileStatement(root);
     }
+    else if(root->type == Ast::st_continue)
+    {
+        if(currFn.contLabel.size() == 0)
+        {
+            IssueWarning(&root->token, "Cannot jump when it is not inside statement")
+        }
+        codeGen.EmitLocalJump(currFn.contLabel.top());   
+    }
     else if(root->type == Ast::st_compound)
     {
 
@@ -184,7 +192,7 @@ void SemanticAnalyzer::Analyze(const Ast::Node *root)
         while (st)
         {
             Analyze(st->lChild);
-            if(st->type == Ast::st_break || st->type == Ast::st_continue)
+            if(st->type == Ast::st_break )
             {
                 break;
             }
@@ -3629,13 +3637,13 @@ void SemanticAnalyzer::WhileStatement(const Ast::Node *root)
 {
 
     int64_t entryLabel = codeGen.GetIdxForLocalVar();
-    codeGen.EmitLocalJump(entryLabel);
-    codeGen.EmitLocalLabel(entryLabel);
-
     int64_t bodyLabel = codeGen.GetIdxForLocalVar();
     int64_t exitLabel = codeGen.GetIdxForLocalVar();
     currFn.labels.push(exitLabel);
+    currFn.contLabel.push(entryLabel);
 
+    codeGen.EmitLocalJump(entryLabel);
+    codeGen.EmitLocalLabel(entryLabel);
     ExprRet cond = AnalyzeExpr(root->lChild);
     HandleNotZeroComparison(cond, bodyLabel, exitLabel);
 
@@ -3645,14 +3653,16 @@ void SemanticAnalyzer::WhileStatement(const Ast::Node *root)
     codeGen.EmitLocalLabel(exitLabel);
 
     currFn.labels.pop();
+    currFn.contLabel.pop();
 }
 
 void SemanticAnalyzer::DoWhileStatement(const Ast::Node *root)
 {
     int64_t exitLabel = codeGen.GetIdxForLocalVar();
-    currFn.labels.push(exitLabel);
-
     int64_t entryLabel = codeGen.GetIdxForLocalVar();
+    currFn.labels.push(exitLabel);
+    currFn.contLabel.push(entryLabel);
+
     codeGen.EmitLocalJump(entryLabel);
     codeGen.EmitLocalLabel(entryLabel);
     Analyze(root->lChild);
@@ -3662,6 +3672,7 @@ void SemanticAnalyzer::DoWhileStatement(const Ast::Node *root)
 
     codeGen.EmitLocalLabel(exitLabel);
     currFn.labels.pop();
+    currFn.contLabel.pop();
 }
 
 void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
@@ -3672,8 +3683,9 @@ void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
     const Ast::Node* body = &root->lChild[3];
     int64_t bodyLabel = codeGen.GetIdxForLocalVar();
     int64_t exitLabel = codeGen.GetIdxForLocalVar();
+    int64_t updateLabel = codeGen.GetIdxForLocalVar();
     currFn.labels.push(exitLabel);
-
+    currFn.contLabel.push(updateLabel);
     symTab->CreateNewScope(Scope::LOCAL);
     Analyze(decl);
 
@@ -3691,13 +3703,15 @@ void SemanticAnalyzer::ForLoopStatement(const Ast::Node *root)
     }
     codeGen.EmitLocalLabel(bodyLabel);
     Analyze(body);
+    codeGen.EmitLocalJump(updateLabel);
+    codeGen.EmitLocalLabel(updateLabel);
     AnalyzeExpr(update);
     codeGen.EmitLocalJump(entryLabel);
     codeGen.EmitLocalLabel(exitLabel);
 
     symTab->PopScope();
     currFn.labels.pop();
-
+    currFn.contLabel.pop();
 }
 
 void SemanticAnalyzer::BreakStatement(const Ast::Node *root)

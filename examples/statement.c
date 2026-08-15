@@ -158,7 +158,7 @@ void test_selection_statements(int n)
  * ================================================================ */
 void test_iteration_statements(void)
 {
-    int i, sum;
+    int i, sum = 0;
 
     /* 4a. while */
     i = 0;

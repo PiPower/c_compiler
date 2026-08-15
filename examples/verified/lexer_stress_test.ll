@@ -90,8 +90,8 @@ define dso_local i32 @main() #0 {
 	%36 = alloca ptr, align 8
 	store i32 0, ptr %1, align 4
 	store i32 123, ptr %2, align 4
-	store i32 123, ptr %3, align 4
-	store i32 0, ptr %4, align 4
+	store i32 0, ptr %3, align 4
+	store i32 6719, ptr %4, align 4
 	store i32 123, ptr %5, align 4
 	store i64 1234567890, ptr %6, align 8
 	store i64 123456789012345, ptr %7, align 8
@@ -217,9 +217,9 @@ label_85:
 
 label_94:
 	store i32 0, ptr %30, align 4
-	br label %label_102
+	br label %label_103
 
-label_102:
+label_103:
 	%91 = load i32, ptr %30, align 4
 	%92 = icmp slt i32 %91, 5
 	%93 = icmp ne i1 %92, 0
@@ -228,10 +228,13 @@ label_102:
 label_99:
 	%94 = load i32, ptr %30, align 4
 	%95 = call i32 (ptr, ...) @printf(ptr @.str.5, i32 noundef %94)
+	br label %label_101
+
+label_101:
 	%96 = load i32, ptr %30, align 4
 	%97 = add nsw i32 %96, 1
 	store i32 %97, ptr %30, align 4
-	br label %label_102
+	br label %label_103
 
 label_100:
 	br label %label_93
@@ -240,61 +243,61 @@ label_95:
 	%98 = load i32, ptr %22, align 4
 	%99 = icmp eq i32 %98, 0
 	%100 = icmp ne i1 %99, 0
-	br i1 %100, label %label_110, label %label_111
+	br i1 %100, label %label_111, label %label_112
 
-label_110:
+label_111:
 	%101 = call i32 (ptr, ...) @printf(ptr @.str.6)
 	br label %label_93
 
-label_111:
+label_112:
 	%102 = call i32 (ptr, ...) @printf(ptr @.str.7)
 	br label %label_93
 
 label_93:
 	%103 = load i32, ptr %22, align 4
-	switch i32 %103, label %label_120 [
-		 i32 1, label %label_118
-		 i32 5, label %label_119
+	switch i32 %103, label %label_121 [
+		 i32 1, label %label_119
+		 i32 5, label %label_120
 	]
 
-label_118:
-	br label %label_117
-
 label_119:
-	br label %label_122
+	br label %label_118
 
 label_120:
-	br label %label_117
+	br label %label_123
 
-label_117:
-	br label %label_122
+label_121:
+	br label %label_118
 
-label_122:
+label_118:
 	br label %label_123
 
 label_123:
+	br label %label_124
+
+label_124:
 	%104 = load i32, ptr %23, align 4
 	%105 = sub nsw i32 %104, 1
 	store i32 %105, ptr %23, align 4
 	%106 = icmp ne i32 %104, 0
-	br i1 %106, label %label_124, label %label_125
-
-label_124:
-	br label %label_123
+	br i1 %106, label %label_125, label %label_126
 
 label_125:
-	br label %label_130
+	br label %label_124
 
-label_130:
+label_126:
+	br label %label_131
+
+label_131:
 	%107 = load i32, ptr %22, align 4
 	%108 = sub nsw i32 %107, 1
 	store i32 %108, ptr %22, align 4
 	%109 = load i32, ptr %22, align 4
 	%110 = icmp sgt i32 %109, 0
 	%111 = icmp ne i1 %110, 0
-	br i1 %111, label %label_130, label %label_129
+	br i1 %111, label %label_131, label %label_130
 
-label_129:
+label_130:
 	store i64 8, ptr %31, align 8
 	%112 = load i32, ptr %22, align 4
 	%113 = sitofp i32 %112 to double

@@ -217,9 +217,9 @@ define dso_local i32 @sum_array(ptr noundef %0, i32 noundef %1) #0 {
 	store i32 %1, ptr %4, align 4
 	store i32 0, ptr %6, align 4
 	store i32 0, ptr %7, align 4
-	br label %label_11
+	br label %label_12
 
-label_11:
+label_12:
 	%8 = load i32, ptr %7, align 4
 	%9 = load i32, ptr %4, align 4
 	%10 = icmp slt i32 %8, %9
@@ -235,10 +235,13 @@ label_9:
 	%17 = load i32, ptr %16, align 4
 	%18 = add nsw i32 %12, %17
 	store i32 %18, ptr %6, align 4
+	br label %label_11
+
+label_11:
 	%19 = load i32, ptr %7, align 4
 	%20 = add nsw i32 %19, 1
 	store i32 %20, ptr %7, align 4
-	br label %label_11
+	br label %label_12
 
 label_10:
 	%21 = load i32, ptr %6, align 4
